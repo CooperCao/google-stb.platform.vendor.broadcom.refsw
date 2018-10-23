@@ -368,24 +368,14 @@ NEXUS_Error NEXUS_SecurityModule_Standby_priv( bool enabled, const NEXUS_Standby
 
     if( enabled ) /* if *enter* standby */
     {
-        if( pSettings->mode != NEXUS_StandbyMode_eDeepSleep )
-        {
-            /* NEXUS_PowerManagement_SetCoreState is called when keyslots are allocated and free'd.
-               in non-S3, this does not have to occur, so we power down as many times as the number of keyslots opened */
-            NEXUS_PowerManagement_SetCoreState(NEXUS_PowerManagementCore_eHsm, false);
-        }
-        else
+        if( pSettings->mode == NEXUS_StandbyMode_eDeepSleep )
         {
             uninitialiseHsm();
         }
     }
     else
     {
-        if (g_security.hsmHandle)
-        { /* not S3 */
-            NEXUS_PowerManagement_SetCoreState(NEXUS_PowerManagementCore_eHsm, true);
-        }
-        else
+        if (!g_security.hsmHandle)
         {
             NEXUS_SecurityRegionModuleSettings rvSettings;
 

@@ -1,0 +1,1810 @@
+/******************************************************************************
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
+#include "nexus_frontend_module.h"
+#include "nexus_frontend_sat.h"
+#include "priv/nexus_transport_priv.h"
+#include "priv/nexus_i2c_priv.h"
+#include "priv/nexus_gpio_priv.h"
+#include "priv/nexus_spi_priv.h"
+#include "bsat.h"
+#include "bdsq.h"
+#include "bwfe.h"
+#if NEXUS_HAS_FSK
+#include "bfsk.h"
+#endif
+#include "bsat_45402.h"
+#include "bwfe_45402.h"
+#include "bdsq_45402.h"
+#if NEXUS_HAS_FSK
+#include "bfsk_45402.h"
+#endif
+#include "bhab.h"
+#include "bhab_45402.h"
+#if NEXUS_FRONTEND_45402_FW
+#include "bhab_45402_fw.h"
+#endif
+#include "priv/nexus_core_img.h"
+#include "priv/nexus_core_img_id.h"
+#include "bhab_satfe_img.h"
+#include "bdbg.h"
+#if NEXUS_HAS_SAGE
+#include "priv/nexus_sage_bp3.h"
+#endif
+
+BDBG_MODULE(nexus_frontend_45402);
+
+BDBG_OBJECT_ID(NEXUS_45402Device);
+
+/* set to 1 to enable L1 interrupt messages */
+#define NEXUS_FRONTEND_DEBUG_IRQ 0
+
+/* set to 1 to disable asynchronous initialization */
+#define DISABLE_45402_ASYNC_INIT 0
+
+/* set to 1 to enable BP3 provisioning debug messages */
+#define NEXUS_FRONTEND_BP3_DEBUG 0
+
+#ifndef NEXUS_45402_MAX_FRONTEND_CHANNELS
+#define NEXUS_45402_MAX_FRONTEND_CHANNELS 2
+#endif
+
+#define B_SAT_CHIP 45402
+
+typedef struct NEXUS_FrontendDevice45402OpenSettings
+{
+    /* either GPIO or an L1 is used for notification from the frontend to the host. */
+    NEXUS_FrontendDeviceReset reset;    /* Information required for controlling the GPIO reset for S3, if necessary. */
+    NEXUS_GpioHandle gpioInterrupt;     /* GPIO pin for interrupt. If not NULL, isrNumber is ignored. If NULL, isrNumber is used. */
+    unsigned isrNumber;                 /* L1 interrupt number. (typically 0..63). See gpioInterrupt for other interrupt option. */
+
+    /* Either SPI or I2C is used for the host to control the frontend chip. */
+    NEXUS_I2cHandle i2cDevice;          /* I2C device to use. spiDevice should be NULL to use I2C. */
+    uint16_t i2cAddr;                   /* master device I2C Address */
+    uint8_t i2cSlaveAddr;               /* slave device I2C Address */
+
+    NEXUS_SpiHandle spiDevice;          /* SPI device to use. i2cDevice should be NULL to use SPI. */
+    uint16_t spiAddr;                   /* master device SPI Address */
+
+    NEXUS_FrontendDeviceMtsifSettings mtsif[NEXUS_MAX_MTSIF]; /* Configure MTSIF rate and drive strength at open time. If values are 0, defaults are used. */
+
+    struct {
+        uint16_t i2cAddr;               /* I2C address to communicate with diseqc */
+        NEXUS_I2cHandle i2cDevice;      /* I2C device to communicate with diseqc */
+    } diseqc;
+} NEXUS_FrontendDevice45402OpenSettings;
+
+typedef struct NEXUS_45402FrontendSettings
+{
+    NEXUS_FrontendDeviceHandle device;  /* Previously opened device to use */
+    unsigned channelNumber;             /* Which channel to open from this device */
+} NEXUS_45402FrontendSettings;
+
+typedef struct NEXUS_45402ProbeResults
+{
+    NEXUS_FrontendChipType chip;
+} NEXUS_45402ProbeResults;
+
+NEXUS_Error NEXUS_Frontend_Probe45402(const NEXUS_FrontendDevice45402OpenSettings *pSettings, NEXUS_45402ProbeResults *pResults);
+
+typedef struct NEXUS_45402Device
+{
+    BDBG_OBJECT(NEXUS_45402Device)
+    NEXUS_FrontendDevice45402OpenSettings settings;
+    NEXUS_FrontendDevice *pGenericDeviceHandle;
+    NEXUS_SatDeviceHandle satDevice;
+    bool isExternal;
+    uint32_t numChannels;   /* prototype to match BSAT_GetTotalChannels */
+    uint8_t numAdc;         /* prototype to match BSAT_GetAdcSelect */
+    BKNI_EventHandle isrEvent;
+    NEXUS_EventCallbackHandle isrCallback;
+    BSAT_ChannelHandle satChannels[NEXUS_45402_MAX_FRONTEND_CHANNELS];
+    NEXUS_FrontendHandle handles[NEXUS_45402_MAX_FRONTEND_CHANNELS];
+    BWFE_ChannelInfo wfeInfo;
+    uint32_t numDsqChannels;   /* prototype to match BDSQ_GetTotalChannels */
+    int wfeMap[NEXUS_45402_MAX_FRONTEND_CHANNELS];
+#if NEXUS_FRONTEND_HAS_A8299_DISEQC
+    uint8_t A8299_control;
+#endif
+#if NEXUS_HAS_FSK
+    uint32_t numFskChannels;
+    BFSK_Handle fskHandle;
+    BFSK_ChannelHandle fskChannels[NEXUS_45402_MAX_FRONTEND_CHANNELS];
+    NEXUS_EventCallbackHandle ftmEventCallback[NEXUS_45402_MAX_FRONTEND_CHANNELS];
+#endif
+    NEXUS_GpioHandle gpioHandle;
+    NEXUS_ThreadHandle deviceOpenThread;
+    BIMG_Interface imgInterface;
+    const uint8_t *fw;
+    unsigned chipId;
+} NEXUS_45402Device;
+
+#if NEXUS_HAS_SAGE
+static NEXUS_Error NEXUS_FrontendDevice_P_Init45402_InitBP3(NEXUS_45402Device *pDevice);
+#endif
+
+static void NEXUS_Frontend_P_45402_CloseCallback(NEXUS_FrontendHandle handle, void *pParam);
+static void NEXUS_Frontend_P_45402_DestroyDevice(void *handle);
+
+static NEXUS_Error NEXUS_Frontend_P_45402_TuneSatellite(void *handle, const NEXUS_FrontendSatelliteSettings *pSettings);
+static void NEXUS_Frontend_P_45402_Untune(void *handle);
+static NEXUS_Error NEXUS_Frontend_P_45402_ReapplyTransportSettings(void *handle);
+
+static BDSQ_ChannelHandle NEXUS_Frontend_P_45402_GetDiseqcChannelHandle(void *handle, int index);
+static NEXUS_Error NEXUS_Frontend_P_45402_SetVoltage(void *pDevice, NEXUS_FrontendDiseqcVoltage voltage);
+
+static void NEXUS_Frontend_P_45402_GetDefaultDiseqcSettings(void *pDevice, BDSQ_ChannelSettings *settings);
+#if NEXUS_HAS_FSK
+static BFSK_ChannelHandle NEXUS_Frontend_P_45402_GetFskChannelHandle(void *handle, int index);
+static void NEXUS_Frontend_P_45402_FtmEventCallback(void *context);
+#endif
+
+static NEXUS_Error NEXUS_FrontendDevice_P_Get45402Capabilities(void *handle, NEXUS_FrontendSatelliteCapabilities *pCapabilities);
+static NEXUS_Error NEXUS_Frontend_P_Get45402RuntimeSettings(void *handle, NEXUS_FrontendSatelliteRuntimeSettings *pSettings);
+static NEXUS_Error NEXUS_Frontend_P_Set45402RuntimeSettings(void *handle, const NEXUS_FrontendSatelliteRuntimeSettings *pSettings);
+static NEXUS_Error NEXUS_FrontendDevice_P_45402_GetStatus(void * handle, NEXUS_FrontendDeviceStatus *pStatus);
+static NEXUS_Error NEXUS_Frontend_P_45402_GetSatelliteAgcStatus(void *handle, NEXUS_FrontendSatelliteAgcStatus *pStatus);
+
+static void NEXUS_FrontendDevice_P_45402_GetCapabilities(void * handle, NEXUS_FrontendDeviceCapabilities *pCapabilities);
+
+static void NEXUS_Frontend_P_45402_ClearSpectrumCallbacks(void *handle);
+
+static NEXUS_Error NEXUS_Frontend_P_45402_ReadRegister(void *handle, unsigned address, uint32_t *pValue);
+static NEXUS_Error NEXUS_Frontend_P_45402_WriteRegister(void *handle, unsigned address, uint32_t value);
+
+static NEXUS_Error NEXUS_FrontendDevice_P_45402_Standby(void * handle, const NEXUS_StandbySettings *pSettings);
+static NEXUS_Error NEXUS_Frontend_P_45402_Standby(void *handle, bool enabled, const NEXUS_StandbySettings *pSettings);
+
+void NEXUS_FrontendDevice_GetDefault45402OpenSettings(NEXUS_FrontendDevice45402OpenSettings *pSettings)
+{
+    int i;
+    BDBG_ASSERT(NULL != pSettings);
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    for (i=0; i < NEXUS_MAX_MTSIF; i++) {
+        pSettings->mtsif[i].enabled = true;
+    }
+}
+
+/***************************************************************************
+Summary:
+    Enable/Disable interrupts for a 45402 device
+ ***************************************************************************/
+static void NEXUS_Frontend_P_45402_IsrControl_isr(bool enable, void *pParam)
+{
+    unsigned *isrNumber = (unsigned *)pParam;
+
+    if (enable) {
+#if NEXUS_FRONTEND_DEBUG_IRQ
+        BDBG_MSG(("Enable 45402 Interrupt %u", *isrNumber));
+#endif
+        NEXUS_Core_EnableInterrupt_isr(*isrNumber);
+    }
+    else {
+#if NEXUS_FRONTEND_DEBUG_IRQ
+        BDBG_MSG(("Disable 45402 Interrupt %u", *isrNumber));
+#endif
+        NEXUS_Core_DisableInterrupt_isr(*isrNumber);
+    }
+}
+
+/***************************************************************************
+Summary:
+    Enable/Disable gpio interrupts for a 45402 device
+ ***************************************************************************/
+static void NEXUS_Frontend_P_45402_GpioIsrControl_isr(bool enable, void *pParam)
+{
+    NEXUS_GpioHandle gpioHandle = (NEXUS_GpioHandle)pParam;
+
+#if NEXUS_FRONTEND_DEBUG_IRQ
+    BDBG_MSG(("%s 45402 Gpio Interrupt %p", enable ? "Enable" : "Disable", (void *)gpioHandle));
+#endif
+    NEXUS_Gpio_SetInterruptEnabled_isr(gpioHandle, enable);
+}
+
+static void NEXUS_Frontend_P_45402_IsrCallback(void *pParam)
+{
+    NEXUS_45402Device *pDevice = (NEXUS_45402Device *)pParam;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_45402Device);
+#if NEXUS_FRONTEND_DEBUG_IRQ
+    BDBG_MSG(("45402 ISR Callback (hab: %p)", (void *)pDevice->satDevice->habHandle));
+#endif
+    BHAB_ProcessInterruptEvent(pDevice->satDevice->habHandle);
+}
+
+static void NEXUS_Frontend_P_45402_L1_isr(void *param1, int param2)
+{
+    NEXUS_45402Device *pDevice = (NEXUS_45402Device *)param1;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_45402Device);
+    BSTD_UNUSED(param2);
+#if NEXUS_FRONTEND_DEBUG_IRQ
+    BDBG_MSG(("45402 L1 ISR (hab: %p)", (void *)pDevice->satDevice->habHandle));
+#endif
+
+    BHAB_HandleInterrupt_isr(pDevice->satDevice->habHandle);
+
+#if NEXUS_FRONTEND_DEBUG_IRQ
+    BDBG_WRN(("Done: 45402 L1 ISR (hab: %p)", (void *)pDevice->satDevice->habHandle));
+#endif
+}
+
+typedef struct NEXUS_FrontendDevice_P_45402_InitSettings {
+    BHAB_Settings habSettings;
+    BSAT_Settings satSettings;
+    BWFE_Settings wfeSettings;
+    BDSQ_Settings dsqSettings;
+#if NEXUS_HAS_FSK
+    BFSK_Settings fskSettings;
+#endif
+} NEXUS_FrontendDevice_P_45402_InitSettings;
+
+static NEXUS_Error NEXUS_FrontendDevice_P_Init45402_PreInitAP(NEXUS_45402Device *pDevice)
+{
+    NEXUS_FrontendDevice_P_45402_InitSettings *pInitSettings;
+    BHAB_Handle habHandle;
+    BSAT_Handle satHandle;
+    BWFE_Handle wfeHandle;
+    BDSQ_Handle dsqHandle;
+#if NEXUS_HAS_FSK
+    BFSK_Handle fskHandle;
+#endif
+    NEXUS_45402ProbeResults results;
+    unsigned i;
+    void *regHandle;
+    BERR_Code errCode;
+    NEXUS_FrontendDevice45402OpenSettings *pSettings = &pDevice->settings;
+
+    pInitSettings = (NEXUS_FrontendDevice_P_45402_InitSettings *)BKNI_Malloc(sizeof(NEXUS_FrontendDevice_P_45402_InitSettings));
+    if (!pInitSettings) {
+        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err;
+    }
+    BKNI_Memset(pInitSettings, 0, sizeof(NEXUS_FrontendDevice_P_45402_InitSettings));
+
+    NEXUS_Frontend_Probe45402(pSettings, &results);
+    BDBG_MSG(("chipid: %x",results.chip.familyId));
+    pDevice->chipId = results.chip.familyId;
+
+    BHAB_45402_GetDefaultSettings(&pInitSettings->habSettings);
+    {
+#if NEXUS_MODE_driver
+        const char *img_id = NULL;
+
+        if (results.chip.familyId == 0x45402) {
+#if NEXUS_FRONTEND_45402_FW
+            img_id = NEXUS_CORE_IMG_ID_FRONTEND_45402;
+#else
+            BDBG_ERR(("%x detected without 45402 firmware, rebuild with NEXUS_FRONTEND_45402=y", results.chip.familyId));
+#endif
+        }
+        if (Nexus_Core_P_Img_Create(img_id, &pInitSettings->habSettings.pImgContext, &pDevice->imgInterface ) == NEXUS_SUCCESS) {
+            pInitSettings->habSettings.pImgInterface = &pDevice->imgInterface;
+        } else {
+            pInitSettings->habSettings.pImgContext = NULL;
+        }
+#else
+        pInitSettings->habSettings.pImgInterface = &BHAB_SATFE_IMG_Interface;
+        if (results.chip.familyId == 0x45402) {
+#if NEXUS_FRONTEND_45402_FW
+            pInitSettings->habSettings.pImgContext = (void *)&BHAB_45402_IMG_Context;
+            pDevice->fw = bcm45402_ap_image;
+#else
+            BDBG_ERR(("%x detected without 45402 firmware, rebuild with NEXUS_FRONTEND_45402=y", results.chip.familyId));
+#endif
+        }
+#endif
+    }
+
+    if (pSettings->reset.enable) {
+        NEXUS_GpioSettings gpioSettings;
+        if (pDevice->gpioHandle) {
+            NEXUS_Gpio_Close(pDevice->gpioHandle);
+        }
+        BDBG_MSG(("Setting GPIO %d high",pSettings->reset.pin));
+        NEXUS_Gpio_GetDefaultSettings(pSettings->reset.type, &gpioSettings);
+        gpioSettings.mode = NEXUS_GpioMode_eOutputPushPull;
+        gpioSettings.value = pSettings->reset.value;
+        gpioSettings.interruptMode = NEXUS_GpioInterrupt_eDisabled;
+        gpioSettings.interrupt.callback = NULL;
+        pDevice->gpioHandle = NEXUS_Gpio_Open(pSettings->reset.type, pSettings->reset.pin, &gpioSettings);
+        BDBG_ASSERT(NULL != pDevice->gpioHandle);
+
+        BKNI_Sleep(500);
+    }
+
+    if (pSettings->spiDevice) {
+        BDBG_MSG(("Configuring for SPI"));
+        pInitSettings->habSettings.chipAddr = pSettings->spiAddr;
+        pInitSettings->habSettings.isSpi = true;
+        regHandle = (void *)NEXUS_Spi_GetRegHandle(pSettings->spiDevice);
+    } else if (pSettings->i2cDevice) {
+        BDBG_MSG(("Configuring for I2C"));
+        pInitSettings->habSettings.chipAddr = pSettings->i2cAddr;
+        pInitSettings->habSettings.isSpi = false;
+        regHandle = (void *)NEXUS_I2c_GetRegHandle(pSettings->i2cDevice, NEXUS_MODULE_SELF);
+
+        BDBG_MSG(("i2cDevice: %p", (void *)pSettings->i2cDevice));
+        BDBG_MSG(("BREG_I2C_Handle: %p", (void *)regHandle));
+    } else {
+        regHandle = NULL;
+    }
+    pInitSettings->habSettings.isMtsif = true;
+    if (pSettings->isrNumber) {
+        BDBG_MSG(("Configuring for external interrupt"));
+        pInitSettings->habSettings.interruptEnableFunc = NEXUS_Frontend_P_45402_IsrControl_isr;
+        pInitSettings->habSettings.interruptEnableFuncParam = (void*)&pDevice->settings.isrNumber;
+    }
+    else if (pSettings->gpioInterrupt) {
+        BDBG_MSG(("Configuring for GPIO interrupt"));
+        pInitSettings->habSettings.interruptEnableFunc = NEXUS_Frontend_P_45402_GpioIsrControl_isr;
+        pInitSettings->habSettings.interruptEnableFuncParam = (void*)pSettings->gpioInterrupt;
+    }
+    BDBG_ASSERT(regHandle);
+
+    pInitSettings->habSettings.pChp = g_pCoreHandles->chp;
+    BDBG_MSG(("Calling BHAB_Open"));
+    errCode = BHAB_Open(&habHandle, regHandle, &pInitSettings->habSettings);
+    BDBG_MSG(("Calling BHAB_Open...Done: hab: %p",(void *)habHandle));
+    if (errCode) { BERR_TRACE(NEXUS_OS_ERROR); goto err; }
+
+    pDevice->satDevice->habHandle = habHandle;
+
+    if (pSettings->isrNumber) {
+        BDBG_MSG(("Connecting external interrupt"));
+        errCode = NEXUS_Core_ConnectInterrupt(pSettings->isrNumber,
+                                             NEXUS_Frontend_P_45402_L1_isr,
+                                             (void *)pDevice,
+                                             0);
+        if (errCode != BERR_SUCCESS) {
+            errCode = BERR_TRACE(errCode);
+            goto err;
+        }
+    }
+    else if (pSettings->gpioInterrupt) {
+        NEXUS_GpioSettings gpioSettings;
+        NEXUS_Gpio_GetSettings(pDevice->settings.gpioInterrupt, &gpioSettings);
+        gpioSettings.interruptMode = NEXUS_GpioInterrupt_eLow;
+        NEXUS_Gpio_SetSettings(pDevice->settings.gpioInterrupt, &gpioSettings);
+        BDBG_MSG(("Connecting GPIO interrupt"));
+        NEXUS_Gpio_SetInterruptCallback_priv(pSettings->gpioInterrupt,
+                                             NEXUS_Frontend_P_45402_L1_isr,
+                                             (void *)pDevice,
+                                             0);
+    }
+
+    errCode = BSAT_45402_GetDefaultSettings(&pInitSettings->satSettings);
+    if (errCode) { BERR_TRACE(NEXUS_OS_ERROR); goto err; }
+
+    errCode = BSAT_Open(&satHandle, g_pCoreHandles->chp, habHandle, NULL, &pInitSettings->satSettings); /* CHP and INT are unused by SAT */
+    if (errCode) { BERR_TRACE(NEXUS_OS_ERROR); goto err; }
+
+    errCode = BWFE_45402_GetDefaultSettings(&pInitSettings->wfeSettings);
+    if (errCode) { BERR_TRACE(NEXUS_OS_ERROR); goto err; }
+
+    errCode = BWFE_Open(&wfeHandle, g_pCoreHandles->chp, habHandle, NULL, &pInitSettings->wfeSettings); /* CHP and INT are unused by WFE */
+    if (errCode) { BERR_TRACE(NEXUS_OS_ERROR); goto err; }
+
+    errCode = BDSQ_45402_GetDefaultSettings(&pInitSettings->dsqSettings);
+    if (errCode) { BERR_TRACE(NEXUS_OS_ERROR); goto err; }
+
+    errCode = BDSQ_Open(&dsqHandle, g_pCoreHandles->chp, habHandle, NULL, &pInitSettings->dsqSettings); /* CHP and INT are unused by DSQ */
+    if (errCode) { BERR_TRACE(NEXUS_OS_ERROR); goto err; }
+
+#if NEXUS_HAS_FSK
+    errCode = BFSK_45402_GetDefaultSettings(&pInitSettings->fskSettings);
+    if (errCode) { BERR_TRACE(NEXUS_OS_ERROR); goto err; }
+
+    errCode = BFSK_Open(&fskHandle, g_pCoreHandles->chp, habHandle, NULL, &pInitSettings->fskSettings);
+    if (errCode) { BERR_TRACE(NEXUS_OS_ERROR); goto err; }
+#endif
+
+#if NEXUS_HAS_FSK
+    pDevice->fskHandle = fskHandle;
+#endif
+
+    pDevice->satDevice->satHandle = satHandle;
+    pDevice->satDevice->wfeHandle = wfeHandle;
+    pDevice->satDevice->dsqHandle = dsqHandle;
+
+    /* Determine number of channels -- they will be opened later */
+    BSAT_GetTotalChannels(pDevice->satDevice->satHandle, &pDevice->numChannels);
+    BDBG_MSG(("frontend has %d channels",pDevice->numChannels));
+    if (pDevice->numChannels > NEXUS_45402_MAX_FRONTEND_CHANNELS) {
+        BDBG_WRN(("This 45402 device supports more than the expected number of channels. Unexpected channels will not be initialized."));
+    }
+    pDevice->satDevice->numChannels = pDevice->numChannels;
+
+    /* Open all channels prior to InitAp */
+    for (i = 0; i < pDevice->numChannels; i++) {
+        BSAT_ChannelSettings bsatChannelSettings;
+        BSAT_GetChannelDefaultSettings(pDevice->satDevice->satHandle, i, &bsatChannelSettings);
+        errCode = BSAT_OpenChannel(pDevice->satDevice->satHandle, &pDevice->satChannels[i], i, &bsatChannelSettings);
+        if (errCode) {
+            BDBG_ERR(("Unable to open channel %d", i));
+            errCode = BERR_TRACE(errCode);
+            goto err;
+        }
+    }
+
+    /* Determine number of inputs */
+    BKNI_Memset(&pDevice->wfeInfo,0,sizeof(pDevice->wfeInfo));
+    errCode = BWFE_GetTotalChannels(wfeHandle, &pDevice->wfeInfo);
+    BDBG_ASSERT(!errCode);
+    pDevice->numAdc = pDevice->wfeInfo.numChannels;
+    pDevice->satDevice->numWfe = pDevice->numAdc;
+
+    if (pInitSettings) {
+        BKNI_Free(pInitSettings);
+        pInitSettings = NULL;
+    }
+    return NEXUS_SUCCESS;
+err:
+    if (pInitSettings) {
+        BKNI_Free(pInitSettings);
+        pInitSettings = NULL;
+    }
+#if NEXUS_HAS_FSK
+    if (pDevice->fskHandle) {
+        BFSK_Close(pDevice->fskHandle);
+    }
+#endif
+    if (pDevice->satDevice->dsqHandle) {
+        BDSQ_Close(pDevice->satDevice->dsqHandle);
+        pDevice->satDevice->dsqHandle = NULL;
+    }
+    if (pDevice->satDevice->wfeHandle) {
+        BWFE_Close(pDevice->satDevice->wfeHandle);
+        pDevice->satDevice->wfeHandle = NULL;
+    }
+    if (pDevice->satDevice->satHandle) {
+        BSAT_Close(pDevice->satDevice->satHandle);
+        pDevice->satDevice->satHandle = NULL;
+    }
+    if (pDevice->satDevice->habHandle) {
+        BHAB_Close(pDevice->satDevice->habHandle);
+        pDevice->satDevice->habHandle = NULL;
+    }
+    return NEXUS_UNKNOWN;
+}
+
+static NEXUS_Error NEXUS_FrontendDevice_P_Init45402_InitAP(NEXUS_45402Device *pDevice)
+{
+    BERR_Code errCode;
+    const uint8_t *fw = NULL;
+
+    BDBG_MSG(("NEXUS_FrontendDevice_P_Init45402_InitAP"));
+
+    BDBG_MSG(("Initializing %x Frontend core...", pDevice->chipId));
+    /* Initialize the acquisition processor */
+    fw = pDevice->fw;
+    errCode = BHAB_InitAp(pDevice->satDevice->habHandle, fw);
+    if (errCode) {
+        BDBG_ERR(("Device initialization failed..."));
+
+        errCode = BERR_TRACE(errCode);
+        goto err;
+    }
+    BDBG_MSG(("Initializing 45402 core... Done"));
+    {
+        BERR_Code errCode;
+        BFEC_VersionInfo info;
+        errCode = BSAT_GetVersionInfo(pDevice->satDevice->satHandle, &info);
+        if (errCode) BERR_TRACE(errCode);
+        else {
+            pDevice->satDevice->type.chip.version.buildId = info.buildId;
+            pDevice->satDevice->type.chip.version.buildType = info.buildType;
+            pDevice->satDevice->type.chip.version.major = info.majorVersion;
+            pDevice->satDevice->type.chip.version.minor = info.minorVersion;
+        }
+    }
+
+    {
+        BERR_Code errCode;
+        BFEC_SystemVersionInfo svInfo;
+        /* populate firmware version */
+        errCode = BHAB_GetVersionInfo(pDevice->satDevice->habHandle, &svInfo);
+        if (errCode) BERR_TRACE(errCode);
+        else {
+            pDevice->satDevice->type.firmwareVersion.buildId = svInfo.firmware.buildId;
+            pDevice->satDevice->type.firmwareVersion.buildType = svInfo.firmware.buildType;
+            pDevice->satDevice->type.firmwareVersion.major = svInfo.firmware.majorVersion;
+            pDevice->satDevice->type.firmwareVersion.minor = svInfo.firmware.minorVersion;
+        }
+    }
+#if NEXUS_HAS_SAGE
+    BDBG_MSG(("Configuring BP3 provisions"));
+    if (NEXUS_SUCCESS != NEXUS_FrontendDevice_P_Init45402_InitBP3(pDevice)) {
+        BDBG_ERR(("BP3 unable to provision the front-end, using default tuning modes only !..."));
+    }
+#endif
+    BDBG_MSG(("NEXUS_FrontendDevice_P_Init45402_InitAP: done"));
+    return NEXUS_SUCCESS;
+err:
+    return NEXUS_UNKNOWN;
+}
+
+static NEXUS_Error NEXUS_FrontendDevice_P_Init45402_PostInitAP(NEXUS_45402Device *pDevice)
+{
+    unsigned i;
+    BERR_Code errCode;
+    NEXUS_FrontendDevice45402OpenSettings *pSettings = &pDevice->settings;
+
+    BDBG_MSG(("NEXUS_FrontendDevice_P_Init45402_PostInitAP"));
+
+    BDBG_MSG(("Opening %d WFE channels", pDevice->wfeInfo.numChannels));
+    /* Open WFE Channels */
+    for (i=0; i < pDevice->wfeInfo.numChannels; i++) {
+        BWFE_ChannelSettings wfeChannelSettings;
+        BWFE_GetChannelDefaultSettings(pDevice->satDevice->wfeHandle, i, &wfeChannelSettings);
+        errCode = BWFE_OpenChannel(pDevice->satDevice->wfeHandle, &pDevice->satDevice->wfeChannels[i], i, &wfeChannelSettings);
+        if (errCode) {
+            BDBG_ERR(("Unable to open wfe channel %d", i));
+            errCode = BERR_TRACE(errCode);
+            goto err;
+        }
+        errCode = BWFE_GetWfeReadyEventHandle(pDevice->satDevice->wfeChannels[i], &pDevice->satDevice->wfeReadyEvent[i]);
+        if (errCode) {
+            BDBG_ERR(("Unable to retrieve ready event for wfe channel %d", i));
+            errCode = BERR_TRACE(errCode);
+            goto err;
+        }
+    }
+
+    BDBG_MSG(("Opening DSQ channels"));
+    /* Open DSQ Channels */
+    BDSQ_GetTotalChannels(pDevice->satDevice->dsqHandle, &pDevice->numDsqChannels);
+    for (i=0; i < pDevice->numDsqChannels; i++) {
+        BDSQ_ChannelSettings dsqChannelSettings;
+        BDSQ_GetChannelDefaultSettings(pDevice->satDevice->dsqHandle, i, &dsqChannelSettings);
+        errCode = BDSQ_OpenChannel(pDevice->satDevice->dsqHandle, &pDevice->satDevice->dsqChannels[i], i, &dsqChannelSettings);
+        if (errCode) {
+            BDBG_ERR(("Unable to open dsq channel %d", i));
+            errCode = BERR_TRACE(errCode);
+            goto err;
+        }
+    }
+
+    BDSQ_Reset(pDevice->satDevice->dsqHandle);
+    for (i=0; i < pDevice->numDsqChannels; i++) {
+        BDSQ_PowerUpChannel(pDevice->satDevice->dsqChannels[i]);
+    }
+
+#ifdef NEXUS_HAS_FSK
+    BDBG_MSG(("Opening FSK channels"));
+    /* Open FSK Channels */
+    BFSK_GetTotalChannels(pDevice->fskHandle, &pDevice->numFskChannels);
+
+    for (i=0; i < pDevice->numFskChannels; i++) {
+        BFSK_ChannelSettings fskChannelSettings;
+
+        BFSK_GetChannelDefaultSettings(pDevice->fskHandle, i, &fskChannelSettings);
+        errCode = BFSK_OpenChannel(pDevice->fskHandle, &pDevice->fskChannels[i], i, &fskChannelSettings);
+        if (errCode) {
+            BDBG_ERR(("Unable to open fsk channel %d", i));
+            errCode = BERR_TRACE(errCode);
+            goto err;
+        }
+    }
+#endif
+
+#if NEXUS_HAS_MXT
+    if (pSettings->mtsif[0].enabled || pSettings->mtsif[1].enabled) {
+        /* open MXT */
+        BMXT_Settings mxtSettings;
+        BERR_Code rc;
+        uint32_t val=0;
+        bool encryptTx = false;
+
+        BDBG_MSG(("NEXUS_FrontendDevice_Open45402: configuring MXT"));
+        BMXT_GetDefaultSettings(&mxtSettings);
+        mxtSettings.chip = BMXT_Chip_e45402;
+        mxtSettings.hHab = pDevice->satDevice->habHandle;
+
+        NEXUS_Module_Lock(g_NEXUS_frontendModuleSettings.transport);
+        encryptTx = NEXUS_TransportModule_P_IsMtsifEncrypted();
+        NEXUS_Module_Unlock(g_NEXUS_frontendModuleSettings.transport);
+        for (i=0; i<BMXT_NUM_MTSIF; i++) {
+            mxtSettings.MtsifTxCfg[i].Enable = true;
+            mxtSettings.MtsifTxCfg[i].Encrypt = encryptTx;
+            mxtSettings.MtsifTxCfg[i].TxClockPolarity = 0;
+        }
+
+        mxtSettings.MtsifRxCfg[0].Enable = true;
+        mxtSettings.MtsifRxCfg[0].RxClockPolarity = 1;
+        NEXUS_Module_Lock(g_NEXUS_frontendModuleSettings.transport);
+        mxtSettings.MtsifRxCfg[0].Decrypt = NEXUS_TransportModule_P_IsMtsifEncrypted();
+        NEXUS_Module_Unlock(g_NEXUS_frontendModuleSettings.transport);
+        if (val) {
+            switch (val & 0xFF) {
+            case 0x00:
+                mxtSettings.chipRev = BMXT_ChipRev_eA0;
+                break;
+            case 0x10:
+                mxtSettings.chipRev = BMXT_ChipRev_eB0;
+                break;
+            case 0x20:
+                mxtSettings.chipRev = BMXT_ChipRev_eC0;
+                break;
+            default:
+                BDBG_WRN(("Unrecognized chip revision, defaulting to C0"));
+                mxtSettings.chipRev = BMXT_ChipRev_eC0;
+                break;
+            }
+        }
+
+        BDBG_MSG(("NEXUS_FrontendDevice_Open45402: BMXT_Open"));
+        rc = BMXT_Open(&pDevice->pGenericDeviceHandle->mtsifConfig.mxt, g_pCoreHandles->chp, g_pCoreHandles->reg, &mxtSettings);
+        if (rc!=BERR_SUCCESS) goto err;
+        BDBG_MSG(("NEXUS_FrontendDevice_Open45402: NEXUS_Frontend_P_InitMtsifConfig"));
+        rc = NEXUS_Frontend_P_InitMtsifConfig(&pDevice->pGenericDeviceHandle->mtsifConfig, &mxtSettings);
+        if (rc!=BERR_SUCCESS) goto err;
+
+        if (!pSettings->mtsif[0].enabled) {
+            unsigned numParsers = BMXT_GetNumResources(mxtSettings.chip, mxtSettings.chipRev, BMXT_ResourceType_eParser);
+            BDBG_MSG(("NEXUS_FrontendDevice_Open45402: tx0 disabled, setting output to 1"));
+            for (i=0; i<numParsers; i++) {
+                BMXT_ParserConfig pConfig;
+                BMXT_GetParserConfig(pDevice->pGenericDeviceHandle->mtsifConfig.mxt, i, &pConfig);
+                pConfig.mtsifTxSelect = 1;
+                BMXT_SetParserConfig(pDevice->pGenericDeviceHandle->mtsifConfig.mxt, i, &pConfig);
+            }
+        }
+
+        BDBG_MSG(("NEXUS_FrontendDevice_Open45402: setting input bands to parallel"));
+        {
+            unsigned numInputBands;
+
+            numInputBands = BMXT_GetNumResources(mxtSettings.chip, mxtSettings.chipRev, BMXT_ResourceType_eInputBand);
+            for (i=0; i<numInputBands; i++) {
+                BMXT_InputBandConfig pConfig;
+                BMXT_GetInputBandConfig(pDevice->pGenericDeviceHandle->mtsifConfig.mxt, i, &pConfig);
+                pConfig.ParallelInputSel = true;
+                BMXT_SetInputBandConfig(pDevice->pGenericDeviceHandle->mtsifConfig.mxt, i, &pConfig);
+            }
+        }
+        BDBG_MSG(("NEXUS_FrontendDevice_Open45402: done configuring MXT"));
+    }
+#endif
+
+    BDBG_MSG(("NEXUS_FrontendDevice_Open45402: setting openPending to false"));
+    pDevice->pGenericDeviceHandle->openPending = false;
+
+    BDBG_MSG(("NEXUS_FrontendDevice_Open45402: returning success"));
+    return NEXUS_SUCCESS;
+err:
+    if (pDevice)
+        NEXUS_Frontend_P_45402_DestroyDevice(pDevice);
+    return NEXUS_UNKNOWN;
+}
+
+/* Helper function for asynchronous initialization thread */
+static void NEXUS_Frontend_45402_P_OpenDeviceThread(void *arg) {
+    NEXUS_45402Device *pDevice= (NEXUS_45402Device *)arg;
+    NEXUS_Error errCode;
+
+    errCode = NEXUS_FrontendDevice_P_Init45402_InitAP(pDevice);
+    if (errCode) goto init_error;
+    errCode = NEXUS_FrontendDevice_P_Init45402_PostInitAP(pDevice);
+    if (errCode) goto init_error;
+
+    return;
+
+init_error:
+    BDBG_ERR(("45402(%p) initialization failed...", (void *)pDevice));
+    BKNI_EnterCriticalSection();
+    pDevice->pGenericDeviceHandle->openPending = false;
+    pDevice->pGenericDeviceHandle->openFailed = true;
+    BKNI_LeaveCriticalSection();
+}
+
+static NEXUS_Error NEXUS_Frontend_45402_P_DelayedInitialization(NEXUS_FrontendDeviceHandle handle)
+{
+    NEXUS_FrontendDevice *pFrontendDevice = (NEXUS_FrontendDevice *)handle;
+    NEXUS_45402Device *pDevice = (NEXUS_45402Device *)pFrontendDevice->pDevice;
+    NEXUS_Error errCode;
+
+    BDBG_MSG(("NEXUS_Frontend_45402_P_DelayedInitialization"));
+
+    BDBG_MSG(("Connecting interrupt"));
+    /* Successfully opened the 45402.  Connect interrupt */
+    BHAB_GetInterruptEventHandle(pDevice->satDevice->habHandle, &pDevice->isrEvent);
+    pDevice->isrCallback = NEXUS_RegisterEvent(pDevice->isrEvent, NEXUS_Frontend_P_45402_IsrCallback, pDevice);
+    if (NULL == pDevice->isrCallback) {
+        errCode = BERR_TRACE(BERR_OS_ERROR);
+        goto err;
+    }
+
+#if NEXUS_HAS_FRONTEND_PID_FILTERING
+    NEXUS_Frontend_P_EnablePidFiltering();
+#endif
+
+#ifdef NEXUS_HAS_FSK
+    {
+        BKNI_EventHandle event;
+        unsigned i;
+
+        BDBG_MSG(("Connecting FSK callbacks"));
+        /* hook up the FTM data ready callback*/
+        for (i=0; i<pDevice->numFskChannels; i++) {
+            errCode = BFSK_GetRxEventHandle(pDevice->fskChannels[i], &event);
+            if (errCode) {
+                errCode = BERR_TRACE(errCode);
+                goto err;
+            }
+
+            pDevice->ftmEventCallback[i] = NEXUS_RegisterEvent(event, NEXUS_Frontend_P_45402_FtmEventCallback, pDevice);
+            if (!pDevice->ftmEventCallback[i]) {
+                errCode = BERR_TRACE(NEXUS_UNKNOWN);
+                goto err;
+            }
+        }
+    }
+#endif
+
+    return NEXUS_SUCCESS;
+
+err:
+    return errCode;
+}
+
+static NEXUS_Error NEXUS_FrontendDevice_P_Init45402(NEXUS_45402Device *pDevice)
+{
+    NEXUS_Error errCode;
+
+    errCode = NEXUS_FrontendDevice_P_Init45402_PreInitAP(pDevice);
+    if (!errCode)
+        errCode = NEXUS_FrontendDevice_P_Init45402_InitAP(pDevice);
+    if (!errCode)
+        errCode = NEXUS_FrontendDevice_P_Init45402_PostInitAP(pDevice);
+
+    if (!errCode)
+        errCode = NEXUS_Frontend_45402_P_DelayedInitialization(pDevice->pGenericDeviceHandle);
+
+    return errCode;
+}
+
+NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open45402(unsigned index, const NEXUS_FrontendDevice45402OpenSettings *pSettings)
+{
+    NEXUS_FrontendDevice *pFrontendDevice = NULL;
+    NEXUS_45402Device *pDevice=NULL;
+
+    BSTD_UNUSED(index);
+
+    /* Check is maintained in case we need to introduce a list of devices later. */
+    if (pDevice == NULL) {
+        NEXUS_FrontendSatDeviceSettings satDeviceSettings;
+
+        BERR_Code errCode;
+
+        BDBG_MSG(("Opening new 45402 device"));
+
+        pFrontendDevice = NEXUS_FrontendDevice_P_Create();
+        if (NULL == pFrontendDevice) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err; }
+
+        pDevice = BKNI_Malloc(sizeof(*pDevice));
+        if (NULL == pDevice) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err; }
+        BKNI_Memset(pDevice, 0, sizeof(*pDevice));
+        BDBG_OBJECT_SET(pDevice, NEXUS_45402Device);
+        pDevice->settings = *pSettings;
+        pDevice->pGenericDeviceHandle = pFrontendDevice;
+#if NEXUS_FRONTEND_HAS_A8299_DISEQC
+        pDevice->A8299_control = 0x88; /* 13v, 13v default */
+#endif
+
+        NEXUS_Frontend_P_Sat_GetDefaultDeviceSettings(&satDeviceSettings);
+
+        pDevice->satDevice = NEXUS_Frontend_P_Sat_Create_Device(&satDeviceSettings);
+        if (pDevice->satDevice == NULL) { BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err; }
+
+        errCode = NEXUS_FrontendDevice_P_Init45402_PreInitAP(pDevice);
+        if (errCode) goto err;
+
+        pFrontendDevice->delayedInit = NEXUS_Frontend_45402_P_DelayedInitialization;
+        pFrontendDevice->delayedInitializationRequired = true;
+
+        BKNI_EnterCriticalSection();
+        pDevice->pGenericDeviceHandle->openPending = true;
+        pDevice->pGenericDeviceHandle->openFailed = false;
+        BKNI_LeaveCriticalSection();
+
+#if DISABLE_45402_ASYNC_INIT
+        NEXUS_Frontend_45402_P_OpenDeviceThread(pDevice);
+#else
+        {
+            NEXUS_ThreadSettings thread_settings;
+            NEXUS_Thread_GetDefaultSettings(&thread_settings);
+            thread_settings.priority = 0;
+            pDevice->deviceOpenThread = NEXUS_Thread_Create("deviceOpenThread",
+                                                            NEXUS_Frontend_45402_P_OpenDeviceThread,
+                                                            (void*)pDevice,
+                                                            &thread_settings);
+        }
+#endif
+
+    }
+
+    pFrontendDevice->pDevice = pDevice;
+    pFrontendDevice->familyId = 0x45402;
+    pFrontendDevice->getCapabilities = NEXUS_FrontendDevice_P_45402_GetCapabilities;
+    pFrontendDevice->application = NEXUS_FrontendDeviceApplication_eSatellite;
+    pFrontendDevice->getStatus = NEXUS_FrontendDevice_P_45402_GetStatus;
+    pFrontendDevice->close = NEXUS_Frontend_P_45402_DestroyDevice;
+    pFrontendDevice->getSatelliteCapabilities = NEXUS_FrontendDevice_P_Get45402Capabilities;
+
+    pFrontendDevice->mode = NEXUS_StandbyMode_eOn;
+    pFrontendDevice->standby = NEXUS_FrontendDevice_P_45402_Standby;
+
+    pFrontendDevice->nonblocking.getCapabilities = true; /* does not require init complete to fetch number of demods */
+    pFrontendDevice->nonblocking.getSatelliteCapabilities = true; /* does not require init complete to fetch number of demods */
+
+    BDBG_MSG(("NEXUS_FrontendDevice_Open45402: returning %p", (void *)pFrontendDevice));
+    return pFrontendDevice;
+
+err:
+    if (pDevice)
+        NEXUS_Frontend_P_45402_DestroyDevice(pDevice);
+    return NULL;
+}
+
+static void NEXUS_Frontend_P_Uninit45402(NEXUS_45402Device *pDevice)
+{
+    unsigned i;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_45402Device);
+
+    BDBG_MSG(("Closing 45402 device %p handle", (void *)pDevice));
+
+    if (pDevice->deviceOpenThread)
+        NEXUS_Thread_Destroy(pDevice->deviceOpenThread);
+    pDevice->deviceOpenThread = NULL;
+
+#if NEXUS_HAS_MXT
+    if (pDevice->pGenericDeviceHandle) {
+        if (pDevice->pGenericDeviceHandle->mtsifConfig.mxt) {
+            BMXT_Close(pDevice->pGenericDeviceHandle->mtsifConfig.mxt);
+            pDevice->pGenericDeviceHandle->mtsifConfig.mxt = NULL;
+        }
+        BKNI_Memset((void *)&pDevice->pGenericDeviceHandle->mtsifConfig, 0, sizeof(pDevice->pGenericDeviceHandle->mtsifConfig));
+    }
+#endif
+
+#if NEXUS_HAS_FSK
+    if (pDevice->fskHandle) {
+        for (i=0; i < pDevice->numFskChannels; i++) {
+            if (pDevice->ftmEventCallback[i]) {
+                NEXUS_UnregisterEvent(pDevice->ftmEventCallback[i]);
+            }
+            if (pDevice->fskChannels[i]) {
+                BFSK_CloseChannel(pDevice->fskChannels[i]);
+            }
+        }
+        BFSK_Close(pDevice->fskHandle);
+        pDevice->fskHandle=NULL;
+    }
+#endif
+
+    if (pDevice->satDevice) {
+        if (pDevice->satDevice->dsqHandle) {
+            for (i=0; i < pDevice->numDsqChannels; i++) {
+                if (pDevice->satDevice->dsqChannels[i]) {
+                    BDSQ_CloseChannel(pDevice->satDevice->dsqChannels[i]);
+                    pDevice->satDevice->dsqChannels[i] = NULL;
+                }
+            }
+            BDSQ_Close(pDevice->satDevice->dsqHandle);
+            pDevice->satDevice->dsqHandle = NULL;
+        }
+    }
+
+    for (i=0; i < pDevice->numChannels && NULL != pDevice->satChannels[i]; i++) {
+        BSAT_CloseChannel(pDevice->satChannels[i]);
+        pDevice->satChannels[i] = NULL;
+    }
+
+    if (pDevice->satDevice) {
+        for (i=0; i < pDevice->wfeInfo.numChannels; i++) {
+            if (pDevice->satDevice->wfeChannels[i]) {
+                BDBG_MSG(("Closing WFE[%d]",i));
+                BWFE_CloseChannel(pDevice->satDevice->wfeChannels[i]);
+                pDevice->satDevice->wfeChannels[i] = NULL;
+            }
+        }
+    }
+    if (pDevice->satDevice) {
+        if (pDevice->satDevice->wfeHandle) {
+            BWFE_Close(pDevice->satDevice->wfeHandle);
+            pDevice->satDevice->wfeHandle = NULL;
+        }
+
+        if (pDevice->satDevice->satHandle) {
+            BSAT_Close(pDevice->satDevice->satHandle);
+            pDevice->satDevice->satHandle = NULL;
+        }
+    }
+
+    if (pDevice->isrCallback) {
+        BDBG_MSG(("Unregister isrCallback %p", (void *)pDevice->isrCallback));
+        NEXUS_UnregisterEvent(pDevice->isrCallback);
+        pDevice->isrCallback = NULL;
+        BDBG_MSG(("...done"));
+    }
+
+    if (pDevice->settings.isrNumber) {
+        NEXUS_Core_DisconnectInterrupt(pDevice->settings.isrNumber);
+    } else if (pDevice->settings.gpioInterrupt) {
+        NEXUS_GpioSettings gpioSettings;
+        NEXUS_Gpio_SetInterruptCallback_priv(pDevice->settings.gpioInterrupt, NULL, NULL, 0);
+        NEXUS_Gpio_GetSettings(pDevice->settings.gpioInterrupt, &gpioSettings);
+        gpioSettings.interruptMode = NEXUS_GpioInterrupt_eDisabled;
+        NEXUS_Gpio_SetSettings(pDevice->settings.gpioInterrupt, &gpioSettings);
+    }
+
+    if (pDevice->satDevice) {
+        if (pDevice->satDevice->habHandle) {
+            BHAB_Close(pDevice->satDevice->habHandle);
+            pDevice->satDevice->habHandle = NULL;
+        }
+    }
+
+    if (pDevice->settings.reset.enable) {
+        if (pDevice->gpioHandle) {
+            NEXUS_Gpio_Close(pDevice->gpioHandle);
+            pDevice->gpioHandle = NULL;
+        }
+    }
+}
+
+
+void NEXUS_Frontend_GetDefault45402Settings( NEXUS_45402FrontendSettings *pSettings )
+{
+    BDBG_ASSERT(NULL != pSettings);
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+}
+
+NEXUS_FrontendHandle NEXUS_Frontend_Open45402( const NEXUS_45402FrontendSettings *pSettings )
+{
+    NEXUS_FrontendHandle frontend = NULL;
+    NEXUS_45402Device *pDevice = NULL;
+    NEXUS_FrontendDevice *pFrontendDevice = NULL;
+    NEXUS_FrontendSatChannelSettings satChannelSettings;
+    BREG_I2C_Handle i2cHandle = NULL;
+
+    if (pSettings->device == NULL) {
+        NEXUS_FrontendDevice45402OpenSettings openSettings;
+        NEXUS_FrontendDevice_GetDefault45402OpenSettings(&openSettings);
+        pFrontendDevice = NEXUS_FrontendDevice_Open45402(0, &openSettings);
+        pDevice = (NEXUS_45402Device *)pFrontendDevice->pDevice;
+    }
+    else {
+        pFrontendDevice = pSettings->device;
+        pDevice = (NEXUS_45402Device *)pSettings->device->pDevice;
+    }
+
+    /* Return previously opened frontend handle. */
+    if (pSettings->channelNumber >= pDevice->numChannels) {
+        BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return NULL;
+    }
+    if (pDevice->handles[pSettings->channelNumber])
+        return pDevice->handles[pSettings->channelNumber];
+
+    /* Otherwise, open new frontend */
+    BDBG_MSG(("Creating channel %u", pSettings->channelNumber));
+
+    if (pDevice->settings.diseqc.i2cDevice) {
+        i2cHandle = NEXUS_I2c_GetRegHandle(pDevice->settings.diseqc.i2cDevice, NEXUS_MODULE_SELF);
+        BDBG_ASSERT(NULL != i2cHandle);
+    }
+
+    /* Open channel */
+    NEXUS_Frontend_P_Sat_GetDefaultChannelSettings(&satChannelSettings);
+    satChannelSettings.satDevice = pDevice->satDevice;
+    satChannelSettings.satChannel = pDevice->satChannels[pSettings->channelNumber];
+    satChannelSettings.satChip = B_SAT_CHIP;
+    satChannelSettings.channelIndex = pSettings->channelNumber;
+    satChannelSettings.pCloseParam = pDevice;
+    satChannelSettings.pDevice = pDevice;
+    satChannelSettings.closeFunction = NEXUS_Frontend_P_45402_CloseCallback;
+    satChannelSettings.diseqcIndex = 0;
+    satChannelSettings.capabilities.diseqc = true;
+    if (pDevice->settings.diseqc.i2cDevice) {
+        satChannelSettings.getDiseqcChannelHandle = NEXUS_Frontend_P_45402_GetDiseqcChannelHandle;
+        satChannelSettings.getDiseqcChannelHandleParam = pDevice;
+        satChannelSettings.setVoltage = NEXUS_Frontend_P_45402_SetVoltage;
+    }
+    satChannelSettings.i2cRegHandle = i2cHandle; /* due to module locking, we need to save our register handle for Diseqc voltage control */
+    satChannelSettings.getDefaultDiseqcSettings = NEXUS_Frontend_P_45402_GetDefaultDiseqcSettings;
+#if NEXUS_HAS_FSK
+    satChannelSettings.getFskChannelHandle = NEXUS_Frontend_P_45402_GetFskChannelHandle;
+#endif
+
+    satChannelSettings.wfeHandle = pDevice->satDevice->wfeHandle;
+
+    satChannelSettings.deviceClearSpectrumCallbacks = NEXUS_Frontend_P_45402_ClearSpectrumCallbacks;
+
+    frontend = NEXUS_Frontend_P_Sat_Create_Channel(&satChannelSettings);
+    if (!frontend) {
+        BERR_TRACE(BERR_NOT_SUPPORTED);
+        NEXUS_Frontend_P_45402_CloseCallback(NULL, pDevice); /* Check if channel needs to be closed */
+        goto err;
+    }
+    frontend->tuneSatellite = NEXUS_Frontend_P_45402_TuneSatellite;
+    frontend->untune = NEXUS_Frontend_P_45402_Untune;
+    frontend->reapplyTransportSettings = NEXUS_Frontend_P_45402_ReapplyTransportSettings;
+    frontend->pGenericDeviceHandle = pFrontendDevice;
+    frontend->getSatelliteAgcStatus = NEXUS_Frontend_P_45402_GetSatelliteAgcStatus;
+    frontend->getSatelliteRuntimeSettings = NEXUS_Frontend_P_Get45402RuntimeSettings;
+    frontend->setSatelliteRuntimeSettings = NEXUS_Frontend_P_Set45402RuntimeSettings;
+
+    frontend->standby = NEXUS_Frontend_P_45402_Standby;
+
+    frontend->readRegister = NEXUS_Frontend_P_45402_ReadRegister;
+    frontend->writeRegister = NEXUS_Frontend_P_45402_WriteRegister;
+
+    /* preconfigure mtsif settings so platform doesn't need to */
+    frontend->userParameters.isMtsif = true;
+    frontend->mtsif.inputBand = pSettings->channelNumber + 2; /* IB for demod 0 is 2, demod 1 is 3, etc. Offset channel by 2 to compensate. */
+
+    pDevice->handles[pSettings->channelNumber] = frontend;
+
+    return frontend;
+
+err:
+    return NULL;
+}
+
+static void NEXUS_Frontend_P_45402_CloseCallback(NEXUS_FrontendHandle handle, void *pParam)
+{
+    unsigned i;
+    NEXUS_45402Device *pDevice = pParam;
+
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_45402Device);
+
+    /* Mark handle as destroyed */
+    if (handle) {
+        for (i = 0; i < pDevice->numChannels; i++) {
+            if (handle == pDevice->handles[i]) {
+                pDevice->handles[i] = NULL;
+                break;
+            }
+        }
+        BDBG_ASSERT(i < pDevice->numChannels);
+    }
+
+}
+
+static void NEXUS_Frontend_P_45402_DestroyDevice(void *handle)
+{
+    unsigned i;
+    NEXUS_45402Device *pDevice = (NEXUS_45402Device *)handle;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_45402Device);
+
+    for (i = 0; i < pDevice->numChannels; i++) {
+        if (NULL != pDevice->handles[i]) {
+            BDBG_ERR(("All channels must be closed before destroying device"));
+            BDBG_ASSERT(NULL == pDevice->handles[i]);
+        }
+    }
+
+    NEXUS_Frontend_P_Uninit45402(pDevice);
+
+    BDBG_MSG(("Destroying 45402 device %p", (void *)pDevice));
+
+    if (pDevice->pGenericDeviceHandle) {
+        BKNI_Free(pDevice->pGenericDeviceHandle);
+        pDevice->pGenericDeviceHandle = NULL;
+    }
+
+    if (pDevice->satDevice) {
+        BKNI_Free(pDevice->satDevice);
+        pDevice->satDevice = NULL;
+    }
+
+    BDBG_OBJECT_DESTROY(pDevice, NEXUS_45402Device);
+    BKNI_Free(pDevice);
+}
+
+void NEXUS_FrontendDevice_P_45402_S3Standby(NEXUS_45402Device *pDevice)
+{
+    NEXUS_Frontend_P_Uninit45402(pDevice);
+}
+
+static NEXUS_Error NEXUS_FrontendDevice_P_45402_Standby(void *handle, const NEXUS_StandbySettings *pSettings)
+{
+
+    NEXUS_Error  rc = NEXUS_SUCCESS;
+    NEXUS_45402Device *pDevice;
+    BDBG_ASSERT(NULL != handle);
+    pDevice = (NEXUS_45402Device *)handle;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_45402Device);
+
+    if ((pDevice->pGenericDeviceHandle->mode != NEXUS_StandbyMode_eDeepSleep) && (pSettings->mode == NEXUS_StandbyMode_eDeepSleep)) {
+
+        BDBG_MSG(("NEXUS_FrontendDevice_P_45402_Standby: Entering deep sleep..."));
+
+        NEXUS_FrontendDevice_P_45402_S3Standby(pDevice);
+
+        BKNI_EnterCriticalSection();
+        pDevice->pGenericDeviceHandle->openPending = true;
+        pDevice->pGenericDeviceHandle->openFailed = false;
+        BKNI_LeaveCriticalSection();
+
+    } else if ((pDevice->pGenericDeviceHandle->mode == NEXUS_StandbyMode_eDeepSleep) && (pSettings->mode != NEXUS_StandbyMode_eDeepSleep)) {
+
+        BDBG_MSG(("NEXUS_FrontendDevice_P_45402_Standby: Waking up..."));
+        BDBG_MSG(("NEXUS_FrontendDevice_P_45402_Standby: reinitializing..."));
+        rc = NEXUS_FrontendDevice_P_Init45402(pDevice);
+        if (rc) { rc = BERR_TRACE(rc); goto done;}
+    }
+
+done:
+    return rc;
+}
+
+static NEXUS_Error NEXUS_Frontend_P_45402_Standby(void *handle, bool enabled, const NEXUS_StandbySettings *pSettings)
+{
+    NEXUS_SatChannel *pSatChannel = (NEXUS_SatChannel *)handle;
+    NEXUS_45402Device *p45402Device;
+
+    BDBG_OBJECT_ASSERT(pSatChannel, NEXUS_SatChannel);
+    p45402Device = pSatChannel->settings.pDevice;
+    BDBG_OBJECT_ASSERT(p45402Device, NEXUS_45402Device);
+
+    BDBG_MSG(("NEXUS_Frontend_P_45402_Standby: standby %p(%d) %s", handle, pSatChannel->channel, enabled ? "enabled" : "disabled"));
+
+    BDBG_MSG(("Restoring handles on %p", (void *)pSatChannel));
+    /* update/restore handles */
+    pSatChannel->satChannel = p45402Device->satChannels[pSatChannel->channel];
+
+    if (pSettings->mode == NEXUS_StandbyMode_eDeepSleep) {
+        BDBG_MSG(("Unregistering events on %p", (void *)pSatChannel));
+        NEXUS_Frontend_P_Sat_UnregisterEvents(pSatChannel);
+    } else if (pSettings->mode != NEXUS_StandbyMode_eDeepSleep && pSatChannel->frontendHandle->mode == NEXUS_StandbyMode_eDeepSleep) {
+        BDBG_MSG(("Registering events on %p", (void *)pSatChannel));
+        NEXUS_Frontend_P_Sat_RegisterEvents(pSatChannel);
+    }
+
+    BDBG_MSG(("Done with standby configuration on %p", (void *)pSatChannel));
+    return NEXUS_SUCCESS;
+}
+
+static NEXUS_Error NEXUS_FrontendDevice_P_Get45402Capabilities(void *handle, NEXUS_FrontendSatelliteCapabilities *pCapabilities)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_45402Device *p45402Device = (NEXUS_45402Device *)handle;
+
+    BDBG_OBJECT_ASSERT(p45402Device, NEXUS_45402Device);
+    BDBG_ASSERT(handle);
+    BDBG_ASSERT(pCapabilities);
+
+    BDBG_OBJECT_ASSERT(p45402Device, NEXUS_45402Device);
+
+    BKNI_Memset(pCapabilities,0,sizeof(*pCapabilities));
+    pCapabilities->numAdc = p45402Device->numAdc;
+    pCapabilities->numChannels = p45402Device->numChannels;
+    pCapabilities->externalBert = true;
+
+    return rc;
+}
+
+static NEXUS_Error NEXUS_Frontend_P_Get45402RuntimeSettings(void *handle, NEXUS_FrontendSatelliteRuntimeSettings *pSettings)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    BERR_Code e;
+    NEXUS_SatChannel *pSatChannel = (NEXUS_SatChannel *)handle;
+    NEXUS_45402Device *p45402Device;
+    BSAT_ExternalBertSettings extBertSettings;
+
+    BDBG_ASSERT(handle);
+    BDBG_ASSERT(pSettings);
+    BDBG_OBJECT_ASSERT(pSatChannel, NEXUS_SatChannel);
+    p45402Device = pSatChannel->settings.pDevice;
+    BDBG_OBJECT_ASSERT(p45402Device, NEXUS_45402Device);
+
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+
+    pSettings->selectedAdc = pSatChannel->selectedAdc;
+    pSatChannel->diseqcIndex = pSatChannel->selectedAdc;
+
+    if (!pSatChannel->satDevice->satActive[pSatChannel->channel]) {
+        BDBG_MSG(("NEXUS_Frontend_P_Get45402RuntimeSettings: enabling %d",pSatChannel->channel));
+        BSAT_PowerUpChannel(pSatChannel->satChannel);
+        pSatChannel->satDevice->satActive[pSatChannel->channel] = true;
+    }
+
+    e = BSAT_GetExternalBertSettings(p45402Device->satDevice->satHandle, &extBertSettings);
+    if (!e) {
+        if (extBertSettings.channel == pSatChannel->channel) {
+            pSettings->externalBert.enabled = extBertSettings.bEnable;
+            pSettings->externalBert.invertClock = extBertSettings.bClkInv;
+        } else {
+            pSettings->externalBert.enabled = false;
+            pSettings->externalBert.invertClock = false;
+        }
+    } else {
+        rc = BERR_TRACE(e);
+    }
+
+    return rc;
+}
+
+static NEXUS_Error NEXUS_Frontend_P_Set45402RuntimeSettings(void *handle, const NEXUS_FrontendSatelliteRuntimeSettings *pSettings)
+{
+    NEXUS_SatChannel *pSatChannel = (NEXUS_SatChannel *)handle;
+    NEXUS_45402Device *p45402Device;
+    BERR_Code e;
+    BSAT_ExternalBertSettings extBertSettings;
+
+    BDBG_ASSERT(handle);
+    BDBG_ASSERT(pSettings);
+    BDBG_OBJECT_ASSERT(pSatChannel, NEXUS_SatChannel);
+    p45402Device = pSatChannel->settings.pDevice;
+    BDBG_OBJECT_ASSERT(p45402Device, NEXUS_45402Device);
+
+    BDBG_MSG(("adc: %d, mask: 0x%08x",pSettings->selectedAdc,p45402Device->wfeInfo.availChannelsMask));
+    /* Ensure the requested adc is within the value range, and advertised by the PI as being available */
+    if (pSettings->selectedAdc > p45402Device->numAdc || !((1<<pSettings->selectedAdc) & p45402Device->wfeInfo.availChannelsMask) )
+        return NEXUS_INVALID_PARAMETER;
+
+    pSatChannel->selectedAdc = pSettings->selectedAdc;
+    pSatChannel->diseqcIndex = pSettings->selectedAdc;
+    p45402Device->wfeMap[pSatChannel->channel] = pSettings->selectedAdc;
+    pSatChannel->satDevice->wfeMap[pSatChannel->channel] = pSettings->selectedAdc;
+
+    e = BSAT_GetExternalBertSettings(p45402Device->satDevice->satHandle, &extBertSettings);
+    if (!e) {
+        if (pSettings->externalBert.enabled) {
+            extBertSettings.channel = pSatChannel->channel;
+            extBertSettings.bEnable = pSettings->externalBert.enabled;
+            extBertSettings.bClkInv = pSettings->externalBert.invertClock;
+            BSAT_SetExternalBertSettings(p45402Device->satDevice->satHandle, &extBertSettings);
+        } else {
+            /* Only disable it if it's enabled on the current channel, otherwise we might be
+             * interfering with the settings on a different demod. */
+            if (extBertSettings.channel == pSatChannel->channel) {
+                extBertSettings.channel = pSatChannel->channel;
+                extBertSettings.bEnable = pSettings->externalBert.enabled;
+                extBertSettings.bClkInv = pSettings->externalBert.invertClock;
+                BSAT_SetExternalBertSettings(p45402Device->satDevice->satHandle, &extBertSettings);
+            }
+        }
+    } else {
+        BERR_TRACE(e);
+    }
+
+    return NEXUS_SUCCESS;
+}
+
+static NEXUS_Error NEXUS_Frontend_P_45402_GetSatelliteAgcStatus(void *handle, NEXUS_FrontendSatelliteAgcStatus *pStatus)
+{
+    NEXUS_SatChannel *pSatChannel = (NEXUS_SatChannel *)handle;
+    NEXUS_45402Device *p45402Device;
+    BERR_Code rc = NEXUS_SUCCESS;
+    BSAT_ChannelStatus satStatus;
+    BERR_Code errCode;
+
+    BDBG_ASSERT(NULL != pStatus);
+    BDBG_OBJECT_ASSERT(pSatChannel, NEXUS_SatChannel);
+    p45402Device = pSatChannel->settings.pDevice;
+    BDBG_OBJECT_ASSERT(p45402Device, NEXUS_45402Device);
+
+    if (pSatChannel->satChip != B_SAT_CHIP) {
+        return NEXUS_INVALID_PARAMETER;
+    }
+
+    /* This short-circuits a second read of the AGC values, in case of a
+     * back to back NEXUS_Frontend_GetSatelliteStatus and NEXUS_Frontend_GetSatelliteAgcStatus
+     * calling sequence, since both read the values with the same BSAT_GetChannelStatus call.
+     */
+    if (pSatChannel->cachedAgc.valid) {
+        NEXUS_Time current;
+        NEXUS_Time_Get(&current);
+
+        pSatChannel->cachedAgc.valid = false;
+        if (NEXUS_Time_Diff(&current,&pSatChannel->cachedAgc.lastRead) < 250) {
+            int i;
+            for (i=0; i<MAX_SATELLITE_AGC_VALUES; i++) {
+                pStatus->agc[i].value = pSatChannel->cachedAgc.values.agc[i].value;
+                pStatus->agc[i].valid = pSatChannel->cachedAgc.values.agc[i].valid;
+            }
+            return NEXUS_SUCCESS;
+        }
+    }
+
+    errCode = BSAT_GetChannelStatus(pSatChannel->satChannel, &satStatus);
+    if (errCode) {
+        BDBG_MSG(("BSAT_GetChannelStatus returned %x",errCode));
+        rc = errCode;
+    } else {
+        int i;
+        BKNI_Memset(pStatus,0,sizeof(*pStatus));
+        for (i=0; i<3; i++) {
+            pStatus->agc[i].value = satStatus.agc.value[i];
+            pStatus->agc[i].valid = (satStatus.agc.flags & 1<<i);
+        }
+    }
+
+    return rc;
+}
+
+static NEXUS_Error NEXUS_Frontend_P_45402_TuneSatellite(void *handle, const NEXUS_FrontendSatelliteSettings *pSettings)
+{
+    NEXUS_SatChannel *pSatChannel = handle;
+    NEXUS_45402Device *p45402Device = pSatChannel->settings.pDevice;
+    NEXUS_Error rc;
+    BDBG_OBJECT_ASSERT(pSatChannel, NEXUS_SatChannel);
+    BDBG_OBJECT_ASSERT(p45402Device, NEXUS_45402Device);
+
+    if (pSettings->mode == NEXUS_FrontendSatelliteMode_eTurboQpsk || pSettings->mode == NEXUS_FrontendSatelliteMode_eTurbo8psk || pSettings->mode == NEXUS_FrontendSatelliteMode_eTurbo) {
+        uint32_t disabledFeatures = 0;
+        rc = BSAT_GetConfig(pSatChannel->satDevice->satHandle, BSAT_45402_CONFIG_PARAM_OTP_DISABLE_FEATURE, &disabledFeatures);
+        if (rc) BERR_TRACE(rc);
+        if (disabledFeatures & 0x1) {
+            BDBG_ERR(("Turbo modes are not supported on this frontend."));
+            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        }
+    }
+
+    if (p45402Device->pGenericDeviceHandle->mtsifConfig.mxt) {
+        rc = NEXUS_Frontend_P_SetMtsifConfig(pSatChannel->frontendHandle);
+        if (rc) { return BERR_TRACE(rc); }
+    }
+
+    return NEXUS_Frontend_P_Sat_TuneSatellite(pSatChannel, pSettings);
+}
+
+static void NEXUS_Frontend_P_45402_Untune(void *handle)
+{
+    NEXUS_SatChannel *pSatChannel = handle;
+    NEXUS_45402Device *p45402Device = pSatChannel->settings.pDevice;
+    BDBG_OBJECT_ASSERT(pSatChannel, NEXUS_SatChannel);
+    BDBG_OBJECT_ASSERT(p45402Device, NEXUS_45402Device);
+    if (p45402Device->pGenericDeviceHandle->mtsifConfig.mxt) {
+        NEXUS_Frontend_P_UnsetMtsifConfig(pSatChannel->frontendHandle);
+    }
+
+    NEXUS_Frontend_P_Sat_Untune(pSatChannel);
+
+    return;
+}
+
+NEXUS_Error NEXUS_Frontend_P_45402_ReapplyTransportSettings(void *handle)
+{
+    NEXUS_SatChannel *pSatChannel = handle;
+    NEXUS_45402Device *p45402Device = pSatChannel->settings.pDevice;
+    BERR_Code rc;
+    BDBG_OBJECT_ASSERT(pSatChannel, NEXUS_SatChannel);
+    BDBG_OBJECT_ASSERT(p45402Device, NEXUS_45402Device);
+
+    if (p45402Device->pGenericDeviceHandle->mtsifConfig.mxt) {
+        rc = NEXUS_Frontend_P_SetMtsifConfig(pSatChannel->frontendHandle);
+        if (rc) { return BERR_TRACE(rc); }
+    }
+
+    return NEXUS_SUCCESS;
+}
+
+NEXUS_Error NEXUS_Frontend_P_45402_ReadRegister(void *handle, unsigned address, uint32_t *pValue)
+{
+    NEXUS_SatChannel *pSatChannel = handle;
+    NEXUS_45402Device *p45402Device;
+    BERR_Code rc;
+    BDBG_OBJECT_ASSERT(pSatChannel, NEXUS_SatChannel);
+    BDBG_ASSERT(pSatChannel);
+    p45402Device = pSatChannel->settings.pDevice;
+    BDBG_OBJECT_ASSERT(p45402Device, NEXUS_45402Device);
+
+    rc = BHAB_ReadRegister(p45402Device->satDevice->habHandle, address, pValue);
+    if (rc) { return BERR_TRACE(rc); }
+    return NEXUS_SUCCESS;
+}
+
+NEXUS_Error NEXUS_Frontend_P_45402_WriteRegister(void *handle, unsigned address, uint32_t value)
+{
+    NEXUS_SatChannel *pSatChannel = handle;
+    NEXUS_45402Device *p45402Device;
+    BERR_Code rc;
+    BDBG_ASSERT(pSatChannel);
+    BDBG_OBJECT_ASSERT(pSatChannel, NEXUS_SatChannel);
+    p45402Device = pSatChannel->settings.pDevice;
+    BDBG_OBJECT_ASSERT(p45402Device, NEXUS_45402Device);
+
+    rc = BHAB_WriteRegister(p45402Device->satDevice->habHandle, address, &value);
+    if (rc) { return BERR_TRACE(rc); }
+    return NEXUS_SUCCESS;
+}
+
+static BDSQ_ChannelHandle NEXUS_Frontend_P_45402_GetDiseqcChannelHandle(void *handle, int index)
+{
+    NEXUS_SatChannel *pSatChannel = handle;
+    NEXUS_45402Device *p45402Device;
+    BDBG_OBJECT_ASSERT(pSatChannel, NEXUS_SatChannel);
+    p45402Device = pSatChannel->settings.pDevice;
+    BDBG_OBJECT_ASSERT(p45402Device, NEXUS_45402Device);
+    return p45402Device->satDevice->dsqChannels[index];
+}
+
+static NEXUS_Error NEXUS_Frontend_P_45402_SetVoltage(void *pDevice, NEXUS_FrontendDiseqcVoltage voltage)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_SatChannel *pSatChannel = pDevice;
+    NEXUS_45402Device *p45402Device = pSatChannel->settings.pDevice;
+
+    BDBG_OBJECT_ASSERT(p45402Device, NEXUS_45402Device);
+    /* Just in case DSQ book-keeping requires it: */
+    BDSQ_SetVoltage(p45402Device->satDevice->dsqChannels[pSatChannel->diseqcIndex], voltage == NEXUS_FrontendDiseqcVoltage_e18v);
+#if NEXUS_FRONTEND_HAS_A8299_DISEQC
+    { /* Write voltage to A8299 */
+        int channel = pSatChannel->diseqcIndex;
+        uint8_t buf[2];
+        uint8_t i2c_addr, shift, ctl;
+        uint8_t A8299_control = p45402Device->A8299_control;
+
+        i2c_addr = p45402Device->settings.diseqc.i2cAddr;
+
+        if ((channel & 1) == 0)
+            shift = 0;
+        else
+            shift = 4;
+
+        buf[0] = 0;
+
+        /* Clear A8299 i2c in case of fault */
+        rc = BREG_I2C_WriteNoAddr(pSatChannel->settings.i2cRegHandle, i2c_addr, buf, 1);
+        BREG_I2C_ReadNoAddr(pSatChannel->settings.i2cRegHandle, i2c_addr, buf, 1);
+        ctl = (voltage == NEXUS_FrontendDiseqcVoltage_e18v) ? 0xC : 0x8;
+        A8299_control &= ~((0x0F) << shift);
+        A8299_control |= (ctl << shift);
+
+        buf[0] = 0;
+        buf[1] = A8299_control;
+
+        p45402Device->A8299_control = A8299_control;
+
+        BDBG_MSG(("A8299: channel=%d, i2c_addr=0x%X, ctl=0x%02X 0x%02X.........", channel, i2c_addr, buf[0], buf[1]));
+        rc = BREG_I2C_WriteNoAddr(pSatChannel->settings.i2cRegHandle, i2c_addr, buf, 2);
+        if (rc) return BERR_TRACE(rc);
+
+    }
+#endif
+
+    return rc;
+}
+
+static void NEXUS_Frontend_P_45402_GetDefaultDiseqcSettings(void *pDevice, BDSQ_ChannelSettings *settings)
+{
+    NEXUS_SatChannel *pSatChannel = pDevice;
+    NEXUS_45402Device *p45402Device = pSatChannel->settings.pDevice;
+    BDBG_OBJECT_ASSERT(p45402Device, NEXUS_45402Device);
+    BDSQ_GetChannelDefaultSettings(p45402Device->satDevice->dsqHandle, 0, settings);
+}
+
+static void NEXUS_FrontendDevice_P_45402_GetCapabilities(void *handle, NEXUS_FrontendDeviceCapabilities *pCapabilities)
+{
+    NEXUS_45402Device *pDevice = (NEXUS_45402Device *)handle;
+
+    BDBG_ASSERT(handle);
+    BDBG_ASSERT(pCapabilities);
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_45402Device);
+
+    pCapabilities->numTuners = pDevice->numChannels;
+}
+
+static void NEXUS_Frontend_P_45402_ClearSpectrumCallbacks(void *handle)
+{
+    NEXUS_SatChannel *pSatChannel = (NEXUS_SatChannel *)handle;
+    NEXUS_45402Device *p45402Device;
+    unsigned i;
+
+    BDBG_ASSERT(pSatChannel);
+    BDBG_OBJECT_ASSERT(pSatChannel, NEXUS_SatChannel);
+    p45402Device = pSatChannel->settings.pDevice;
+    BDBG_OBJECT_ASSERT(p45402Device, NEXUS_45402Device);
+
+    for (i=0; i < p45402Device->numChannels; i++) {
+        NEXUS_SatChannel *pChannel = p45402Device->handles[i]->pDeviceHandle;
+        if (pChannel) {
+            if (pChannel->spectrumEventCallback) {
+                NEXUS_UnregisterEvent(pChannel->spectrumEventCallback);
+                pChannel->spectrumEventCallback = NULL;
+            }
+        }
+    }
+}
+
+static NEXUS_Error NEXUS_FrontendDevice_P_45402_GetStatus(void *handle, NEXUS_FrontendDeviceStatus *pStatus)
+{
+    NEXUS_Error  rc = NEXUS_SUCCESS;
+    NEXUS_45402Device *pDevice = NULL;
+    BHAB_AvsData avsData;
+    BDBG_ASSERT(NULL != handle);
+    pDevice = (NEXUS_45402Device *)handle;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_45402Device);
+    BDBG_ASSERT(NULL != pStatus);
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    rc = BHAB_GetAvsData(pDevice->satDevice->habHandle, &avsData);
+    if (rc) {rc = BERR_TRACE(rc); goto done;}
+
+    pStatus->avs.enabled = avsData.enabled;
+    pStatus->temperature = avsData.temperature;
+    if (avsData.enabled) {
+        pStatus->avs.voltage = avsData.voltage;
+    }
+    pStatus->openPending = pDevice->pGenericDeviceHandle->openPending;
+    pStatus->openFailed = pDevice->pGenericDeviceHandle->openFailed;
+done:
+    return rc;
+}
+
+#if NEXUS_HAS_FSK
+static BFSK_ChannelHandle NEXUS_Frontend_P_45402_GetFskChannelHandle(void *pDevice, int index)
+{
+    NEXUS_SatChannel *pSatChannel = pDevice;
+    NEXUS_45402Device *p45402Device = pSatChannel->settings.pDevice;
+    BDBG_OBJECT_ASSERT(p45402Device, NEXUS_45402Device);
+
+    if ((unsigned)index < p45402Device->numFskChannels)
+        return p45402Device->fskChannels[index];
+    else
+        return NULL;
+}
+
+static void NEXUS_Frontend_P_45402_FtmEventCallback(void *context)
+{
+    NEXUS_SatChannel *pSatChannel;
+    NEXUS_45402Device *p45402Device = context;
+    unsigned i;
+    BDBG_OBJECT_ASSERT(p45402Device, NEXUS_45402Device);
+
+    for (i=0;i<NEXUS_45402_MAX_FRONTEND_CHANNELS;i++) {
+        if (p45402Device->handles[i]) {
+            pSatChannel = (NEXUS_SatChannel *)p45402Device->handles[i]->pDeviceHandle;
+            if (pSatChannel->ftmCallback)
+                NEXUS_TaskCallback_Fire(pSatChannel->ftmCallback);
+        }
+    }
+}
+
+#endif
+
+NEXUS_Error NEXUS_Frontend_P_Get45402ChipInfo(const NEXUS_FrontendDevice45402OpenSettings *pSettings, NEXUS_45402ProbeResults *pResults) {
+    NEXUS_Error rc = NEXUS_SUCCESS;
+
+    BSTD_UNUSED(pSettings);
+    pResults->chip.id = 0x45402;
+
+    return rc;
+}
+
+static uint32_t NEXUS_Platform_P_I2c_Get45402ChipId(NEXUS_I2cHandle i2cDevice, uint16_t i2cAddr)
+{
+    BREG_I2C_Handle i2cHandle;
+    uint8_t buf[5];
+    uint32_t chipId=0;
+    uint8_t subAddr;
+
+    i2cHandle = NEXUS_I2c_GetRegHandle(i2cDevice, NULL);
+    BDBG_MSG(("i2c handle: %p, i2caddr: 0x%x", (void *)i2cHandle,i2cAddr));
+    buf[0]= 0x0;
+    subAddr = 0x1;
+    BREG_I2C_WriteNoAddr(i2cHandle, i2cAddr, (uint8_t *)&subAddr, 1);
+    BREG_I2C_ReadNoAddr(i2cHandle, i2cAddr, buf, 1);
+    chipId = buf[0];
+
+    subAddr = 0x2;
+    BREG_I2C_WriteNoAddr(i2cHandle, i2cAddr, (uint8_t *)&subAddr, 1);
+    BREG_I2C_ReadNoAddr(i2cHandle, i2cAddr, buf, 1);
+    chipId = (chipId << 8) | buf[0];
+
+    subAddr = 0x3;
+    BREG_I2C_WriteNoAddr(i2cHandle, i2cAddr, (uint8_t *)&subAddr, 1);
+    BREG_I2C_ReadNoAddr(i2cHandle, i2cAddr, buf, 1);
+    chipId = (chipId << 8) | buf[0];
+
+    BDBG_MSG(("chip family ID = 0x%04x", chipId));
+
+    return chipId;
+}
+
+#define DEBUG_SPI_READS 0
+static uint32_t NEXUS_Platform_P_Spi_Get45402ChipId(NEXUS_SpiHandle spiDevice, uint16_t spiAddr)
+{
+    uint32_t chipId=0;
+    uint8_t wData[2], rData[8];
+    NEXUS_Error rc;
+
+    BDBG_MSG(("Probing for 45402 at SPI 0x%02x",spiAddr));
+
+    wData[0] = spiAddr << 1;
+    wData[1] = 0x00;
+#if DEBUG_SPI_READS
+    {
+        int i;
+        for (i=0; i < 2; i++) {
+            BDBG_MSG(("wData[%d]: 0x%02x",i,wData[i]));
+        }
+    }
+#endif
+
+    rc = NEXUS_Spi_Read(spiDevice, wData, rData, 8);
+    if (rc) {rc = BERR_TRACE(rc); goto done;}
+
+#if DEBUG_SPI_READS
+    {
+        int i;
+        for (i=0; i < 8; i++) {
+            BDBG_MSG(("rData[%d]: 0x%02x",i,rData[i]));
+        }
+    }
+#endif
+
+    chipId = (rData[3] << 16) | (rData[4] << 8) | (rData[5]);
+
+    BDBG_MSG(("chip family ID = 0x%04x", chipId));
+
+done:
+    return chipId;
+}
+NEXUS_Error NEXUS_Frontend_Probe45402(const NEXUS_FrontendDevice45402OpenSettings *pSettings, NEXUS_45402ProbeResults *pResults)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+
+    BDBG_ASSERT(NULL != pSettings);
+    BDBG_ASSERT(NULL != pResults);
+
+    BKNI_Memset(pResults, 0, sizeof(*pResults));
+
+    if (pSettings->i2cDevice) {
+        pResults->chip.familyId = (uint32_t)NEXUS_Platform_P_I2c_Get45402ChipId(pSettings->i2cDevice, pSettings->i2cAddr);
+        if (pResults->chip.familyId != 0x45402) {
+            BDBG_MSG(("pResults->chip.familyId = 0x%x", pResults->chip.familyId));
+            rc = BERR_INVALID_PARAMETER; goto done;
+        }
+    } else if (pSettings->spiDevice) {
+        pResults->chip.familyId = (uint32_t)NEXUS_Platform_P_Spi_Get45402ChipId(pSettings->spiDevice, pSettings->spiAddr);
+        if (pResults->chip.familyId != 0x45402) {
+            BDBG_MSG(("pResults->chip.familyId = 0x%x", pResults->chip.familyId));
+            rc = BERR_INVALID_PARAMETER; goto done;
+        }
+    } else { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto done; }
+
+    rc = NEXUS_Frontend_P_Get45402ChipInfo(pSettings, pResults);
+
+done:
+    return rc;
+}
+
+NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_P_Open45402(unsigned index, const NEXUS_FrontendDeviceOpenSettings *pSettings)
+{
+    NEXUS_FrontendDevice45402OpenSettings settings;
+    int i;
+
+    NEXUS_FrontendDevice_GetDefault45402OpenSettings(&settings);
+    settings.i2cDevice = pSettings->i2cDevice;
+    settings.i2cAddr = pSettings->i2cAddress;
+    settings.gpioInterrupt = pSettings->gpioInterrupt;
+    settings.isrNumber = pSettings->isrNumber;
+    settings.spiDevice = pSettings->spiDevice;
+    settings.spiAddr = 0x20;
+    settings.diseqc.i2cDevice = pSettings->satellite.diseqc.i2cDevice;
+    settings.diseqc.i2cAddr = pSettings->satellite.diseqc.i2cAddress;
+    for (i=0; i < NEXUS_MAX_MTSIF; i++) {
+        settings.mtsif[i] = pSettings->mtsif[i];
+    }
+
+    return NEXUS_FrontendDevice_Open45402(index, &settings);
+}
+
+NEXUS_FrontendHandle NEXUS_Frontend_P_Open45402(const NEXUS_FrontendChannelSettings *pSettings)
+{
+    NEXUS_45402FrontendSettings settings;
+
+    NEXUS_Frontend_GetDefault45402Settings(&settings);
+    settings.device = pSettings->device;
+    settings.channelNumber = pSettings->channelNumber;
+    return NEXUS_Frontend_Open45402(&settings);
+}
+
+#if NEXUS_HAS_SAGE
+NEXUS_Error NEXUS_FrontendDevice_P_Init45402_InitBP3(NEXUS_45402Device *pDevice)
+{
+    NEXUS_Error retCode = NEXUS_SUCCESS;
+    BERR_Code errCode = BERR_UNKNOWN;
+    struct NEXUS_45402FrontEndBP3Setting {
+        BSAT_45402_Bp3SessionInfo SessionInfo;
+        uint8_t                   Bp3Ccf[BP3_FE_BP3FE_CCF_BYTE_SIZE]; /* CCF response 32 byte to be passed to 45402 FW */
+    } Bp3Setting;
+
+    /* call to get the necessary ID from the front-end FW */
+    errCode = BSAT_45402_GetBp3SessionInfo(pDevice->satDevice->satHandle, &Bp3Setting.SessionInfo);
+    if (BERR_SUCCESS != errCode) {
+        BDBG_ERR(("Unable to Retrieve BP3 ID from 45402, reverting to default..."));
+        retCode = NEXUS_NOT_INITIALIZED;
+    }
+#if NEXUS_FRONTEND_BP3_DEBUG
+{
+    int i, j;
+    char tokenString[BP3_FE_SESSION_TOKEN_BYTE_SIZE * 4];
+    BKNI_Memset(tokenString, 0, BP3_FE_SESSION_TOKEN_BYTE_SIZE *4);
+
+    BDBG_LOG(("Front End OTP ID = %02X %02X %02X %02X", Bp3Setting.SessionInfo.otpId[0],Bp3Setting.SessionInfo.otpId[1],
+              Bp3Setting.SessionInfo.otpId[2],Bp3Setting.SessionInfo.otpId[3]));
+    j = 0;
+    for (i = 0; i < BP3_FE_SESSION_TOKEN_BYTE_SIZE; i++) {
+        j += BKNI_Snprintf(tokenString+j , sizeof(tokenString) - j, "%02X ", Bp3Setting.SessionInfo.sessionToken[i]);
+    }
+    BDBG_LOG(("Front End Session Token = %s", tokenString));
+    BDBG_LOG(("Front End Algo = %X %X", Bp3Setting.SessionInfo.alg[0], Bp3Setting.SessionInfo.alg[1]));
+}
+#endif
+    /* Ok let's call NEXUS_Sage_bp3 interface now */
+    BDBG_ASSERT(g_NEXUS_frontendModuleSettings.sage);
+
+    NEXUS_Module_Lock(g_NEXUS_frontendModuleSettings.sage);
+
+    retCode = NEXUS_Sage_BP3_FrontEnd_CCF_priv(Bp3Setting.SessionInfo.otpId,
+                                               Bp3Setting.SessionInfo.sessionToken,
+                                               Bp3Setting.SessionInfo.alg,
+                                               Bp3Setting.Bp3Ccf);
+
+    NEXUS_Module_Unlock(g_NEXUS_frontendModuleSettings.sage);
+    if (NEXUS_SUCCESS == retCode) {
+        BDBG_MSG(("Received valid BP3 CCF, applying new BP3 provisioning"));
+
+#if NEXUS_FRONTEND_BP3_DEBUG
+{
+        int i,j ;
+        char cCFString[BP3_FE_BP3FE_CCF_BYTE_SIZE * 4];
+        BKNI_Memset(cCFString, 0, BP3_FE_BP3FE_CCF_BYTE_SIZE * 4);
+        j = 0;
+        for (i = 0; i < BP3_FE_BP3FE_CCF_BYTE_SIZE; i++) {
+            j += BKNI_Snprintf(cCFString+j, sizeof(cCFString) - j , "%02X ", Bp3Setting.Bp3Ccf[i]);
+        }
+        BDBG_LOG(("The BP3 CCF returned is %s ", cCFString));
+}
+#endif
+        errCode = BSAT_45402_ConfigBp3(pDevice->satDevice->satHandle, Bp3Setting.Bp3Ccf);
+        if (BERR_SUCCESS != errCode) {
+            BDBG_ERR(("Unable to Configure Modulation modes based on BP3, reverting to default... "));
+            retCode = NEXUS_NOT_AVAILABLE;
+        }
+    }
+    return retCode;
+}
+#endif
