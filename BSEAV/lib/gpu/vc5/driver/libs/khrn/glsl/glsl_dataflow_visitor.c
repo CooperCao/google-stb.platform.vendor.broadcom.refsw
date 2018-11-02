@@ -9,27 +9,13 @@
 
 void glsl_dataflow_visitor_begin(DataflowVisitor *visitor)
 {
-   visitor->seen_array_size = 0;
-   visitor->seen = NULL;
+   visitor->seen = glsl_map_new();
 }
 
 void glsl_dataflow_visitor_end(DataflowVisitor *visitor)
 {
-   glsl_safemem_free(visitor->seen);
-
-   visitor->seen_array_size = 0;
+   glsl_map_delete(visitor->seen);
    visitor->seen = NULL;
-}
-
-static void resize(DataflowVisitor *visitor, int min_size)
-{
-   // Increase the array capacity by at least 50%
-   int old_array_size = visitor->seen_array_size;
-   visitor->seen_array_size = min_size + min_size / 2;
-   assert(visitor->seen_array_size > old_array_size);
-
-   visitor->seen = glsl_safemem_realloc(visitor->seen, sizeof(Dataflow *) * visitor->seen_array_size);
-   memset(visitor->seen + old_array_size, 0, sizeof(Dataflow *) * (visitor->seen_array_size - old_array_size));
 }
 
 void glsl_dataflow_visitor_accept(DataflowVisitor *visitor, Dataflow *dataflow, void *data, DataflowPreVisitor dprev, DataflowPostVisitor dpostv)
@@ -37,11 +23,9 @@ void glsl_dataflow_visitor_accept(DataflowVisitor *visitor, Dataflow *dataflow, 
    if (dataflow == NULL)
       return;
 
-   if (dataflow->id >= visitor->seen_array_size)
-      resize(visitor, dataflow->id + 1);
-
-   if (visitor->seen[dataflow->id] == NULL) {
-      visitor->seen[dataflow->id] = dataflow;
+   Dataflow *entry = glsl_map_get(visitor->seen, dataflow);
+   if (entry == NULL) {
+      glsl_map_put(visitor->seen, dataflow, dataflow);
 
       if (dprev) {
          Dataflow *alt_dataflow = dprev(dataflow, data);
@@ -57,9 +41,6 @@ void glsl_dataflow_visitor_accept(DataflowVisitor *visitor, Dataflow *dataflow, 
       }
 
       if (dpostv) dpostv(dataflow, data);
-   } else {
-      // Check that we have not seen two dataflows with the same id
-      assert(visitor->seen[dataflow->id] == dataflow);
    }
 }
 

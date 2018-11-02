@@ -158,6 +158,13 @@ static const BDSP_P_AlgorithmSupportInfo BDSP_sRaagaAlgorithmSupportInfo[] =
 #ifdef BDSP_OUTPUTFORMATTER_SUPPORT
 	{BDSP_Algorithm_eOutputFormatter, "Output Formatter", true},
 #endif
+#ifdef BDSP_DTSHD_PASSTHRU_SUPPORT
+	{BDSP_Algorithm_eDtsHdPassthrough, "DTSHD Passthru", true},
+#endif
+
+#ifdef BDSP_DTS_PASSTHRU_SUPPORT
+	{BDSP_Algorithm_eDts14BitPassthrough, "DTS Passthru", true},
+#endif
 	{BDSP_Algorithm_eMax, "Invalid", false}
 };
 
@@ -669,6 +676,32 @@ static const BDSP_P_AlgorithmCodeInfo BDSP_sRaagaAlgorithmCodeInfo[] =
         BDSP_IMG_APP_OUTPUTFORMATTER_SIZE,              0,
         /* Code Lib name*/                      /* IDS Code Lib name*/
         "/libapp_outputformatter.so",                   "INVALID",
+    },
+    {
+		/* Algorithm */
+		BDSP_Algorithm_eDtsHdPassthrough,
+		/* Scratch buffer size */				 /* rom table size */
+		BDSP_IMG_ADEC_PASSTHRU_SCRATCH_SIZE, BDSP_IMG_ADEC_PASSTHRU_TABLES_SIZE,
+		 /* interframe size */ 					 	 /* Compressed interframe size */
+		BDSP_IMG_ADEC_PASSTHRU_INTER_FRAME_SIZE, BDSP_IMG_ADEC_PASSTHRU_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/			 /* IDS codeSize*/
+		BDSP_IMG_ADEC_PASSTHRU_SIZE,	   BDSP_IMG_AIDS_DTSHD_SIZE,
+	/* Code Lib name*/                /* IDS Code Lib name*/
+	"/libadec_passthru.so",             "/libaids_dtshd.so"
+
+    },
+    {
+		/* Algorithm */
+		BDSP_Algorithm_eDts14BitPassthrough,
+		/* Scratch buffer size */				 /* rom table size */
+		BDSP_IMG_ADEC_PASSTHRU_SCRATCH_SIZE, BDSP_IMG_ADEC_PASSTHRU_TABLES_SIZE,
+		 /* interframe size */ 					 	 /* Compressed interframe size */
+		BDSP_IMG_ADEC_PASSTHRU_INTER_FRAME_SIZE, BDSP_IMG_ADEC_PASSTHRU_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/			 /* IDS codeSize*/
+		BDSP_IMG_ADEC_PASSTHRU_SIZE,	   BDSP_IMG_AIDS_DTS_SIZE,
+	/* Code Lib name*/                /* IDS Code Lib name*/
+	"/libadec_passthru.so",             "/libaids_dts.so"
+
     },
     /* This entry must always be last used to derive the unsupported/invalid information */
 	{

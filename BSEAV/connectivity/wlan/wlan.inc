@@ -43,7 +43,7 @@ else
 DEBUG_SUFFIX=release
 endif
 
-B_WLAN_VER?=core
+B_WLAN_VER?=7271
 
 ifneq ($(B_WLAN_VER),STB7271_BRANCH_15_10)
 endif

@@ -11,8 +11,8 @@ To build the default configuration, simply do:
 
 However, the WLAN code can be built in many different ways, depending on the values of the following "build flags":
 
-     1. B_WLAN_VER specifies the major version of the WLAN source code (e.g., "core" )
-        If not specified, the default is "core".
+     1. B_WLAN_VER specifies the major version of the WLAN source code (e.g., "7271" )
+        If not specified, the default is "7271".
 
      2. NO more brands: 
 

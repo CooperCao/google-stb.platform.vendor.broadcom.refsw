@@ -245,7 +245,7 @@
 #define BDSP_IMG_OPUS_ENCODE_CODE_SIZE                               ((uint32_t)8)
 #define BDSP_IMG_OPUS_ENCODE_INTER_FRAME_SIZE                        ((uint32_t)54260)
 #define BDSP_IMG_OPUS_ENCODE_TABLES_SIZE                             ((uint32_t)17896)
-#define BDSP_IMG_OUTPUTFORMATTER_CODE_SIZE                           ((uint32_t)2376)
+#define BDSP_IMG_OUTPUTFORMATTER_CODE_SIZE                           ((uint32_t)2480)
 #define BDSP_IMG_OUTPUTFORMATTER_INTER_FRAME_SIZE                    ((uint32_t)4)
 #define BDSP_IMG_OUTPUTFORMATTER_TABLES_SIZE                         ((uint32_t)40)
 #define BDSP_IMG_PCMWAV_DECODE_INTER_FRAME_SIZE                      ((uint32_t)56)

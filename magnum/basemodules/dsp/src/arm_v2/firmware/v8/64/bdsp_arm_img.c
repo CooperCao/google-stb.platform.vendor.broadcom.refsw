@@ -225,6 +225,18 @@ static void *BDSP_ARM_IMG_P_GetArray(unsigned imgId)
         case BDSP_ARM_IMG_ID_TABLE(BDSP_Algorithm_eSoftFMM):                        return BDSP_ARM_IMG_app_soft_fmm_tables;
         case BDSP_ARM_IMG_ID_IFRAME(BDSP_Algorithm_eSoftFMM):                       return BDSP_ARM_IMG_app_soft_fmm_inter_frame;
 #endif /* BDSP_SOFT_FMM_SUPPORT */
+#ifdef BDSP_DTSHD_PASSTHRU_SUPPORT
+	case BDSP_ARM_IMG_ID_CODE(BDSP_Algorithm_eDtsHdPassthrough):				return BDSP_ARM_IMG_adec_passthru;
+	case BDSP_ARM_IMG_ID_TABLE(BDSP_Algorithm_eDtsHdPassthrough): 			return BDSP_ARM_IMG_adec_passthru_tables;
+	case BDSP_ARM_IMG_ID_IFRAME(BDSP_Algorithm_eDtsHdPassthrough):			return BDSP_ARM_IMG_adec_passthru_inter_frame;
+	case BDSP_ARM_IMG_ID_IDS(BDSP_Algorithm_eDtsHdPassthrough):				return BDSP_ARM_IMG_aids_dtshd;
+#endif /*BDSP_DTSHD_PASSTHRU_SUPPORT*/
+#ifdef BDSP_DTS_PASSTHRU_SUPPORT
+	case BDSP_ARM_IMG_ID_CODE(BDSP_Algorithm_eDts14BitPassthrough):				return BDSP_ARM_IMG_adec_passthru;
+	case BDSP_ARM_IMG_ID_TABLE(BDSP_Algorithm_eDts14BitPassthrough): 			return BDSP_ARM_IMG_adec_passthru_tables;
+	case BDSP_ARM_IMG_ID_IFRAME(BDSP_Algorithm_eDts14BitPassthrough):			return BDSP_ARM_IMG_adec_passthru_inter_frame;
+	case BDSP_ARM_IMG_ID_IDS(BDSP_Algorithm_eDts14BitPassthrough):				return BDSP_ARM_IMG_aids_dts;
+#endif /*BDSP_DTS_PASSTHRU_SUPPORT*/
         default:
             BDBG_WRN(("IMG %u not supported (algo %u)", imgId, BDSP_ARM_IMG_ID_TO_ALGO(imgId)));
             return NULL;

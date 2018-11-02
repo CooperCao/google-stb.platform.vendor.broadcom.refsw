@@ -10807,14 +10807,6 @@ static bool BVDC_P_Window_DecideVnetMode_isr
     BDBG_MODULE_MSG(BVDC_WIN_VNET,(" BypassMcvp %d", pMvpMode->stBits.bUseMvpBypass));
     BDBG_MODULE_MSG(BVDC_WIN_VNET,(" UseAnr %d", pMvpMode->stBits.bUseAnr));
 
-    /* SWSTB-8410: reconfig only when MVP needs buffer, not in bypass or MVP off*/
-    if((!hWindow->bCapture)&&(pMvpMode->stBits.bUseHscl))
-    {
-        BVDC_P_MvpMode *pCurMvpMode = &hWindow->stMvpMode;
-        bool bMvpDiff = BVDC_P_DIRTY_COMPARE(pMvpMode, pCurMvpMode);
-        if(bMvpDiff)
-            BVDC_P_Window_SetReconfiguring_isr(hWindow, false, true, false);
-    }
     /* store new MvpMode into win contrext */
     hWindow->stMvpMode = *pMvpMode;
 
