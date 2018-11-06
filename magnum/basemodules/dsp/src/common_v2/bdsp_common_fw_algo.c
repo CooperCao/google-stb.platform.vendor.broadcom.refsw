@@ -689,6 +689,42 @@ static const BDSP_P_AlgorithmInfo BDSP_sAlgorithmInfo[] =
 			false
 		}
 	},
+	{
+		/* Algorithm */ 				   /* Type */						      /* Name */
+		BDSP_Algorithm_eDtsHdPassthrough, BDSP_AlgorithmType_eAudioPassthrough, "DTSHD Passthru",
+		/* Default User Config */			 /* User config size */
+		&BDSP_sDefaultPassthruSettings, sizeof(BDSP_Raaga_Audio_PassthruConfigParams),
+		/* Stream Info Size */					 /* Valid offset */
+		sizeof(BDSP_Raaga_Audio_DtsHdStreamInfo), BDSP_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_DtsHdStreamInfo, ui32StatusValid),
+		/* IDS status size */					 /* TSM status size */
+		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
+		/* Max Channels Supported */	  /* samples per channel */
+		1,								 8192,
+		/* Preemption levels*/
+		{
+			true,
+			false,
+			false
+		}
+	},
+	{
+		/* Algorithm */ 				   /* Type */						      /* Name */
+		BDSP_Algorithm_eDts14BitPassthrough, BDSP_AlgorithmType_eAudioPassthrough, "DTS Passthru",
+		/* Default User Config */			 /* User config size */
+		&BDSP_sDefaultPassthruSettings, sizeof(BDSP_Raaga_Audio_PassthruConfigParams),
+		/* Stream Info Size */					 /* Valid offset */
+		sizeof(BDSP_Raaga_Audio_DtsHdStreamInfo), BDSP_STREAMINFO_VALID_OFFSET(BDSP_Raaga_Audio_DtsHdStreamInfo, ui32StatusValid),
+		/* IDS status size */					 /* TSM status size */
+		sizeof(BDSP_AudioTaskDatasyncStatus), sizeof(BDSP_AudioTaskTsmStatus),
+		/* Max Channels Supported */	  /* samples per channel */
+		1,								 4096,
+		/* Preemption levels*/
+		{
+			true,
+			false,
+			false
+		}
+	},
     /* This entry must always be last used to derive the unsupported/invalid information */
 	{
 		BDSP_Algorithm_eMax, BDSP_AlgorithmType_eMax, "Invalid",

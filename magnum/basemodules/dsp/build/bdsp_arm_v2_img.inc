@@ -159,6 +159,60 @@ BDSP_IMG_SOURCES += $(BDSP_MPEG_PASSTHRU_SOURCES)
 BDSP_IMG_SOURCES += $(BDSP_MPEG_PASSTHRU_IDS_SOURCES)
 endif
 
+
+#
+#DTSHD Passthrough
+#
+ifneq ($(BDSP_DTSHD_PASSTHRU_SUPPORT),n)
+BDSP_DTSHD_PASSTHRU_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_adec_passthru_code$(BDSP_AONA_FILE_TYPE).c \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_adec_passthru_data.c
+BDSP_DTSHD_PASSTHRU_IDS_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_aids_dtshd_code$(BDSP_AONA_FILE_TYPE).c
+
+ifneq ($(wildcard $(BDSP_DTSHD_PASSTHRU_SOURCES)),)
+ifneq ($(wildcard $(BDSP_DTSHD_PASSTHRU_IDS_SOURCES)),)
+BDSP_DTSHD_PASSTHRU_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
+endif
+endif
+
+ifeq ($(BDSP_DTSHD_PASSTHRU_SUPPORT),y)
+# define internal to BDSP to enable passthru
+BDSP_PASSTHRU_SUPPORT = y
+BDSP_DEFINES += BDSP_DTSHD_PASSTHRU_SUPPORT
+BDSP_DEFINES += BDSP_PASSTHRU_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_DTSHD_PASSTHRU_SOURCES)
+BDSP_IMG_SOURCES += $(BDSP_DTSHD_PASSTHRU_IDS_SOURCES)
+endif
+
+#
+#DTS Passthrough
+#
+ifneq ($(BDSP_DTS_PASSTHRU_SUPPORT),n)
+BDSP_DTS_PASSTHRU_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_adec_passthru_code$(BDSP_AONA_FILE_TYPE).c \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_adec_passthru_data.c
+BDSP_DTS_PASSTHRU_IDS_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/$(BDSP_AONA_FOLDER_TYPE)/barm_aids_dts_code$(BDSP_AONA_FILE_TYPE).c
+
+ifneq ($(wildcard $(BDSP_DTS_PASSTHRU_SOURCES)),)
+ifneq ($(wildcard $(BDSP_DTS_PASSTHRU_IDS_SOURCES)),)
+BDSP_DTS_PASSTHRU_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
+endif
+endif
+
+ifeq ($(BDSP_DTS_PASSTHRU_SUPPORT),y)
+# define internal to BDSP to enable passthru
+BDSP_PASSTHRU_SUPPORT = y
+BDSP_DEFINES += BDSP_DTS_PASSTHRU_SUPPORT
+BDSP_DEFINES += BDSP_PASSTHRU_SUPPORT
+BDSP_IMG_SOURCES += $(BDSP_DTS_PASSTHRU_SOURCES)
+BDSP_IMG_SOURCES += $(BDSP_DTS_PASSTHRU_IDS_SOURCES)
+endif
+
+
 #
 #PCMWAV DECODE
 #

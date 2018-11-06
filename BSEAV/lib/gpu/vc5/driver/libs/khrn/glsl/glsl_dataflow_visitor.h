@@ -3,11 +3,11 @@
  ******************************************************************************/
 #pragma once
 
+#include "glsl_map.h"
 #include "glsl_dataflow.h"
 
 typedef struct {
-   Dataflow** seen;
-   int seen_array_size;
+   Map *seen;
 } DataflowVisitor;
 
 // Compare with ast_visitor.h for usage instructions.

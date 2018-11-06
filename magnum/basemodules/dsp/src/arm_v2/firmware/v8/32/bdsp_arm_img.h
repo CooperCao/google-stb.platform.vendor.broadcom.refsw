@@ -227,4 +227,10 @@ extern const void * BDSP_ARM_IMG_adec_opus[];
 extern const void * BDSP_ARM_IMG_adec_opus_tables[];
 extern const void * BDSP_ARM_IMG_adec_opus_inter_frame[];
 #endif /*BDSP_OPUSDEC_SUPPORT*/
+#if defined (BDSP_DTSHD_PASSTHRU_SUPPORT)
+extern const void * BDSP_ARM_IMG_aids_dtshd[];
+#endif /*BDSP_DTSHD_PASSTHRU_SUPPORT*/
+#if defined (BDSP_DTS_PASSTHRU_SUPPORT)
+extern const void * BDSP_ARM_IMG_aids_dts[];
+#endif/*BDSP_DTS_PASSTHRU_SUPPORT*/
 #endif /*BDSP_ARM_IMG_H_*/

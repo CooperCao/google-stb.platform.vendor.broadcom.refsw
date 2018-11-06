@@ -62,7 +62,7 @@ BERR_Code  BDSP_Arm_P_InsertEntry_MapTable(
     uint32_t ui32PhyAddr = 0;
     BDSP_Arm_MapTableEntry *pTable = pMapTable;
     int32_t i = 0;
-	void *pAddress =  pMemory->pAddr;;
+	void *pAddress =  pMemory->pAddr;
 
     BDBG_ENTER(BDSP_Arm_P_InsertEntry_MapTable);
 
@@ -85,7 +85,7 @@ BERR_Code  BDSP_Arm_P_InsertEntry_MapTable(
         err = BERR_TRACE(BERR_INVALID_PARAMETER);
         return err;
     }
-
+#if 0
     if((BCHP_PHYSICAL_OFFSET & (uint32_t)((uintptr_t)pAddress))==BCHP_PHYSICAL_OFFSET)
     {
         ui32PhyAddr = (uint32_t)((uintptr_t)pAddress);
@@ -94,6 +94,10 @@ BERR_Code  BDSP_Arm_P_InsertEntry_MapTable(
     {
 		ui32PhyAddr = pMemory->offset;
     }
+#else
+	ui32PhyAddr = pMemory->offset;
+#endif
+
     pTable->entry_valid = true;
     pTable->offset      = ui32PhyAddr;
     pTable->size        = size;
@@ -117,6 +121,7 @@ BERR_Code  BDSP_Arm_P_DeleteEntry_MapTable(
 
     BDBG_ENTER(BDSP_Arm_P_DeleteEntry_MapTable);
 
+#if 0
 	if((BCHP_PHYSICAL_OFFSET & (uint32_t)((uintptr_t)pAddress))== BCHP_PHYSICAL_OFFSET)
 	{
 		ui32PhyAddr = (uint32_t)((uintptr_t)pAddress);
@@ -126,6 +131,9 @@ BERR_Code  BDSP_Arm_P_DeleteEntry_MapTable(
 		ui32PhyAddr = pMemory->offset;
 
     }
+#else
+	ui32PhyAddr = pMemory->offset;
+#endif
     while(i < (int32_t)ui32MaxEntry)
     {
         if(ui32PhyAddr == pTable->offset)

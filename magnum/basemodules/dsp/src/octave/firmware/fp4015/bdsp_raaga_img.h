@@ -278,4 +278,10 @@ extern const void * BDSP_IMG_app_outputformatter[];
 extern const void * BDSP_IMG_app_outputformatter_tables[];
 extern const void * BDSP_IMG_app_outputformatter_inter_frame[];
 #endif
+#if defined (BDSP_DTSHD_PASSTHRU_SUPPORT)
+extern const void * BDSP_IMG_aids_dtshd[];
+#endif /*BDSP_DTSHD_PASSTHRU_SUPPORT*/
+#if defined (BDSP_DTS_PASSTHRU_SUPPORT)
+extern const void * BDSP_IMG_aids_dts[];
+#endif/*BDSP_DTS_PASSTHRU_SUPPORT*/
 #endif /*BDSP_RAAGA_IMG_H_*/
