@@ -2569,6 +2569,9 @@ void BXPT_P_Dma_Resume(BXPT_Handle hXpt)
         if (!dma) { continue; }
         MEMDMA_MCPB_GRAB_CH(dma);
 
+#ifdef BCHP_XPT_WDMA_CH0_DATA_CONTROL
+        BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_DATA_CONTROL + dma->wdmaRamOffset, 0);
+#endif
         (void) BXPT_Dma_SetSettings(dma, &dma->settings);
 
 #if BXPT_DMA_USE_RUN_VERSION

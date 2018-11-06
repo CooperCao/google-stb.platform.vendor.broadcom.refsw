@@ -329,6 +329,19 @@ void NEXUS_ParserBand_P_SetEnable(NEXUS_ParserBandHandle parserBand)
         enabled = false;
     }
 
+#if NEXUS_TRANSPORT_EXTENSION_TSMF
+    if(parserBand->settings.sourceType == NEXUS_ParserBandSourceType_eTsmf) {
+        /* TSMF can get data directly over MTSIF on some chips. If that's the case, disable the backend parser */
+        if(parserBand->settings.sourceTypeSettings.tsmf) {
+            NEXUS_TsmfSettings tsmfSettings;
+            NEXUS_Tsmf_GetSettings(parserBand->settings.sourceTypeSettings.tsmf, &tsmfSettings);
+            if(tsmfSettings.sourceType == NEXUS_TsmfSourceType_eMtsifRx || tsmfSettings.sourceType == NEXUS_TsmfSourceType_eMtsif) {
+                enabled = false;
+            }
+        }
+    }
+#endif
+
     /* cableCard + allpass + non-Mtsif input forces a parser band on */
     if (!enabled && parserBand->settings.cableCard != NEXUS_CableCardType_eNone && parserBand->settings.allPass && parserBand->settings.sourceType!=NEXUS_ParserBandSourceType_eMtsif) {
         enabled = true;

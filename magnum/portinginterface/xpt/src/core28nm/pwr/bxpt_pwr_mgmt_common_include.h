@@ -98,15 +98,8 @@
 #ifdef BCHP_XPT_PMU_HWG_CLK_GATE_SUB_MODULE_EN
 #include "bchp_xpt_pmu_scb.h"
 #endif
-#if 0
+#if BXPT_DMA_HAS_WDMA_SINGLE_CHX_HEADER
 #include "bchp_xpt_wdma.h"
-#include "bchp_xpt_mcpb_bbuff.h"
-#include "bchp_xpt_mcpb_escd_btp.h"
-#include "bchp_xpt_mcpb_on_chip_desc_data.h"
-#include "bchp_xpt_memdma_mcpb_bbuff.h"
-#include "bchp_xpt_memdma_mcpb_escd_btp.h"
-#include "bchp_xpt_memdma_mcpb_on_chip_desc_data.h"
-#include "bchp_xpt_ocxc_top.h"
 #endif
 #if BXPT_HAS_PACKETSUB
 #include "bchp_xpt_psub.h"
