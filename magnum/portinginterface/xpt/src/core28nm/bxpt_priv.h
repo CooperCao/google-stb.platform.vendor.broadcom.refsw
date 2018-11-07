@@ -758,7 +758,7 @@ typedef struct BXPT_P_TransportData
     struct BXPT_Backup regBackup;
     void *vhRave;
     bool WakeupArmed;
-    uint32_t *mcpbBackup;
+    void *mcpbBackup;
 #endif
 
     unsigned DpcrRefCount;  /* Number of DPCR channels that have been openned */

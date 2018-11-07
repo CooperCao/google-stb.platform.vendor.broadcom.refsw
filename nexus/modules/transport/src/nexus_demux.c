@@ -603,7 +603,9 @@ NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBan
         if (pSettings->dssHdFilter != duplicatePidChannel->settings.dssHdFilter ||
             pSettings->continuityCountEnabled != duplicatePidChannel->settings.continuityCountEnabled ||
             pSettings->generateContinuityCount != duplicatePidChannel->settings.generateContinuityCount ||
-            BKNI_Memcmp(&pSettings->remap, &duplicatePidChannel->settings.remap, sizeof(pSettings->remap)))
+            pSettings->remap.enabled != duplicatePidChannel->settings.remap.enabled ||
+            pSettings->remap.continuityCountEnabled != duplicatePidChannel->settings.remap.continuityCountEnabled ||
+            pSettings->remap.pid != duplicatePidChannel->settings.remap.pid)
         {
             BDBG_ERR(("Cannot open duplicate pid channel with different settings"));
             return NULL;
