@@ -839,6 +839,10 @@ NEXUS_Error NEXUS_HdmiOutput_SetSettings( NEXUS_HdmiOutputHandle output, const N
     if (output->rxState != NEXUS_HdmiOutputState_ePoweredOn) {
         BDBG_MSG(("Rx is not ready/powered... new settings will be applied when powered")) ;
         errCode = NEXUS_SUCCESS ;
+        if ( output->hdmSettings.bCrcTestMode ) {
+            BDBG_WRN(("CRC test mode, simulate hotplug " ));
+            NEXUS_HdmiOutput_P_HotplugCallback(output);
+        }
         goto done ;
     }
 
@@ -2978,3 +2982,4 @@ NEXUS_Error NEXUS_HdmiOutput_P_ApplyAviInfoFrame(
      * the nexus copy, and we didn't want to see the DBV overrides anyway */
     return rc;
 }
+

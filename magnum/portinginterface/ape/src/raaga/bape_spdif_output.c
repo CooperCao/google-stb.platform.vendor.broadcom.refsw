@@ -694,6 +694,11 @@ static BERR_Code BAPE_SpdifOutput_P_Open_IopOut(BAPE_SpdifOutputHandle handle)
     BAPE_SpdifOutput_P_SetMclk_isr(&handle->outputPort, BAPE_MclkSource_ePll0, 0, 256);
     BKNI_LeaveCriticalSection();
 
+#if defined BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_STEP_IN_OVERWRITE_MODE
+    /* Set ramp to 11ms (value * 24 / 48000) */
+    BAPE_Reg_P_UpdateField(handle->deviceHandle, BAPE_SPDIF_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_STEP_IN_OVERWRITE_MODE, handle->index), AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_STEP_IN_OVERWRITE_MODE, RAMP_STEP_IN_OVERWRITE_MODE, 0x16);
+#endif
+
     BAPE_SpdifOutput_P_SetBurstConfig(handle, true);
     return BERR_SUCCESS;
 }

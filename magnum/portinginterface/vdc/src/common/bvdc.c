@@ -889,8 +889,12 @@ BERR_Code BVDC_Open
     if(pVdc->hMemory) {
         BDBG_MODULE_MSG(BVDC_WIN_BUF, ("--------------------------------- "));
         BDBG_MODULE_MSG(BVDC_WIN_BUF, ("BVDC_Open: create VDC main heap"));
-        BVDC_P_BufferHeap_Create(pVdc, &pVdc->hBufferHeap, pVdc->hMemory,
+        eStatus = BVDC_P_BufferHeap_Create(pVdc, &pVdc->hBufferHeap, pVdc->hMemory,
             &pVdc->stSettings.stHeapSettings);
+        if (eStatus != BERR_SUCCESS)
+        {
+            goto BVDC_Open_Done;
+        }
     }
 
     /* (4) Create resource */
@@ -931,8 +935,8 @@ BERR_Code BVDC_Open
         if(!pVdc->hVdcMosaicMmaBlock)
         {
             BDBG_ERR(("Not enough device memory"));
-            BDBG_ASSERT(0);
-            return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+            eStatus = BERR_OUT_OF_DEVICE_MEMORY;
+            goto BVDC_Open_Done;
         }
 
         pVdc->ullVdcNullBufOffset = BMMA_LockOffset(pVdc->hVdcMosaicMmaBlock);

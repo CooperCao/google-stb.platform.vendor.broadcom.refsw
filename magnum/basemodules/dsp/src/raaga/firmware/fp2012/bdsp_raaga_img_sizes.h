@@ -219,7 +219,7 @@
 #define BDSP_IMG_MAC_DECODE_TABLES_SIZE                              ((uint32_t)2112)
 #define BDSP_IMG_MAC_IDS_INTER_FRAME_SIZE                            ((uint32_t)16876)
 #define BDSP_IMG_MAC_IDS_SIZE                                        ((uint32_t)3864)
-#define BDSP_IMG_MIXER_DAPV2_CODE_SIZE                               ((uint32_t)198388)
+#define BDSP_IMG_MIXER_DAPV2_CODE_SIZE                               ((uint32_t)198396)
 #define BDSP_IMG_MIXER_DAPV2_IDS_INTER_FRAME_SIZE                    ((uint32_t)3964)
 #define BDSP_IMG_MIXER_DAPV2_IDS_SIZE                                ((uint32_t)8520)
 #define BDSP_IMG_MIXER_DAPV2_INTER_FRAME_SIZE                        ((uint32_t)520224)

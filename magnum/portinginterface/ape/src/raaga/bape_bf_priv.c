@@ -104,6 +104,7 @@ static void BAPE_Bf_P_SfifoStarting(BAPE_SfifoGroupHandle handle);
 static void BAPE_Bf_P_SfifoStopping(BAPE_SfifoGroupHandle handle);
 static bool BAPE_Sfifo_P_IsEnabled(BAPE_Handle hApe, unsigned sfifoId);
 static unsigned BAPE_Bf_P_GetFirstRunningSfifo(BAPE_Handle hApe, const uint32_t *pSfifoIds);
+static BERR_Code BAPE_Dfifo_P_GetQueuedBytes(BAPE_DfifoGroupHandle handle, unsigned *pQueuedBytes, unsigned chPair, unsigned bufferNum );
 
 void BAPE_SfifoGroup_P_GetDefaultCreateSettings(
     BAPE_SfifoGroupCreateSettings *pSettings    /* [out] */
@@ -2266,6 +2267,106 @@ BERR_Code BAPE_DfifoGroup_P_Flush_isr(
             BREG_WriteAddr_isrsafe(handle->deviceHandle->regHandle, regAddr, regVal);
         }
     }
+
+    return BERR_SUCCESS;
+}
+
+BERR_Code BAPE_DfifoGroup_P_GetQueuedBytes(
+    BAPE_DfifoGroupHandle handle,
+    unsigned *pQueuedBytes
+    )
+{
+    BERR_Code errCode;
+    uint32_t chPair;
+
+    BDBG_ASSERT(NULL != handle);
+    BDBG_ASSERT(handle->allocated);
+    BDBG_ASSERT(NULL != pQueuedBytes);
+
+    /* TODO: Handle non-interleaved and multichannel */
+    for (chPair = 0; chPair < handle->numChannelPairs; chPair++)
+    {
+        if (handle->settings.interleaveData)
+        {
+            errCode = BAPE_Dfifo_P_GetQueuedBytes(handle, pQueuedBytes, chPair, 0 );
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+            }
+        }
+        else
+        {
+            errCode = BAPE_Dfifo_P_GetQueuedBytes(handle, pQueuedBytes, chPair, 0);
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+            }
+            errCode = BAPE_Dfifo_P_GetQueuedBytes(handle, pQueuedBytes, chPair, 1);
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+            }
+        }
+
+    }
+
+    return BERR_SUCCESS;
+}
+
+static BERR_Code BAPE_Dfifo_P_GetQueuedBytes(
+    BAPE_DfifoGroupHandle handle,
+    unsigned *pQueuedBytes,
+    unsigned chPair,       /*0,1,2,3*/
+    unsigned bufferNum     /*0,1*/
+    )
+{
+    BMMA_DeviceOffset rd,wr,base,rdaddr,wraddr;
+    unsigned bufferSize, dfifoId, queuedBytes;
+
+    dfifoId = handle->dfifoIds[chPair];
+    bufferSize = handle->settings.bufferInfo[chPair*2 + bufferNum].length;
+    rd = BREG_ReadAddr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_RDADDR_REG(dfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
+    wr = BREG_ReadAddr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_WRADDR_REG(dfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
+    base = BREG_ReadAddr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_BASEADDR_REG(dfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
+
+#ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
+    rdaddr = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR);
+    wraddr = BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
+#else
+    rdaddr = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR);
+    wraddr = BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
+#endif
+
+    if ( wraddr > rdaddr )
+    {
+        queuedBytes = wraddr-rdaddr;
+    }
+    else if ( wraddr < rdaddr )
+    {
+        queuedBytes = (wraddr-base)+(bufferSize-(rdaddr-base));
+    }
+    else    /* equal */
+    {
+        if (
+#ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
+             BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ==
+             BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP)
+#else
+             BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP) ==
+             BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP)
+#endif
+            )
+        {
+            /* Toggle bits are equal, buffer is empty. */
+            queuedBytes = 0;
+        }
+        else
+        {
+            /* Toggle bit mismatch, buffer is full. */
+            queuedBytes = bufferSize;
+        }
+    }
+    *pQueuedBytes = queuedBytes;
 
     return BERR_SUCCESS;
 }

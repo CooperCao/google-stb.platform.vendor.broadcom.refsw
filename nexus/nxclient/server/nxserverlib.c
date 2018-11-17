@@ -4206,6 +4206,7 @@ NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_
     unsigned i;
     bool waitForInactive = false;
     struct nxserver_display_format target_format;
+    bool check_hdcp_flag = false;
 
     if (!session->display[0].display) {
         /* headless */
@@ -4439,6 +4440,7 @@ NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_
     if (session->hdmiOutput) {
         if (pSettings->hdmiPreferences.enabled && !session->nxclient.displaySettings.hdmiPreferences.enabled) {
             NEXUS_Display_AddOutput(session->display[0].display, NEXUS_HdmiOutput_GetVideoConnector(session->hdmiOutput));
+            check_hdcp_flag = true;
         }
         else if (!pSettings->hdmiPreferences.enabled && session->nxclient.displaySettings.hdmiPreferences.enabled) {
             NEXUS_HdmiOutput_DisableHdcpAuthentication(session->hdmiOutput);
@@ -4470,25 +4472,26 @@ skip_outputs:
     }
 
     if (client) {
-        bool update_flag = false;
         if (client->hdcp_version != pSettings->hdmiPreferences.version) {
             /* hdcp is per-client */
             client->hdcp_version = pSettings->hdmiPreferences.version;
-            update_flag = true;
+            check_hdcp_flag = true;
         }
         if (client->hdcp_level != pSettings->hdmiPreferences.hdcp) {
             /* hdcp is per-client */
             client->hdcp_level = pSettings->hdmiPreferences.hdcp;
-            update_flag = true;
+            check_hdcp_flag = true;
         }
-        if (update_flag)
-            nxserver_check_hdcp(session);
     }
 
     if (!rc) {
         session->nxclient.displaySettings = *pSettings;
         session->nxclient.displaySettings.sequenceNumber++;
         session->callbackStatus.displaySettingsChanged++;
+    }
+
+    if (check_hdcp_flag) {
+        nxserver_check_hdcp(session);
     }
 
     return rc;

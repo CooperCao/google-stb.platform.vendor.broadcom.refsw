@@ -811,7 +811,7 @@ void BVDC_P_Source_Destroy
 * {private}
 *
 */
-void BVDC_P_Source_Init
+BERR_Code BVDC_P_Source_Init
     ( BVDC_Source_Handle               hSource,
       const BVDC_Source_CreateSettings *pDefSettings )
 {
@@ -822,6 +822,7 @@ void BVDC_P_Source_Init
     BVDC_P_Source_IsrInfo *pIsrInfo;
     bool bGfxSrc = false;
     bool bMtgSrc = false;
+    BERR_Code eStatus = BERR_SUCCESS;
 
     BDBG_ENTER(BVDC_P_Source_Init);
     BDBG_OBJECT_ASSERT(hSource, BVDC_SRC);
@@ -1027,7 +1028,6 @@ void BVDC_P_Source_Init
     {
         /* mpeg src might be MtgSrc or GfxSrc, we will not know before BVDC_P_Source_Init
          * now we create src RUL done execution callback */
-        BERR_Code eStatus;
         BINT_CallbackFunc MpegSrcCallBack = BVDC_P_Source_MfdGfxCallback_isr;
         uint32_t ulDebugReg = BVDC_P_MPEG_DEBUG_SCRATCH(hSource->eId);
 
@@ -1091,12 +1091,14 @@ void BVDC_P_Source_Init
     }
     if(hSource->hGfxFeeder)
     {
-        BVDC_P_GfxFeeder_Init(hSource->hGfxFeeder, pDefSettings);
+        eStatus = BVDC_P_GfxFeeder_Init(hSource->hGfxFeeder, pDefSettings);
+        if(eStatus != BERR_SUCCESS)
+            return BERR_TRACE(eStatus);
         pNewInfo->eCtInputType = BVDC_P_CtInput_eUnknown;
     }
 
     BDBG_LEAVE(BVDC_P_Source_Init);
-    return;
+    return eStatus;
 }
 
 

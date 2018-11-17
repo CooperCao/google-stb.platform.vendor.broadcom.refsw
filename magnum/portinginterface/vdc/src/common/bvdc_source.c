@@ -190,6 +190,7 @@ BERR_Code BVDC_Source_Create
       BAVC_SourceId                    eSourceId,
       const BVDC_Source_CreateSettings *pDefSettings )
 {
+    BERR_Code eStatus = BERR_SUCCESS;
     BVDC_P_SourceContext *pSource;
     BVDC_P_DrainContext stTmpDrain;
 
@@ -277,13 +278,15 @@ BERR_Code BVDC_Source_Create
     /* Reinitialize context.  But not make it active until apply. */
     *phSource = pSource;
 
-    BVDC_P_Source_Init(*phSource, pDefSettings);
+    eStatus = BVDC_P_Source_Init(*phSource, pDefSettings);
+    if(eStatus != BERR_SUCCESS)
+        return BERR_TRACE(eStatus);
 
     /* Mark as create, awating for apply. */
     pSource->eState = BVDC_P_State_eCreate;
 
     BDBG_LEAVE(BVDC_Source_Create);
-    return BERR_SUCCESS;
+    return eStatus;
 }
 
 
