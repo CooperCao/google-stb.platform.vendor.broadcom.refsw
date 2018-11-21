@@ -106,6 +106,7 @@ typedef union BAPE_UnifiedFWMixerUserConfig
 
 #define BAPE_DSPMIXER_DDRE_INPUT_SR ((unsigned)48000)
 #define BAPE_DSP_MIXER_ASSOCIATE_FADE_INDEX 4
+#define BAPE_DSP_MIXER_LOOPBACK_1_MS_SIZE 192 /* 192 bytes in 1 millisecond of mono data*/
 
 /***************************************************************************
 Summary:
@@ -1703,14 +1704,45 @@ static void BAPE_DspMixer_P_StopPathFromInput(struct BAPE_PathNode *pNode, struc
 
         if ( handle->loopbackRunning == 0 )
         {
-            BDSP_Stage_RemoveInput(handle->hMixerStage, handle->loopbackDspInput);
-            handle->loopbackDspInput = BAPE_MIXER_INPUT_INDEX_INVALID;
+            unsigned queuedBytes = 0;
+            unsigned delayTime = 0;
+            BERR_Code errCode;
+
             if ( handle->loopbackMixerGroup )
             {
                 BAPE_MixerGroup_P_StopOutput(handle->loopbackMixerGroup, 0);
             }
+
+            errCode = BAPE_DfifoGroup_P_GetQueuedBytes(handle->loopbackDfifoGroup, &queuedBytes);
+            if (errCode) {
+                BERR_TRACE(errCode);
+            }
+
+            if (queuedBytes > 0)
+            {
+                /* Mixer consumes 33 ms of data at a time.  Calculate how many blocks of 33ms we have */
+                delayTime = (queuedBytes / (BAPE_DSP_MIXER_LOOPBACK_1_MS_SIZE * 33));
+                delayTime++; /* always add an extra window */
+                delayTime *= 33000; /* Milliseconds to microseconds */
+                while (delayTime) {
+                    delayTime -= 100;
+                    BKNI_Delay(100);
+                    errCode = BAPE_DfifoGroup_P_GetQueuedBytes(handle->loopbackDfifoGroup, &queuedBytes);
+                    if (errCode) {
+                        BERR_TRACE(errCode);
+                    }
+                    if (queuedBytes == 0){ break; }
+                }
+            }
+            if (queuedBytes > 0) {
+                BDBG_WRN(("Some PCM Playback may be lost as %u bytes were not consumed even after waiting", queuedBytes));
+            }
+
             BAPE_LoopbackGroup_P_Stop(handle->loopbackGroup);
+
             BAPE_DfifoGroup_P_Stop(handle->loopbackDfifoGroup);
+            BDSP_Stage_RemoveInput(handle->hMixerStage, handle->loopbackDspInput);
+            handle->loopbackDspInput = BAPE_MIXER_INPUT_INDEX_INVALID;
         }
     }
 

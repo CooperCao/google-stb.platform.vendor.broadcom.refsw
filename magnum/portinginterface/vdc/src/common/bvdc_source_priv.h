@@ -592,7 +592,7 @@ BERR_Code BVDC_P_Source_Create
 void BVDC_P_Source_Destroy
     ( BVDC_Source_Handle               hSource );
 
-void BVDC_P_Source_Init
+BERR_Code BVDC_P_Source_Init
     ( BVDC_Source_Handle               hSource,
       const BVDC_Source_CreateSettings *pDefSettings );
 

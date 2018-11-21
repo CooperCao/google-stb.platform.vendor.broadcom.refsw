@@ -873,6 +873,10 @@ static BERR_Code BAPE_MaiOutput_P_Open_IopOut(BAPE_MaiOutputHandle handle)
 #endif
     BKNI_LeaveCriticalSection();
 
+#if defined BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_RAMP_STEP_IN_OVERWRITE_MODE
+    /* Set ramp to 11ms (value * 24 / 48000) */
+    BAPE_Reg_P_UpdateField(handle->deviceHandle, BAPE_MAI_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_RAMP_STEP_IN_OVERWRITE_MODE, handle->index), AUD_FMM_IOP_OUT_MAI_0_SPDIF_RAMP_STEP_IN_OVERWRITE_MODE, RAMP_STEP_IN_OVERWRITE_MODE, 0x16);
+#endif
     BAPE_MaiOutput_P_SetBurstConfig_IopOut(handle);
 
     return BERR_SUCCESS;

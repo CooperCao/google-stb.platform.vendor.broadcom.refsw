@@ -53,10 +53,9 @@ static void NEXUS_HdmiOutput_P_RxPowerTimerExpired(void *pContext);
 /* called when rxState goes to eDisconnected, or to ePoweredOn/Down */
 static void NEXUS_HdmiOutput_P_FireHotplugCallbacks(NEXUS_HdmiOutputHandle hdmiOutput)
 {
-#if 0
     /* notify HDR module */
-    NEXUS_HdmiOutput_Dynrng_P_ConnectionChanged(hdmiOutput);
-#endif
+    NEXUS_HdmiOutput_P_DrmInfoFrameConnectionChanged(hdmiOutput);
+
     /* notify application of hotplug status change */
     NEXUS_TaskCallback_Fire(hdmiOutput->hotplugCallback);
 
@@ -185,6 +184,11 @@ void NEXUS_HdmiOutput_P_ProcessRxState(NEXUS_HdmiOutputHandle hdmiOutput, bool *
 
     /* This is the only place where NEXUS_HdmiOutput determines deviceAttached and rxSense. */
     BHDM_GetReceiverSense(hdmiOutput->hdmHandle, deviceAttached, rxSense);
+    if ( hdmiOutput->hdmSettings.bCrcTestMode ) {
+        *deviceAttached = true;
+        *rxSense        = true;
+        BDBG_MSG(("CRC test mode, override deviceAttached & rxSense " ));
+    }
 }
 
 /* transition from any rxState to eRxSenseCheck, ePoweredOn or ePoweredDown based on rxSense and current state */

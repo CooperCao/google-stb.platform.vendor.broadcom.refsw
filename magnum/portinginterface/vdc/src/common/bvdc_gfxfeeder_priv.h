@@ -348,7 +348,7 @@ BERR_Code BVDC_P_GfxFeeder_Destroy
  * allocate surface address shadow registers. We don't want to allocate them
  * until the GFD is really going to be used.
  */
-void BVDC_P_GfxFeeder_Init(
+BERR_Code BVDC_P_GfxFeeder_Init(
     BVDC_P_GfxFeeder_Handle          hGfxFeeder,
     const BVDC_Source_CreateSettings      *pSettings );
 

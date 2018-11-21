@@ -499,7 +499,7 @@ static void BVDC_P_GfxFeeder_SetAllDirty(
  * allocate surface address shadow registers. We don't want to allocate them
  * until the GFD is really going to be used.
  */
-void BVDC_P_GfxFeeder_Init(
+BERR_Code BVDC_P_GfxFeeder_Init(
     BVDC_P_GfxFeeder_Handle          hGfxFeeder,
     const BVDC_Source_CreateSettings      *pSettings )
 {
@@ -543,7 +543,17 @@ void BVDC_P_GfxFeeder_Init(
                 if( !hGfxFeeder->stCfcLutList.hMmaBlock[i] )
                 {
                     BDBG_ERR(( "Out of Device Memory" ));
-                    BDBG_ASSERT(0);
+                    while(i--)
+                    {
+                        if(hGfxFeeder->stCfcLutList.hMmaBlock[i])
+                        {
+                            BMMA_Unlock(hGfxFeeder->stCfcLutList.hMmaBlock[i], hGfxFeeder->stCfcLutList.pulStart[i]);
+                            BMMA_UnlockOffset(hGfxFeeder->stCfcLutList.hMmaBlock[i],
+                                hGfxFeeder->stCfcLutList.ullStartDeviceAddr[i]);
+                            BMMA_Free(hGfxFeeder->stCfcLutList.hMmaBlock[i]);
+                        }
+                    }
+                    return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
                 }
                 hGfxFeeder->stCfcLutList.pulStart[i] = BMMA_Lock(hGfxFeeder->stCfcLutList.hMmaBlock[i]);
                 hGfxFeeder->stCfcLutList.ullStartDeviceAddr[i] =
@@ -559,7 +569,7 @@ void BVDC_P_GfxFeeder_Init(
     BSTD_UNUSED(pSettings);
 #endif
     BDBG_LEAVE(BVDC_P_GfxFeeder_Init);
-    return;
+    return BERR_SUCCESS;
 }
 
 /*************************************************************************

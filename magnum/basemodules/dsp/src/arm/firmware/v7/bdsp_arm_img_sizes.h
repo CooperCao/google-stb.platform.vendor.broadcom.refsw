@@ -39,9 +39,9 @@
  * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
  * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
-#define BDSP_ARM_IMG_DDP_ENCODE_CODE_SIZE                            ((uint32_t)608144)
+#define BDSP_ARM_IMG_DDP_ENCODE_CODE_SIZE                            ((uint32_t)608100)
 #define BDSP_ARM_IMG_DDP_ENCODE_INTER_FRAME_SIZE                     ((uint32_t)216780)
 #define BDSP_ARM_IMG_DDP_ENCODE_TABLES_SIZE                          ((uint32_t)26752)
-#define BDSP_ARM_IMG_SYSTEM_CODE_SIZE                                ((uint32_t)44836)
-#define BDSP_ARM_IMG_LIBDMA_CODE_SIZE                                ((uint32_t)22016)
-#define BDSP_ARM_IMG_HBC_MONITOR_CODE_SIZE                           ((uint32_t)6268)
+#define BDSP_ARM_IMG_SYSTEM_CODE_SIZE                                ((uint32_t)44792)
+#define BDSP_ARM_IMG_LIBDMA_CODE_SIZE                                ((uint32_t)21972)
+#define BDSP_ARM_IMG_HBC_MONITOR_CODE_SIZE                           ((uint32_t)6204)

@@ -91,6 +91,8 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 108*1024 *1024;
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 64*1024*1024;
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType = NEXUS_HEAP_TYPE_GRAPHICS;
+    pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].size = 60*1024*1024;
+    pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].heapType = NEXUS_HEAP_TYPE_SECONDARY_GRAPHICS;
     switch(boxMode)
     {
         case 3:
@@ -98,8 +100,6 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
         case 5:
         case 6:
         {
-            pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].size = 64*1024*1024;
-            pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].heapType = NEXUS_HEAP_TYPE_SECONDARY_GRAPHICS;
             pSettings->heap[NEXUS_MEMC1_DRIVER_HEAP].size = 5*1024*1024;
             break;
         }
