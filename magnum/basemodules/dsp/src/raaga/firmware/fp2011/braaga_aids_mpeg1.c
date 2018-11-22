@@ -2202,7 +2202,7 @@ const uint32_t BDSP_IMG_mpeg1_ids_array1[] = {
 	0x0844481f,
 	0x3d841207,
 	0x461ffe37,
-	0xc6fd55a3,
+	0xc6fd558b,
 	0x07bffe03,
 	0xa7430dd7,
 	0x001dffc7,
