@@ -604,6 +604,13 @@ void BVDC_P_ProgramStgChan_isr
         BSTD_UNUSED(ulRegOffset);
         BSTD_UNUSED(ulSrc);
 #endif
+
+#if BVDC_P_STG_RUL_DELAY_WORKAROUND && BVDC_P_SUPPORT_VIP && BVDC_P_VIP_DCX_ON
+        /* VIP DCXV needs more than two extra line delays to finish */
+        if(pCurInfo->bStgNonRealTime) {
+            BVDC_P_STG_DelayRUL_isr (hDisplay, pList, false);
+        }
+#endif
     }
     BDBG_LEAVE(BVDC_P_ProgramStgChan);
     return;
@@ -1199,16 +1206,16 @@ void BVDC_P_STG_DelayRUL_isr
         *pList->pulCurrent++ = BRDC_REGISTER(hDisplay->ulScratchDummyAddr);
         BSTD_UNUSED(bMadr);
 #else
-        /* only mcvp needs the workaround */
-#if !BVDC_P_SUPPORT_VIP
+        /* if VIP not managed by VDC, only mcvp needs the workaround */
         if(!bMadr)
-#else   /* delay EOP trigger for VDC managed VIP in case DCXV needs extra time to finish. */
-        BSTD_UNUSED(bMadr);
-#endif
         {
             *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
             *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VIDEO_ENC_STG_0_EOP_TRIGGER_DELAY + hDisplay->ulStgRegOffset);
+#if !BVDC_P_SUPPORT_VIP
             *pList->pulCurrent++ = 120;
+#else   /* delay EOP trigger for VDC managed VIP in case DCXV needs extra time to finish. */
+            *pList->pulCurrent++ = 80*27;/* 80us for 1080i worst case */
+#endif
         }
 #endif
     }

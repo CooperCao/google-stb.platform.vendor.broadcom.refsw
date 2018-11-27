@@ -960,8 +960,9 @@ void BVDC_P_Vip_GetBuffer_isr
             BLST_SQ_REMOVE_HEAD(&hVip->stCaptureQdecim2v, link);
             BLST_SQ_INSERT_TAIL(&hVip->stDeliverQdecim2v, pBufferDecim2v, link);
         }
-        BDBG_MODULE_MSG(BVDC_VIP_Q,("[%d] GET pic[%u][%#x] buf[%d]: %ux%u%c[stc=%#x, %#x][opts=%#x]", hVip->eId, pPicture->ulPictureId,
-            pPicture->ulLumaOffset, pBuffer->ulBufferId,
+        BDBG_MODULE_MSG(BVDC_VIP_Q,("[%d] GET pic[%u][%#x] buf[%u:%u:%u:%u:%u]: %ux%u%c[stc=%#x, %#x][opts=%#x]", hVip->eId, pPicture->ulPictureId,
+            pPicture->ulLumaOffset, pBuffer->ulBufferId, pBufferChroma->ulBufferId, pBufferShifted?pBufferShifted->ulBufferId:0,
+            pBufferDecim1v?pBufferDecim1v->ulBufferId:0, pBufferDecim2v?pBufferDecim2v->ulBufferId:0,
             pPicture->ulWidth, pPicture->ulHeight, (BAVC_Polarity_eFrame==pPicture->ePolarity)?'p':
             ((BAVC_Polarity_eTopField==pPicture->ePolarity)? 'T':'B'),
             pPicture->ulSTCSnapshotHi, pPicture->ulSTCSnapshotLo, pPicture->ulOriginalPTS));
@@ -1450,10 +1451,10 @@ void BVDC_P_Vip_BuildRul_isr
             /* only top field delivers shifted chroma buffer */
             if(hVip->pCapture->stPicture.ePolarity == BAVC_Polarity_eTopField) {
                 hVip->pCaptureShifted = hVip->pToCaptureShifted;
-                hVip->pToCaptureShifted = NULL; /* clear the pointer */
             } else {
                 hVip->pCaptureShifted = NULL;
             }
+            hVip->pToCaptureShifted = NULL; /* clear the pointer */
             if(hVip->stMemSettings.bDecimatedLuma) {
                 hVip->pCaptureDecim1v = hVip->pToCaptureDecim1v;
                 hVip->pCaptureDecim2v = hVip->pToCaptureDecim2v;
@@ -1656,6 +1657,8 @@ void BVDC_P_Vip_BuildRul_isr
             pBuffer->stPicture.ulPictureId, hDisplay->hCompositor->ulDecodePictureId,
             hDisplay->hCompositor->ePictureType, eFieldPolarity,
             hDisplay->hCompositor->ulStgPxlAspRatio_x_y, pBuffer->stPicture.ulOriginalPTS));
+        BDBG_MODULE_MSG(BVDC_DISP_VIP,("BUILD buf %u:%u:%u:%u:%u", pBuffer->ulBufferId, pBufferChroma->ulBufferId,
+            pBufferShifted?pBufferShifted->ulBufferId:0, pBufferDecim1v?pBufferDecim1v->ulBufferId:0, pBufferDecim2v?pBufferDecim2v->ulBufferId:0));
 
         /* set FW_CONTROL */
         hVip->stRegs.ulFwControl = (
@@ -1880,7 +1883,7 @@ void BVDC_P_Vip_BuildRul_isr
             BVDC_P_VIP_RDB_DATA(420_CHROMA_NMBY, NMBY,    pBuffer->stPicture.ulChromaNMBY));
 #endif
         /* interlaced shifted chroma address */
-        if(pFmtInfo->bInterlaced) {
+        if(BAVC_Polarity_eTopField == eFieldPolarity) {
            /* The shifted chroma is stored only for top field and it's a frame chroma so it's stored as a frame */
 #if BCHP_VICE_VIP_0_0_DCMH1V_BASE
            hVip->stRegs.ullShiftedChromaAddr =  (
@@ -1926,13 +1929,20 @@ void BVDC_P_Vip_BuildRul_isr
             hVip->stRegs.ulLumaNMBY);
         BVDC_P_VIP_WRITE_TO_RUL(CHROMA_420_CFG, pList->pulCurrent,
             hVip->stRegs.ulChromaNMBY);
-        BVDC_P_VIP_WRITE_TO_RUL(DCMH1V_CFG, pList->pulCurrent,
-              hVip->stRegs.ul1VLumaNMBY);
         BVDC_P_VIP_WRITE_TO_RUL(DCMH2V_CFG, pList->pulCurrent,
               hVip->stRegs.ul2VLumaNMBY);
-        BVDC_P_VIP_WRITE_TO_RUL(SHIFT_CHROMA_CFG, pList->pulCurrent,
-              hVip->stRegs.ulShiftedChromaNMBY);
-
+        BVDC_P_VIP_WRITE_TO_RUL(DCMH1V_CFG, pList->pulCurrent,
+              hVip->stRegs.ul1VLumaNMBY);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+              BVDC_P_VIP_RDB(DCMH1V_BASE) + hVip->ulRegOffset,
+            hVip->stRegs.ull1VLumaAddr);
+        if(BAVC_Polarity_eTopField == eFieldPolarity) {
+            BVDC_P_VIP_WRITE_TO_RUL(SHIFT_CHROMA_CFG, pList->pulCurrent,
+                  hVip->stRegs.ulShiftedChromaNMBY);
+            BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+                  BVDC_P_VIP_RDB(SHIFT_CHROMA_BASE) + hVip->ulRegOffset,
+                hVip->stRegs.ullShiftedChromaAddr);
+        }
         BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
               BVDC_P_VIP_RDB(LUMA_BASE) + hVip->ulRegOffset,
             hVip->stRegs.ullLumaAddr);
@@ -1940,14 +1950,8 @@ void BVDC_P_Vip_BuildRul_isr
               BVDC_P_VIP_RDB(CHROMA_420_BASE) + hVip->ulRegOffset,
             hVip->stRegs.ullChromaAddr);
         BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
-              BVDC_P_VIP_RDB(DCMH1V_BASE) + hVip->ulRegOffset,
-            hVip->stRegs.ull1VLumaAddr);
-        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
               BVDC_P_VIP_RDB(DCMH2V_BASE) + hVip->ulRegOffset,
             hVip->stRegs.ull2VLumaAddr);
-        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
-              BVDC_P_VIP_RDB(SHIFT_CHROMA_BASE) + hVip->ulRegOffset,
-            hVip->stRegs.ullShiftedChromaAddr);
         BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
               BVDC_P_VIP_RDB(PCC_LUMA_BASE) + hVip->ulRegOffset,
               hVip->stRegs.ullPccLumaAddr);

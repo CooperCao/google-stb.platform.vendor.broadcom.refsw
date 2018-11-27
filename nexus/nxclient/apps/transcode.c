@@ -499,7 +499,7 @@ static int start_encode(EncodeContext *pContext)
         }
     }
     if (pContext->encoderSettings.framesP.set) encoderSettings.videoEncoder.streamStructure.framesP = pContext->encoderSettings.framesP.count;
-    if (pContext->encoderSettings.framesB.set) encoderSettings.videoEncoder.streamStructure.framesP = pContext->encoderSettings.framesB.count;
+    if (pContext->encoderSettings.framesB.set) encoderSettings.videoEncoder.streamStructure.framesB = pContext->encoderSettings.framesB.count;
     encoderSettings.video.window.x = pContext->encoderSettings.window_x;
     encoderSettings.video.window.y = pContext->encoderSettings.window_y;
     encoderSettings.video.window.width = pContext->encoderSettings.window_w;
