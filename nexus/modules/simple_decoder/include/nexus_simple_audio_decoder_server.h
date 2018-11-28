@@ -86,6 +86,13 @@ typedef enum NEXUS_SimpleAudioDecoderType {
 
 typedef struct NEXUS_SimpleAudioDecoderServer *NEXUS_SimpleAudioDecoderServerHandle;
 
+/* settings set by the server for this client, so not transferred with MoveServerSettings */
+typedef struct NEXUS_SimpleAudioDecoderClientSettings
+{
+    bool secure;
+} NEXUS_SimpleAudioDecoderClientSettings;
+
+/* settings set by server and transferred to the active decoder using MoveServerSettings */
 typedef struct NEXUS_SimpleAudioDecoderServerSettings
 {
     NEXUS_SimpleAudioDecoderHandle masterHandle; /* The main master simple audio decoder handle, should remain NULL for anything else */
@@ -174,6 +181,18 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_SetServerSettings(
     NEXUS_SimpleAudioDecoderHandle handle,
     const NEXUS_SimpleAudioDecoderServerSettings *pSettings,
     bool forceReconfig
+    );
+
+void NEXUS_SimpleAudioDecoder_GetClientSettings(
+    NEXUS_SimpleAudioDecoderServerHandle server,
+    NEXUS_SimpleAudioDecoderHandle handle,
+    NEXUS_SimpleAudioDecoderClientSettings *pSettings /* [out] */
+    );
+
+NEXUS_Error NEXUS_SimpleAudioDecoder_SetClientSettings(
+    NEXUS_SimpleAudioDecoderServerHandle server,
+    NEXUS_SimpleAudioDecoderHandle handle,
+    const NEXUS_SimpleAudioDecoderClientSettings *pSettings
     );
 
 NEXUS_Error NEXUS_SimpleAudioDecoder_MoveServerSettings(

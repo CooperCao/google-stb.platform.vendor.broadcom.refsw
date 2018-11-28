@@ -1447,6 +1447,27 @@ void audio_decoder_get_default_create_settings(b_audio_decoder_create_settings *
     }
 }
 
+static bool audio_decoder_p_secure_mode(const NEXUS_AudioCapabilities *cap, bool secure_setting)
+{
+    if ( cap->numDsps > 0 )
+    {
+        return cap->dsp.dspSecureDecode;
+    }
+    else if ( cap->numSoftAudioCores > 0 ) /* arm decode only */
+    {
+        if ( secure_setting )
+        {
+            if ( !cap->dsp.softAudioSecureDecode )
+            {
+                BDBG_WRN(("WARNING: secure decode requested, but device support does not appear to be present. Attempting secure mode anyway."));
+                BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
 BERR_Code audio_decoder_p_create_decoders(struct b_audio_resource *r, enum b_audio_decoder_type type, b_audio_decoder_create_settings * create_settings)
 {
     NEXUS_AudioDecoderOpenSettings audioOpenSettings;
@@ -1463,27 +1484,9 @@ BERR_Code audio_decoder_p_create_decoders(struct b_audio_resource *r, enum b_aud
     if (server->settings.audioDecoder.fifoSize) {
         audioOpenSettings.fifoSize = server->settings.audioDecoder.fifoSize;
     }
-    r->secure = false;
-    if ( cap.numDsps > 0 )
-    {
-        if ( cap.dsp.dspSecureDecode )
-        {
-            audioOpenSettings.cdbHeap = server->settings.client.heap[NXCLIENT_VIDEO_SECURE_HEAP];
-            r->secure = true;
-        }
-    }
-    else if ( cap.numSoftAudioCores > 0 ) /* arm decode only */
-    {
-        if ( create_settings->secure )
-        {
-            if ( !cap.dsp.softAudioSecureDecode )
-            {
-                BDBG_WRN(("WARNING: secure decode requested, but device support does not appear to be present. Attempting secure mode anyway."));
-                BERR_TRACE(NEXUS_INVALID_PARAMETER);
-            }
-            r->secure = true;
-            audioOpenSettings.cdbHeap = server->settings.client.heap[NXCLIENT_VIDEO_SECURE_HEAP];
-        }
+    r->secure = audio_decoder_p_secure_mode(&cap, create_settings->secure);
+    if (r->secure) {
+        audioOpenSettings.cdbHeap = server->settings.client.heap[NXCLIENT_VIDEO_SECURE_HEAP];
     }
 
     if (server->settings.svp != nxserverlib_svp_type_none) {
@@ -1958,6 +1961,7 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
     struct b_req *req = connect->req[b_resource_simple_audio_decoder];
     bool secureChange = false;
     NEXUS_AudioCapabilities cap;
+    NEXUS_SimpleAudioDecoderClientSettings clientSettings;
 
     if (!nxserver_p_allow_grab(connect->client)) {
         grab = false;
@@ -2034,6 +2038,11 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
     if (!r) {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
+
+    NEXUS_SimpleAudioDecoder_GetClientSettings(session->audio.server, audioDecoder, &clientSettings);
+    clientSettings.secure = audio_decoder_p_secure_mode(&cap, connect->settings.simpleAudioDecoder.decoderCapabilities.secure);
+    rc = NEXUS_SimpleAudioDecoder_SetClientSettings(session->audio.server, audioDecoder, &clientSettings);
+    if (rc) return BERR_TRACE(rc);
 
     if (is_main_audio(connect)) {
         NEXUS_SimpleAudioDecoderServerSettings settings;
