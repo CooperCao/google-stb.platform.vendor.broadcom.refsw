@@ -3076,10 +3076,8 @@ void BVDC_Source_MpegDataReady_isr
 #endif
           ))
         {
-            pXvdPic->ulSourceVerticalSize    =
+            pXvdPic->ulSourceVerticalSize =
                 BVDC_P_MIN(pXvdPic->ulSourceVerticalSize,    BFMT_1080I_HEIGHT);
-            pXvdPic->ulSourceHorizontalSize  =
-                BVDC_P_MIN(pXvdPic->ulSourceHorizontalSize,  BFMT_1080I_WIDTH);
         }
 #if BVDC_P_SUPPORT_MOSAIC_MODE
         if ((pVdcPic->ulSourceHorizontalSize !=pXvdPic->ulSourceHorizontalSize) ||

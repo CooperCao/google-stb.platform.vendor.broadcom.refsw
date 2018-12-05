@@ -168,6 +168,8 @@ static void free_block(void *p)
 
       mem_unlock(legacy_blocks[i].b);
       mem_release(legacy_blocks[i].b);
+      legacy_blocks[i].p = NULL;
+      legacy_blocks[i].b = 0;
 
       /*
       and remove the gap from the list
@@ -178,6 +180,7 @@ static void free_block(void *p)
       }
 
       legacy_blocks[LEGACY_BLOCKS_N_MAX - 1].p = NULL;
+      legacy_blocks[LEGACY_BLOCKS_N_MAX - 1].b = 0;
    }
 }
 
@@ -307,6 +310,7 @@ bool khrn_nmem_init(void)
    blocks_per_legacy_block = MEM_LEGACY_BLOCK_SIZE / KHRN_NMEM_BLOCK_SIZE;
    for (i = 0; i != LEGACY_BLOCKS_N_MAX; ++i) {
       legacy_blocks[i].p = NULL;
+      legacy_blocks[i].b = 0;
    }
 
    return true;
@@ -322,9 +326,11 @@ void khrn_nmem_term(void)
       mem_unlock(legacy_blocks[0].b);
       mem_release(legacy_blocks[0].b);
       legacy_blocks[0].p = NULL;
+      legacy_blocks[0].b = 0;
    }
 
    assert(!legacy_blocks[0].p);
+   assert(!legacy_blocks[0].b);
 
    assert((throttle_limit >= THROTTLE_LIMIT_MIN) && (throttle_limit <= THROTTLE_LIMIT_MAX));
    assert(throttle_alloced_n == 0);

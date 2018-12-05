@@ -213,7 +213,7 @@
 
 /*APP_MS11PLUS_MIXER Size requirement*/
 #define BDSP_ARM_IMG_APP_MS11PLUS_MIXER_SCRATCH_SIZE                 ((uint32_t)1286144)
-#define BDSP_ARM_IMG_APP_MS11PLUS_MIXER_SIZE                         ((uint32_t)107008)
+#define BDSP_ARM_IMG_APP_MS11PLUS_MIXER_SIZE                         ((uint32_t)102912)
 #define BDSP_ARM_IMG_APP_MS11PLUS_MIXER_INTER_FRAME_SIZE             ((uint32_t)331776)
 #define BDSP_ARM_IMG_APP_MS11PLUS_MIXER_INTER_FRAME_ENCODED_SIZE     ((uint32_t)512)
 #define BDSP_ARM_IMG_APP_MS11PLUS_MIXER_TABLES_SIZE                  ((uint32_t)69120)

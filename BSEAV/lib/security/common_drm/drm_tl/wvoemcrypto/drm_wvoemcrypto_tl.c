@@ -90,6 +90,8 @@ static bool gEventDrivenVerify = false;
 static bool gSsdSupported = false;
 static bool gAntiRollbackHw = false;
 
+static bool gWVCasMode = false;
+
 static uint32_t gKeySlotMaxAvail = 0;
 
 /* #define DEBUG 1 */
@@ -154,7 +156,7 @@ static uint8_t *gPadding = NULL;
 
 #define MAX_INIT_QUERY_RETRIES 20
 
-#define WV_DECRYPT_VERIFY_INTERVAL 1
+#define WV_DECRYPT_VERIFY_INTERVAL 2
 
 typedef struct Drm_WVOemCryptoEncDmaList
 {
@@ -344,6 +346,7 @@ void DRM_WVOemCrypto_SetParamSettings(Drm_WVOemCryptoParamSettings_t *pWvOemCryp
     gWvOemCryptoParamSettings.drmCommonInit.ta_bin_file_path= pWvOemCryptoParamSettings->drmCommonInit.ta_bin_file_path;
     gWvOemCryptoParamSettings.drm_bin_file_path = pWvOemCryptoParamSettings->drm_bin_file_path;
     gWvOemCryptoParamSettings.api_version = pWvOemCryptoParamSettings->api_version;
+    gWvOemCryptoParamSettings.config_flags = pWvOemCryptoParamSettings->config_flags;
 
     BKNI_Memcpy(&gWvOemCryptoParamSettings.drmCommonOpStruct,&pWvOemCryptoParamSettings->drmCommonOpStruct,sizeof(DrmCommonOperationStruct_t));
 
@@ -376,6 +379,8 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
     unsigned int i;
 
     BDBG_ENTER(DRM_WVOemCrypto_UnInit);
+
+    BDBG_WRN(("%s - Uninitializing", BSTD_FUNCTION));
 
     if(gBigUsageTableFormat && gSsdSupported)
     {
@@ -492,7 +497,6 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
         gWVSelectKeyMutex = NULL;
     }
 
-
     if(gWVUsageTable != NULL)
     {
         SRAI_Memory_Free(gWVUsageTable);
@@ -501,6 +505,7 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
 
     gAntiRollbackHw = false;
     gSsdSupported = false;
+    gWVCasMode = false;
 
     if (gWVDecryptBounceBufferIndex >= 0)
     {
@@ -529,6 +534,8 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
        }
        gWVCopyBounceBufferIndex = -1;
     }
+
+    BDBG_WRN(("%s - Uninitializing complete", BSTD_FUNCTION));
 
     BDBG_LEAVE(DRM_WVOemCrypto_UnInit);
     return rc;
@@ -564,6 +571,13 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
         *wvRc=SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
         goto ErrorExit;
     }
+
+    if(pWvOemCryptoParamSettings->config_flags & DRM_WVOEMCRYPTO_INIT_OPTION_CAS)
+    {
+        gWVCasMode = true;
+    }
+
+    BDBG_WRN(("%s - Initializing api version %d", BSTD_FUNCTION, pWvOemCryptoParamSettings->api_version));
 
     /*this will inturn call drm_wvoemcrypto_init on sage side*/
     rc = DRM_Common_TL_Initialize(&pWvOemCryptoParamSettings->drmCommonInit);
@@ -628,7 +642,7 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
     }
     else if(rc == Drm_FileErr)
     {
-        BDBG_WRN(("%s - Usage Table not detected on rootfs, assuming initial creation...", BSTD_FUNCTION));
+        BDBG_MSG(("%s - Usage Table not detected on rootfs, assuming initial creation...", BSTD_FUNCTION));
         wv_container->basicIn[2] = OVERWRITE_USAGE_TABLE_ON_ROOTFS;
         BKNI_Memset(wv_container->blocks[1].data.ptr, 0x00, wv_container->blocks[1].len);
     }
@@ -695,7 +709,9 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
 #ifdef USE_UNIFIED_COMMON_DRM
     rc = DRM_Common_TL_ModuleInitialize(DrmCommon_ModuleId_eWVOemcrypto, pWvOemCryptoParamSettings->drm_bin_file_path, wv_container, &gWVmoduleHandle);
 #else
-    if(pWvOemCryptoParamSettings->api_version >= 13)
+
+    /* Do not initialize SSD for WV CAS or for older API versions */
+    if(!gWVCasMode && pWvOemCryptoParamSettings->api_version >= 13)
     {
         rc = DRM_Common_TL_ModuleInitialize_TA_Ext(Common_Platform_Widevine, SSD_ModuleId_eClient, NULL, ssd_container, &gSSDmoduleHandle, &ssd_init_settings);
         if(rc != Drm_Success)
@@ -5643,7 +5659,7 @@ DrmRC drm_WVOemCrypto_RewrapDeviceRSAKey(uint32_t session,
 
     if(wrapped_rsa_key == NULL)
     {
-        BDBG_WRN(("%s - wrapped_rsa_key is null (SHORT_BUFFER)", BSTD_FUNCTION));
+        BDBG_MSG(("%s - wrapped_rsa_key is null (SHORT_BUFFER)", BSTD_FUNCTION));
         container->blocks[4].data.ptr =NULL;
         container->blocks[4].len = 0;
     }
@@ -5682,7 +5698,7 @@ DrmRC drm_WVOemCrypto_RewrapDeviceRSAKey(uint32_t session,
     if (container->basicOut[0] != BERR_SUCCESS)
     {
         if(*wvRc == SAGE_OEMCrypto_ERROR_SHORT_BUFFER)
-            BDBG_WRN(("%s - Command was sent successfully, and SHORT_BUFFER was returned", BSTD_FUNCTION));
+            BDBG_MSG(("%s - Command was sent successfully, and SHORT_BUFFER was returned", BSTD_FUNCTION));
         else
             BDBG_ERR(("%s - Command was sent successfully to RewrapDeviceRSAKey but actual operation failed (0x%08x), wvRC=%d", BSTD_FUNCTION, container->basicOut[0], container->basicOut[2]));
         rc = Drm_Err;
@@ -5955,7 +5971,7 @@ DrmRC drm_WVOemCrypto_GenerateRSASignature(uint32_t session,
     {
         if (*wvRc == SAGE_OEMCrypto_ERROR_SHORT_BUFFER)
         {
-            BDBG_WRN(("%s - Command was sent successfully, and SHORT_BUFFER was returned", BSTD_FUNCTION));
+            BDBG_MSG(("%s - Command was sent successfully, and SHORT_BUFFER was returned", BSTD_FUNCTION));
         }
         else
         {
@@ -7704,7 +7720,7 @@ DRM_WvOemCrypto_P_ReadUsageTable(uint8_t *pUsageTableSharedMemory, uint32_t *pUs
     /* Verify backup file accessible */
     if(access(USAGE_TABLE_BACKUP_FILE_PATH, R_OK|W_OK) != 0)
     {
-        BDBG_WRN(("%s - '%s' not detected or file is not read/writeable (errno = %s)", BSTD_FUNCTION, USAGE_TABLE_BACKUP_FILE_PATH, strerror(errno)));
+        BDBG_MSG(("%s - '%s' not detected or file is not read/writeable (errno = %s)", BSTD_FUNCTION, USAGE_TABLE_BACKUP_FILE_PATH, strerror(errno)));
         bUsageTableBackupExists = false;
         /* Continue onwards as main usage table may still be accessible */
     }
@@ -7715,10 +7731,10 @@ DRM_WvOemCrypto_P_ReadUsageTable(uint8_t *pUsageTableSharedMemory, uint32_t *pUs
 
     if(access(USAGE_TABLE_FILE_PATH, R_OK|W_OK) != 0)
     {
-        BDBG_WRN(("%s - '%s' not detected or file is not read/writeable (errno = %s)", BSTD_FUNCTION, USAGE_TABLE_FILE_PATH, strerror(errno)));
+        BDBG_MSG(("%s - '%s' not detected or file is not read/writeable (errno = %s)", BSTD_FUNCTION, USAGE_TABLE_FILE_PATH, strerror(errno)));
         if(!bUsageTableBackupExists)
         {
-            BDBG_WRN(("%s - Main and backup usage tables are not read/writeable (errno = %s)", BSTD_FUNCTION, strerror(errno)));
+            BDBG_MSG(("%s - Main and backup usage tables are not read/writeable (errno = %s)", BSTD_FUNCTION, strerror(errno)));
             rc = Drm_FileErr;
             goto ErrorExit;
         }
@@ -8012,10 +8028,6 @@ ErrorExit:
         if(!gAntiRollbackHw)
         {
             BDBG_WRN(("Anti-rollback HW unavailable"));
-        }
-        else
-        {
-            BDBG_WRN(("Anti-rollback HW present"));
         }
     }
 
@@ -8417,7 +8429,7 @@ DrmRC Drm_WVOemCrypto_QueryKeyControl(uint32_t session,
     if ((key_control_block_length == NULL)
           || (*key_control_block_length < WVCDM_KEY_CONTROL_SIZE))
     {
-        BDBG_WRN(("%s : OEMCrypto_ERROR_SHORT_BUFFER", BSTD_FUNCTION));
+        BDBG_MSG(("%s : OEMCrypto_ERROR_SHORT_BUFFER", BSTD_FUNCTION));
         *key_control_block_length = WVCDM_KEY_CONTROL_SIZE;
         rc = Drm_Err;
         *wvRc = SAGE_OEMCrypto_ERROR_SHORT_BUFFER ;
@@ -8766,7 +8778,7 @@ DrmRC DRM_WVOemCrypto_Create_Usage_Table_Header(uint8_t *header_buffer, uint32_t
 
     if(*header_buffer_length < (uint32_t)container->basicOut[1])
     {
-        BDBG_WRN(("%s : OEMCrypto_ERROR_SHORT_BUFFER", BSTD_FUNCTION));
+        BDBG_MSG(("%s : OEMCrypto_ERROR_SHORT_BUFFER", BSTD_FUNCTION));
         *header_buffer_length = container->basicOut[1];
         rc = Drm_Err;
         *wvRc = SAGE_OEMCrypto_ERROR_SHORT_BUFFER;
@@ -9117,7 +9129,7 @@ DrmRC DRM_WVOemCrypto_Update_Usage_Entry(uint32_t session, uint8_t* header_buffe
     /* Check for short buffer*/
     if(*header_buffer_length < (uint32_t)container->basicOut[1])
     {
-        BDBG_WRN(("%s : OEMCrypto_ERROR_SHORT_BUFFER", BSTD_FUNCTION));
+        BDBG_MSG(("%s : OEMCrypto_ERROR_SHORT_BUFFER", BSTD_FUNCTION));
         *header_buffer_length = container->basicOut[1];
         *entry_buffer_length = container->basicOut[3];
         rc = Drm_Err;
@@ -9127,7 +9139,7 @@ DrmRC DRM_WVOemCrypto_Update_Usage_Entry(uint32_t session, uint8_t* header_buffe
 
     if(*entry_buffer_length < (uint32_t)container->basicOut[3])
     {
-        BDBG_WRN(("%s : OEMCrypto_ERROR_SHORT_BUFFER", BSTD_FUNCTION));
+        BDBG_MSG(("%s : OEMCrypto_ERROR_SHORT_BUFFER", BSTD_FUNCTION));
         *header_buffer_length = container->basicOut[1];
         *entry_buffer_length = container->basicOut[3];
         rc = Drm_Err;
@@ -9315,7 +9327,7 @@ DrmRC DRM_WVOemCrypto_Shrink_Usage_Table_Header(uint32_t new_entry_count, uint8_
     /* Check for short buffer*/
     if(*header_buffer_length < (uint32_t)container->basicOut[1])
     {
-        BDBG_WRN(("%s : OEMCrypto_ERROR_SHORT_BUFFER", BSTD_FUNCTION));
+        BDBG_MSG(("%s : OEMCrypto_ERROR_SHORT_BUFFER", BSTD_FUNCTION));
         *header_buffer_length = container->basicOut[1];
         rc = Drm_Err;
         *wvRc = SAGE_OEMCrypto_ERROR_SHORT_BUFFER;
@@ -10554,6 +10566,7 @@ DrmRC drm_WVOemCrypto_LoadTestKeybox(uint8_t *keybox, uint32_t keyBoxLength, int
     if(keybox == NULL)
     {
         BDBG_ERR(("%s - keybox buffer is NULL", BSTD_FUNCTION));
+        *wvRc = SAGE_OEMCrypto_ERROR_KEYBOX_INVALID;
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -10562,6 +10575,7 @@ DrmRC drm_WVOemCrypto_LoadTestKeybox(uint8_t *keybox, uint32_t keyBoxLength, int
     if(container == NULL)
     {
         BDBG_ERR(("%s - Error loading key parameters", BSTD_FUNCTION));
+        *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -10578,6 +10592,7 @@ DrmRC drm_WVOemCrypto_LoadTestKeybox(uint8_t *keybox, uint32_t keyBoxLength, int
     if (sage_rc != BERR_SUCCESS)
     {
         BDBG_ERR(("%s - Error Installing key box", BSTD_FUNCTION));
+        *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -10588,6 +10603,7 @@ DrmRC drm_WVOemCrypto_LoadTestKeybox(uint8_t *keybox, uint32_t keyBoxLength, int
     if (sage_rc != BERR_SUCCESS)
     {
         BDBG_ERR(("%s - Command was sent successfully to load test keybox but actual operation failed (0x%08x)", BSTD_FUNCTION, sage_rc));
+        *wvRc = container->basicOut[2];
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -10599,7 +10615,7 @@ DrmRC drm_WVOemCrypto_LoadTestKeybox(uint8_t *keybox, uint32_t keyBoxLength, int
         BDBG_ERR(("%s - widevine return code (0x%08x)", BSTD_FUNCTION, *wvRc));
     }
 
-  ErrorExit:
+ErrorExit:
 
     if(container != NULL)
     {
@@ -10613,5 +10629,49 @@ DrmRC drm_WVOemCrypto_LoadTestKeybox(uint8_t *keybox, uint32_t keyBoxLength, int
 
     BDBG_LEAVE(drm_WVOemCrypto_LoadTestKeybox);
 
+    return rc;
+}
+
+DrmRC DRM_WVOemCrypto_LoadCasECMKeys(uint32_t session,
+                                     uint16_t program_id,
+                                     void* even_key,
+                                     void* odd_key,
+                                     int *wvRc)
+{
+    DrmRC rc = Drm_Success;
+    Drm_WVOemCryptoEntitledContentKeyObject key_array[2];
+    uint32_t num_keys = 0;
+
+    BSTD_UNUSED(program_id);
+
+    /* Check for at least one valid key */
+    if(even_key == NULL && odd_key == NULL)
+    {
+        BDBG_ERR(("%s - No keys available", BSTD_FUNCTION));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
+        goto ErrorExit;
+    }
+
+    if(even_key)
+    {
+        BKNI_Memcpy(&key_array[num_keys], even_key, sizeof(Drm_WVOemCryptoEntitledContentKeyObject));
+        num_keys++;
+    }
+
+    if(odd_key)
+    {
+        BKNI_Memcpy(&key_array[num_keys], odd_key, sizeof(Drm_WVOemCryptoEntitledContentKeyObject));
+        num_keys++;
+    }
+
+    rc = DRM_WVOemCrypto_LoadEntitledContentKeys(session, num_keys, (void*)key_array, wvRc);
+    if(rc != Drm_Success)
+    {
+        BDBG_ERR(("%s - Failed to load ECM keys, wvRc=%d", BSTD_FUNCTION, *wvRc));
+        goto ErrorExit;
+    }
+
+ErrorExit:
     return rc;
 }

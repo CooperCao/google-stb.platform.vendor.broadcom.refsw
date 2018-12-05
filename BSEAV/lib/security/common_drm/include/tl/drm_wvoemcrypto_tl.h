@@ -70,9 +70,13 @@ static const size_t WVCDM_MAC_KEY_SIZE = 32;
 #define DRM_WVOEMCRYPTO_NUM_SESSION_KEY_SLOT 2
 #define DRM_WVOEMCRYPTO_MAX_NUM_KEY_SLOT 20
 
+/* Widevine TA Init option flags */
 #define DRM_WVOEMCRYPTO_CENTRAL_KEY_CACHE 0x1
 #define DRM_WVOEMCRYPTO_BIG_USAGE_TABLE_FORMAT 0x2
 #define DRM_WVOEMCRYPTO_EVENT_DRIVEN_VERIFY 0x4
+
+/* Widevine OEMCrypto TL configuration flags */
+#define DRM_WVOEMCRYPTO_INIT_OPTION_CAS 0x1
 
 typedef struct Drm_WVOemCryptoParamSettings_t
 {
@@ -81,6 +85,7 @@ typedef struct Drm_WVOemCryptoParamSettings_t
     DrmCommonOperationStruct_t drmCommonOpStruct;
     char * drm_bin_file_path;
     uint32_t api_version;
+    uint32_t config_flags;
 }Drm_WVOemCryptoParamSettings_t;
 
 typedef enum Drm_WVOemCryptoCipherMode {
@@ -962,11 +967,17 @@ DrmRC drm_WVOemCrypto_LoadKeys(uint32_t session,
                                const uint8_t* pst,
                                uint32_t       pst_length,
                                const uint8_t* srm_requirement,
-			       uint32_t license_type,
+                               uint32_t       license_type,
                                int *wvRc);
 
 DrmRC drm_WVOemCrypto_LoadTestKeybox(uint8_t *keybox,
                                      uint32_t keyBoxLength,
+                                     int *wvRc);
+
+DrmRC DRM_WVOemCrypto_LoadCasECMKeys(uint32_t session,
+                                     uint16_t program_id,
+                                     void* even_key,
+                                     void* odd_key,
                                      int *wvRc);
 
 #ifdef __cplusplus
