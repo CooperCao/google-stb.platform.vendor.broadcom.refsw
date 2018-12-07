@@ -1063,6 +1063,7 @@ typedef struct BAPE_Mixer
     BAPE_DfifoGroupHandle       loopbackDfifoGroup;
     BAPE_LoopbackGroupHandle    loopbackGroup;
     unsigned                    loopbackRunning;
+    bool                        loopbackAttached;
     unsigned                    loopbackDspInput;
     unsigned                    dspIndex;
     BDSP_ContextHandle          dspContext;

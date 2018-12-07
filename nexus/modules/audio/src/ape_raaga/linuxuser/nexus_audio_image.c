@@ -60,34 +60,48 @@ static const char* firmware_images[NEXUS_AudioImage_eMax] =
     "pak.bin",
     "drm.bin",
     "pak_dev.bin",
-    "drm_dev.bin"
-};
-
-static const char* firmware_env[NEXUS_AudioImage_eMax] =
-{
-    "PAKBIN_PATH",
-    "DRMBIN_PATH",
-    "PAKBIN_PATH",
-    "DRMBIN_PATH"
+    "drm_dev.bin",
+    "pak_72501_dev.bin",
+    "pak_72502_dev.bin",
+    "pak_7250_dev.bin",
+    "pak_72511_dev.bin",
+    "pak_72521_dev.bin",
+    "pak_72525_dev.bin",
+    "pak_72603_dev.bin",
+    "pak_72604_dev.bin",
+    "pak_7260_dev.bin",
+    "pak_7268_dev.bin",
+    "pak_7271_dev.bin",
+    "pak_73649_dev.bin",
+    "pak_7364_dev.bin",
+    "pak_7366_dev.bin",
+    "pak_7367_dev.bin",
+    "pak_74381_dev.bin",
+    "pak_7444_dev.bin",
+    "pak_7445_dev.bin",
+    "pak_74481_dev.bin",
+    "pak_74491_dev.bin",
+    "pak_74495_dev.bin"
 };
 
 static NEXUS_Error audio_image_open(void *context, void **image, unsigned image_id)
 {
     NEXUS_Error error;
     bool exists=false;
-    const char *pPath;
+    const char *pPath, *pEnv;
 
     BDBG_ENTER(audio_image_open);
     BDBG_ASSERT(context == firmware_images);
     BDBG_ASSERT(image_id < NEXUS_AudioImage_eMax);
 
-    pPath = NEXUS_GetEnv(firmware_env[image_id]);
+    pEnv = (image_id == NEXUS_AudioImage_eDrm || image_id == NEXUS_AudioImage_eDrmDev) ? "DRMBIN_PATH" : "PAKBIN_PATH";
+    pPath = NEXUS_GetEnv(pEnv);
 
     NEXUS_BaseImage_FileExists(firmware_images[image_id], pPath, &exists);
 
     if ( exists )
     {
-        error = NEXUS_BaseImage_Open(image, firmware_images[image_id], NEXUS_GetEnv(firmware_env[image_id]));
+        error = NEXUS_BaseImage_Open(image, firmware_images[image_id], pPath);
         if ( error )
         {
             error = BERR_TRACE(error);

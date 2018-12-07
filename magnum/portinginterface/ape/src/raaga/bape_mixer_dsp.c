@@ -74,6 +74,7 @@ static BERR_Code BAPE_DspMixer_P_SetSettings(BAPE_MixerHandle handle, const BAPE
 static BERR_Code BAPE_DspMixer_P_RemoveAllInputs(BAPE_MixerHandle handle);
 static BERR_Code BAPE_DspMixer_P_CreateLoopBackMixer (BAPE_MixerHandle handle);
 static BERR_Code BAPE_DspMixer_P_CreateLoopBackPath (BAPE_MixerHandle handle);
+static void BAPE_DSPMixer_P_RemoveLoopback(BAPE_MixerHandle handle);
 static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle);
 static void BAPE_DspMixer_P_StopTask(BAPE_MixerHandle handle);
 static void BAPE_DspMixer_P_FreeConnectionResources(BAPE_MixerHandle handle, BAPE_PathConnection *pConnection);
@@ -695,6 +696,7 @@ static BERR_Code BAPE_DspMixer_P_CreateLoopBackPath (BAPE_MixerHandle handle)
     BKNI_EnterCriticalSection();
     BAPE_LoopbackGroup_P_GetSettings_isr(handle->loopbackGroup, &loopbackSettings);
     BKNI_LeaveCriticalSection();
+    loopbackSettings.insertOnUnderflow = true;
 #if BAPE_CHIP_MAX_FS > 0
     loopbackSettings.fs = handle->fs;
 #else
@@ -1285,12 +1287,17 @@ static BERR_Code BAPE_DspMixer_P_ValidateInput(
                             }
                         }
                     }
-                    else if ( mixingMode == BAPE_DecoderMixingMode_eSoundEffects && handle->loopbackRunning &&
+                    else if ( mixingMode == BAPE_DecoderMixingMode_eSoundEffects && handle->loopbackAttached &&
                               ( handle->inputs[i]->pParent->type == BAPE_PathNodeType_ePlayback ||
                                handle->inputs[i]->pParent->type == BAPE_PathNodeType_eInputCapture ))
                     {
-                        BDBG_ERR(("Unable to start DSP path: Sound Effects input to Mixer is already in use"));
-                        return BERR_NOT_SUPPORTED;
+                        if (handle->loopbackRunning == 0) {
+                            BAPE_DSPMixer_P_RemoveLoopback(handle);
+                        }
+                        else {
+                            BDBG_ERR(("Unable to start DSP path: Sound Effects input to Mixer is already in use"));
+                            return BERR_NOT_SUPPORTED;
+                        }
                     }
                 }
             }
@@ -1500,7 +1507,7 @@ static BERR_Code BAPE_DspMixer_P_StartPathFromInput(struct BAPE_PathNode *pNode,
     }
 
     /* If we get here it's an FMM input */
-    if ( 0 == handle->loopbackRunning )
+    if ( 0 == handle->loopbackRunning && !handle->loopbackAttached)
     {
         errCode = BAPE_DfifoGroup_P_Start(handle->loopbackDfifoGroup, false);
         if ( errCode )
@@ -1562,6 +1569,7 @@ static BERR_Code BAPE_DspMixer_P_StartPathFromInput(struct BAPE_PathNode *pNode,
             errCode = BERR_TRACE(errCode);
             goto err_add_input;
         }
+        handle->loopbackAttached = true;
         /* Refresh input scaling for the loopback mixer into dsp mixer */
         errCode = BAPE_DspMixer_P_ApplyInputVolume(handle, inputIndex);
         if ( errCode )
@@ -1638,6 +1646,7 @@ err_mixer_input:
 err_input_vol:
         BDSP_Stage_RemoveInput(handle->hMixerStage, handle->loopbackDspInput);
         handle->loopbackDspInput = BAPE_MIXER_INPUT_INDEX_INVALID;
+        handle->loopbackAttached = false;
 err_add_input:
 err_input_scaling:
         if ( handle->loopbackMixerGroup )
@@ -1653,6 +1662,49 @@ err_dfifo_start:
     return errCode;
 }
 
+static void BAPE_DSPMixer_P_RemoveLoopback(BAPE_MixerHandle handle)
+{
+    if ( handle->loopbackRunning == 0 ) {
+        unsigned queuedBytes = 0;
+        unsigned delayTime = 0;
+        BERR_Code errCode;
+        if ( handle->loopbackMixerGroup ) {
+            BAPE_MixerGroup_P_StopOutput(handle->loopbackMixerGroup, 0);
+        }
+        BAPE_LoopbackGroup_P_Stop(handle->loopbackGroup);
+
+        errCode = BAPE_DfifoGroup_P_GetQueuedBytes(handle->loopbackDfifoGroup, &queuedBytes);
+        if (errCode) {
+            BERR_TRACE(errCode);
+        }
+
+        if (queuedBytes > 0) {
+            /* Mixer consumes 33 ms of data at a time.  Calculate how many blocks of 33ms we have */
+            delayTime = (queuedBytes / (BAPE_DSP_MIXER_LOOPBACK_1_MS_SIZE * 33));
+            delayTime++; /* always add an extra window */
+            delayTime *= 33000; /* Milliseconds to microseconds */
+            while (delayTime) {
+                delayTime -= 100;
+                BKNI_Delay(100);
+                errCode = BAPE_DfifoGroup_P_GetQueuedBytes(handle->loopbackDfifoGroup, &queuedBytes);
+                if (errCode) {
+                    BERR_TRACE(errCode);
+                }
+                if (queuedBytes == 0){ break; }
+            }
+        }
+        if (queuedBytes > 0) {
+            BDBG_WRN(("Some PCM Playback may be lost as %u bytes were not consumed even after waiting", queuedBytes));
+        }
+
+        BAPE_DfifoGroup_P_Stop(handle->loopbackDfifoGroup);
+        BDSP_Stage_RemoveInput(handle->hMixerStage, handle->loopbackDspInput);
+        handle->loopbackDspInput = BAPE_MIXER_INPUT_INDEX_INVALID;
+        handle->loopbackAttached = false;
+    }
+}
+
+int count = 0;
 static void BAPE_DspMixer_P_StopPathFromInput(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection)
 {
     BAPE_MixerHandle handle;
@@ -1700,49 +1752,6 @@ static void BAPE_DspMixer_P_StopPathFromInput(struct BAPE_PathNode *pNode, struc
         if ( handle->loopbackMixerGroup )
         {
             BAPE_MixerGroup_P_StopInput(handle->loopbackMixerGroup, inputIndex);
-        }
-
-        if ( handle->loopbackRunning == 0 )
-        {
-            unsigned queuedBytes = 0;
-            unsigned delayTime = 0;
-            BERR_Code errCode;
-
-            if ( handle->loopbackMixerGroup )
-            {
-                BAPE_MixerGroup_P_StopOutput(handle->loopbackMixerGroup, 0);
-            }
-
-            errCode = BAPE_DfifoGroup_P_GetQueuedBytes(handle->loopbackDfifoGroup, &queuedBytes);
-            if (errCode) {
-                BERR_TRACE(errCode);
-            }
-
-            if (queuedBytes > 0)
-            {
-                /* Mixer consumes 33 ms of data at a time.  Calculate how many blocks of 33ms we have */
-                delayTime = (queuedBytes / (BAPE_DSP_MIXER_LOOPBACK_1_MS_SIZE * 33));
-                delayTime++; /* always add an extra window */
-                delayTime *= 33000; /* Milliseconds to microseconds */
-                while (delayTime) {
-                    delayTime -= 100;
-                    BKNI_Delay(100);
-                    errCode = BAPE_DfifoGroup_P_GetQueuedBytes(handle->loopbackDfifoGroup, &queuedBytes);
-                    if (errCode) {
-                        BERR_TRACE(errCode);
-                    }
-                    if (queuedBytes == 0){ break; }
-                }
-            }
-            if (queuedBytes > 0) {
-                BDBG_WRN(("Some PCM Playback may be lost as %u bytes were not consumed even after waiting", queuedBytes));
-            }
-
-            BAPE_LoopbackGroup_P_Stop(handle->loopbackGroup);
-
-            BAPE_DfifoGroup_P_Stop(handle->loopbackDfifoGroup);
-            BDSP_Stage_RemoveInput(handle->hMixerStage, handle->loopbackDspInput);
-            handle->loopbackDspInput = BAPE_MIXER_INPUT_INDEX_INVALID;
         }
     }
 
@@ -1951,6 +1960,10 @@ static void BAPE_DspMixer_P_StopTask(BAPE_MixerHandle handle)
     }
 
     BDBG_ASSERT(0 == handle->running);
+
+    if (handle->loopbackAttached) {
+        BAPE_DSPMixer_P_RemoveLoopback(handle);
+    }
 
     BDSP_Task_Stop(handle->hTask);
     BDSP_Stage_RemoveAllInputs(handle->hMixerStage);

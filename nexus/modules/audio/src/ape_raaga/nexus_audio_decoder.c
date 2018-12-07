@@ -129,7 +129,7 @@ static void NEXUS_AudioDecoder_P_Watchdog_isr(void *pParam1, int param2)
 #if ((BCHP_CHIP == 7278 && BCHP_VER < BCHP_VER_B0) || (BCHP_CHIP == 7439 && BCHP_VER > BCHP_VER_A0) || \
      (BCHP_CHIP == 7250 && BCHP_VER > BCHP_VER_A0) || (BCHP_CHIP == 7364) || \
      (BCHP_CHIP == 7445 && BCHP_VER > BCHP_VER_C0) || (BCHP_CHIP == 7252 && BCHP_VER > BCHP_VER_C0) || \
-     (BCHP_CHIP == 7366 && BCHP_VER > BCHP_VER_A0) || (BCHP_CHIP == 7260 && BCHP_VER < BCHP_VER_B0) ||\
+     (BCHP_CHIP == 7366 && BCHP_VER > BCHP_VER_A0) || (BCHP_CHIP == 7260 && BCHP_VER <= BCHP_VER_B0) ||\
      (BCHP_CHIP == 7271 && BCHP_VER < BCHP_VER_C0) || (BCHP_CHIP == 7268 && BCHP_VER < BCHP_VER_C0))
 #define NEXUS_AUDIO_PAK_SUPPORT 1
 #else
@@ -294,11 +294,49 @@ void NEXUS_AudioDecoder_P_LoadPak(void)
         NEXUS_Sage_GetChipInfo_priv(&chipInfo);
         NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.sage);
         imageType = (chipInfo.chipType == BSAGElib_ChipType_eZS) ? NEXUS_AudioImage_ePakDev : NEXUS_AudioImage_ePak;
+
+        if ( imageType == NEXUS_AudioImage_ePakDev )
+        {
+            BCHP_Info chpInfo;
+
+            BCHP_GetInfo(g_NEXUS_pCoreHandles->chp, &chpInfo);
+            switch ( chpInfo.productId )
+            {
+            case 0x72501: imageType = NEXUS_AudioImage_ePakDev_72501; break;
+            case 0x72502: imageType = NEXUS_AudioImage_ePakDev_72502; break;
+            case 0x7250:  imageType = NEXUS_AudioImage_ePakDev_7250;  break;
+            case 0x72511: imageType = NEXUS_AudioImage_ePakDev_72511; break;
+            case 0x72521: imageType = NEXUS_AudioImage_ePakDev_72521; break;
+            case 0x72525: imageType = NEXUS_AudioImage_ePakDev_72525; break;
+            case 0x72603: imageType = NEXUS_AudioImage_ePakDev_72603; break;
+            case 0x72604: imageType = NEXUS_AudioImage_ePakDev_72604; break;
+            case 0x7260:  imageType = NEXUS_AudioImage_ePakDev_7260;  break;
+            case 0x7268:  imageType = NEXUS_AudioImage_ePakDev_7268;  break;
+            case 0x7271:  imageType = NEXUS_AudioImage_ePakDev_7271;  break;
+            case 0x73649: imageType = NEXUS_AudioImage_ePakDev_73649; break;
+            case 0x7364:  imageType = NEXUS_AudioImage_ePakDev_7364;  break;
+            case 0x7366:  imageType = NEXUS_AudioImage_ePakDev_7366;  break;
+            case 0x7367:  imageType = NEXUS_AudioImage_ePakDev_7367;  break;
+            case 0x74381: imageType = NEXUS_AudioImage_ePakDev_74381; break;
+            case 0x7444:  imageType = NEXUS_AudioImage_ePakDev_7444;  break;
+            case 0x7445:  imageType = NEXUS_AudioImage_ePakDev_7445;  break;
+            case 0x74481: imageType = NEXUS_AudioImage_ePakDev_74481; break;
+            case 0x74491: imageType = NEXUS_AudioImage_ePakDev_74491; break;
+            case 0x74495: imageType = NEXUS_AudioImage_ePakDev_74495; break;
+            default: break;
+            }
+        }
     }
 #endif
     errCode = NEXUS_AudioDecoder_P_LoadFile(pImg, pContext, imageType, &hPak, &pPakMem, &pakAddr, &pakLength);
     if ( errCode )
     {
+        if ( errCode == BERR_INVALID_PARAMETER && imageType > NEXUS_AudioImage_ePakDev )
+        {
+            BDBG_MSG(("product pak_dev.bin not found, trying pak_dev.bin"));
+            imageType = NEXUS_AudioImage_ePakDev;
+            errCode = NEXUS_AudioDecoder_P_LoadFile(pImg, pContext, imageType, &hPak, &pPakMem, &pakAddr, &pakLength);
+        }
         if ( errCode == BERR_INVALID_PARAMETER && imageType == NEXUS_AudioImage_ePakDev )
         {
             BDBG_MSG(("pak_dev.bin not found, trying pak.bin"));
