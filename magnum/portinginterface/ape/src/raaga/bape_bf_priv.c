@@ -52,6 +52,10 @@
 #include "bchp_aud_fmm_bf_esr.h"
 #endif
 
+#ifdef BCHP_AUD_FMM_BF_ESR0_H_REG_START
+#include "bchp_aud_fmm_bf_esr0_h.h"
+#endif
+
 #ifdef BCHP_AUD_FMM_BF_ESR1_H_REG_START
 #include "bchp_aud_fmm_bf_esr1_h.h"
 #endif
@@ -1219,6 +1223,22 @@ static BERR_Code BAPE_Sfifo_P_CommitData (BAPE_SfifoGroupHandle handle,
 #endif
     BREG_WriteAddr(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_WRADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE), wr);
 
+    #ifdef BCHP_AUD_FMM_BF_ESR_ESR0_STATUS_CLEAR
+    {
+        uint32_t regVal;
+        /* Clear the ESR status */
+        regVal = BCHP_FIELD_DATA(AUD_FMM_BF_ESR_ESR0_STATUS_CLEAR, SOURCE_FIFO_0_UNDERFLOW, 1) << handle->sfifoIds[chPair];
+        BREG_Write32_isr(handle->deviceHandle->regHandle, BCHP_AUD_FMM_BF_ESR_ESR0_STATUS_CLEAR, regVal);
+    }
+    #elif BCHP_AUD_FMM_BF_ESR0_H_STATUS_CLEAR
+    {
+        uint32_t regVal;
+        /* Clear the ESR status */
+        regVal = BCHP_FIELD_DATA(AUD_FMM_BF_ESR0_H_STATUS_CLEAR, SOURCE_FIFO_0_UNDERFLOW, 1) << handle->sfifoIds[chPair];
+        BREG_Write32_isr(handle->deviceHandle->regHandle, BCHP_AUD_FMM_BF_ESR0_H_STATUS_CLEAR, regVal);
+    }
+    #endif
+
     return BERR_SUCCESS;
 }
 
@@ -1360,6 +1380,24 @@ static BERR_Code BAPE_Sfifo_P_GetQueuedBytes(
             queuedBytes = bufferSize;
         }
     }
+
+   #if BCHP_AUD_FMM_BF_ESR_ESR0_STATUS
+    if (queuedBytes == 0) {
+        uint32_t regVal;
+        regVal = BREG_Read32(handle->deviceHandle->regHandle, BCHP_AUD_FMM_BF_ESR_ESR0_STATUS) & (1 << handle->sfifoIds[chPair]);
+        if (!regVal) {
+            queuedBytes++;
+        }
+    }
+    #elif BCHP_AUD_FMM_BF_ESR0_H_STATUS_CLEAR
+    if (queuedBytes == 0) {
+        uint32_t regVal;
+        regVal = BREG_Read32(handle->deviceHandle->regHandle, BCHP_AUD_FMM_BF_ESR0_H_STATUS) & (1 << handle->sfifoIds[chPair]);
+        if (!regVal) {
+            queuedBytes++;
+        }
+    }
+    #endif
     *pQueuedBytes = queuedBytes;
 
     return BERR_SUCCESS;

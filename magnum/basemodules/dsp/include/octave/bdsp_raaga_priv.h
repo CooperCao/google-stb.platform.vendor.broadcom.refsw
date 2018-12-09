@@ -122,6 +122,8 @@ typedef struct BDSP_Raaga_P_DeviceMemoryInfo
     BDSP_P_FwBuffer             DescriptorMemory[BDSP_RAAGA_MAX_DSP][BDSP_MAX_POOL_OF_DESCRIPTORS];
 	BDSP_P_FwBuffer             CacheHole1[BDSP_RAAGA_MAX_DSP]; /* Cache Hole used between Target Print and Init Memory */
 	BDSP_P_FwBuffer             CacheHole2[BDSP_RAAGA_MAX_DSP]; /* Cache Hole used between Init Memory and Descriptor Memory */
+	BDSP_P_FwBuffer             CacheHole3[BDSP_RAAGA_MAX_DSP]; /* Cache Hole used between CMD Q and RESPONSE Q take make it 512 bytes aligned */
+	BDSP_P_FwBuffer             CacheHole4[BDSP_RAAGA_MAX_DSP]; /* Cache Hole used between RESPONSE Q  and Descriptor Memory take make it 512 bytes aligned */
 	BDSP_P_FwBuffer             WorkBufferMemory[BDSP_RAAGA_MAX_DSP][BDSP_RAAGA_MAX_CORE_PER_DSP][BDSP_MAX_NUM_SCHED_LEVELS];
 	BDSP_P_FwBuffer             ProcessSpawnMemory[BDSP_RAAGA_MAX_DSP];
     BDSP_P_MsgQueueParams       cmdQueueParams[BDSP_RAAGA_MAX_DSP];

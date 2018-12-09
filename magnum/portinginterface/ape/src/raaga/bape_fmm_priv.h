@@ -1340,6 +1340,10 @@ typedef struct BAPE_LoopbackGroupSettings
                                    via BAPE_LoopbackGroup_P_GetCaptureFciIds. */
     unsigned resolution;        /* Resolution in bits.  Valid values are 16..24 */
 
+    bool insertOnUnderflow;     /* Insert zereos if the loopback underflows.
+                                    This is needed for the DSP mixer's loopback but
+                                    this should not be set for captures */
+
 #if BAPE_CHIP_MAX_FS > 0
     unsigned fs;                    /* Which FS timing source will be used. */
 #else

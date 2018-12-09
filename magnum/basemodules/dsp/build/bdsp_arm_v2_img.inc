@@ -248,7 +248,7 @@ BDSP_UDC_IDS_SOURCES := \
 
 ifneq ($(wildcard $(BDSP_UDC_SOURCES)),)
 ifneq ($(wildcard $(BDSP_UDC_IDS_SOURCES)),)
-BDSP_UDC_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_UDC_SUPPORT ?= y
 endif
 endif
 endif
@@ -262,7 +262,7 @@ BDSP_UDC_IDS_SOURCES := \
 
 ifneq ($(wildcard $(BDSP_UDC_SOURCES)),)
 ifneq ($(wildcard $(BDSP_UDC_IDS_SOURCES)),)
-BDSP_UDC_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_UDC_SUPPORT ?= y
 endif
 endif
 endif
@@ -428,7 +428,7 @@ BDSP_DOLBY_AACHE_IDS_SOURCES := \
 
 ifneq ($(wildcard $(BDSP_DOLBY_AACHE_SOURCES)),)
 ifneq ($(wildcard $(BDSP_DOLBY_AACHE_IDS_SOURCES)),)
-BDSP_DOLBY_AACHE_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_DOLBY_AACHE_SUPPORT ?= y
 endif
 endif
 endif
@@ -443,7 +443,7 @@ BDSP_DOLBY_AACHE_IDS_SOURCES := \
 
 ifneq ($(wildcard $(BDSP_DOLBY_AACHE_SOURCES)),)
 ifneq ($(wildcard $(BDSP_DOLBY_AACHE_IDS_SOURCES)),)
-BDSP_DOLBY_AACHE_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_DOLBY_AACHE_SUPPORT ?= y
 endif
 endif
 endif
@@ -560,7 +560,7 @@ BDSP_DPCMR_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_app_dpcmr_data.c
 
 ifneq ($(wildcard $(BDSP_DPCMR_SOURCES)),)
-BDSP_DPCMR_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_DPCMR_SUPPORT ?= y
 endif
 endif
 
@@ -570,7 +570,7 @@ BDSP_DPCMR_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_app_ms11plus_dpcmr_data.c
 
 ifneq ($(wildcard $(BDSP_DPCMR_SOURCES)),)
-BDSP_DPCMR_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_DPCMR_SUPPORT ?= y
 endif
 endif
 
@@ -588,7 +588,7 @@ BDSP_DDPENC_SOURCES := \
 		$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_aenc_ddp_data.c
 
 ifneq ($(wildcard $(BDSP_DDPENC_SOURCES)),)
-BDSP_DDPENC_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_DDPENC_SUPPORT ?= y
 endif
 endif
 
@@ -598,7 +598,7 @@ BDSP_DDPENC_SOURCES := \
 		$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_aenc_ms11plus_dd_data.c
 
 ifneq ($(wildcard $(BDSP_DDPENC_SOURCES)),)
-BDSP_DDPENC_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_DDPENC_SUPPORT ?= y
 endif
 endif
 
@@ -616,7 +616,7 @@ BDSP_MIXER_DAPV2_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_app_mixer_dapv2_data.c
 
 ifneq ($(wildcard $(BDSP_MIXER_DAPV2_SOURCES)),)
-BDSP_MIXERDAPV2_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_MIXERDAPV2_SUPPORT ?= y
 endif
 endif
 
@@ -626,7 +626,7 @@ BDSP_MIXER_DAPV2_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/arm_v2/firmware/$(AONA_VER)/data/barm_app_ms11plus_mixer_data.c
 
 ifneq ($(wildcard $(BDSP_MIXER_DAPV2_SOURCES)),)
-BDSP_MIXERDAPV2_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_MIXERDAPV2_SUPPORT ?= y
 endif
 endif
 

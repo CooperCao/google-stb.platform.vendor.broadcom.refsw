@@ -48,13 +48,13 @@ B_PAK_MY_TOP := $(call B_PAK_THIS_MFILE_DIR_FUNC)
 B_PAK_REFSW_TOP:= $(abspath $(realpath ${MY_TOP}/../../../..))
 
 PAKBIN_FILE := $(wildcard $(B_PAK_MY_TOP)/pak_$(BCHP_CHIP).bin)
-PAKBIN_DEV_FILE := $(wildcard $(B_PAK_MY_TOP)/pak_$(BCHP_CHIP)_dev.bin)
+PAKBIN_DEV_FILES := $(wildcard $(B_PAK_MY_TOP)/pak_*_dev.bin)
 DRMBIN_FILE := $(wildcard $(B_PAK_MY_TOP)/drm_dev.bin)
 
 ifneq ($(PAKBIN_FILE),)
 PAKBIN_INSTALLS += pakbin_install
 endif
-ifneq ($(PAKBIN_DEV_FILE),)
+ifneq ($(PAKBIN_DEV_FILES),)
 PAKBIN_INSTALLS += pakbin_dev_install
 endif
 ifneq ($(DRMBIN_FILE),)
@@ -68,7 +68,7 @@ pakbin_install: pak_dir
 
 pakbin_dev_install: pak_dir
 	@echo [Install... pak]
-	@${CP} -f ${PAKBIN_DEV_FILE} $(NEXUS_BIN_DIR)/pak_dev.bin
+	@${CP} -f ${PAKBIN_DEV_FILES} $(NEXUS_BIN_DIR)
 
 drmbin_install: pak_dir
 	@${CP} -f ${DRMBIN_FILE} $(NEXUS_BIN_DIR)

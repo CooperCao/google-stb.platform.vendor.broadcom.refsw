@@ -73,7 +73,7 @@
 #define BDSP_IMG_SYSTEM_CODE_SIZE                                    ((uint32_t)471040)
 
 /*SYSTEM_LIB Size requirement*/
-#define BDSP_IMG_SYSTEM_LIB_SIZE                                     ((uint32_t)940544)
+#define BDSP_IMG_SYSTEM_LIB_SIZE                                     ((uint32_t)940032)
 /****Codec specific parameters for the host ****/
 
 
