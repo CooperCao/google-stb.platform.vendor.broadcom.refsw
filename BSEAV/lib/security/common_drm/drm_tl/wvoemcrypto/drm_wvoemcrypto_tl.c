@@ -158,6 +158,8 @@ static uint8_t *gPadding = NULL;
 
 #define WV_DECRYPT_VERIFY_INTERVAL 2
 
+#define WV_CENTRAL_MAX_NUM_KEY_SLOT 8
+
 typedef struct Drm_WVOemCryptoEncDmaList
 {
     DmaBlockInfo_t *dma_block_info;
@@ -816,6 +818,12 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
     {
         gKeySlotMaxAvail = DRM_WVOEMCRYPTO_MAX_NUM_KEY_SLOT;
     }
+
+    if(gCentralKeySlotCacheMode && gKeySlotMaxAvail > WV_CENTRAL_MAX_NUM_KEY_SLOT)
+    {
+        gKeySlotMaxAvail = WV_CENTRAL_MAX_NUM_KEY_SLOT;
+    }
+
 ErrorExit:
 
     if(wv_container != NULL)
