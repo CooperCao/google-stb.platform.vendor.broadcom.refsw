@@ -114,10 +114,8 @@ public:
               (m_info.y == rhs.m_info.y) &&
               (m_info.stretch == rhs.m_info.stretch) &&
               (m_info.zOrder == rhs.m_info.zOrder) &&
-              (memcmp(&m_info.colorBlend, &rhs.m_info.colorBlend,
-                  sizeof(NEXUS_BlendEquation) == 0)) &&
-              (memcmp(&m_info.alphaBlend, &rhs.m_info.alphaBlend,
-                  sizeof(NEXUS_BlendEquation) == 0)) &&
+              (memcmp(&m_info.colorBlend, &rhs.m_info.colorBlend, sizeof(NEXUS_BlendEquation)) == 0) &&
+              (memcmp(&m_info.alphaBlend, &rhs.m_info.alphaBlend, sizeof(NEXUS_BlendEquation)) == 0) &&
               (m_info.type == rhs.m_info.type));
    }
 
