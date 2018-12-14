@@ -157,6 +157,7 @@ static uint8_t *gPadding = NULL;
 #define MAX_INIT_QUERY_RETRIES 20
 
 #define WV_DECRYPT_VERIFY_INTERVAL 2
+#define WV_KEY_SELECT_COUNT_MAX 58
 
 #define WV_CENTRAL_MAX_NUM_KEY_SLOT 8
 
@@ -448,6 +449,11 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
             NEXUS_KeySlot_Free(gKeySlotCache[i].hSwKeySlot);
 #endif
             gKeySlotCache[i].hSwKeySlot = NULL;
+            if(gKeySlotCache[i].btp_sage_buffer != NULL)
+            {
+                SRAI_Memory_Free(gKeySlotCache[i].btp_sage_buffer);
+                gKeySlotCache[i].btp_sage_buffer = NULL;
+            }
         }
     }
     gKeySlotCacheAllocated = 0;
@@ -1129,13 +1135,7 @@ ErrorExit:
 
     if (gHostSessionCtx)
     {
-        if (gHostSessionCtx[session].btp_sage_buffer)
-        {
-            BDBG_MSG(("%s  Freeing btp buffer 0x%08x", BSTD_FUNCTION, gHostSessionCtx[session].btp_sage_buffer ));
-            SRAI_Memory_Free( gHostSessionCtx[session].btp_sage_buffer );
-            gHostSessionCtx[session].btp_sage_buffer = NULL;
-        }
-
+        gHostSessionCtx[session].btp_sage_buffer_ptr = NULL;
         gHostSessionCtx[session].drmCommonOpStruct.keyConfigSettings.keySlot = NULL;
         gHostSessionCtx[session].drmCommonOpStruct.num_dma_block = 0;
     }
@@ -1155,6 +1155,11 @@ ErrorExit:
                 NEXUS_KeySlot_Free(gHostSessionCtx[session].key_slot_ptr[i]->hSwKeySlot);
 #endif
                 gHostSessionCtx[session].key_slot_ptr[i]->hSwKeySlot = NULL;
+                if(gKeySlotCache[i].btp_sage_buffer != NULL)
+                {
+                    SRAI_Memory_Free(gKeySlotCache[i].btp_sage_buffer);
+                    gKeySlotCache[i].btp_sage_buffer = NULL;
+                }
                 gKeySlotCacheAllocated--;
             }
             gHostSessionCtx[session].key_slot_ptr[i] = NULL;
@@ -3246,7 +3251,8 @@ DrmRC drm_WVOemCrypto_P_Do_SelectKey_V13(const uint32_t session,
 
     /* Set the cipher mode */
     gHostSessionCtx[session].cipher_mode = container->basicOut[1];
-    gHostSessionCtx[session].new_key_selected = true;
+    gHostSessionCtx[session].key_select_count++;
+    gHostSessionCtx[session].btp_sage_buffer_ptr = NULL;
 
 IgnoreKeySlot:
 ErrorExit:
@@ -3722,11 +3728,11 @@ static DrmRC drm_WVOemCrypto_P_DecryptDMA_SG(uint8_t *data_addr,
 
         if (dmaBlockIdx == 0)
         {
-            if (gHostSessionCtx[session].btp_sage_buffer != NULL)
+            if (gHostSessionCtx[session].btp_sage_buffer_ptr != NULL)
             {
                 /* BTP block */
-                blockInfo[dmaBlockIdx].pDstData = gHostSessionCtx[session].btp_sage_buffer;
-                blockInfo[dmaBlockIdx].pSrcData = gHostSessionCtx[session].btp_sage_buffer;
+                blockInfo[dmaBlockIdx].pDstData = gHostSessionCtx[session].btp_sage_buffer_ptr;
+                blockInfo[dmaBlockIdx].pSrcData = gHostSessionCtx[session].btp_sage_buffer_ptr;
                 blockInfo[dmaBlockIdx].uiDataSize = BTP_SIZE;
                 blockInfo[dmaBlockIdx].sg_start = true;
                 blockInfo[dmaBlockIdx].sg_end = true;
@@ -3846,6 +3852,8 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
     bool call_decrypt_verify = false;
     time_t current_time;
     bool hold_keyslot = false;
+    uint32_t i = 0;
+    bool keyslot_found = false;
 
     BDBG_ENTER(drm_WVOemCrypto_P_DecryptPatternBlock);
     BDBG_MSG(("%s: Input data len=%d,is_encrypted=%d, sf:%d, secure:%d",
@@ -3946,24 +3954,51 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
         }
 
         /* Allocate BTP buffer if needed */
-        if (gHostSessionCtx[session].btp_sage_buffer == NULL)
+        if (gHostSessionCtx[session].btp_sage_buffer_ptr == NULL)
         {
-            if(gEventDrivenVerify)
+            /* Search for available BTP.  If not found, allocate. */
+            for(i = 0; i < gKeySlotMaxAvail; i++)
             {
-                gHostSessionCtx[session].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_Shared);
-            }
-            else
-            {
-                gHostSessionCtx[session].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_SagePrivate);
+                if(gKeySlotCache[i].hSwKeySlot != NULL)
+                {
+                    if(gHostSessionCtx[session].drmCommonOpStruct.keyConfigSettings.keySlot == gKeySlotCache[i].hSwKeySlot)
+                    {
+                        keyslot_found = true;
+                        break;
+                    }
+                }
             }
 
-            if(gHostSessionCtx[session].btp_sage_buffer == NULL)
+            if(!keyslot_found)
             {
-                BDBG_ERR(("%s: Out of memory for BTP (%u bytes)", BSTD_FUNCTION, BTP_SIZE));
-                *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+                BDBG_ERR(("%s: Unable to find selected key slot ID (%u)", BSTD_FUNCTION, gHostSessionCtx[session].drmCommonOpStruct.keyConfigSettings.keySlot));
+                *wvRc = SAGE_OEMCrypto_ERROR_INVALID_CONTEXT;
                 rc = Drm_Err;
                 goto ErrorExit;
             }
+
+            if(gKeySlotCache[i].btp_sage_buffer == NULL)
+            {
+                if(gEventDrivenVerify)
+                {
+                    gKeySlotCache[i].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_Shared);
+                }
+                else
+                {
+                    gKeySlotCache[i].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_SagePrivate);
+                }
+
+                if(gKeySlotCache[i].btp_sage_buffer == NULL)
+                {
+                    BDBG_ERR(("%s: Out of memory for BTP (%u bytes)", BSTD_FUNCTION, BTP_SIZE));
+                    *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+                    rc = Drm_Err;
+                    goto ErrorExit;
+                }
+                /* We must fill the BTP by calling decryption verify */
+                call_decrypt_verify = true;
+            }
+            gHostSessionCtx[session].btp_sage_buffer_ptr = gKeySlotCache[i].btp_sage_buffer;
         }
 
         /* Mark if this is the first encrypted subsample */
@@ -4016,10 +4051,12 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
             {
                 /* Required to call SAGE for decrypt verification every second or when new key selected */
                 current_time = time(NULL);
-                if(gHostSessionCtx[session].new_key_selected ||
+                if(gHostSessionCtx[session].force_decrypt_verify ||
+                    gHostSessionCtx[session].key_select_count > WV_KEY_SELECT_COUNT_MAX ||
                     current_time >= gHostSessionCtx[session].decrypt_verify_time + WV_DECRYPT_VERIFY_INTERVAL)
                 {
-                    gHostSessionCtx[session].new_key_selected = false;
+                    gHostSessionCtx[session].key_select_count = 0;
+                    gHostSessionCtx[session].force_decrypt_verify = false;
                     call_decrypt_verify = true;
                 }
             }
@@ -4028,7 +4065,7 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
         {
             if(gHostSessionCtx[session].drmCommonOpStruct.num_dma_block == 0)
             {
-                gHostSessionCtx[session].new_key_selected = false;
+                gHostSessionCtx[session].key_select_count = 0;
                 call_decrypt_verify = true;
             }
         }
@@ -4068,7 +4105,7 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
             container->basicIn[2] = buffer_type;
 
             container->basicIn[3]= BTP_SIZE;
-            container->blocks[1].data.ptr = gHostSessionCtx[session].btp_sage_buffer;
+            container->blocks[1].data.ptr = gHostSessionCtx[session].btp_sage_buffer_ptr;
             container->blocks[1].len = BTP_SIZE;
 
             /* This command loads the IV and validates key control */
@@ -4107,8 +4144,8 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
         else if(gEventDrivenVerify && gHostSessionCtx[session].drmCommonOpStruct.num_dma_block == 0)
         {
             /* Fill in BTP information */
-            BKNI_Memcpy(&gHostSessionCtx[session].btp_sage_buffer[20 +(gHostSessionCtx[session].ext_iv_offset * 16)], &iv[8], 8);
-            BKNI_Memcpy(&gHostSessionCtx[session].btp_sage_buffer[20 +(gHostSessionCtx[session].ext_iv_offset * 16) + 16], &iv[0], 8);
+            BKNI_Memcpy(&gHostSessionCtx[session].btp_sage_buffer_ptr[20 +(gHostSessionCtx[session].ext_iv_offset * 16)], &iv[8], 8);
+            BKNI_Memcpy(&gHostSessionCtx[session].btp_sage_buffer_ptr[20 +(gHostSessionCtx[session].ext_iv_offset * 16) + 16], &iv[0], 8);
         }
 
         BKNI_AcquireMutex(gWVKeySlotMutex);
@@ -4264,6 +4301,8 @@ DrmRC drm_WVOemCrypto_DecryptCTR_V10(uint32_t session,
     BERR_Code sage_rc = BERR_SUCCESS;
     *wvRc = SAGE_OEMCrypto_SUCCESS;
     bool isSecureDecrypt = (buffer_type == Drm_WVOEMCrypto_BufferType_Secure);
+    uint32_t i = 0;
+    bool keyslot_found = false;
 
     BDBG_ENTER(drm_WVOemCrypto_DecryptCTR_V10);
     BDBG_MSG(("%s: Input data len=%d,is_encrypted=%d, sf:%d, secure:%d",
@@ -4361,23 +4400,52 @@ DrmRC drm_WVOemCrypto_DecryptCTR_V10(uint32_t session,
             }
 
             /* Allocate BTP buffer if needed */
-            if (gHostSessionCtx[session].btp_sage_buffer == NULL)
+            if (gHostSessionCtx[session].btp_sage_buffer_ptr == NULL)
             {
-                if(gEventDrivenVerify)
+                /* Search for available BTP.  If not found, allocate. */
+                for(i = 0; i < gKeySlotMaxAvail; i++)
                 {
-                    gHostSessionCtx[session].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_Shared);
+                    if(gKeySlotCache[i].hSwKeySlot != NULL)
+                    {
+                        if(gHostSessionCtx[session].drmCommonOpStruct.keyConfigSettings.keySlot == gKeySlotCache[i].hSwKeySlot)
+                        {
+                            keyslot_found = true;
+                            break;
+                        }
+                    }
+                }
+
+                if(!keyslot_found)
+                {
+                    BDBG_ERR(("%s: Unable to find selected key slot ID (%u)", BSTD_FUNCTION, gHostSessionCtx[session].drmCommonOpStruct.keyConfigSettings.keySlot));
+                    *wvRc = SAGE_OEMCrypto_ERROR_INVALID_CONTEXT;
+                    rc = Drm_Err;
+                    goto ErrorExit;
+                }
+
+                if(gKeySlotCache[i].btp_sage_buffer == NULL)
+                {
+                     if(gEventDrivenVerify)
+                     {
+                         gKeySlotCache[i].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_Shared);
+                     }
+                     else
+                     {
+                         gKeySlotCache[i].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_SagePrivate);
+                     }
+
+                     if(gKeySlotCache[i].btp_sage_buffer == NULL)
+                     {
+                         BDBG_ERR(("%s: Out of memory for BTP (%u bytes)", BSTD_FUNCTION, BTP_SIZE));
+                         *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+                         rc = Drm_Err;
+                         goto ErrorExit;
+                     }
                 }
                 else
                 {
-                    gHostSessionCtx[session].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_SagePrivate);
-                }
-
-                if(gHostSessionCtx[session].btp_sage_buffer == NULL)
-                {
-                    BDBG_ERR(("%s: Out of memory for BTP (%u bytes)", BSTD_FUNCTION, BTP_SIZE));
-                    *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
-                    rc = Drm_Err;
-                    goto ErrorExit;
+                    /* Point to stored btp buffer */
+                    gHostSessionCtx[session].btp_sage_buffer_ptr = gKeySlotCache[i].btp_sage_buffer;
                 }
             }
 
@@ -4387,7 +4455,7 @@ DrmRC drm_WVOemCrypto_DecryptCTR_V10(uint32_t session,
             container->basicIn[2] = buffer_type;
 
             container->basicIn[3]= BTP_SIZE;
-            container->blocks[1].data.ptr = gHostSessionCtx[session].btp_sage_buffer;
+            container->blocks[1].data.ptr = gHostSessionCtx[session].btp_sage_buffer_ptr;
             container->blocks[1].len = BTP_SIZE;
 
             /* This command loads the IV and validates key control */
@@ -9169,6 +9237,8 @@ DrmRC DRM_WVOemCrypto_Update_Usage_Entry(uint32_t session, uint8_t* header_buffe
     BKNI_Memcpy(header_buffer, container->blocks[0].data.ptr, *header_buffer_length);
     BKNI_Memcpy(entry_buffer, container->blocks[1].data.ptr, *entry_buffer_length);
 
+    gHostSessionCtx[session].force_decrypt_verify = true;
+
 ErrorExit:
     if(container != NULL)
     {
@@ -10189,7 +10259,8 @@ DrmRC drm_WVOemCrypto_P_Do_SelectKey(const uint32_t session,
 
     /* Set the cipher mode */
     gHostSessionCtx[session].cipher_mode = cipher_mode;
-    gHostSessionCtx[session].new_key_selected = true;
+    gHostSessionCtx[session].key_select_count++;
+    gHostSessionCtx[session].btp_sage_buffer_ptr = NULL;
 
 IgnoreKeySlot:
 ErrorExit:
