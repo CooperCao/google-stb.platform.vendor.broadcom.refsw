@@ -542,7 +542,7 @@ BERR_Code BVDC_P_GfxFeeder_Init(
                     BVDC_P_GFD_CFC_LUT_SIZE, sizeof(uint32_t), NULL);
                 if( !hGfxFeeder->stCfcLutList.hMmaBlock[i] )
                 {
-                    BDBG_ERR(( "Out of Device Memory" ));
+                    BDBG_ERR(("GFD%d Init: Out of Device Memory", hGfxFeeder->eId-BAVC_SourceId_eGfx0));
                     while(i--)
                     {
                         if(hGfxFeeder->stCfcLutList.hMmaBlock[i])
@@ -563,6 +563,27 @@ BERR_Code BVDC_P_GfxFeeder_Init(
             }
             hGfxFeeder->stCfcLutList.ulIndex    = 0;
             hGfxFeeder->stCfcLutList.pulCurrent = hGfxFeeder->stCfcLutList.pulStart[0];
+        }
+        else
+        {
+            int i;
+            for(i = 0; i < BCFC_MAX_MULTI_RUL_BUFFER_COUNT; i++) {
+                BDBG_MSG(("GFD%d Init: already have pSettings->stCfcLutList.hMmaBlock[i] = %p", hGfxFeeder->eId-BAVC_SourceId_eGfx0,
+                    (void*)hGfxFeeder->stCfcLutList.hMmaBlock[i]));
+                BDBG_MSG(("GFD%d Init: already have CFC heap at:"BDBG_UINT64_FMT", pulStart[%d]=%p", hGfxFeeder->eId-BAVC_SourceId_eGfx0,
+                    BDBG_UINT64_ARG(hGfxFeeder->stCfcLutList.ullStartDeviceAddr[i]), i, (void*)hGfxFeeder->stCfcLutList.pulStart[i]));
+            }
+        }
+    }
+    else if (hGfxFeeder->eId == BAVC_SourceId_eGfx0)
+    {
+        if (!pSettings)
+        {
+            BDBG_MSG(("GFD%d Init: pSettings = NULL", hGfxFeeder->eId-BAVC_SourceId_eGfx0));
+        }
+        else
+        {
+            BDBG_WRN(("GFD%d Init: pSettings->hCfcHeap = NULL!", hGfxFeeder->eId-BAVC_SourceId_eGfx0));
         }
     }
 #else

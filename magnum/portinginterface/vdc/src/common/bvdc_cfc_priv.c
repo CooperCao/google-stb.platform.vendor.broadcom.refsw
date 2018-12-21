@@ -186,6 +186,7 @@ static const BVDC_P_CscClamp *const s_aCLAMP_Tbl[][2] =
 #include "automation/cfclut_ver2/bvdc_cfcramlut_v0_hlg_to_hdr10_v10.c"
 #include "automation/cfclut_ver2/bvdc_cfcramlut_v0_hlg_to_sdr_v10.c"
 #elif (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
+#include "automation/cfclut_ver3/bvdc_cfcramlut_gfd_sdr_to_hlg_lmrlut.c"
 #include "automation/cfclut_ver3/bvdc_cfcramlut_cmp0_hlg_to_hdr10.c"
 #include "automation/cfclut_ver3/bvdc_cfcramlut_cmp0_hlg_to_sdr.c"
 #include "automation/cfclut_ver3/bvdc_cfcramlut_cmp0_hdr10_to_hlg.c"
@@ -329,6 +330,7 @@ static const BCFC_TfConvRamLuts s_aaCmp0MosaicTfConvRamLuts_Tbl[][3] =
      { G12_NL2L(CMP0,Hlg), CFC_LMR_NULL,               &s_LRangeAdj_Identity,          G12_L2NL(CMP0,Hlg) }  /* out BVDC_P_ColorTF_eHlg */
     }
 };
+
 #else /* #if (BVDC_P_CMP_CFC_VER == BVDC_P_CFC_VER_3) */
 static const BCFC_TfConvRamLuts s_aaCmp0MosaicTfConvRamLuts_Tbl[][3] =
 {
@@ -350,6 +352,7 @@ static const BCFC_TfConvRamLuts s_aaCmp0MosaicTfConvRamLuts_Tbl[][3] =
      { MSC_NL2L(CMP0,Hlg), CFC_LMR_NULL,               &s_LRangeAdj_Identity,          CFC_L2NL(CMP0,Hlg) }  /* out BVDC_P_ColorTF_eHlg */
     }
 };
+
 #endif /* #if (BVDC_P_CMP_CFC_VER == BVDC_P_CFC_VER_3) */
 
 static const BCFC_TfConvRamLuts s_aaGfdTfConvRamLuts_Tbl[][3] =
@@ -357,7 +360,7 @@ static const BCFC_TfConvRamLuts s_aaGfdTfConvRamLuts_Tbl[][3] =
     /* input BVDC_P_ColorTF_eBt1886 */
     {{ NULL,               CFC_LMR_NULL,               &s_LRangeAdj_Identity,          NULL },               /* out BVDC_P_ColorTF_eBt1886 */
      { NULL,               CFC_LMR_NULL,               CFC_LRNGADJ(GFD,1886_to_2084),  NULL },               /* out BVDC_P_ColorTF_eBt2100Pq */
-     { NULL,               CFC_LMR_NULL,               CFC_LRNGADJ(GFD,1886_to_hlg),   G12_L2NL(GFD,Hlg) }   /* out BVDC_P_ColorTF_eHlg */
+     { NULL,               CFC_LMR(GFD, 1886_to_hlg),  &s_LRangeAdj_Identity,          CFC_L2NL(GFD,Hlg) }   /* out BVDC_P_ColorTF_eHlg */
     },
 
     /* input BVDC_P_ColorTF_eBt2100Pq */
@@ -2495,7 +2498,14 @@ void BVDC_P_Window_BuildCfcRul_isr
         eMaCscType = BCFC_CscType_eMa5x4_25;
         eLeftShift = BCFC_LeftShift_eOff;
 
-        /* BCHP_HDR_CMP_0_CMP_HDR_V0_CTRL is only related to CMP output, so there is only one reg */
+        if ((!bBypassCfc) && (ulL2NL == BCFC_L2NL_RAM) && (pCfc->pTfConvRamLuts->pRamLutL2NL == NULL))
+        {
+            /* pColorSpaceExtOut->stCfg.stBits.SelTF likely set to BCFC_L2NL_RAM by GFX cfc */
+            BDBG_ERR(("Cmp%d_V%d-Rect%d fail to load RAM L2NL, likely hCfcHeap passded from nexus is NULL", hCompositor->eId, eWinInCmp, ulRectIdx));
+            BDBG_ASSERT(pCfc->pTfConvRamLuts->pRamLutL2NL);
+        }
+
+        /* BCHP_HDR_CMP_0_V0_CTRL is only related to CMP output, so there is only one reg */
       #if BVDC_P_DBV_SUPPORT
         /* if input is DBV, this register is controlled by DBV; skip here;
            Note, mosaic mode non-DBV context can reach here;
@@ -2992,6 +3002,13 @@ void BVDC_P_GfxFeeder_BuildCfcRul_isr
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
 /* 7271 B */
         uint32_t ulLutId;
+
+        if ((!bBypassCfc) && (ulL2NL == BCFC_L2NL_RAM) && (pCfc->pTfConvRamLuts->pRamLutL2NL == NULL))
+        {
+            /* pColorSpaceExtOut->stCfg.stBits.SelTF likely set to BCFC_L2NL_RAM by cmp0 cfc */
+            BDBG_ERR(("Gfd%d-Cfc fail to load RAM L2NL, likely hCfcHeap passded from nexus is NULL!", (hGfxFeeder->eId - BAVC_SourceId_eGfx0)));
+            BDBG_ASSERT(pCfc->pTfConvRamLuts->pRamLutL2NL);
+        }
 
         eLeftShift = BCFC_LeftShift_eOff;
         ulNLCfg = (bBypassCfc) ?

@@ -225,9 +225,9 @@ static BERR_Code BDSP_Raaga_P_WriteMsg_isr(
     }
     WriteOffset = WriteOffset+uiChunk1;
     pSrc = (void *)((uint8_t *)pSrc + uiChunk1);
-    if(WriteOffset >= hMsgQueue->Address.EndOffset)
+    if(WriteOffset == hMsgQueue->Address.EndOffset)
     {
-        WriteOffset = hMsgQueue->Address.BaseOffset + (WriteOffset - hMsgQueue->Address.EndOffset);
+        WriteOffset = hMsgQueue->Address.BaseOffset;
     }
 
     if(uiChunk2)
@@ -379,9 +379,9 @@ BERR_Code BDSP_Raaga_P_ReadMsg_isr(
     }
     ReadOffset = ReadOffset+uiChunk1;
     pDest = (void *)((uint8_t *)pDest + uiChunk1);
-    if(ReadOffset >= hMsgQueue->Address.EndOffset)
+    if(ReadOffset == hMsgQueue->Address.EndOffset)
     {
-        ReadOffset = hMsgQueue->Address.BaseOffset + (ReadOffset - hMsgQueue->Address.EndOffset);
+        ReadOffset = hMsgQueue->Address.BaseOffset;
     }
 
     if(uiChunk2)

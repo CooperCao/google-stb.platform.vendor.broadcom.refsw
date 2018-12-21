@@ -55,6 +55,9 @@ static void NEXUS_HdmiOutput_P_FireHotplugCallbacks(NEXUS_HdmiOutputHandle hdmiO
 {
     /* notify HDR module */
     NEXUS_HdmiOutput_P_DrmInfoFrameConnectionChanged(hdmiOutput);
+#if NEXUS_DBV_SUPPORT
+    NEXUS_HdmiOutput_P_DbvConnectionChanged(hdmiOutput);
+#endif
 
     /* notify application of hotplug status change */
     NEXUS_TaskCallback_Fire(hdmiOutput->hotplugCallback);

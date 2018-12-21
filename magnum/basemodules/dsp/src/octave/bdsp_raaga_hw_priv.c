@@ -965,25 +965,25 @@ BERR_Code BDSP_Raaga_P_PowerResume(
 		if(pDevice->deviceSettings.authenticationEnabled == false)
 		{
 			errCode = BDSP_Raaga_P_Boot(pDevice);
+
 			if (errCode !=BERR_SUCCESS)
 			{
 				BDBG_ERR(("BDSP_Raaga_P_PowerResume: Error in Boot Sequence in Power Resume"));
 				errCode = BERR_TRACE(errCode);
 				goto end;
 			}
-
-			errCode = BDSP_Raaga_P_CheckDspAlive(pDevice);
-			if (errCode!=BERR_SUCCESS)
-			{
-				BDBG_ERR(("BDSP_Raaga_P_PowerResume: DSP not alive"));
-				errCode= BERR_TRACE(errCode);
-				goto end;
-			}
-			else
-			{
-				BDBG_MSG(("BDSP_Raaga_P_PowerResume: DSP is alive"));
-			}
 		}
+        errCode = BDSP_Raaga_P_CheckDspAlive(pDevice);
+        if (errCode!=BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_Raaga_P_PowerResume: DSP not alive"));
+            errCode= BERR_TRACE(errCode);
+            goto end;
+        }
+        else
+        {
+            BDBG_MSG(("BDSP_Raaga_P_PowerResume: DSP is alive"));
+        }
 
         pDevice->hardwareStatus.deviceWatchdogFlag = false;
         pDevice->hardwareStatus.powerStandby = false;

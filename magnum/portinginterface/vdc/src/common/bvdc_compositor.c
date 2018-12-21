@@ -113,7 +113,7 @@ BERR_Code BVDC_Compositor_Create
                     BVDC_P_CMP_CFC_LUT_SIZE, sizeof(uint32_t), NULL);
                 if( !hVdc->ahCompositor[eCompositorId]->stCfcLutList.hMmaBlock[i])
                 {
-                    BDBG_ERR(( "Out of Device Memory" ));
+                    BDBG_ERR(( "CMP%d Init: Out of Device Memory", eCompositorId));
                     /* Free already allocated memory */
                     while(i--)
                     {
@@ -132,22 +132,47 @@ BERR_Code BVDC_Compositor_Create
                     BMMA_Lock(hVdc->ahCompositor[eCompositorId]->stCfcLutList.hMmaBlock[i]);
                 hVdc->ahCompositor[eCompositorId]->stCfcLutList.ullStartDeviceAddr[i] =
                     BMMA_LockOffset(hVdc->ahCompositor[eCompositorId]->stCfcLutList.hMmaBlock[i]);
-                BDBG_MSG(("CMP_CFC LUT pulStart[%d] = %p", i, (void*)hVdc->ahCompositor[eCompositorId]->stCfcLutList.pulStart[i]));
+                BDBG_MSG(("CMP%d locked CFC heap at:"BDBG_UINT64_FMT", pulStart[%d]=%p", eCompositorId,
+                    BDBG_UINT64_ARG(hVdc->ahCompositor[eCompositorId]->stCfcLutList.ullStartDeviceAddr[i]),
+                    i, (void*)hVdc->ahCompositor[eCompositorId]->stCfcLutList.pulStart[i]));
             }
             hVdc->ahCompositor[eCompositorId]->stCfcLutList.ulIndex    = 0;
             hVdc->ahCompositor[eCompositorId]->stCfcLutList.pulCurrent = hVdc->ahCompositor[eCompositorId]->stCfcLutList.pulStart[0];
         }
+        else
+        {
+            int i;
+            for(i = 0; i < BCFC_MAX_MULTI_RUL_BUFFER_COUNT; i++) {
+                BDBG_MSG(("CMP%d Init: already have stCfcLutList.hMmaBlock[i] = %p", eCompositorId,
+                    (void*)hVdc->ahCompositor[eCompositorId]->stCfcLutList.hMmaBlock[0]));
+                BDBG_MSG(("CMP%d Init: already have CFC heap at:"BDBG_UINT64_FMT", pulStart[%d]=%p", eCompositorId,
+                    BDBG_UINT64_ARG(hVdc->ahCompositor[eCompositorId]->stCfcLutList.ullStartDeviceAddr[i]),
+                    i, (void*)hVdc->ahCompositor[eCompositorId]->stCfcLutList.pulStart[i]));
+            }
+        }
     }
 #if BVDC_P_DBV_SUPPORT
     else if(hVdc->ahCompositor[eCompositorId]->stCfcCapability[0].stBits.bDbvCmp) {
-        BDBG_ERR(("DBV must provide hCfcHeap for HDR CMP LUT RUL!"));
+        BDBG_ERR(("CMP%d Init: DBV must provide hCfcHeap for HDR CMP LUT RUL!", eCompositorId));
     }
 #endif
 #if BVDC_P_TCH_SUPPORT
     else if(hVdc->ahCompositor[eCompositorId]->stCfcCapability[0].stBits.bTpToneMapping) {
-        BDBG_ERR(("TCH must provide hCfcHeap for HDR CMP LUT RUL!"));
+        BDBG_ERR(("CMP%d Init: TCH must provide hCfcHeap for HDR CMP LUT RUL!", eCompositorId));
     }
 #endif
+    else if (BVDC_CompositorId_eCompositor0 == eCompositorId)
+    {
+        if (!pDefSettings)
+        {
+            BDBG_MSG(("CMP%d Init: pDefSettings = NULL", eCompositorId));
+        }
+        else
+        {
+            BDBG_WRN(("CMP%d Init: pDefSettings->hCfcHeap = NULL!", eCompositorId));
+        }
+    }
+
 #else
     BSTD_UNUSED(pDefSettings);
 #endif
