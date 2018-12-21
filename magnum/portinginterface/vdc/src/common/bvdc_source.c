@@ -2525,6 +2525,9 @@ static void BVDC_P_Source_ValidateMpegData_isr
                pNewPic->ulSourceHorizontalSize = pNewPic->ulSourceHorizontalSize & ~1; */
             pNewPic->ulSourceVerticalSize   = pNewPic->ulSourceVerticalSize & ~1;
         }
+
+        /* mute frames should not pass on metadata */
+        pNewPic->stHdrMetadata.stDynamic.eType = BAVC_HdrMetadataType_eUnknown;
     }
 
     /* (4) Handle unknown color space.  In the cases of 'unknown', 'forbidden'
