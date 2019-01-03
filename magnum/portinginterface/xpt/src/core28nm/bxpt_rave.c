@@ -4337,7 +4337,9 @@ BERR_Code BXPT_Rave_GetIntId(
         case BXPT_RaveIntName_eCdbOverflow: RegAddr = ThisCtx->Index < 32 ? BCHP_XPT_RAVE_CDB_OVERFLOW_CX00_31_L2_INTR_CPU_STATUS_0_31 : BCHP_XPT_RAVE_CDB_OVERFLOW_CX32_47_L2_INTR_CPU_STATUS_32_47; break;
         case BXPT_RaveIntName_eItbOverflow: RegAddr = ThisCtx->Index < 32 ? BCHP_XPT_RAVE_ITB_OVERFLOW_CX00_31_L2_INTR_CPU_STATUS_0_31 : BCHP_XPT_RAVE_ITB_OVERFLOW_CX32_47_L2_INTR_CPU_STATUS_32_47; break;
         case BXPT_RaveIntName_eSplice: RegAddr = ThisCtx->Index < 32 ? BCHP_XPT_RAVE_SPLICE_CX00_31_L2_INTR_CPU_STATUS_0_31 : BCHP_XPT_RAVE_SPLICE_CX32_47_L2_INTR_CPU_STATUS_32_47; break;
+#if  BCHP_CHIP == 7278 || BCHP_CHIP == 7439
         case BXPT_RaveIntName_eLastCmd: RegAddr = ThisCtx->Index < 32 ? BCHP_XPT_RAVE_LAST_CMD_CX00_31_L2_INTR_CPU_STATUS_0_31 : BCHP_XPT_RAVE_LAST_CMD_CX32_47_L2_INTR_CPU_STATUS_32_47; break;
+#endif
         case BXPT_RaveIntName_eCdbLowerThresh: RegAddr = ThisCtx->Index < 32 ? BCHP_XPT_RAVE_CDB_LOWER_THRESH_CX00_31_L2_INTR_CPU_STATUS_0_31 : BCHP_XPT_RAVE_CDB_LOWER_THRESH_CX32_47_L2_INTR_CPU_STATUS_32_47; break;
         case BXPT_RaveIntName_eCdbUpperThresh: RegAddr = ThisCtx->Index < 32 ? BCHP_XPT_RAVE_CDB_UPPER_THRESH_CX00_31_L2_INTR_CPU_STATUS_0_31 : BCHP_XPT_RAVE_CDB_UPPER_THRESH_CX32_47_L2_INTR_CPU_STATUS_32_47; break;
         case BXPT_RaveIntName_eItbLowerThresh: RegAddr = ThisCtx->Index < 32 ? BCHP_XPT_RAVE_ITB_LOWER_THRESH_CX00_31_L2_INTR_CPU_STATUS_0_31 : BCHP_XPT_RAVE_ITB_LOWER_THRESH_CX32_47_L2_INTR_CPU_STATUS_32_47; break;
@@ -4352,7 +4354,9 @@ BERR_Code BXPT_Rave_GetIntId(
         case BXPT_RaveIntName_eCdbOverflow: RegAddr = BCHP_XPT_RAVE_CDB_OVERFLOW_CX00_31_L2_INTR_CPU_STATUS_0_31; break;
         case BXPT_RaveIntName_eItbOverflow: RegAddr = BCHP_XPT_RAVE_ITB_OVERFLOW_CX00_31_L2_INTR_CPU_STATUS_0_31; break;
         case BXPT_RaveIntName_eSplice: RegAddr = BCHP_XPT_RAVE_SPLICE_CX00_31_L2_INTR_CPU_STATUS_0_31; break;
+#if BCHP_CHIP == 7216 || BCHP_CHIP == 7268 || BCHP_CHIP == 7271
         case BXPT_RaveIntName_eLastCmd: RegAddr = BCHP_XPT_RAVE_LAST_CMD_CX00_31_L2_INTR_CPU_STATUS_0_31; break;
+#endif
         case BXPT_RaveIntName_eCdbLowerThresh: RegAddr = BCHP_XPT_RAVE_CDB_LOWER_THRESH_CX00_31_L2_INTR_CPU_STATUS_0_31; break;
         case BXPT_RaveIntName_eCdbUpperThresh: RegAddr = BCHP_XPT_RAVE_CDB_UPPER_THRESH_CX00_31_L2_INTR_CPU_STATUS_0_31; break;
         case BXPT_RaveIntName_eItbLowerThresh: RegAddr = BCHP_XPT_RAVE_ITB_LOWER_THRESH_CX00_31_L2_INTR_CPU_STATUS_0_31; break;
@@ -4369,8 +4373,8 @@ BERR_Code BXPT_Rave_GetIntId(
     #endif
 #endif
         default:
-        BDBG_ERR(( "Unknown/unsupported interrupt %u", Name ));
-        ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+        BDBG_MSG(( "Unknown/unsupported interrupt %u", Name ));
+        ExitCode = BERR_INVALID_PARAMETER;
         goto done;
     }
 
@@ -7861,14 +7865,14 @@ void BXPT_Rave_AdvanceSoftContext(
                     {
 
 #if 0
-						if(DestCtx->SoftRave.splice_state == SoftRave_SpliceState_Discard)
-						{
-							BDBG_ERR(("src_itb[1] %x ",src_itb[1]));
-						}
+                        if(DestCtx->SoftRave.splice_state == SoftRave_SpliceState_Discard)
+                        {
+                            BDBG_ERR(("src_itb[1] %x ",src_itb[1]));
+                        }
 #endif
-						if ( (DestCtx->SoftRave.splice_state == SoftRave_SpliceState_Discard) &&
+                        if ( (DestCtx->SoftRave.splice_state == SoftRave_SpliceState_Discard) &&
                             ((DestCtx->SoftRave.splice_start_PTS <= src_itb[1]) &&
-							 (src_itb[1] < (DestCtx->SoftRave.splice_start_PTS_tolerance +DestCtx->SoftRave.splice_start_PTS))))
+                             (src_itb[1] < (DestCtx->SoftRave.splice_start_PTS_tolerance +DestCtx->SoftRave.splice_start_PTS))))
                         {
                         BDBG_MSG(("Inserting Base Address ITB for context %p, Base Address 0x%08X, ", (void *) DestCtx, DestCtx->SoftRave.last_base_address));
                         INSERT_BASE_ENTRY_ITB(DestCtx->SoftRave.BaseOpCode, DestCtx->SoftRave.last_base_address);
@@ -7893,13 +7897,13 @@ void BXPT_Rave_AdvanceSoftContext(
                                 DestCtx->SoftRave.SpliceStartPTSCB(DestCtx->SoftRave.SpliceStartPTSCBParam, src_itb[1]);
                                 BKNI_LeaveCriticalSection();
                             }
-						}
-						else
-						{
-							if(DestCtx->SoftRave.splice_state == SoftRave_SpliceState_Discard)
-							{
-								BDBG_MSG(("index %u start PTS 0x%08X src_itb[1] 0x%08X ",DestCtx->Index, DestCtx->SoftRave.splice_start_PTS, src_itb[1]));
-							}
+                        }
+                        else
+                        {
+                            if(DestCtx->SoftRave.splice_state == SoftRave_SpliceState_Discard)
+                            {
+                                BDBG_MSG(("index %u start PTS 0x%08X src_itb[1] 0x%08X ",DestCtx->Index, DestCtx->SoftRave.splice_start_PTS, src_itb[1]));
+                            }
                         }
                     }
                     /*check if a stop PTS is programmed*/

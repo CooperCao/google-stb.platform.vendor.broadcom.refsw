@@ -1694,6 +1694,32 @@ static BERR_Code BAPE_Decoder_P_Start(
             }
         }
 
+        /* make sure the multichannel format is <= the decoder multichannel format */
+        BDBG_MSG(("BAVC Codec %d, multichannel output data type %d", pSettings->codec, dataType));
+        if ( dataType == BDSP_DataType_ePcm7_1 )
+        {
+            switch ( handle->settings.multichannelFormat )
+            {
+            case BAPE_MultichannelFormat_e7_1: break;
+            case BAPE_MultichannelFormat_e5_1: dataType = BDSP_DataType_ePcm5_1; break;
+            case BAPE_MultichannelFormat_e2_0: dataType = BDSP_DataType_ePcmStereo; break;
+            default:
+                BDBG_ERR(("Unknown Multichannel format %d", handle->settings.multichannelFormat)); return BERR_TRACE(BERR_INVALID_PARAMETER);
+            }
+        }
+        else if ( dataType == BDSP_DataType_ePcm5_1 )
+        {
+            switch ( handle->settings.multichannelFormat )
+            {
+            case BAPE_MultichannelFormat_e7_1: break;
+            case BAPE_MultichannelFormat_e5_1: break;
+            case BAPE_MultichannelFormat_e2_0: dataType = BDSP_DataType_ePcmStereo; break;
+            default:
+                BDBG_ERR(("Unknown Multichannel format %d", handle->settings.multichannelFormat)); return BERR_TRACE(BERR_INVALID_PARAMETER);
+            }
+        }
+        BDBG_MSG(("  after comparing with decoder multichannel format, decoder output data type %d", dataType));
+
         errCode = BDSP_Stage_GetSettings(handle->hOutputFormatter, &formatterSettings, sizeof(formatterSettings));
         if ( errCode )
         {
@@ -1716,6 +1742,8 @@ static BERR_Code BAPE_Decoder_P_Start(
             errCode = BERR_TRACE(errCode);
             goto err_stages;
         }
+        BDBG_MSG(("Configuring Decoder stage data type %d -> output formatter numChs %u", dataType, formatterSettings.ui32NumChannels));
+        /* dataType must match the input type, not the output type */
         errCode = BDSP_Stage_AddOutputStage(hStage, dataType, handle->hOutputFormatter, &output, &input);
         if ( errCode )
         {

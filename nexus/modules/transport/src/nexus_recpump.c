@@ -1,39 +1,43 @@
 /***************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  **************************************************************************/
 #include "nexus_transport_module.h"
 #include "nexus_recpump_impl.h"
@@ -109,6 +113,7 @@ void NEXUS_Recpump_GetDefaultSettings( NEXUS_RecpumpSettings *pSettings)
     pSettings->outputTransportType = NEXUS_TransportType_eTs;
     pSettings->bandHold = NEXUS_RecpumpFlowControl_eAuto;
     pSettings->localTimestamp = false;
+    NEXUS_CallbackDesc_Init(&pSettings->lastCmd);
     return;
 }
 
@@ -161,6 +166,15 @@ NEXUS_Recpump_TsioDmaEnd_isr(void *context, int parm2 )
     BINT_DisableCallback_isr(pump->tsioDmaEndIrq);
 }
 #endif
+
+static void NEXUS_Recpump_LastCmd_isr(void *context, int parm2)
+{
+    NEXUS_RecpumpHandle pump = context;
+    BSTD_UNUSED(parm2);
+    NEXUS_IsrCallback_Fire_isr(pump->lastCmdCallback);
+    BINT_DisableCallback_isr(pump->lastCmdIrq);
+}
+
 #endif
 
 /*
@@ -526,6 +540,16 @@ NEXUS_RecpumpHandle NEXUS_Recpump_Open(unsigned index, const NEXUS_RecpumpOpenSe
     if (rc) { rc=BERR_TRACE(rc); goto error; }
     r->tsioDmaEndCallback = NEXUS_IsrCallback_Create(r, NULL);
 #endif
+
+    r->lastCmdIrq = NULL;
+    rc = BXPT_Rave_GetIntId(r->rave_rec, BXPT_RaveIntName_eLastCmd, &int_id);
+    if(!rc) {
+        /* LastCmd support in sw on certain chips only. It can be added to others if requested. */
+        rc = BINT_CreateCallback(&r->lastCmdIrq, g_pCoreHandles->bint, int_id, NEXUS_Recpump_LastCmd_isr, (void *) r, 0);
+        if(rc) {rc = BERR_TRACE(rc); goto error;}
+    }
+    r->lastCmdCallback = NEXUS_IsrCallback_Create(r, NULL);
+
 #endif
 
 #if NEXUS_ENCRYPTED_DVR_WITH_M2M && (!NEXUS_HAS_XPT_DMA)
@@ -939,6 +963,11 @@ static void NEXUS_Recpump_P_Finalizer(NEXUS_RecpumpHandle r)
     if (r->tpitIdx) {
         BXPT_Rave_FreeIndexer(r->tpitIdx);
     }
+    if (r->lastCmdIrq)
+        BINT_DestroyCallback(r->lastCmdIrq);
+    if (r->lastCmdCallback)
+        NEXUS_IsrCallback_Destroy(r->lastCmdCallback);
+
     BDBG_ASSERT(!r->scdIdx); /* NEXUS_Recpump_P_FreeScdIndexer was called when last pid removed */
     NEXUS_RaveErrorCounter_Uninit_priv(&r->raveErrors);
     if (r->extra_rave_rec) {
@@ -974,6 +1003,15 @@ static void NEXUS_Recpump_P_Finalizer(NEXUS_RecpumpHandle r)
     if (r->index.dataReadyCallback) {
         NEXUS_TaskCallback_Destroy(r->index.dataReadyCallback);
     }
+#if NEXUS_RAVE_OUTPUT_CAPTURE_ENABLED
+    if (r->cap)
+    {
+        NEXUS_RaveCapture_Close(r->cap);
+        NEXUS_RaveCapture_Destroy(r->cap);
+        r->cap = NULL;
+    }
+#endif
+
     r->rave_rec = NULL;
     pTransport->recpump[r->tindex] = NULL;
     NEXUS_OBJECT_DESTROY(NEXUS_Recpump, r);
@@ -1066,6 +1104,11 @@ NEXUS_Error NEXUS_Recpump_SetSettings(NEXUS_RecpumpHandle r, const NEXUS_Recpump
 #if BXPT_NUM_TSIO
     NEXUS_IsrCallback_Set( r->tsioDmaEndCallback, &r->settings.tsioDmaEnd );
 #endif
+    if (r->settings.lastCmd.callback != NULL && r->lastCmdIrq == NULL) {
+        /* if customer requires feature, bint_CHIP.c must be extended. */
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+    NEXUS_IsrCallback_Set(r->lastCmdCallback, &r->settings.lastCmd);
 
     rc = NEXUS_Recpump_P_CheckStartTpitIndexAndFlow(r);
 
@@ -1563,9 +1606,15 @@ static NEXUS_Error NEXUS_Recpump_P_Start(NEXUS_RecpumpHandle r)
 #if BXPT_NUM_TSIO
     BKNI_EnterCriticalSection();
     rc = BINT_EnableCallback_isr(r->tsioDmaEndIrq);
-    if (rc) {rc=BERR_TRACE(rc);goto err_record_scd; }
     BKNI_LeaveCriticalSection();
+    if (rc) {rc=BERR_TRACE(rc);goto err_record_scd; }
 #endif
+    if(r->lastCmdIrq) {
+        BKNI_EnterCriticalSection();
+        rc = BINT_EnableCallback_isr(r->lastCmdIrq);
+        BKNI_LeaveCriticalSection();
+        if (rc) {rc=BERR_TRACE(rc);goto err_record_scd; }
+    }
     r->actuallyStarted = true;
     return 0;
 
@@ -2248,6 +2297,8 @@ NEXUS_Recpump_P_WriteComplete(struct NEXUS_RecpumpFlow *flow, size_t amount_writ
 #if BXPT_NUM_TSIO
     BINT_EnableCallback(flow->recpump->tsioDmaEndIrq);
 #endif
+    if (flow->recpump->lastCmdIrq)
+        BINT_EnableCallback(flow->recpump->lastCmdIrq);
     return NEXUS_SUCCESS;
 }
 

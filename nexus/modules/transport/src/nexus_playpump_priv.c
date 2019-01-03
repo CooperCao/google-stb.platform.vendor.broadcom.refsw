@@ -1,39 +1,43 @@
 /***************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *
@@ -284,13 +288,43 @@ remove_inalid_chunk:
             NEXUS_FlushCache(p->state.active.addr, p->state.active.length);
         }
 #endif
-        if(p->openSettings.descriptorPacingEnabled)
+#if NEXUS_TRANSPORT_EXTENSION_CRC
+        BSTD_UNUSED(entry);
+        if(item->useCrc)
         {
             BKNI_Memset(&extEntry.flags, 0 , sizeof(BAVC_TsMux_DescConfig));
-            extEntry.flags.bNextPacketPacingTimestampValid = true;
-            extEntry.flags.uiNextPacketPacingTimestamp = item->desc.descriptorSettings.descriptorPacing.timestamp;
-            extEntry.flags.bPacket2PacketTimestampDeltaValid = true;
-            extEntry.flags.uiPacket2PacketTimestampDelta = item->desc.descriptorSettings.descriptorPacing.pkt2pktDelta;
+            extEntry.flags.crcLoad = item->crc.load;
+            extEntry.flags.crcCompare = item->crc.compare;
+            extEntry.flags.crcCompute = item->crc.compute;
+            extEntry.flags.crc = item->crc.crc;
+
+            extEntry.baseEntry.len = p->state.active.length;
+            extEntry.baseEntry.offset = NEXUS_AddrToOffset(p->state.active.addr);
+            rc = BPVRlib_Feed_AddExtendedOffsetEntries(p->play_feed, &extEntry, 1, &nentries);
+            if (rc!=BERR_SUCCESS)
+                BDBG_ERR(("BPVRlib_Feed_AddExtendedOffsetEntries (CRC): returned error %#x, ignored", rc));
+        }
+        else
+#endif
+        if(p->openSettings.descriptorPacingEnabled || p->openSettings.descriptorOptionsEnabled)
+        {
+            BKNI_Memset(&extEntry.flags, 0 , sizeof(BAVC_TsMux_DescConfig));
+            if(p->openSettings.descriptorPacingEnabled)
+            {
+                extEntry.flags.bNextPacketPacingTimestampValid = true;
+                extEntry.flags.uiNextPacketPacingTimestamp = item->desc.descriptorSettings.descriptorPacing.timestamp;
+                extEntry.flags.bPacket2PacketTimestampDeltaValid = true;
+                extEntry.flags.uiPacket2PacketTimestampDelta = item->desc.descriptorSettings.descriptorPacing.pkt2pktDelta;
+            }
+            if(p->openSettings.descriptorOptionsEnabled && item->desc.descriptorSettings.descriptorOptions.transportOverride)
+            {
+                NEXUS_P_PlaypumpPidChannel *play_pid;
+
+                play_pid=BLST_S_FIRST(&p->pid_list);
+                BDBG_ASSERT(play_pid);
+                extEntry.flags.uiPidChannelNo = play_pid->pid_channel->status.pidChannelIndex;
+                extEntry.flags.bHostDataInsertion = extEntry.flags.bPidChannelValid = true;
+            }
             extEntry.baseEntry.len = p->state.active.length;
             extEntry.baseEntry.offset = NEXUS_AddrToOffset(p->state.active.addr);
             rc = BPVRlib_Feed_AddExtendedOffsetEntries(p->play_feed, &extEntry, 1, &nentries);
@@ -394,7 +428,7 @@ b_playpump_p_add_request(NEXUS_PlaypumpHandle p, size_t skip, size_t amount_used
 #if B_SAVE_PLAYPUMP
             b_playpump_p_data(BFIFO_WRITE(&p->fifo)+skip, amount_used);
 #endif
-            if(skip==0 && amount_used>0 && p->state.packetizer==b_play_packetizer_none && p->settings.mode == NEXUS_PlaypumpMode_eFifo  && p->state.last_item!=NULL && !p->openSettings.descriptorPacingEnabled) {
+            if(skip==0 && amount_used>0 && p->settings.mode == NEXUS_PlaypumpMode_eFifo  && p->state.last_item!=NULL && !p->openSettings.descriptorPacingEnabled && !p->openSettings.descriptorOptionsEnabled) {
                 size_t threshold;
                 threshold = (2*p->openSettings.fifoSize)/ p->openSettings.numDescriptors; /* limit size of the merged chunk */
                 item = p->state.last_item;
