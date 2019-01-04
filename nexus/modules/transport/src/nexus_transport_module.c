@@ -1,39 +1,43 @@
 /***************************************************************************
- *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *
  * Module Description:
  *
@@ -560,6 +564,71 @@ static void NEXUS_Timebase_P_Uninit(NEXUS_TimebaseHandle timebase)
 }
 #endif /* BXPT_NUM_PCRS */
 
+#if NEXUS_GISB_BLOCKER_ENABLED
+#include "bchp_sun_gisb_arb.h"
+
+void NEXUS_P_ConfigGisbBlocker(uint32_t start, uint32_t end, bool on)
+{
+    uint32_t mask;
+    uint32_t enable;
+
+    if(on)
+    {
+        BREG_Write32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_CAP_CLR, 0x1);
+        enable=0x7;
+    }
+    else
+    {
+        enable=0x0;
+    }
+
+    BREG_WriteAddr(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_START_ADDR_0, start + BCHP_PHYSICAL_OFFSET);
+    BREG_WriteAddr(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_END_ADDR_0, end + BCHP_PHYSICAL_OFFSET);
+
+    /* Reads are okay, but trap on any write. */
+    mask=0xFFFFFFFF;
+    /* mask &= ~(BCHP_FIELD_DATA(SUN_GISB_ARB_BP_READ_0, bsp_0, 1)); */
+    BREG_Write32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_READ_0, 0);
+    BREG_Write32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_WRITE_0, mask);
+
+    BREG_Write32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_ENABLE_0, enable);
+
+    BDBG_LOG(("%s GISB BLOCKER: (0x%08x - 0x%08x)", on ? "ENABLE" :"DISABLE", start, end));
+}
+
+static void logGisbViolation(void)
+{
+    uint32_t status;
+    static uint64_t address;
+    static uint32_t master;
+
+    static unsigned violationCount = 0;
+
+    status = BREG_Read32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_CAP_STATUS);
+    if(status & BCHP_SUN_GISB_ARB_BP_CAP_STATUS_valid_MASK)
+    {
+        if(++violationCount == 1)
+        {
+            /* Get address and master data for the first violation only */
+            master=BREG_Read32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_CAP_MASTER);
+#ifdef BCHP_SUN_GISB_ARB_BP_CAP_HI_ADDR
+            address=BREG_Read32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_CAP_ADDR);
+#else
+            address=BREG_Read64(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_CAP_ADDR);
+#endif
+        }
+    }
+
+    if(violationCount) {
+        BDBG_LOG(("GISB WRITE violation(s): %u, first at "BDBG_UINT64_FMT". MASTER=0x%08x", violationCount,
+            BDBG_UINT64_ARG(address), master));
+        BREG_Write32(g_pCoreHandles->reg, BCHP_SUN_GISB_ARB_BP_CAP_CLR, 0x1);
+    }
+    else
+        BDBG_LOG(("No GISB violations seen."));
+}
+#endif
+
 static void NEXUS_TransportModule_P_Print(void)
 {
 #if BDBG_DEBUG_BUILD
@@ -805,6 +874,10 @@ static void NEXUS_TransportModule_P_Print(void)
             BDBG_LOG(("   onePcrErrCount %u, twoPcrErrCount %u, saturationEventCount %u", timebase->onePcrErrCount, timebase->twoPcrErrCount , timebase->phaseSaturationEventCount));
         }
     }
+
+#if NEXUS_GISB_BLOCKER_ENABLED
+    logGisbViolation();
+#endif
 #endif
 }
 

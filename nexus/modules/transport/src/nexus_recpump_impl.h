@@ -169,6 +169,11 @@ struct NEXUS_Recpump {
 #endif
     unsigned bipPidChannelNum;
     uint64_t elapsedRaveTime;  /* time rave has been recording in 1.26 uSec increments */
+#if NEXUS_RAVE_OUTPUT_CAPTURE_ENABLED
+    NEXUS_RaveCapture *cap;
+#endif
+    BINT_CallbackHandle lastCmdIrq;
+    NEXUS_IsrCallbackHandle lastCmdCallback;
 };
 
 #endif
