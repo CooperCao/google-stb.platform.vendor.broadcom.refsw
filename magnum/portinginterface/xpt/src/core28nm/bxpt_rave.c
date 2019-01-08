@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -4354,7 +4354,7 @@ BERR_Code BXPT_Rave_GetIntId(
         case BXPT_RaveIntName_eCdbOverflow: RegAddr = BCHP_XPT_RAVE_CDB_OVERFLOW_CX00_31_L2_INTR_CPU_STATUS_0_31; break;
         case BXPT_RaveIntName_eItbOverflow: RegAddr = BCHP_XPT_RAVE_ITB_OVERFLOW_CX00_31_L2_INTR_CPU_STATUS_0_31; break;
         case BXPT_RaveIntName_eSplice: RegAddr = BCHP_XPT_RAVE_SPLICE_CX00_31_L2_INTR_CPU_STATUS_0_31; break;
-#if BCHP_CHIP == 7216 || BCHP_CHIP == 7268 || BCHP_CHIP == 7271
+#if BCHP_CHIP == 7216 || BCHP_CHIP == 7268 || BCHP_CHIP == 7271 || BCHP_CHIP == 7260
         case BXPT_RaveIntName_eLastCmd: RegAddr = BCHP_XPT_RAVE_LAST_CMD_CX00_31_L2_INTR_CPU_STATUS_0_31; break;
 #endif
         case BXPT_RaveIntName_eCdbLowerThresh: RegAddr = BCHP_XPT_RAVE_CDB_LOWER_THRESH_CX00_31_L2_INTR_CPU_STATUS_0_31; break;
