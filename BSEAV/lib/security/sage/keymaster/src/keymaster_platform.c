@@ -80,6 +80,7 @@ static uint8_t *drm_bin_file_buff = NULL;
 
 static SRAI_PlatformHandle platformHandle = NULL;
 
+static BERR_Code Keymaster_ModuleUninit_P(SRAI_ModuleHandle moduleHandle, SRAI_ModuleHandle ssdModuleHandle);
 static uint32_t Keymaster_P_CheckDrmBinFileSize(void);
 static BERR_Code Keymaster_P_GetFileSize(const char * filename, uint32_t *filesize);
 static BERR_Code Keymaster_P_ReadFile(const char * filename, uint8_t *buffer,
@@ -370,10 +371,22 @@ ErrorExit:
         drm_bin_file_buff = NULL;
     }
 
-    BKNI_ReleaseMutex(keymasterMutex);
-
     if (rc != BERR_SUCCESS){
-        Keymaster_ModuleUninit(tmpModuleHandle, tmpSsdModuleHandle);
+        if (Keymaster_ModuleCounter > 0){
+            Keymaster_ModuleUninit_P(tmpModuleHandle, tmpSsdModuleHandle);
+        } else {
+            if (platformHandle != NULL){
+                BDBG_MSG(("%s - Error exit. Module not initialized, release sage platform resources", BSTD_FUNCTION));
+                SRAI_Platform_Close(platformHandle);
+                SRAI_Platform_UnInstall(BSAGE_PLATFORM_ID_KEYMASTER);
+            }
+        }
+    }
+
+    if (keymasterMutex != NULL)
+    {
+       /* warn: may have been destroyed in Keymaster_ModuleUninit_P. */
+       BKNI_ReleaseMutex(keymasterMutex);
     }
 
 End:
@@ -381,14 +394,10 @@ End:
     return rc;
 }
 
-BERR_Code
-Keymaster_ModuleUninit(SRAI_ModuleHandle moduleHandle, SRAI_ModuleHandle ssdModuleHandle)
+static BERR_Code
+Keymaster_ModuleUninit_P(SRAI_ModuleHandle moduleHandle, SRAI_ModuleHandle ssdModuleHandle)
 {
-    BDBG_ENTER(Keymaster_ModuleUninit);
-
-    if(keymasterMutex != NULL){
-        BKNI_AcquireMutex(keymasterMutex);
-    }
+    BDBG_ENTER(Keymaster_ModuleUninit_P);
 
     if(moduleHandle != NULL){
         BDBG_MSG(("%s - SRAI_Module_Uninit(%p)", BSTD_FUNCTION, (void *)moduleHandle));
@@ -404,8 +413,14 @@ Keymaster_ModuleUninit(SRAI_ModuleHandle moduleHandle, SRAI_ModuleHandle ssdModu
 
     /* if there's one DRM module left calling Uninit, clean everything up
      * Otherwise skip the clean up and decrement the counter. Is this handled by SRAI?*/
-    if(Keymaster_ModuleCounter == 1)
+
+    if(Keymaster_ModuleCounter > 1)
     {
+        Keymaster_ModuleCounter--;
+    }
+    else if(Keymaster_ModuleCounter == 1)
+    {
+        /* If we're cleaning the last instance, clean the platform and mutex */
         BDBG_MSG(("%s - Cleaning up Keymaster TL only parameters ***************************", BSTD_FUNCTION));
         if (platformHandle)
         {
@@ -420,26 +435,45 @@ Keymaster_ModuleUninit(SRAI_ModuleHandle moduleHandle, SRAI_ModuleHandle ssdModu
         BDBG_MSG(("%s - BKNI_DestroyMutex(%p)", BSTD_FUNCTION, (void *)keymasterMutex));
         BKNI_DestroyMutex(keymasterMutex);
         keymasterMutex = NULL;
+        Keymaster_ModuleCounter--;
     }
-    else if(Keymaster_ModuleCounter <= 0)
+    else if(Keymaster_ModuleCounter == 0)
+    {
+        BDBG_WRN(("%s - Keymaster Module has not been initialized", BSTD_FUNCTION));
+    }
+    else
     {
         BDBG_WRN(("%s - Keymaster_ModuleCounter value is invalid ('%d').  Possible bad thread exit", BSTD_FUNCTION, Keymaster_ModuleCounter));
+        BDBG_ASSERT((false));
     }
+
     /* else: remaining modules, do not uninit global variables */
 
-    Keymaster_ModuleCounter--;
+    BDBG_LEAVE(Keymaster_ModuleUninit_P);
+
+    return BERR_SUCCESS;
+}
+
+BERR_Code
+Keymaster_ModuleUninit(SRAI_ModuleHandle moduleHandle, SRAI_ModuleHandle ssdModuleHandle)
+{
+    BERR_Code err;
+    BDBG_ENTER(Keymaster_ModuleUninit);
+
+    if(keymasterMutex != NULL){
+        BKNI_AcquireMutex(keymasterMutex);
+    }
+
+    err = Keymaster_ModuleUninit_P(moduleHandle, ssdModuleHandle);
 
     if (keymasterMutex != NULL)
     {
         BKNI_ReleaseMutex(keymasterMutex);
         BDBG_MSG(("%s - BKNI_ReleaseMutex(%p)", BSTD_FUNCTION, (void *)keymasterMutex));
     }
-
     BDBG_LEAVE(Keymaster_ModuleUninit);
-
-    return BERR_SUCCESS;
+    return err;
 }
-
 
 static uint32_t
 Keymaster_P_CheckDrmBinFileSize(void)

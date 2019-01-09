@@ -94,6 +94,9 @@ static bool gWVCasMode = false;
 
 static uint32_t gKeySlotMaxAvail = 0;
 
+static uint32_t gLastHeaderLen = 0;
+static uint32_t gLastEntryLen = 0;
+
 /* #define DEBUG 1 */
 void dump(const unsigned char* data, unsigned length, const char* prompt)
 {
@@ -8862,6 +8865,7 @@ DrmRC DRM_WVOemCrypto_Create_Usage_Table_Header(uint8_t *header_buffer, uint32_t
     }
 
     *header_buffer_length = container->basicOut[1];
+    gLastHeaderLen = container->basicOut[1];
 
     if(sage_rc != BERR_SUCCESS)
     {
@@ -8966,6 +8970,8 @@ DrmRC DRM_WVOemCrypto_Load_Usage_Table_Header(const uint8_t *header_buffer, uint
         goto ErrorExit;
     }
 
+    gLastHeaderLen = header_buffer_length;
+
 ErrorExit:
     if(container != NULL)
     {
@@ -9025,6 +9031,9 @@ DrmRC DRM_WVOemCrypto_Create_New_Usage_Entry(uint32_t session, uint32_t *usage_e
     }
 
     *usage_entry_number = (uint32_t)container->basicOut[1];
+
+    /* Invalidate the header buffer length cache due to new entry */
+    gLastHeaderLen = 0;
 
  ErrorExit:
     if(container != NULL)
@@ -9102,6 +9111,11 @@ DrmRC DRM_WVOemCrypto_Load_Usage_Entry(uint32_t session, uint32_t usage_entry_nu
         goto ErrorExit;
     }
 
+    /* Invalidate the header buffer length cache due to new entry */
+    gLastHeaderLen = 0;
+
+    gLastEntryLen = buffer_length;
+
  ErrorExit:
     if(container != NULL)
     {
@@ -9129,6 +9143,19 @@ DrmRC DRM_WVOemCrypto_Update_Usage_Entry(uint32_t session, uint8_t* header_buffe
     BDBG_ENTER(DRM_WVOemCrypto_Load_New_Usage_Entry);
 
     *wvRc = SAGE_OEMCrypto_SUCCESS;
+
+    if(gLastHeaderLen > 0 && gLastEntryLen > 0)
+    {
+        if(*header_buffer_length < gLastHeaderLen || *entry_buffer_length < gLastEntryLen)
+        {
+            BDBG_MSG(("%s : OEMCrypto_ERROR_SHORT_BUFFER", BSTD_FUNCTION));
+            *header_buffer_length = gLastHeaderLen;
+            *entry_buffer_length = gLastEntryLen;
+            rc = Drm_Err;
+            *wvRc = SAGE_OEMCrypto_ERROR_SHORT_BUFFER;
+            goto ErrorExit;
+        }
+    }
 
     container = SRAI_Container_Allocate();
     if(container == NULL)
@@ -9226,6 +9253,9 @@ DrmRC DRM_WVOemCrypto_Update_Usage_Entry(uint32_t session, uint8_t* header_buffe
     *header_buffer_length = container->basicOut[1];
     *entry_buffer_length = container->basicOut[3];
 
+    gLastHeaderLen = container->basicOut[1];
+    gLastEntryLen = container->basicOut[3];
+
     if(sage_rc != BERR_SUCCESS)
     {
         BDBG_ERR(("%s - Command '%u' was sent successfully but SAGE specific error occured (0x%08x), wvRc = %d",
@@ -9237,6 +9267,7 @@ DrmRC DRM_WVOemCrypto_Update_Usage_Entry(uint32_t session, uint8_t* header_buffe
     BKNI_Memcpy(header_buffer, container->blocks[0].data.ptr, *header_buffer_length);
     BKNI_Memcpy(entry_buffer, container->blocks[1].data.ptr, *entry_buffer_length);
 
+    /* We must verify decryption after an update to an entry*/
     gHostSessionCtx[session].force_decrypt_verify = true;
 
 ErrorExit:
@@ -9413,6 +9444,7 @@ DrmRC DRM_WVOemCrypto_Shrink_Usage_Table_Header(uint32_t new_entry_count, uint8_
     }
 
     *header_buffer_length = container->basicOut[1];
+    gLastHeaderLen = container->basicOut[1];
 
     if(sage_rc != BERR_SUCCESS)
     {
@@ -9557,6 +9589,9 @@ DrmRC DRM_WVOemCrypto_Copy_Old_Usage_Entry(uint32_t session, const uint8_t *pst,
         rc = Drm_Err;
         goto ErrorExit;
     }
+
+    /* Invalidate the header buffer length cache due to new entry */
+    gLastHeaderLen = 0;
 
  ErrorExit:
     if(container != NULL)
