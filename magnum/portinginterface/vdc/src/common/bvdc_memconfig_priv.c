@@ -749,7 +749,11 @@ void BVDC_P_Memconfig_UpdateSettingByBoxmode
             if((pBoxVdcWinCap->stSizeLimits.ulHeightFraction != BBOX_VDC_DISREGARD) &&
                (pBoxVdcWinCap->stSizeLimits.ulWidthFraction != BBOX_VDC_DISREGARD))
             {
-                if((pBoxVdcWinCap->stSizeLimits.ulHeightFraction == 1) && (pBoxVdcWinCap->stSizeLimits.ulWidthFraction == 1))
+                if((pBoxVdcWinCap->stSizeLimits.ulHeightFraction*pBoxVdcWinCap->stSizeLimits.ulWidthFraction) >= 4)
+                {
+                    pWindow->bPip = true;
+                }
+                else
                 {
                     if(pUserMemConfigSettings)
                     {
@@ -762,10 +766,6 @@ void BVDC_P_Memconfig_UpdateSettingByBoxmode
                     {
                         pWindow->bPip = false;
                     }
-                }
-                else
-                {
-                    pWindow->bPip = true;
                 }
             }
 

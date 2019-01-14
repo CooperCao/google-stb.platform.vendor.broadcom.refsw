@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -751,7 +751,7 @@ const uint32_t BDSP_IMG_dts_ids_array1[] = {
 	0x940c0107,
 	0x2590fd1f,
 	0xd8f20021,
-	0xda1a0321,
+	0xda220321,
 	0x94100507,
 	0x962811cf,
 	0x94067f07,

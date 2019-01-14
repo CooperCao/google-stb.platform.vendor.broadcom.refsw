@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -478,7 +478,7 @@ const uint32_t BDSP_IMG_video_encode_task_code_array1[] = {
 	0x9930e107,
 	0x0c02690f,
 	0x2123b907,
-	0x7330b048,
+	0x7320b048,
 	0x0922bb07,
 	0x20000907,
 	0x7170b1c8,
@@ -718,7 +718,7 @@ const uint32_t BDSP_IMG_video_encode_task_code_array1[] = {
 	0x53eef1d7,
 	0x50ffeb87,
 	0x70e040c8,
-	0x73324048,
+	0x73224048,
 	0x90605107,
 	0xdc020587,
 	0x92015100,

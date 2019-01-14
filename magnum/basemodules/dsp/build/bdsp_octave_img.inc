@@ -256,7 +256,7 @@ BDSP_UDC_IDS_SOURCES := \
 
 ifneq ($(wildcard $(BDSP_UDC_SOURCES)),)
 ifneq ($(wildcard $(BDSP_UDC_IDS_SOURCES)),)
-BDSP_UDC_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_UDC_SUPPORT ?= y
 endif
 endif
 endif
@@ -269,7 +269,7 @@ BDSP_UDC_IDS_SOURCES := \
 
 ifneq ($(wildcard $(BDSP_UDC_SOURCES)),)
 ifneq ($(wildcard $(BDSP_UDC_IDS_SOURCES)),)
-BDSP_UDC_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_UDC_SUPPORT ?= y
 endif
 endif
 endif
@@ -429,7 +429,7 @@ BDSP_DOLBY_AACHE_IDS_SOURCES := \
 
 ifneq ($(wildcard $(BDSP_DOLBY_AACHE_SOURCES)),)
 ifneq ($(wildcard $(BDSP_DOLBY_AACHE_IDS_SOURCES)),)
-BDSP_DOLBY_AACHE_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_DOLBY_AACHE_SUPPORT ?= y
 endif
 endif
 endif
@@ -443,7 +443,7 @@ BDSP_DOLBY_AACHE_IDS_SOURCES := \
 
 ifneq ($(wildcard $(BDSP_DOLBY_AACHE_SOURCES)),)
 ifneq ($(wildcard $(BDSP_DOLBY_AACHE_IDS_SOURCES)),)
-BDSP_DOLBY_AACHE_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_DOLBY_AACHE_SUPPORT ?= y
 endif
 endif
 endif
@@ -587,7 +587,7 @@ BDSP_AC4_IDS_SOURCES := \
 
 ifneq ($(wildcard $(BDSP_AC4_SOURCES)),)
 ifneq ($(wildcard $(BDSP_AC4_IDS_SOURCES)),)
-BDSP_AC4_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_AC4_SUPPORT ?= y
 endif
 endif
 endif
@@ -672,7 +672,7 @@ BDSP_DPCMR_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_app_dpcmr.c
 
 ifneq ($(wildcard $(BDSP_DPCMR_SOURCES)),)
-BDSP_DPCMR_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_DPCMR_SUPPORT ?= y
 endif
 endif
 
@@ -681,7 +681,7 @@ BDSP_DPCMR_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_app_ms11plus_dpcmr.c
 
 ifneq ($(wildcard $(BDSP_DPCMR_SOURCES)),)
-BDSP_DPCMR_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_DPCMR_SUPPORT ?= y
 endif
 endif
 
@@ -698,7 +698,7 @@ BDSP_DDPENC_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aenc_ddp.c
 
 ifneq ($(wildcard $(BDSP_DDPENC_SOURCES)),)
-BDSP_DDPENC_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_DDPENC_SUPPORT ?= y
 endif
 endif
 
@@ -707,7 +707,7 @@ BDSP_DDPENC_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aenc_ms11plus_dd.c
 
 ifneq ($(wildcard $(BDSP_DDPENC_SOURCES)),)
-BDSP_DDPENC_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_DDPENC_SUPPORT ?= y
 endif
 endif
 
@@ -724,7 +724,7 @@ BDSP_MIXER_DAPV2_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_app_mixer_dapv2.c
 
 ifneq ($(wildcard $(BDSP_MIXER_DAPV2_SOURCES)),)
-BDSP_MIXERDAPV2_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_MIXERDAPV2_SUPPORT ?= y
 endif
 endif
 
@@ -732,7 +732,7 @@ ifneq ($(BDSP_MS11PLUS_SUPPORT),n)
 BDSP_MIXER_DAPV2_SOURCES := \
 	$(MAGNUM)/basemodules/dsp/src/octave/firmware/$(BDSP_RAAGA_FP_VER)/braaga_app_ms11plus_mixer.c
 ifneq ($(wildcard $(BDSP_MIXER_DAPV2_SOURCES)),)
-BDSP_MIXERDAPV2_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
+BDSP_MIXERDAPV2_SUPPORT ?= y
 endif
 
 endif

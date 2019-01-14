@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -437,7 +437,7 @@ const uint32_t BDSP_IMG_outputformatter_code_array1[] = {
 	0x24030187,
 	0xb8817e0f,
 	0xba038200,
-	0x70a080c8,
+	0x70b080c8,
 	0x084069cf,
 	0x3000f107,
 	0xc1808407,

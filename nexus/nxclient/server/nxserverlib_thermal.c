@@ -625,10 +625,10 @@ static void set_active_config(void)
 
 #define ABOVE_THRESHOLD \
     ((g_thermal_state.data.temp[0] > g_thermal_state.active_config->config.overTempThreshold) || \
-    (g_thermal_state.has_pmu && (g_thermal_state.data.power.average >= g_thermal_state.active_config->config.overPowerThreshold)))
+     (g_thermal_state.data.power.average >= g_thermal_state.active_config->config.overPowerThreshold))
 #define BELOW_THRESHOLD \
     ((g_thermal_state.data.temp[0] < temp_target) && \
-    (g_thermal_state.has_pmu && (g_thermal_state.data.power.average < g_thermal_state.active_config->config.overPowerThreshold)))
+     (g_thermal_state.data.power.average < g_thermal_state.active_config->config.overPowerThreshold))
 static void *thermal_monitor_thread(void *context)
 {
     nxserver_t server = g_thermal_state.server;

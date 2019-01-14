@@ -592,7 +592,6 @@ BERR_Code BHDM_EDID_GetNthBlock(
 	}
 
 	hHDMI->AttachedEDID.lastBlockRead = BlockNumber;
-	hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eOK;
 
 done:
 
@@ -889,7 +888,6 @@ static BERR_Code BHDM_EDID_P_DetailTiming2VideoFmt(
 
 	/* default to VGA format */
 	*Detail_VideoFmt = BFMT_VideoFmt_eDVI_640x480p  ;
-
 	/* adjust Detailed Timing vertical parameters for interlaced formats */
 	/* Do not adjust the original number of pixels in the Detail Timing  */
 	Interlaced = pBHDM_EDID_DetailTiming->Mode ? true : false ;
@@ -1086,7 +1084,7 @@ static void BHDM_EDID_P_SelectAlternateFormat(const BHDM_Handle hHDMI, BFMT_Vide
 	{
 		if (hHDMI->AttachedEDID.BcmSupportedVideoFormats[BHDM_EDID_P_AltPreferredFormats[i].format])
 		{
-			BDBG_WRN(("Selecting alternate supported BCM supported format: %s",
+			BDBG_MSG(("Selecting alternate supported BCM supported format: %s",
 				BHDM_EDID_P_AltPreferredFormats[i].formattext));
 			*alternateFormat  = BHDM_EDID_P_AltPreferredFormats[i].format;
 			break;
@@ -1146,7 +1144,7 @@ BERR_Code BHDM_EDID_GetDetailTiming(
 	BDBG_ENTER(BHDM_EDID_GetDetailTiming) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	*BCM_VideoFmt = BFMT_VideoFmt_eNTSC; /* initialize the out param for error path */
+	*BCM_VideoFmt = BFMT_VideoFmt_eDVI_640x480p ; /* initialize the out param for error path */
 
 	/* make sure HDMI Cable is connected to something... */
 	BHDM_CHECK_RC(rc, BHDM_RxDeviceAttached(hHDMI, &RxDeviceAttached));
@@ -1360,11 +1358,11 @@ BcmSupportedFormatFound:
 
 
 BcmSupportedFormatNotFound:
-	rc = BHDM_EDID_DETAILTIMING_NOT_SUPPORTED;
-	/* Detailed Timing Request Not Found */
+	/* Detailed Timing format is not supporrted by BCM, use BCM alternate supported format instead*/
 	BDBG_WRN(("Requested Detailed Timing %d NOT SUPPORTED - Detailed Timings found: %d",
 		NthTimingRequested, NumDetailedTimingsFound)) ;
 	BHDM_EDID_P_SelectAlternateFormat(hHDMI, BCM_VideoFmt) ;
+	rc = BERR_SUCCESS ; /* return success for alternate format */
 
 
 done:
@@ -1444,6 +1442,9 @@ BERR_Code BHDM_EDID_GetVideoDescriptor(
 			goto done ;
 		}
 	}
+
+	/* Nth Video ID not found */
+	rc = BERR_UNKNOWN ;
 
 done:
 	BDBG_LEAVE(BHDM_EDID_GetVideoDescriptor) ;
@@ -4958,6 +4959,12 @@ void BHDM_EDID_DEBUG_PrintData(BHDM_Handle hHDMI)
 		BDBG_LOG(("STB will attempt to display all formats in HDMI mode")) ;
 		BDBG_LOG(("ByPassed Mode should only be used for debugging")) ;
 		BDBG_LOG(("*************************************************")) ;
+	}
+
+	if (hHDMI->DeviceStatus.edidState != BHDM_EDID_STATE_eOK)
+	{
+		BDBG_WRN(("Valid EDID is not available")) ;
+		goto done ;
 	}
 
 	BDBG_LOG(("Version %d.%d  Number of Extensions: %d",

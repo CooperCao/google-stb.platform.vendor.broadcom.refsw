@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -1893,7 +1893,7 @@ const uint32_t BDSP_IMG_pcmwav_decode_array1[] = {
 	0x9c1311cf,
 	0xc1ac73cf,
 	0xf83d31ff,
-	0x70d04018,
+	0x70e04018,
 	0xabfd61f8,
 	0x28907e07,
 	0x9c024247,

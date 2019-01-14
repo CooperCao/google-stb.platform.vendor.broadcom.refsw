@@ -2525,7 +2525,10 @@ static void BVDC_P_Source_ValidateMpegData_isr
                pNewPic->ulSourceHorizontalSize = pNewPic->ulSourceHorizontalSize & ~1; */
             pNewPic->ulSourceVerticalSize   = pNewPic->ulSourceVerticalSize & ~1;
         }
+    }
 
+    if (pNewPic->bMute)
+    {
         /* mute frames should not pass on metadata */
         pNewPic->stHdrMetadata.stDynamic.eType = BAVC_HdrMetadataType_eUnknown;
     }
@@ -2738,7 +2741,8 @@ static void BVDC_P_Source_ValidateMpegData_isr
        BVDC_P_FIELD_DIFF(pNewPic, pCurPic, ulTopLeftBarValue) ||
        BVDC_P_FIELD_DIFF(pNewPic, pCurPic, ulBotRightBarValue) ||
        BVDC_P_FIELD_DIFF(pNewPic, pCurPic, bStreamProgressive) ||
-       BVDC_P_FIELD_DIFF(pNewPic, pCurPic, bIgnoreCadenceMatch))
+       BVDC_P_FIELD_DIFF(pNewPic, pCurPic, bIgnoreCadenceMatch) ||
+       BVDC_P_FIELD_DIFF(pNewPic, pCurPic, stHdrMetadata.stDynamic.eType))
     {
         hSource->bPictureChanged = true;
 
@@ -2757,6 +2761,7 @@ static void BVDC_P_Source_ValidateMpegData_isr
         BDBG_MSG(("ulTopLeftBarValue changes: %d->%d", pCurPic->ulTopLeftBarValue, pNewPic->ulTopLeftBarValue));
         BDBG_MSG(("ulBotRightBarValue changes: %d->%d", pCurPic->ulBotRightBarValue, pNewPic->ulBotRightBarValue));
         BDBG_MSG(("bIgnoreCadenceMatch changes: %d->%d", pCurPic->bIgnoreCadenceMatch, pNewPic->bIgnoreCadenceMatch));
+        BDBG_MSG(("stHdrMetadata.stDynamic.eType changes: %d->%d", pCurPic->stHdrMetadata.stDynamic.eType, pNewPic->stHdrMetadata.stDynamic.eType));
     }
 
 #if (BCHP_CHIP==7250)

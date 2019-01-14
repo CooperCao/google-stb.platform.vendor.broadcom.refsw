@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -167,7 +167,7 @@ const uint32_t BDSP_IMG_vocals_code_array1[] = {
 	0x91200b07,
 	0x709080c8,
 	0x7000fa71,
-	0x72c0afc8,
+	0x72a0afc8,
 	0xe6004c07,
 	0xf55f8587,
 	0x53faf0f7,
@@ -184,7 +184,7 @@ const uint32_t BDSP_IMG_vocals_code_array1[] = {
 	0x38807f97,
 	0x2080fe07,
 	0x98807f77,
-	0x72a08048,
+	0x72b08048,
 	0x56ffc9c7,
 	0x60000003,
 	0xab1021f8,
@@ -230,7 +230,7 @@ const uint32_t BDSP_IMG_vocals_code_array1[] = {
 	0x35b75577,
 	0xbea46597,
 	0xce011167,
-	0x7310a0c8,
+	0x7300a0c8,
 	0x36065617,
 	0x97b5c207,
 	0x36a15a17,
@@ -286,7 +286,7 @@ const uint32_t BDSP_IMG_vocals_code_array1[] = {
 	0x36b35d77,
 	0xdea46597,
 	0x7068ac0a,
-	0x7310a0c8,
+	0x7300a0c8,
 	0x36064617,
 	0x97b1c207,
 	0x36a15417,
@@ -390,7 +390,7 @@ const uint32_t BDSP_IMG_vocals_code_array1[] = {
 	0xc8007e07,
 	0x53d1f1d7,
 	0x50fbe4d0,
-	0x70e09148,
+	0x70d09148,
 	0x23817e2f,
 	0xa8804a07,
 	0x21a04a0f,
@@ -662,7 +662,7 @@ const uint32_t BDSP_IMG_vocals_code_array1[] = {
 	0xce008007,
 	0xdf607f47,
 	0xabfed1f8,
-	0x72b00070,
+	0x72c00070,
 	0xc8800047,
 	0xf83d31ff,
 	0xef608047,

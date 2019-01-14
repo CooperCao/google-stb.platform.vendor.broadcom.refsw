@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -703,7 +703,7 @@ const uint32_t BDSP_IMG_fw_mixer_code_array1[] = {
 	0x9e410107,
 	0x3d808417,
 	0xb6ec0dfb,
-	0xda21b9a2,
+	0xda19b9a2,
 	0x46010233,
 	0xdd4069b0,
 	0xd680c558,
@@ -769,7 +769,7 @@ const uint32_t BDSP_IMG_fw_mixer_code_array1[] = {
 	0xb6f48dfb,
 	0x1b5f9243,
 	0xb6fb81f8,
-	0xde1926e3,
+	0xde2126e3,
 	0x21048427,
 	0x08418e1f,
 	0x08420e13,
@@ -796,7 +796,7 @@ const uint32_t BDSP_IMG_fw_mixer_code_array1[] = {
 	0x07bffe6f,
 	0xb60105fc,
 	0x25927c67,
-	0xde196160,
+	0xde216160,
 	0x07bffe6f,
 	0x25927c67,
 	0x1b5f8c43,
@@ -3169,7 +3169,7 @@ const uint32_t BDSP_IMG_fw_mixer_code_array1[] = {
 	0x942e0fcf,
 	0xba1cc0d7,
 	0x46030b03,
-	0xde21a981,
+	0xde19a981,
 	0xba1cc4e7,
 	0xba1cc8f7,
 	0x46000517,
@@ -3962,7 +3962,7 @@ const uint32_t BDSP_IMG_fw_mixer_code_array1[] = {
 	0x21048e17,
 	0x0842401f,
 	0x0841400b,
-	0xda196763,
+	0xda216763,
 	0xd9596761,
 	0xd9a969c3,
 	0x40430a03,
@@ -6538,7 +6538,7 @@ const uint32_t BDSP_IMG_fw_mixer_code_array1[] = {
 	0x00020000,
 	0x21041243,
 	0xdfea7d83,
-	0xda1a7d81,
+	0xda227d81,
 	0x3d80d554,
 	0x1a5f8987,
 	0x21040c2b,

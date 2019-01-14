@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -195,7 +195,7 @@ const uint32_t BDSP_IMG_g729_encode_array1[] = {
 	0x50d1b107,
 	0x20000057,
 	0x71f4c148,
-	0x733c5088,
+	0x732c5088,
 	0x70145725,
 	0x35a28b07,
 	0xb7b74007,
@@ -205,7 +205,7 @@ const uint32_t BDSP_IMG_g729_encode_array1[] = {
 	0xb000007f,
 	0x547f8987,
 	0xb000007f,
-	0x70ac5148,
+	0x70bc5148,
 	0xd380fe11,
 	0x5097a901,
 	0x30000013,
@@ -259,7 +259,7 @@ const uint32_t BDSP_IMG_g729_encode_array1[] = {
 	0x7062a908,
 	0x7014ca0c,
 	0x71f4c148,
-	0x733c5088,
+	0x732c5088,
 	0x70145725,
 	0x35a28b07,
 	0xb7b44007,
@@ -269,7 +269,7 @@ const uint32_t BDSP_IMG_g729_encode_array1[] = {
 	0xb000007f,
 	0x547f8987,
 	0xb000007f,
-	0x70ac5148,
+	0x70bc5148,
 	0xd380fe11,
 	0x5094a901,
 	0x30000013,
@@ -358,7 +358,7 @@ const uint32_t BDSP_IMG_g729_encode_array1[] = {
 	0x08800407,
 	0x9802981f,
 	0x9802101f,
-	0x70ac5048,
+	0x70bc5048,
 	0x734c7048,
 	0xc8907e17,
 	0x9841092f,
