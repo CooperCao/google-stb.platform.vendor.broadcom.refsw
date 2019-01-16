@@ -194,6 +194,20 @@ static const BDSP_P_AlgorithmCodeInfo BDSP_sArmAlgorithmCodeInfo[] =
         /* Code Lib name*/                /* IDS Code Lib name*/
         "/libadec_passthru.so",           "/libaids_ddp.so"
     },
+#ifdef BDSP_DDP_SUPPORT
+	{
+		/* Algorithm */
+		BDSP_Algorithm_eAc3Decode,
+		/* Scratch buffer size */           /* rom table size */
+		BDSP_ARM_IMG_ADEC_DDP_SCRATCH_SIZE, BDSP_ARM_IMG_ADEC_DDP_TABLES_SIZE,
+		/* interframe size */					/*Compressed interframe size */
+		BDSP_ARM_IMG_ADEC_DDP_INTER_FRAME_SIZE, BDSP_ARM_IMG_ADEC_DDP_INTER_FRAME_ENCODED_SIZE,
+		/* Algorithm codeSize*/			   /* IDS codeSize*/
+		BDSP_ARM_IMG_ADEC_DDP_SIZE,        BDSP_ARM_IMG_AIDS_DDP_SIZE,
+        /* Code Lib name*/                /* IDS Code Lib name*/
+        "/libadec_ddp.so",                   "/libaids_ddp.so"
+	},
+#else
 	{
 		/* Algorithm */
 		BDSP_Algorithm_eAc3Decode,
@@ -206,6 +220,7 @@ static const BDSP_P_AlgorithmCodeInfo BDSP_sArmAlgorithmCodeInfo[] =
         /* Code Lib name*/                /* IDS Code Lib name*/
         "/libadec_ac3.so",                   "/libaids_ddp.so"
 	},
+#endif
 	{
 		/* Algorithm */
 		BDSP_Algorithm_eAc3Passthrough,

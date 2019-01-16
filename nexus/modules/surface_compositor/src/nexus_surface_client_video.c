@@ -280,7 +280,7 @@ static int nexus_surfaceclient_p_setvideo( NEXUS_SurfaceClientHandle client )
         the source clip must be done after both stages are complete.
         */
 
-        if(visible) {
+        {
             NEXUS_Rect windowScreenRect; /* unclipped client rectangle */
             NEXUS_SurfaceRegion displayScale;
             NEXUS_SurfaceRegion clientScale;

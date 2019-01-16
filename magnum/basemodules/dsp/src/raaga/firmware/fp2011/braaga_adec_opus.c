@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -7623,7 +7623,7 @@ const uint32_t BDSP_IMG_opus_decode_array1[] = {
 	0xb6f18dfb,
 	0x8edc73cf,
 	0x96e075cf,
-	0xda2008e0,
+	0xda1808e0,
 	0x96204dcf,
 	0xba1cc427,
 	0x46008517,
@@ -12248,7 +12248,7 @@ const uint32_t BDSP_IMG_opus_decode_array1[] = {
 	0xa9fd0ffb,
 	0x8ecc73cf,
 	0x96d075cf,
-	0xda204860,
+	0xda184860,
 	0x96304dcf,
 	0xba1cc447,
 	0x46008713,
@@ -12453,7 +12453,7 @@ const uint32_t BDSP_IMG_opus_decode_array1[] = {
 	0x0000009a,
 	0x74681807,
 	0x0000009a,
-	0xda24d660,
+	0xda1cd660,
 	0x74641407,
 	0x0000009a,
 	0x23081b2b,
@@ -12475,7 +12475,7 @@ const uint32_t BDSP_IMG_opus_decode_array1[] = {
 	0x2308125f,
 	0x084cb8df,
 	0x2300883f,
-	0xda1cd5a0,
+	0xda24d5a0,
 	0x4045a65f,
 	0x230804cf,
 	0x0843b6d7,
@@ -12617,7 +12617,7 @@ const uint32_t BDSP_IMG_opus_decode_array1[] = {
 	0x7a1511cf,
 	0x404d992f,
 	0x404fb2d7,
-	0xda1cd500,
+	0xda24d500,
 	0x230812f7,
 	0x7a160bcf,
 	0x404f14f7,

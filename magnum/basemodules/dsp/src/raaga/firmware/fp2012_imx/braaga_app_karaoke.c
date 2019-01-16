@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -602,7 +602,7 @@ const uint32_t BDSP_IMG_karaoke_code_array1[] = {
 	0xce008007,
 	0xdf607f47,
 	0xabfed1f8,
-	0x72b00070,
+	0x72c00070,
 	0xc8800047,
 	0xf83d31ff,
 	0xef608047,
@@ -823,9 +823,9 @@ const uint32_t BDSP_IMG_karaoke_code_array1[] = {
 	0x5190fc0f,
 	0x2bf431ff,
 	0x5190fc07,
-	0x72b00070,
+	0x72c00070,
 	0xabf371ff,
-	0x72b00071,
+	0x72c00071,
 	0xabf0b1ff,
 	0xdf607f4f,
 	0x50000001,
@@ -1080,7 +1080,7 @@ const uint32_t BDSP_IMG_karaoke_code_array1[] = {
 	0x80030857,
 	0x25a01107,
 	0xb1808827,
-	0x70d40048,
+	0x70e40048,
 	0x38d1ffff,
 	0xf8030f27,
 	0x38d1ffff,
@@ -1121,7 +1121,7 @@ const uint32_t BDSP_IMG_karaoke_code_array1[] = {
 	0x30000082,
 	0x98008807,
 	0x63381b2c,
-	0x70d40048,
+	0x70e40048,
 	0xabf931f8,
 	0x28000907,
 	0x23a07e17,
@@ -1291,7 +1291,7 @@ const uint32_t BDSP_IMG_karaoke_code_array1[] = {
 	0x30000082,
 	0x20000810,
 	0x31820a2f,
-	0x70d40048,
+	0x70e40048,
 	0xabfb31f8,
 	0x23887e0f,
 	0xa8804e07,

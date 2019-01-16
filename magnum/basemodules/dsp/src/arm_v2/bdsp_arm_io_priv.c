@@ -1082,7 +1082,6 @@ void BDSP_Arm_P_RemoveInput(
         if(NULL == pInterTaskbuffer->srcHandle)
         {
             pInterTaskbuffer->inUse = false;
-            pInterTaskbuffer->distinctOp = BDSP_AF_P_DistinctOpType_eMax;
         }
     }
 
@@ -1182,7 +1181,6 @@ void BDSP_Arm_P_RemoveOutput(
 		if (NULL == pArmInterTaskBuffer->dstHandle)
 		{
 			pArmInterTaskBuffer->inUse = false;
-			pArmInterTaskBuffer->distinctOp = BDSP_AF_P_DistinctOpType_eMax;
 		}
 	}
 	else if(BDSP_ConnectionType_eRDBBuffer== connectionType)
@@ -1200,7 +1198,6 @@ void BDSP_Arm_P_RemoveOutput(
 		if (NULL == pArmQueue->dstHandle)
 		{
 			pArmQueue->inUse = false;
-			pArmQueue->distinctOp = BDSP_AF_P_DistinctOpType_eMax;
 		}
 #endif
 	}

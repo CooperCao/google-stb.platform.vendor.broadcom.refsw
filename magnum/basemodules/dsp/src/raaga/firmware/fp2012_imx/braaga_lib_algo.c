@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -1725,7 +1725,7 @@ const uint32_t BDSP_IMG_algolib_code_array1[] = {
 	0x9004c11d,
 	0xea208607,
 	0xc180861f,
-	0x70d04038,
+	0x70e04038,
 	0xabfdb1f8,
 	0xf83d31ff,
 	0xe600840f,
@@ -2121,7 +2121,7 @@ const uint32_t BDSP_IMG_algolib_code_array1[] = {
 	0x53e1f1d7,
 	0x50fbffd9,
 	0xabf7b1ff,
-	0x70e041c0,
+	0x70d041c0,
 	0xc8817e47,
 	0xc1808c4f,
 	0x2d85124f,
@@ -7060,7 +7060,7 @@ const uint32_t BDSP_IMG_algolib_code_array1[] = {
 	0xe10f3e87,
 	0x390aa56f,
 	0xe108a12f,
-	0x70e4cb81,
+	0x70d4cb81,
 	0x390a5abf,
 	0xe390d67f,
 	0x3eabca77,
@@ -7089,7 +7089,7 @@ const uint32_t BDSP_IMG_algolib_code_array1[] = {
 	0xe016a89f,
 	0x3f85ff0f,
 	0x810aac97,
-	0x70e4c841,
+	0x70d4c841,
 	0x3b9096a7,
 	0xe39616cf,
 	0x38e5df57,
@@ -8086,7 +8086,7 @@ const uint32_t BDSP_IMG_algolib_code_array1[] = {
 	0x2080420f,
 	0x9880fe47,
 	0xab01a1f8,
-	0x731040c0,
+	0x730040c0,
 	0xc8807e47,
 	0xf55f8687,
 	0xab01e1f8,

@@ -1426,7 +1426,6 @@ void BDSP_Raaga_P_RemoveInput(
         if(NULL == pInterTaskbuffer->srcHandle)
         {
             pInterTaskbuffer->inUse = false;
-            pInterTaskbuffer->distinctOp = BDSP_AF_P_DistinctOpType_eMax;
         }
     }
 
@@ -1558,7 +1557,6 @@ void BDSP_Raaga_P_RemoveOutput(
 		if (NULL == pRaagaInterTaskBuffer->dstHandle)
 		{
 			pRaagaInterTaskBuffer->inUse = false;
-			/*pRaagaInterTaskBuffer->distinctOp = BDSP_AF_P_DistinctOpType_eMax;*/
 		}
 	}
 	else if(BDSP_ConnectionType_eRDBBuffer== connectionType)
@@ -1574,7 +1572,6 @@ void BDSP_Raaga_P_RemoveOutput(
 		if (NULL == pRaagaQueue->dstHandle)
 		{
 			pRaagaQueue->inUse = false;
-			/*pRaagaQueue->distinctOp = BDSP_AF_P_DistinctOpType_eMax;*/
 		}
 	}
 

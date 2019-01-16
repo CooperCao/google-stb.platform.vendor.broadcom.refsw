@@ -393,8 +393,7 @@ BERR_Code BHDM_HDCP_ReadRxBksv(
         hHDMI->bHdcpValidBksv = false ;
         hHDMI->MonitorStatus.hdcp1x.InvalidBksvFailures++ ;
 
-        rc = BERR_TRACE(BHDM_HDCP_RX_BKSV_ERROR) ;
-        goto done ;
+        BERR_TRACE(BHDM_HDCP_RX_BKSV_ERROR) ;
     }
 
     /* check the retrieved KSV against the Revoked KSV List */

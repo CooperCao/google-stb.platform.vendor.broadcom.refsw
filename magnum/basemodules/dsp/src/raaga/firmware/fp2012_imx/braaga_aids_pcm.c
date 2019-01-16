@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -131,7 +131,7 @@ const uint32_t BDSP_IMG_pcm_ids_array1[] = {
 	0x72f07140,
 	0x09027a07,
 	0x39218e07,
-	0x72a070c0,
+	0x72b070c0,
 	0x72008040,
 	0xf83d31ff,
 	0x90010807,
@@ -189,8 +189,8 @@ const uint32_t BDSP_IMG_pcm_ids_array1[] = {
 	0x0905de17,
 	0x3a028007,
 	0x99219417,
-	0x72c060c2,
-	0x73006142,
+	0x72a060c2,
+	0x73106142,
 	0x732062c2,
 	0x72507042,
 	0xf83d31ff,
@@ -300,7 +300,7 @@ const uint32_t BDSP_IMG_pcm_ids_array1[] = {
 	0x3902f407,
 	0x73207140,
 	0x9901f807,
-	0x72a050c0,
+	0x72b050c0,
 	0x72f0a040,
 	0xf83d31ff,
 	0x90010007,

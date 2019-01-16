@@ -841,6 +841,11 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(
     rc = NEXUS_HdmiOutput_GetEdidData(hdmiOutput, edid);
     if (rc) {BERR_TRACE(rc); goto done ;}
 
+    /* DVI Rx do not require further validation */
+    if (!hdmiOutput->edidHdmiDevice)
+    {
+        goto done ;
+    }
 
     /* Check the requested format settings (colorspace, etc.) */
     rc = NEXUS_HdmiOutput_GetVideoFormatSupport(hdmiOutput,

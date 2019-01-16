@@ -52,9 +52,9 @@ void BDSP_Raaga_P_CalculateInitMemory(
     *pMemReqd = 0;
 
     /*Memory for Command Queue, accounting for maximun commands per task(10) for max (12) tasks in a single DSP*/
-    *pMemReqd += (BDSP_MAX_MSGS_PER_QUEUE * sizeof(BDSP_P_Command)*BDSP_MAX_FW_TASK_PER_DSP);
+    *pMemReqd += BDSP_ALIGN_SIZE((BDSP_MAX_MSGS_PER_QUEUE * sizeof(BDSP_P_Command)*BDSP_MAX_FW_TASK_PER_DSP),BDSP_MAX_HOST_DSP_L2C_SIZE);
     /* Memory for Generic Response Queue, Maximum of (10) responses from the DSP */
-    *pMemReqd += (BDSP_MAX_MSGS_PER_QUEUE * sizeof(BDSP_P_Response));
+    *pMemReqd += BDSP_ALIGN_SIZE((BDSP_MAX_MSGS_PER_QUEUE * sizeof(BDSP_P_Response)), BDSP_MAX_HOST_DSP_L2C_SIZE);
 
 	BDBG_MSG(("INIT Memory	= %d (%d KB) (%d MB)",*pMemReqd, (*pMemReqd/1024), (*pMemReqd/(1024*1024))));
     BDBG_LEAVE(BDSP_Raaga_P_CalculateInitMemory);
@@ -503,6 +503,17 @@ static BERR_Code BDSP_Raaga_P_AssignInitMemory(
     pDevice->memInfo.cmdQueueParams[dspindex].ui32Size = ui32Size;
     pDevice->memInfo.cmdQueueParams[dspindex].Memory   = Memory;
 
+    ui32Size= BDSP_ALIGN_SIZE((BDSP_MAX_MSGS_PER_QUEUE * sizeof(BDSP_P_Command)*BDSP_MAX_FW_TASK_PER_DSP), BDSP_MAX_HOST_DSP_L2C_SIZE)-
+		(BDSP_MAX_MSGS_PER_QUEUE * sizeof(BDSP_P_Command)*BDSP_MAX_FW_TASK_PER_DSP);
+    errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex], ui32Size, &Memory);
+    if(errCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_AssignInitMemory: Unable to allocate RW memory for  CacheHole 3 for dsp %d!!!!",dspindex));
+        goto end;
+    }
+    pDevice->memInfo.CacheHole3[dspindex].ui32Size = ui32Size;
+    pDevice->memInfo.CacheHole3[dspindex].Buffer   = Memory;
+
     errCode = BDSP_Raaga_P_AssignFreeFIFO(pDevice,dspindex,&(pDevice->memInfo.genRspQueueParams[dspindex].ui32FifoId), 1);
     if(errCode != BERR_SUCCESS)
     {
@@ -518,6 +529,17 @@ static BERR_Code BDSP_Raaga_P_AssignInitMemory(
     }
     pDevice->memInfo.genRspQueueParams[dspindex].ui32Size = ui32Size;
     pDevice->memInfo.genRspQueueParams[dspindex].Memory   = Memory;
+
+	ui32Size= BDSP_ALIGN_SIZE((BDSP_MAX_MSGS_PER_QUEUE * sizeof(BDSP_P_Response)), BDSP_MAX_HOST_DSP_L2C_SIZE)-
+		(BDSP_MAX_MSGS_PER_QUEUE * sizeof(BDSP_P_Response));
+	errCode = BDSP_P_RequestMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex], ui32Size, &Memory);
+	if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_AssignInitMemory: Unable to allocate RW memory for CacheHole 4 for dsp %d!!!!",dspindex));
+		goto end;
+	}
+	pDevice->memInfo.CacheHole4[dspindex].ui32Size = ui32Size;
+	pDevice->memInfo.CacheHole4[dspindex].Buffer   = Memory;
 
 end:
 	BDBG_LEAVE(BDSP_Raaga_P_AssignInitMemory);
@@ -546,7 +568,17 @@ static BERR_Code BDSP_Raaga_P_ReleaseInitMemory(
         BDBG_ERR(("BDSP_Raaga_P_ReleaseInitMemory: Unable to release RW memory for CMD QUEUE for dsp %d!!!!",dspindex));
         goto end;
     }
-	pDevice->memInfo.cmdQueueParams[dspindex].ui32Size 	= 0;
+	pDevice->memInfo.CacheHole3[dspindex].ui32Size 	= 0;
+
+    errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex],
+		pDevice->memInfo.CacheHole3[dspindex].ui32Size,
+		&pDevice->memInfo.CacheHole3[dspindex].Buffer);
+    if(errCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_ReleaseInitMemory: Unable to release RW memory for Cache Hole 3 for dsp %d!!!!",dspindex));
+        goto end;
+    }
+	pDevice->memInfo.CacheHole3[dspindex].ui32Size 	= 0;
 
     errCode = BDSP_Raaga_P_ReleaseFIFO(pDevice,dspindex,&(pDevice->memInfo.genRspQueueParams[dspindex].ui32FifoId), 1);
     if(errCode != BERR_SUCCESS)
@@ -555,7 +587,7 @@ static BERR_Code BDSP_Raaga_P_ReleaseInitMemory(
         goto end;
     }
 
-	  errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex],
+	errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex],
 		pDevice->memInfo.genRspQueueParams[dspindex].ui32Size,
 		&pDevice->memInfo.genRspQueueParams[dspindex].Memory);
     if(errCode != BERR_SUCCESS)
@@ -564,6 +596,16 @@ static BERR_Code BDSP_Raaga_P_ReleaseInitMemory(
 		goto end;
 	}
 	pDevice->memInfo.genRspQueueParams[dspindex].ui32Size 	= 0;
+
+    errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex],
+		pDevice->memInfo.CacheHole4[dspindex].ui32Size,
+		&pDevice->memInfo.CacheHole4[dspindex].Buffer);
+    if(errCode != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_Raaga_P_ReleaseInitMemory: Unable to release RW memory for Cache Hole 4 for dsp %d!!!!",dspindex));
+        goto end;
+    }
+	pDevice->memInfo.CacheHole4[dspindex].ui32Size 	= 0;
 
 	errCode = BDSP_P_ReleaseMemory(&pDevice->memInfo.sHostSharedRWMemoryPool[dspindex],
 		pDevice->memInfo.CacheHole1[dspindex].ui32Size,

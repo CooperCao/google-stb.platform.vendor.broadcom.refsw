@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -3335,7 +3335,7 @@ const uint32_t BDSP_IMG_vorbis_decode_array1[] = {
 	0xcc001148,
 	0x461fc407,
 	0x07bffe1f,
-	0xda204ff8,
+	0xda184ff8,
 	0xdaf04e78,
 	0x3d80820f,
 	0x3da40007,

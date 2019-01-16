@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -4595,7 +4595,7 @@ const uint32_t BDSP_IMG_system_code_array1[] = {
 	0x0a019037,
 	0x521d11cf,
 	0x70726088,
-	0x73326048,
+	0x73226048,
 	0x90000037,
 	0x0a22810f,
 	0x3a22110f,
@@ -5343,7 +5343,7 @@ const uint32_t BDSP_IMG_system_code_array1[] = {
 	0xab0f81f8,
 	0x09014307,
 	0x20604907,
-	0x73324008,
+	0x73224008,
 	0x34020587,
 	0xbea0471f,
 	0x92014900,
@@ -16638,10 +16638,10 @@ const uint32_t BDSP_IMG_system_code_array2[] = {
 	0x20000000,
 	0x50807007,
 	0x20000000,
-	0x50805007,
-	0x20000000,
 	0x51800007,
 	0x80000080,
+	0x50805007,
+	0x20000000,
 	0x50800007,
 	0x20000000,
 	0x54000087,
@@ -16718,10 +16718,10 @@ const uint32_t BDSP_IMG_system_code_array2[] = {
 	0x20000000,
 	0x50801007,
 	0x30000000,
-	0x50800007,
-	0x20000080,
 	0x5080d007,
 	0x20000000,
+	0x50800007,
+	0x20000080,
 	0x50809007,
 	0x20000000,
 	0x54802007,

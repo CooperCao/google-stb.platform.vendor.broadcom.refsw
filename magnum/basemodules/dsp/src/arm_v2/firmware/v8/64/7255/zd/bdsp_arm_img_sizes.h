@@ -73,10 +73,10 @@
 #define BDSP_ARM_IMG_KERNEL_OPS_SIZE                                 ((uint32_t)97280)
 
 /*STAGE_IO Size requirement*/
-#define BDSP_ARM_IMG_STAGE_IO_SIZE                                   ((uint32_t)242688)
+#define BDSP_ARM_IMG_STAGE_IO_SIZE                                   ((uint32_t)242176)
 
 /*COMMON_IDS Size requirement*/
-#define BDSP_ARM_IMG_COMMON_IDS_SIZE                                 ((uint32_t)289792)
+#define BDSP_ARM_IMG_COMMON_IDS_SIZE                                 ((uint32_t)291840)
 
 /*INIT_PROCESS Size requirement*/
 #define BDSP_ARM_IMG_INIT_PROCESS_SIZE                               ((uint32_t)46080)
@@ -91,7 +91,7 @@
 #define BDSP_ARM_IMG_MESSAGING_PROCESS_SIZE                          ((uint32_t)146944)
 
 /*ALGO_PROCESS Size requirement*/
-#define BDSP_ARM_IMG_ALGO_PROCESS_SIZE                               ((uint32_t)197632)
+#define BDSP_ARM_IMG_ALGO_PROCESS_SIZE                               ((uint32_t)201728)
 
 /*IDLE_PROCESS Size requirement*/
 #define BDSP_ARM_IMG_IDLE_PROCESS_SIZE                               ((uint32_t)16896)
@@ -178,7 +178,7 @@
 
 /*APP_MIXER_DAPV2 Size requirement*/
 #define BDSP_ARM_IMG_APP_MIXER_DAPV2_SCRATCH_SIZE                    ((uint32_t)1273856)
-#define BDSP_ARM_IMG_APP_MIXER_DAPV2_SIZE                            ((uint32_t)113152)
+#define BDSP_ARM_IMG_APP_MIXER_DAPV2_SIZE                            ((uint32_t)113664)
 #define BDSP_ARM_IMG_APP_MIXER_DAPV2_INTER_FRAME_SIZE                ((uint32_t)331776)
 #define BDSP_ARM_IMG_APP_MIXER_DAPV2_INTER_FRAME_ENCODED_SIZE        ((uint32_t)512)
 #define BDSP_ARM_IMG_APP_MIXER_DAPV2_TABLES_SIZE                     ((uint32_t)89600)
@@ -213,7 +213,7 @@
 
 /*APP_MS11PLUS_MIXER Size requirement*/
 #define BDSP_ARM_IMG_APP_MS11PLUS_MIXER_SCRATCH_SIZE                 ((uint32_t)1273856)
-#define BDSP_ARM_IMG_APP_MS11PLUS_MIXER_SIZE                         ((uint32_t)112640)
+#define BDSP_ARM_IMG_APP_MS11PLUS_MIXER_SIZE                         ((uint32_t)113152)
 #define BDSP_ARM_IMG_APP_MS11PLUS_MIXER_INTER_FRAME_SIZE             ((uint32_t)331776)
 #define BDSP_ARM_IMG_APP_MS11PLUS_MIXER_INTER_FRAME_ENCODED_SIZE     ((uint32_t)512)
 #define BDSP_ARM_IMG_APP_MS11PLUS_MIXER_TABLES_SIZE                  ((uint32_t)89600)

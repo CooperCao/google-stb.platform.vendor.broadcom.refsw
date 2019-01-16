@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -863,7 +863,7 @@ const uint32_t BDSP_IMG_amr_encode_array1[] = {
 	0x3804f007,
 	0x08047807,
 	0x3903c207,
-	0x730040c0,
+	0x731040c0,
 	0x09014407,
 	0x39014607,
 	0x73b040c0,
@@ -1018,7 +1018,7 @@ const uint32_t BDSP_IMG_amr_encode_array1[] = {
 	0x24018517,
 	0x88807c47,
 	0xab1061f8,
-	0x7300a2c8,
+	0x7310a2c8,
 	0x0924a107,
 	0x3923a307,
 	0x7190a1c8,
@@ -1599,7 +1599,7 @@ const uint32_t BDSP_IMG_amr_encode_array1[] = {
 	0x7161f448,
 	0x09677b07,
 	0x2000010f,
-	0x7312c308,
+	0x7302c308,
 	0x304889cf,
 	0x2eb10457,
 	0x0847c1cf,
@@ -3042,7 +3042,7 @@ const uint32_t BDSP_IMG_amr_encode_array1[] = {
 	0xc1821c77,
 	0xdf5f8b57,
 	0x7020da00,
-	0x72b00075,
+	0x72c00075,
 	0x17040817,
 	0x46e57c07,
 	0x2788103f,
@@ -3431,7 +3431,7 @@ const uint32_t BDSP_IMG_amr_encode_array1[] = {
 	0x97a38b17,
 	0x20807f3f,
 	0x98004b27,
-	0x72b00071,
+	0x72c00071,
 	0xab0521f8,
 	0x20ca0e27,
 	0xf8000f1f,
@@ -3440,7 +3440,7 @@ const uint32_t BDSP_IMG_amr_encode_array1[] = {
 	0x98000e27,
 	0xc3020a0f,
 	0xeea08417,
-	0x72b00071,
+	0x72c00071,
 	0xa7028817,
 	0xdf628247,
 	0xe8224718,

@@ -1588,54 +1588,92 @@ NEXUS_AudioOutputHandle NEXUS_HdmiOutput_GetAudioConnector( NEXUS_HdmiOutputHand
 
 static NEXUS_VideoFormat NEXUS_HdmiOutput_P_GetPreferredFormat(NEXUS_HdmiOutputHandle output)
 {
-    NEXUS_Error errCode;
     BERR_Code rc  ;
+    BHDM_EDID_RxVendorSpecificDB rxVSDB ;
+    bool hdmiDevice ;
     BFMT_VideoFmt magnumFormat;
     NEXUS_VideoFormat nexusFormat;
     BHDM_EDID_DetailTiming detailedTiming ;
     uint8_t nativeFormat, videoIdCode;
-    unsigned detailTimingNum = 1;
-
-    magnumFormat = BFMT_VideoFmt_eDVI_640x480p;     /* Default to safe mode */
+    uint8_t index = 1;
 
 get_next_detailed_timing_from_edid:
     /* first detailed EDID block contains preferred format */
-    rc =  BHDM_EDID_GetDetailTiming(output->hdmHandle, detailTimingNum, &detailedTiming, &magnumFormat);
-
-    /* if the 1st/current detailed (preferred) format is not supported, */
-    /* a bcm driver proposed alternate is returned and can be used */
-    /* or check if the next detailed timing format is supported */
-    if ((!BFMT_SUPPORT_HDMI(magnumFormat))
-    ||  (rc == BHDM_EDID_DETAILTIMING_NOT_SUPPORTED))
+    rc =  BHDM_EDID_GetDetailTiming(output->hdmHandle, index, &detailedTiming, &magnumFormat);
+    switch (rc)
     {
-        detailTimingNum++;
+    case BERR_SUCCESS :
+        break ;
+
+    case BHDM_EDID_DETAILTIMING_NOT_SUPPORTED :
+        index++ ;
         goto get_next_detailed_timing_from_edid ;
+
+    case BHDM_NO_RX_DEVICE :
+    case BHDM_EDID_NOT_FOUND :
+    case BERR_INVALID_PARAMETER :
+    case BERR_NOT_INITIALIZED :
+        /* no EDID is available default to safe mode */
+        goto safe_mode ;
+
+    default :
+        BDBG_ERR(("Unknown error (%d) trying to get Detailed/Preferred format #%d",
+            index, rc)) ;
+        goto safe_mode ;
     }
 
-    /* Translate the first STB preferred format found */
+
+    /* Translate the detalined/preferred format */
     nexusFormat = NEXUS_P_VideoFormat_FromMagnum_isrsafe(magnumFormat);
 
-    /* If preferred format is VESA, check for HD format */
-    if (( BFMT_IS_VESA_MODE(magnumFormat) && (magnumFormat != BFMT_VideoFmt_eDVI_640x480p))
+    BHDM_EDID_IsRxDeviceHdmi(output->hdmHandle, &rxVSDB,  &hdmiDevice) ;
+
+    /* If preferred format is VESA, check for HD formats in the Video Descriptor Data Block */
+    if ((hdmiDevice && BFMT_IS_VESA_MODE(magnumFormat) && (magnumFormat != BFMT_VideoFmt_eDVI_640x480p))
     || NEXUS_VideoFormat_eUnknown == nexusFormat )
     {
-        errCode = BHDM_EDID_GetVideoDescriptor(output->hdmHandle, detailTimingNum, &videoIdCode, &magnumFormat, &nativeFormat);
-        if (errCode)
+        index = 1 ;
+get_format_from_videoDB:
+        rc = BHDM_EDID_GetVideoDescriptor(output->hdmHandle, index, &videoIdCode, &magnumFormat, &nativeFormat);
+        switch (rc)
         {
-            goto done ;
+        case BERR_SUCCESS :
+            /* only VGA is allowed in VideoDB and it may be the first descriptor */
+            if (BFMT_IS_VESA_MODE(magnumFormat))
+            {
+                index++ ;
+                goto get_format_from_videoDB ;
+            }
+            break ;
+
+        case BHDM_NO_RX_DEVICE :
+        case BHDM_EDID_NOT_FOUND :
+        case BHDM_EDID_HDMI_NOT_SUPPORTED :
+        case BERR_INVALID_PARAMETER :
+        case BERR_UNKNOWN :
+            goto safe_mode ;
+
+        default :
+            BDBG_ERR(("Unknown error (%d) trying to get Video Format #%d from VideoDB",
+                index, rc)) ;
+            goto safe_mode ;
         }
-        BDBG_MSG(("Using CEA-861 Video ID %d (HD) instead of Preferred VESA format", videoIdCode));
+
+        nexusFormat = NEXUS_P_VideoFormat_FromMagnum_isrsafe(magnumFormat);
     }
 
-    /* Translate */
-    nexusFormat = NEXUS_P_VideoFormat_FromMagnum_isrsafe(magnumFormat);
-    if ( NEXUS_VideoFormat_eUnknown == nexusFormat )
+
+    if (nexusFormat != NEXUS_VideoFormat_eUnknown)
     {
-        BDBG_WRN(("Unknown preferred format %s, defaulting to NTSC",
-            NEXUS_P_VideoFormat_ToStr_isrsafe(nexusFormat))) ;
-        nexusFormat =  NEXUS_VideoFormat_eNtsc;
+        BDBG_MSG(("Preferred Format: %s", NEXUS_P_VideoFormat_ToStr_isrsafe(nexusFormat))) ;
         goto done ;
     }
+
+    BDBG_WRN(("Unknown/Unsupported format")) ;
+
+safe_mode:
+    BDBG_WRN(("Using VGA safe mode")) ;
+    nexusFormat =  NEXUS_VideoFormat_eVesa640x480p60hz ;
 
 done:
     return nexusFormat;
