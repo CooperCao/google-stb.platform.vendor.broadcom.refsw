@@ -882,6 +882,7 @@ static BERR_Code BVDC_P_Compositor_Validate
     uint32_t aulBlenderZOrder[BVDC_P_CMP_MAX_BLENDER];
     /*BVDC_P_WindowId aeBlenderWinId[BVDC_P_CMP_MAX_BLENDER];*/
     uint32_t ulVidWinCnt = 0;
+    bool bBlend0Used = hCompositor->abBlenderUsed[0];
     BERR_Code eStatus = BERR_SUCCESS;
 
     BDBG_OBJECT_ASSERT(hCompositor, BVDC_CMP);
@@ -966,6 +967,7 @@ static BERR_Code BVDC_P_Compositor_Validate
             }
         }
     }
+    hCompositor->bBgColorDirty = (bBlend0Used != hCompositor->abBlenderUsed[0]);
 
     /* Check number of video windows in a given compositor.  */
     if(ulVidWinCnt > BVDC_P_CMP_0_MAX_VIDEO_WINDOW_COUNT)
@@ -1719,7 +1721,6 @@ static void BVDC_P_Compositor_BuildRul_isr
     BVDC_P_Pep_BuildRul_isr(hCompositor->ahWindow[eV0Id], pList, hCompositor->bInitial);
     BVDC_P_Pep_BuildRul_isr(hCompositor->ahWindow[eV1Id], pList, hCompositor->bInitial);
 #endif
-
     /* canvas, bgcolor and blender setting */
     BDBG_CASSERT(2 == (((BCHP_CMP_0_BG_COLOR - BCHP_CMP_0_CANVAS_SIZE) / sizeof(uint32_t)) + 1));
     *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_CMP_0_BG_COLOR - BCHP_CMP_0_CANVAS_SIZE) / sizeof(uint32_t)) + 1);
@@ -2331,7 +2332,7 @@ void BVDC_P_Compositor_WindowsReader_isr
 #endif
 
     /* Update BG matrixCoeffs to match base on src/disp changes */
-    bBgCsc = bBgCsc || hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace;
+    bBgCsc = bBgCsc || hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace || hCompositor->bBgColorDirty;
     if(bBgCsc)
     {
         uint32_t ulBgColorYCrCb;
@@ -2339,7 +2340,7 @@ void BVDC_P_Compositor_WindowsReader_isr
             hCompositor->stCurInfo.ucRed,
             hCompositor->stCurInfo.ucGreen,
             hCompositor->stCurInfo.ucBlue);
-
+        hCompositor->bBgColorDirty = false;
         hCompositor->stNewInfo.ulBgColorYCrCb = ulBgColorYCrCb;
         hCompositor->stCurInfo.ulBgColorYCrCb = ulBgColorYCrCb;
         BVDC_P_CMP_SET_REG_DATA(CMP_0_BG_COLOR, ulBgColorYCrCb);

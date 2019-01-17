@@ -275,6 +275,7 @@ typedef struct BVDC_P_CompositorContext
     /* Computed value */
     uint32_t                          ulActiveVideoWindow;
     uint32_t                          ulActiveGfxWindow;
+    bool                              bBgColorDirty;
     bool                              abBlenderUsed[BVDC_P_CMP_MAX_BLENDER];
     BVDC_P_WindowId                   aeBlenderWinId[BVDC_P_CMP_MAX_BLENDER];
 
