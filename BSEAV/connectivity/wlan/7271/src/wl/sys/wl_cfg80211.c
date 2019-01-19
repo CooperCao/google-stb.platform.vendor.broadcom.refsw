@@ -19570,7 +19570,13 @@ static s32 __wl_cfg80211_up(struct bcm_cfg80211 *cfg)
 			return err;
 		}
 	}
-#endif /* !WLP2P */
+#else /* !WLP2P */
+	err = wldev_ioctl_set(ndev, WLC_UP, NULL, 0);
+	if (unlikely(err)) {
+		WL_ERR(("WLC_UP command failed:[%d]\n", err));
+		return err;
+	}
+#endif /* WLP2P */
 
 #ifdef WBTEXT
 	/* when wifi up, set roam_prof to default value */

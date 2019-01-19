@@ -238,9 +238,12 @@ confmtd_restore()
 	FILE *fp = NULL;
 	char *buf = NULL;
 	int ret = -1;
-	confmtd_hdr_t mtd_hdr = {{0}};
+	confmtd_hdr_t mtd_hdr;
 	struct stat tmp_stat;
 	DIR *dir;
+
+	/* create mtd header content */
+	memset(&mtd_hdr, 0, sizeof(mtd_hdr));
 
 	/* create confmtd directory */
 	if (mkdir(RAMFS_CONFMTD_DIR, 0777) < 0 && errno != EEXIST) {

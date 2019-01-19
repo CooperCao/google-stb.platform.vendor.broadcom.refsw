@@ -725,7 +725,12 @@ enum wlc_iov {
 	IOV_ATM_STAPERC = 123, /* AirTime percentage per STA */
 	IOV_ATM_BSSPERC = 124, /* AirTime percentage per BSS */
 #endif /* WLATM_PERC */
-	IOV_CAPS,
+	IOV_CAPS = 125,
+#ifdef SPLIT_ASSOC
+	IOV_SPLIT_ASSOC_REQ = 126, /* association split */
+	IOV_SPLIT_ASSOC_RESP = 127, /* association split */
+#endif // endif
+	IOV_ASSOC_DECISION = 128, /* association decision */
 	IOV_LAST		/* In case of a need to check max ID number */
 };
 
@@ -1164,6 +1169,17 @@ static const bcm_iovar_t wlc_iovars[] = {
 	(0), 0, IOVT_UINT8, 0
 	},
 #endif /* WLATM_PERC */
+#ifdef SPLIT_ASSOC
+	{"split_assoc_req", IOV_SPLIT_ASSOC_REQ,
+	(IOVF_SET_DOWN), 0, IOVT_UINT32, 0
+	},
+	{"split_assoc_resp", IOV_SPLIT_ASSOC_RESP,
+	(IOVF_SET_DOWN), 0, IOVT_UINT32, 0
+	},
+#endif // endif
+	{"assoc_decision", IOV_ASSOC_DECISION,
+	(0), 0, IOVT_BUFFER, sizeof(assoc_decision_t)
+	},
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -3313,6 +3329,22 @@ wlc_set_chanspec(wlc_info_t *wlc, chanspec_t chanspec, int reason)
 	wlc_bmac_ifsctl_edcrs_set(wlc->hw, WLCISHTPHY(wlc->band));
 
 set_chanspec_done:
+	if (wlc->chains_2g)	{
+		/* Set chains based on band */
+		if (CHSPEC_IS2G(wlc->chanspec)) {
+			if (wlc->stf->txchain_subval[WLC_TXCHAIN_ID_2G2X2LOCK] != wlc->chains_2g) {
+				wlc_stf_txchain_set(wlc, wlc->chains_2g, TRUE, WLC_TXCHAIN_ID_2G2X2LOCK);
+				wlc_stf_rxchain_set(wlc, wlc->chains_2g, TRUE);
+			}
+		} else if (CHSPEC_IS5G(wlc->chanspec)) {
+			if (wlc->stf->txchain_subval[WLC_TXCHAIN_ID_2G2X2LOCK] != wlc->stf->hw_txchain) {
+				wlc_stf_txchain_set(wlc, wlc->stf->hw_txchain, TRUE, WLC_TXCHAIN_ID_2G2X2LOCK);
+				wlc_stf_rxchain_set(wlc, wlc->stf->hw_rxchain, TRUE);
+			}
+		} else {
+			WL_ERROR(("%s:%d ERROR unknown chanspec for WL_2G2X2LOCK. 0x%x\n", __FUNCTION__, __LINE__, wlc->chanspec));
+		}
+	}
 	wlc_chansw_notif_signal(wlc, reason, old_chanspec, chanspec, tsf_l);
 
 #ifdef BCMLTECOEX
@@ -6775,19 +6807,6 @@ BCMATTACHFN(wlc_attach)(void *wl, uint16 vendor, uint16 device, uint unit, uint 
 		wlc->chains_2g = getintvar(pub->vars, rstr_aa2g);
 	}
 #endif
-	if (wlc->chains_2g) {
-		/* Default in 2G */
-		wlc->bandlocked = TRUE;
-		wlc_bandlock(wlc, WLC_BAND_2G);
-
-		if (CHSPEC_IS2G(wlc->chanspec)) {
-			/* Default to cores 0 and 1 for 2G chain lock */
-			wlc_stf_txchain_set(wlc, wlc->chains_2g, TRUE, WLC_TXCHAIN_ID_2G2X2LOCK);
-			wlc_stf_rxchain_set(wlc, wlc->chains_2g, TRUE);
-		} else {
-			WL_ERROR(("wl%d: %s: -2glock- chanspec must be 2G band.\n", unit, __FUNCTION__));
-		}
-	}
 	return ((void*)wlc);
 
 fail:
@@ -12014,6 +12033,112 @@ BCMNMIATTACHFN(wlc_module_find)(wlc_info_t *wlc, const char *name)
 	return BCME_NOTFOUND;
 }
 
+#ifdef SPLIT_ASSOC
+void
+wlc_assoc_dc_dispatch(wlc_info_t *wlc, wlc_bsscfg_t *cfg, assoc_decision_t *dc, struct scb *scb)
+{
+	wlc_assoc_dc_cb_t *ptr;
+	int err = BCME_OK;
+	wl_dc_info_t dc_ie;
+	bcm_tlv_t *ie;
+	int total_len;
+	dc_ie = dc->dc_info;
+	ie = (bcm_tlv_t *) dc_ie.tlv;
+	total_len = (int) dc_ie.len;
+
+	/* make sure we are looking at a valid IE */
+	if (ie != NULL && bcm_valid_tlv(ie, total_len)) {
+		while (ie) {
+			for (ptr = NULL, ptr = wlc->assoc_dc_cb_head;
+					 ptr != NULL; ptr = ptr->next) {
+				if ((ie->id == ptr->assoc_dc_type) &&
+					(ie->len > 0)) {
+					err = (ptr->assoc_dc_handle_fn)(wlc->pub, cfg, ie, scb);
+					if (err == BCME_ERROR) {
+						WL_ERROR(("%s DC_TYPE(%d) TLV parsing fail \n",
+							__FUNCTION__, ie->id));
+					}
+				}
+			}
+			ie = bcm_next_tlv(ie, &total_len);
+		}
+	} else {
+		WL_INFORM(("%s Null DC IE or validate fail \n", __FUNCTION__));
+	}
+	return;
+}
+
+int wlc_assoc_dc_handle_regisiter(wlc_pub_t *pub, const wlc_dc_handle_t *dc_handle, int size)
+{
+	wlc_info_t *wlc = (wlc_info_t *)pub->wlc;
+	wlc_assoc_dc_cb_t *ptr, *prev;
+	int err = BCME_OK, i = 0;
+
+	ASSERT(dc_handle != NULL);
+
+	for (i = 0; i < size; i ++) {
+		for (prev = NULL, ptr = wlc->assoc_dc_cb_head; ptr != NULL; ptr = ptr->next) {
+			if (dc_handle[i].dc_type == ptr->assoc_dc_type) {
+				/* Already present, just update */
+				break;
+			}
+			prev = ptr;
+		}
+
+		/* Check if we found an existing module */
+		if (ptr == NULL) {
+			/* Not in list, allocate new */
+			if ((ptr = (wlc_assoc_dc_cb_t *)MALLOC(wlc->osh,
+				sizeof(wlc_assoc_dc_cb_t))) == NULL) {
+				err = BCME_NORESOURCE;
+			} else {
+				/* Put at end of the list */
+				ptr->next = NULL;
+				if (prev != NULL) {
+					prev->next = ptr;
+				} else {
+					wlc->assoc_dc_cb_head = ptr;
+				}
+			}
+		}
+
+		if (ptr) {
+			ptr->assoc_dc_type = dc_handle[i].dc_type;
+			ptr->assoc_dc_handle_fn = dc_handle[i].dc_handle_fn;
+		}
+	}
+	return err;
+}
+
+int
+wlc_assoc_dc_handle_deregisiter(wlc_pub_t *pub, const wlc_dc_handle_t *dc_handle, int size)
+{
+	wlc_info_t *wlc = (wlc_info_t *)pub->wlc;
+	wlc_assoc_dc_cb_t *ptr, *prev;
+	int err = BCME_NOTFOUND, i = 0;
+
+	for (i = 0; i < size; i ++) {
+		for (prev = NULL, ptr = wlc->assoc_dc_cb_head; ptr != NULL; ptr = ptr->next) {
+			if (dc_handle[i].dc_type == ptr->assoc_dc_type) {
+				/* Remove entry */
+				if (prev != NULL) {
+					prev->next = ptr->next;
+				} else {
+					wlc->assoc_dc_cb_head = ptr->next;
+				}
+				MFREE(wlc->osh, ptr, sizeof(wlc_assoc_dc_cb_t));
+				err = BCME_OK;
+				break;
+			}
+			prev = ptr;
+		}
+	}
+
+	/* Not found! */
+	return err;
+}
+#endif /* SPLIT_ASSOC */
+
 /** Return total transmit packets held by the driver */
 uint
 wlc_txpktcnt(struct wlc_info *wlc)
@@ -14323,6 +14448,62 @@ wlc_doiovar(void *hdl, uint32 actionid,
 	case IOV_GVAL (IOV_RX_PROB_REQ):
 		*ret_int_ptr = wlc_eventq_test_ind(wlc->eventq, WLC_E_PROBREQ_MSG);
 		break;
+	case IOV_SVAL(IOV_ASSOC_DECISION): {
+		assoc_decision_t *dc_bufp = (assoc_decision_t *)arg;
+
+		if (len < (int)sizeof(assoc_decision_t) - 1) {
+			err = BCME_BUFTOOSHORT;
+			break;
+		}
+
+		if (!(dc_bufp = MALLOC(wlc->osh, len))) {
+			WL_ERROR(("wl%d: %s: out of mem, malloced %d bytes\n",
+				wlc->pub->unit, __FUNCTION__, MALLOCED(wlc->osh)));
+			err = BCME_NOMEM;
+			break;
+		}
+		bcopy((uint8*)arg, dc_bufp, len);
+
+#ifdef AP
+		if (BSSCFG_AP(bsscfg)) {
+			wlc_ap_process_assocreq_decision(wlc, bsscfg, dc_bufp);
+		}
+#endif // endif
+#ifdef STA
+		if (BSSCFG_STA(bsscfg)) {
+			wlc_process_assocresp_decision(wlc, bsscfg, dc_bufp);
+		}
+#endif // endif
+		MFREE(wlc->osh, dc_bufp, len);
+		break;
+		}
+#ifdef SPLIT_ASSOC
+	case IOV_GVAL(IOV_SPLIT_ASSOC_REQ):
+		*ret_int_ptr = ((int32)(bsscfg->flags2 & WLC_BSSCFG_FL2_SPLIT_ASSOC_REQ) == 0 ?
+			FALSE : TRUE);
+		break;
+
+	case IOV_SVAL(IOV_SPLIT_ASSOC_REQ):
+		if (bool_val) {
+			bsscfg->flags2 |= WLC_BSSCFG_FL2_SPLIT_ASSOC_REQ;
+		} else {
+			bsscfg->flags2 &= ~WLC_BSSCFG_FL2_SPLIT_ASSOC_REQ;
+		}
+		break;
+
+	case IOV_GVAL(IOV_SPLIT_ASSOC_RESP):
+		*ret_int_ptr = ((int32)(bsscfg->flags2 &
+			WLC_BSSCFG_FL2_SPLIT_ASSOC_RESP) == 0 ? FALSE : TRUE);
+		break;
+
+	case IOV_SVAL(IOV_SPLIT_ASSOC_RESP):
+		if (bool_val) {
+			bsscfg->flags2 |= WLC_BSSCFG_FL2_SPLIT_ASSOC_RESP;
+		} else {
+			bsscfg->flags2 &= ~WLC_BSSCFG_FL2_SPLIT_ASSOC_RESP;
+		}
+		break;
+#endif /* SPLIT_ASSOC */
 	default:
 		err = BCME_UNSUPPORTED;
 		break;

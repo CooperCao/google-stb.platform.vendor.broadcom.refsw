@@ -485,6 +485,7 @@ phy_ac_calmgr_clean(phy_info_t *pi, bool *suspend)
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_4)) */
 }
 
+
 void
 phy_ac_calmgr_singleshot(phy_info_t *pi, uint8 searchmode, acphy_cal_result_t *accal)
 {
@@ -640,6 +641,23 @@ phy_ac_calmgr_singleshot(phy_info_t *pi, uint8 searchmode, acphy_cal_result_t *a
 		/* request "Sphase" */
 	} else
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_40)) */
+	if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
+		int iter;
+
+		/* Limit the number of retries to 2 */
+		for (iter = 0; iter <= RXIQCAL_MAX_RETRIES; iter++) {
+			if (wlc_phy_cal_rx_fdiqi_acphy(pi) == BCME_OK) {
+				break;
+			}
+		}
+		if (iter > RXIQCAL_MAX_RETRIES) {
+			phy_ac_rxiqcal_diag_update(pi, TRUE);
+		}
+		else {
+		    phy_ac_rxiqcal_diag_update(pi, FALSE);
+		}
+	}
+	else
 	{
 		wlc_phy_cal_rx_fdiqi_acphy(pi);
 	}

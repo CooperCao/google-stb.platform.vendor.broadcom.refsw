@@ -194,9 +194,9 @@ Unified Reference Software Patch ReleaseNotes</strong></p>
 
 <blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
 
-<p>October 23, 2018</p>
+<p>January 15, 2019</p>
 
-<p>Phase 18.2.1 Release + WLAN patch (apply after August 6, 2018 WLAN patch)</p>
+<p>Phase 18.2.1 Release + WLAN patch (apply after October 23, 2018 WLAN patch)</p>
 
 </blockquote>
 
@@ -457,10 +457,90 @@ style='font-family:"Courier New"'>o</span><span style='font-size:7.0pt'>&nbsp;&n
 </span>Please refer to <b>BSEAV\connectivity\wlan\README.txt</b> to get the
 instructions on how to build the wlan driver.</p>
 
+<p class=MsoListParagraph style='text-indent:3.35pt'>&nbsp;</p>
+
 <p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
-Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>This patch includes WIFI driver version <b>STB7271_REL_15_30_36</b>.&nbsp;
+Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>This
+maintenance patch includes WIFI driver version <b>STB7271_REL_15_30_47</b>.&nbsp; <br>
+Here are the high level changes from <b>15.30.36</b> to <b>15.30.47</b>:</p>
+<p class=MsoListParagraph style='text-indent:-.25in'><o:p>&nbsp;</o:p></p>
+
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in; mso-list:l0 level2 lfo5;tab-stops:list 1.0in'><![if !supportLists]><span style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New"; mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved ucode issue for PSM watchdog<o:p></o:p></span></p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in; mso-list:l0 level2 lfo5;tab-stops:list 1.0in'><![if !supportLists]><span style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New"; mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved Multi-AP issues for wbd_slave and rc daemons<o:p></o:p></span></p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in; mso-list:l0 level2 lfo5;tab-stops:list 1.0in'><![if !supportLists]><span style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New"; mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved PER issue when WPA2 is enabled<o:p></o:p></span></p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in; mso-list:l0 level2 lfo5;tab-stops:list 1.0in'><![if !supportLists]><span style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New"; mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>added Bluetooth support in Atlas<o:p></o:p></span></p>
+
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in; mso-list:l0 level2 lfo5;tab-stops:list 1.0in'><![if !supportLists]><span style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New"; mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved issue with RRM (802.11k)<o:p></o:p></span></p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in; mso-list:l0 level2 lfo5;tab-stops:list 1.0in'><![if !supportLists]><span style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New"; mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>added hostAPD ACS support<o:p></o:p></span></p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in; mso-list:l0 level2 lfo5;tab-stops:list 1.0in'><![if !supportLists]><span style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New"; mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>added Fluoride support<o:p></o:p></span></p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in; mso-list:l0 level2 lfo5;tab-stops:list 1.0in'><![if !supportLists]><span style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New"; mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>optimized tempsense for improved PER<o:p></o:p></span></p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in; mso-list:l0 level2 lfo5;tab-stops:list 1.0in'><![if !supportLists]><span style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New"; mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>updated RxIQ calibration<o:p></o:p></span></p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in; mso-list:l0 level2 lfo5;tab-stops:list 1.0in'><![if !supportLists]><span style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New"; mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved PM issue on DFS channel<o:p></o:p></span></p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in; mso-list:l0 level2 lfo5;tab-stops:list 1.0in'><![if !supportLists]><span style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New"; mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>updated Multi-AP feature for multi-agent and resolved issues<o:p></o:p></span></p>
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in; mso-list:l0 level2 lfo5;tab-stops:list 1.0in'><![if !supportLists]><span style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New"; mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>resolved multicast UDP issue<o:p></o:p></span></p>
+
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l0 level2 lfo5;tab-stops:list 1.0in'><![if !supportLists]><span
+style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span
+style='mso-fareast-font-family:"Times New Roman"'>added softAP mode RX chain
+power save feature in mfgtest build target<o:p></o:p></span></p>
+
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l0 level2 lfo5;tab-stops:list 1.0in'><![if !supportLists]><span
+style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span
+style='mso-fareast-font-family:"Times New Roman"'>added RXDESENS_EN feature for
+mfgtest build target<o:p></o:p></span></p>
+
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l0 level2 lfo5;tab-stops:list 1.0in'><![if !supportLists]><span
+style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span
+style='mso-fareast-font-family:"Times New Roman"'>enabled BSSLOAD feature for
+QBSS (QoS enhanced basic service set)<o:p></o:p></span></p>
+
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l0 level2 lfo5;tab-stops:list 1.0in'><![if !supportLists]><span
+style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span
+style='mso-fareast-font-family:"Times New Roman"'>added support for HostAPD
+802.11r<o:p></o:p></span></p>
+
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l0 level2 lfo5;tab-stops:list 1.0in'><![if !supportLists]><span
+style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span
+style='mso-fareast-font-family:"Times New Roman"'>resolved issue during
+unloading of WLAN driver<o:p></o:p></span></p>
+
+<p class=MsoListParagraph style='margin-left:1.0in;text-indent:-.25in;
+mso-list:l0 level2 lfo5;tab-stops:list 1.0in'><![if !supportLists]><span
+style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:"Courier New";
+mso-fareast-font-family:"Courier New"'><span style='mso-list:Ignore'>o<span
+style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp; </span></span></span><![endif]><span
+style='mso-fareast-font-family:"Times New Roman"'>resolved P2P group formation
+issue in 5G<o:p></o:p></span></p>
+
+<p class=MsoListParagraph style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+auto;margin-left:1.0in;text-indent:-.25in;mso-list:l0 level2 lfo5;tab-stops:
+list 1.0in'><![if !supportLists]><span style='font-size:10.0pt;mso-bidi-font-size:
+12.0pt;font-family:"Courier New";mso-fareast-font-family:"Courier New"'><span
+style='mso-list:Ignore'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
+</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>enabled
+UK radar type detection<o:p></o:p></span></p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'><o:p>&nbsp;</o:p></p>
+<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-family:
+Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>This maintenance patch includes WIFI driver version <b>STB7271_REL_15_30_36</b>.&nbsp; <br>
 Here are the high level changes from <b>15.30.29</b>(patch) to <b>15.30.36</b>:</p>
+<p class=MsoListParagraph style='text-indent:-.25in'><o:p>&nbsp;</o:p></p>
 
 <p class=MsoNormal style='margin-left:.75in;text-indent:-.25in'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;
@@ -609,6 +689,7 @@ Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nb
 <br>
 Here are the high level changes from <b>15.30.24</b>( Last released driver in
 URSR18.2 and URSR Patch Release 18.2.1) to <b>15.30.28</b>:</p>
+<p class=MsoListParagraph style='text-indent:-.25in'><o:p>&nbsp;</o:p></p>
 
 <p class=MsoNormal style='margin-left:.75in;text-indent:-.25in'><span
 style='font-family:"Courier New"'>o<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;

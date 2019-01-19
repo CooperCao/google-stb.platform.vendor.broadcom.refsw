@@ -3,7 +3,7 @@
  *
  * Broadcom Proprietary and Confidential. Copyright (C) 2017,
  * All Rights Reserved.
- * 
+ *
  * This is UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom;
  * the contents of this file may not be disclosed to third parties, copied
  * or duplicated in any form, in whole or in part, without the prior
@@ -88,10 +88,8 @@ extern void wlc_ap_authresp(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg,
 	bool short_preamble, d11rxhdr_t *rxh);
 extern void wlc_ap_process_assocreq(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg,
 	wlc_rx_data_desc_t *rx_data_desc, struct scb *scb, bool short_preamble);
-#ifdef EXT_STA
 extern void wlc_ap_process_assocreq_decision(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg,
 	assoc_decision_t * dc);
-#endif /* EXT_STA */
 extern bool wlc_roam_check(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg,
 	struct ether_header *eh, uint len);
 extern bool wlc_apsta_on_radar_channel(wlc_ap_info_t *apinfo);

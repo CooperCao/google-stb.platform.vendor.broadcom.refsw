@@ -3916,8 +3916,11 @@ wlc_sendpkt(wlc_info_t *wlc, void *sdu, struct wlc_if *wlcif)
 		!ETHER_ISMULTI(dst)))) &&
 #endif /* EXT_STA */
 		(bss_key_info.algo == CRYPTO_ALGO_OFF)) {
+#ifndef MAP_TEMP_DEBUG
+		/* DEBUG: suppressing temporarily */
 		WL_ERROR(("wl%d: %s: tossing unencryptable frame, flags=0x%x\n",
 			wlc->pub->unit, __FUNCTION__, WLPKTTAG(pkt)->flags));
+#endif
 		WL_TX_STS_UPDATE(toss_reason, WLC_TX_STS_TOSS_CRYPTO_ALGO_OFF);
 		goto toss;
 	}

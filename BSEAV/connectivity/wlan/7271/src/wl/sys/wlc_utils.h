@@ -80,6 +80,7 @@ extern const uint8 ckip_llc_snap[];
 extern int32 wlc_mcast_reverse_translation(struct ether_header *eh);
 
 bool is_igmp(struct ether_header *eh);
+int32 wlc_filter_igmp_report(struct ether_header *eh);
 
 uint wlc_bsstype_wl2dot11(uint wl);
 uint wlc_bsstype_dot112wl(uint dot11);

@@ -491,7 +491,6 @@ extern const char BCMATTACHDATA(rstr_spurcan_spfreq)[];
 extern const char BCMATTACHDATA(rstr_spurcan_numspur)[];
 
 extern const char BCMATTACHDATA(rstr_vcotune)[];
-extern const char BCMATTACHDATA(rstr_lowcmen)[];
 
 #ifdef WLC_SW_DIVERSITY
 extern const char BCMATTACHDATA(rstr_swdiv_en)[];

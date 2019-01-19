@@ -43,7 +43,11 @@
 #include <phy_utils_var.h>
 
 #define NO_7271_DFS_CORE (!(ACMAJORREV_37(pi->pubpi->phy_rev)) || core == 1 || core == 3)
+#if defined(PHY_ACMAJORREV_37)
+#define NO_RADAR_CHAN(chanspec) (0)
+#else
 #define NO_RADAR_CHAN(chanspec)	((chanspec & 0xff) < 52 || (chanspec & 0xff) > 144)
+#endif
 
 uint8 wlc_phy_vbat_monitoring_algorithm_decision
 	(phy_info_t * pi);
@@ -1342,7 +1346,7 @@ wlc_phy_tempsense_poll_samps_tiny(phy_info_t *pi, uint16 samples, bool init_adc_
 		discardbits = 2;
 	}
 
-	OSL_DELAY(10);
+	OSL_DELAY(2);
 #if !defined(PHY_VER)  || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_32) || defined(PHY_ACMAJORREV_33)))
 	if ((ACMAJORREV_32(pi->pubpi->phy_rev) || ACMAJORREV_33(pi->pubpi->phy_rev)) &&
 		(core == 3)) {
@@ -1359,8 +1363,8 @@ wlc_phy_tempsense_poll_samps_tiny(phy_info_t *pi, uint16 samples, bool init_adc_
 		phy_iq_est_t rx_iq_est[PHY_CORE_MAX];
 		MOD_PHYREG(pi, RxSdFeConfig6, rx_farrow_rshift_0, 1);
 		nsamps = 2 * (1 << 2 * discardbits);
-		wlc_phy_rx_iq_est_acphy(pi, rx_iq_est,	128, 32, 0, TRUE);
-		i_sum = (int32)(phy_utils_sqrt_int((uint32)(rx_iq_est[core].i_pwr) / 64));
+		wlc_phy_rx_iq_est_acphy(pi, rx_iq_est,	16, 32, 0, FALSE);
+		i_sum = (int32)(phy_utils_sqrt_int((uint32)(rx_iq_est[core].i_pwr) / 8));
 		measured_voltage = ((int32)(1 << 10) - i_sum) * 8;
 	} else
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_37)) */

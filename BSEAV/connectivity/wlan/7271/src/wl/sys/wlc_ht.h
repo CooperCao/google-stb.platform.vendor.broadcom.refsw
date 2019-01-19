@@ -200,7 +200,8 @@ struct wlc_ht_info {
 	int8		txburst_limit_override; /* tx burst limit override */
 	bool		_rifs;			/* enable per-packet rifs */
 	bool		ampdu_rts;		/* use RTS for AMPDU */
-	uint16          max_fbtxop;		/* maximum txop limit for frameburst in usec */
+	uint16		max_fbtxop_user;	/* max txop user limit for frameburst in usec */
+	uint16		max_fbtxop_country;	/* max txop country limit for frameburst in usec */
 
 	/* above are READ ONLY */
 };

@@ -100,7 +100,7 @@ wlc_obss_util_update(wlc_info_t *wlc, wlc_bmac_obss_counts_t *curr,
 	o_total->rxstrt += curr->rxstrt - prev->rxstrt;
 }
 
-#if defined(BCMDBG) || defined(BCMDBG_DUMP)
+#if defined(BCMDBG) || defined(BCMDBG_DUMP) || defined(WL_SUPPORT_ACS)
 #define DIV_QUO(num, div) ((num)/div)  /* Return the quotient of division to avoid floats */
 #define DIV_REM(num, div) (((num%div) * 10)/div) /* Return the remainder of division */
 
@@ -226,4 +226,4 @@ wlc_obss_util_stats(wlc_info_t *wlc,
 		}
 	}
 }
-#endif 
+#endif /* BCMDBG || BCMDBG_DUMP || WL_SUPPORT_ACS */

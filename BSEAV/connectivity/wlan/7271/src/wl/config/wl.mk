@@ -108,6 +108,9 @@ ifeq ($(WLATF_DONGLE),1)
 	WLFLAGS += -DWLATF_DONGLE
 endif
 
+ifeq ($(WL_SPLIT_ASSOC),1)
+	WLFLAGS += -DSPLIT_ASSOC
+endif
 
 #ifdef BCMDBG_MEM
 ifeq ($(BCMDBG_MEM),1)
@@ -175,6 +178,9 @@ endif
 
 ifeq ($(MULTIAP),1)
 	WLFLAGS += -DMULTIAP
+ifeq ($(MAP_TEMP_DEBUG),1)
+	WLFLAGS += -DMAP_TEMP_DEBUG
+endif
 endif
 
 ifeq ($(CLIENT_CSA),1)
@@ -1090,6 +1096,12 @@ endif
 #ifdef MCAST_REGEN
 ifeq ($(MCAST_REGEN), 1)
 	WLFLAGS += -DMCAST_REGEN
+endif
+#endif
+
+#ifdef IGMPREP_FILTER
+ifeq ($(IGMPREP_FILTER), 1)
+	WLFLAGS += -DIGMPREP_FILTER
 endif
 #endif
 
@@ -3058,10 +3070,6 @@ ifeq ($(STB_SOC_WIFI),1)
 		WLFLAGS += -DSTBSOC_CHAR_DRV
 	endif
 	WLFILES_SRC += src/wl/sys/wl_stbsoc.c
-endif
-
-ifeq ($(STBAPD), 1)
-	WLFLAGS += -DSTBAPD
 endif
 
 ifeq ($(STBLINUX),1)

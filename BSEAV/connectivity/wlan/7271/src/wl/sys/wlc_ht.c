@@ -513,7 +513,7 @@ void BCMATTACHFN(wlc_ht_init_defaults)(wlc_ht_info_t *pub)
 #endif	/* WLAMSDU */
 
 	/* init max burst txop (framebursting) */
-	pub->max_fbtxop = MAXFRAMEBURST_TXOP;
+	pub->max_fbtxop_user = MAXFRAMEBURST_TXOP;
 }
 
 static int
@@ -2065,9 +2065,9 @@ wlc_ht_doiovar(void *context, uint32 actionid,
 			break;
 		}
 		if (!pub->_rifs) {
-			pub->max_fbtxop = (uint16)int_val;
+			pub->max_fbtxop_user = (uint16)int_val;
 		}
-		wlc_frameburst_txop_set(pub, (uint16)int_val);
+		wlc_ht_frameburst_limit(pub);
 		break;
 	}
 
@@ -3376,7 +3376,7 @@ wlc_frameburst_txop_set(wlc_ht_info_t *pub, uint16 val)
 	wlc_ht_priv_info_t *hti = WLC_HT_INFO_PRIV(pub);
 	wlc_info_t *wlc = hti->wlc;
 
-	if (!wlc->pub->up)
+	if (!wlc->clk)
 		return;
 
 	if (pub->_rifs) {
@@ -3396,12 +3396,18 @@ wlc_frameburst_txop_set(wlc_ht_info_t *pub, uint16 val)
 static uint16
 wlc_frameburst_txop_get(wlc_ht_info_t *pub)
 {
+	wlc_ht_priv_info_t *hti = WLC_HT_INFO_PRIV(pub);
+	wlc_info_t *wlc = hti->wlc;
 	uint16 val;
 
 	if (pub->_rifs) {
 		val = (EDCF_AC_VO_TXOP_AP << 5);
 	} else {
-		val = pub->max_fbtxop;
+		if (wlc->clk) {
+			val = wlc_read_shm(wlc, M_MBURST_TXOP(wlc));
+		} else {
+			val = MIN(pub->max_fbtxop_user, pub->max_fbtxop_country);
+		}
 	}
 
 	return val;
@@ -3413,15 +3419,12 @@ wlc_ht_frameburst_limit(wlc_ht_info_t *pub)
 {
 	wlc_ht_priv_info_t *hti = WLC_HT_INFO_PRIV(pub);
 	wlc_info_t *wlc = hti->wlc;
-	uint16 limit = (uint16)(wlc_is_edcrs_eu(wlc) ? MAXFRAMEBURST_TXOP_EU : MAXFRAMEBURST_TXOP);
 
-	if (pub->max_fbtxop > limit) {
-		pub->max_fbtxop = limit;
-	}
 
-	if (wlc->pub->up) {
-		wlc_frameburst_txop_set(pub, pub->max_fbtxop);
-	}
+	/* honor max frameburst txop setting based on current country code */
+	pub->max_fbtxop_country = (uint16)(wlc_is_edcrs_eu(wlc) ? MAXFRAMEBURST_TXOP_EU :
+			MAXFRAMEBURST_TXOP);
+	wlc_frameburst_txop_set(pub, MIN(pub->max_fbtxop_user, pub->max_fbtxop_country));
 }
 
 uint

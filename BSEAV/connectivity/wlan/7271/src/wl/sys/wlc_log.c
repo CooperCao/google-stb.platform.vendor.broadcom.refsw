@@ -50,46 +50,39 @@
 void wlc_log_unexpected_rx_frame_log_80211hdr(wlc_info_t *wlc,
 	const struct dot11_header *h, int toss_reason)
 {
-#ifdef BCMINTDBG
 /* these messages are flooding console, need to find a better way for debugging than just printing (may be counters?) */
-#if 0
 	BCM_REFERENCE(toss_reason);
 	toss_reason = (toss_reason >= WLC_RX_STS_LAST)? WLC_RX_STS_TOSS_UNKNOWN : toss_reason;
-	WL_ERROR(("Unexpected RX {if=wl%d fc=%04x seq=%04x "
-		"A1=%02x:%02x:%02x:%02x:%02x:%02x A2=%02x:%02x:%02x:%02x:%02x:%02x}\n",
+	WL_APSTA_RX(("Unexpected RX {if=wl%d fc=%04x seq=%04x "
+		"A1=%02x:%02x:%02x:%02x:%02x:%02x A2=%02x:%02x:%02x:%02x:%02x:%02x} toss_reason %d\n",
 		WLCWLUNIT(wlc), ltoh16(h->fc), ltoh16(h->seq),
 		h->a1.octet[0], h->a1.octet[1], h->a1.octet[2],
 		h->a1.octet[3], h->a1.octet[4], h->a1.octet[5],
 		h->a2.octet[0], h->a2.octet[1], h->a2.octet[2],
-		h->a2.octet[3], h->a2.octet[4], h->a2.octet[5]));
-#endif
-#endif /* BCMINTDBG */
+		h->a2.octet[3], h->a2.octet[4], h->a2.octet[5],
+		toss_reason));
 }
 
 void wlc_log_unexpected_tx_frame_log_80211hdr(wlc_info_t *wlc, const struct dot11_header *h)
 {
 /* these messages are flooding console, need to find a better way for debugging than just printing (may be counters?) */
-#if 0
-	WL_ERROR(("Unexpected TX {if=wl%d fc=%04x seq=%04x "
+	WL_APSTA_TX(("Unexpected TX {if=wl%d fc=%04x seq=%04x "
 		"A1=%02x:%02x:%02x:%02x:%02x:%02x A2=%02x:%02x:%02x:%02x:%02x:%02x}\n",
 		WLCWLUNIT(wlc), ltoh16(h->fc), ltoh16(h->seq),
 		h->a1.octet[0], h->a1.octet[1], h->a1.octet[2],
 		h->a1.octet[3], h->a1.octet[4], h->a1.octet[5],
 		h->a2.octet[0], h->a2.octet[1], h->a2.octet[2],
 		h->a2.octet[3], h->a2.octet[4], h->a2.octet[5]));
-#endif
 }
 
 void wlc_log_unexpected_tx_frame_log_8023hdr(wlc_info_t *wlc, const struct ether_header *eh)
 {
 /* these messages are flooding console, need to find a better way for debugging than just printing (may be counters?) */
-#if 0
-	WL_ERROR(("Unexpected TX {if=wl%d "
+	WL_APSTA_TX(("Unexpected TX {if=wl%d "
 		"DST=%02x:%02x:%02x:%02x:%02x:%02x SRC=%02x:%02x:%02x:%02x:%02x:%02x}\n",
 		WLCWLUNIT(wlc),
 		eh->ether_dhost[0], eh->ether_dhost[1], eh->ether_dhost[2],
 		eh->ether_dhost[3], eh->ether_dhost[4], eh->ether_dhost[5],
 		eh->ether_shost[0], eh->ether_shost[1], eh->ether_shost[2],
 		eh->ether_shost[3], eh->ether_shost[4], eh->ether_shost[5]));
-#endif
 }

@@ -589,7 +589,8 @@ phy_ac_reg_cache_parse(phy_info_acphy_t *pi_ac, uint16 id, bool populate)
 	uint16 radioregs_afecal_20696_majorrev37[] = {
 		RADIO_REG_20696(pi, AFE_CFG1_OVR2, 0),
 		RADIO_REG_20696(pi, LPF_OVR1, 0),
-		RADIO_REG_20696(pi, LPF_OVR2, 0)
+		RADIO_REG_20696(pi, LPF_OVR2, 0),
+		RADIO_REG_20696(pi, LPF_REG7, 0)
 	};
 
 	uint16 phyregs_tempsense_vbat[] = {

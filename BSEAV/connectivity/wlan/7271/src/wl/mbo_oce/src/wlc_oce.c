@@ -147,6 +147,7 @@ typedef struct wlc_oce_cmn_info {
 	uint8 disable_oce_prb_req_rate;
 	uint8 fd_frame_count;
 	uint32 rnr_scan_period;	/* rnr scan timer period */
+	bool rnr_first_scan_done;
 	wlc_oce_opcls_chlist_t opcls_chlist[NO_OF_OPCLASS_CHLIST];
 } wlc_oce_cmn_info_t;
 
@@ -472,6 +473,7 @@ BCMATTACHFN(wlc_oce_attach)(wlc_info_t *wlc)
 		}
 		obj_registry_set(wlc->objr, OBJR_OCE_CMN_INFO, oce_cmn);
 
+		oce_cmn->rnr_first_scan_done = FALSE;
 		oce_cmn->probe_defer_time = OCE_PROBE_DEFFERAL_TIME;
 		oce_cmn->rssi_delta = OCE_DEF_RSSI_DELTA;
 		oce_cmn->fd_tx_period = FD_TX_PERIOD;
@@ -725,7 +727,7 @@ BCMATTACHFN(wlc_oce_attach)(wlc_info_t *wlc)
 		goto fail;
 	}
 
-	wlc->pub->cmn->_oce = TRUE;
+	wlc->pub->cmn->_oce = FALSE;
 	return oce;
 
 fail:
@@ -798,7 +800,22 @@ BCMATTACHFN(wlc_oce_detach)(wlc_oce_info_t* oce)
 static void
 wlc_oce_watchdog(void *ctx)
 {
+	wlc_oce_info_t *oce = (wlc_oce_info_t *)ctx;
+	wlc_bsscfg_t *bsscfg;
+	int i;
 
+	if (oce->oce_cmn_info->rnr_first_scan_done == FALSE && OCE_ENAB(oce->wlc->pub)) {
+		if (SCAN_IN_PROGRESS(oce->wlc->scan)) {
+			WL_OCE_INFO(("wl%d: %s: Scan in progress, skipping RNR first scan\n",
+				oce->wlc->pub->unit, __FUNCTION__));
+			return;
+		}
+		FOREACH_UP_AP(oce->wlc, i, bsscfg) {
+			oce->oce_cmn_info->rnr_first_scan_done = TRUE;
+			RNR_SCAN_ADD_TIMER(oce, RNR_SCAN_START_PERIOD);
+			break;
+		}
+	}
 }
 
 static int
@@ -811,9 +828,7 @@ wlc_oce_wlc_up(void *ctx)
 	if (!OCE_ENAB(oce->wlc->pub)) {
 		return BCME_OK;
 	}
-
-	/* let first scan happen as early as possible */
-	RNR_SCAN_ADD_TIMER(oce, RNR_SCAN_START_PERIOD);
+	oce->oce_cmn_info->rnr_first_scan_done = FALSE;
 	wlc_oce_set_bcn_rate(oce);
 #endif /* WL_OCE_AP */
 
@@ -3528,8 +3543,7 @@ wlc_oce_iov_set_enable(const bcm_iov_cmd_digest_t *dig, const uint8 *ibuf,
 		oce->oce_cmn_info->fd_tx_period = FD_TX_PERIOD;
 		oce->oce_cmn_info->rnr_scan_period = RNR_SCAN_PERIOD;
 		RNR_SCAN_DEL_TIMER(oce);
-		/* do the scan right away */
-		RNR_SCAN_ADD_TIMER(oce, RNR_SCAN_START_PERIOD);
+		oce->oce_cmn_info->rnr_first_scan_done = FALSE;
 	} else {
 		oce->oce_cmn_info->fd_tx_period = 0;
 		oce->oce_cmn_info->rnr_scan_period = 0;

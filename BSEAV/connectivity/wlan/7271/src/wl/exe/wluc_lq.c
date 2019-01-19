@@ -358,93 +358,220 @@ wl_chanim_acs_record(void *wl, cmd_t *cmd, char **argv)
 	return err;
 }
 
+static void
+wl_chanim_stats_us_print(void *ptr, uint32  req_count)
+{
+	wl_chanim_stats_us_t *list;
+	chanim_stats_us_t *stats_us;
+	list = (wl_chanim_stats_us_t*)ptr;
+
+	list->buflen = dtoh32(list->buflen);
+	list->count = dtoh32(list->count);
+
+	if (list->count == WL_CHANIM_COUNT_US_RESET) {
+		printf("Reset done\n");
+		return;
+	}
+	if (list->buflen == 0) {
+		list->count = 0;
+	}
+	if ((list->count == 1) && (req_count == WL_CHANIM_COUNT_US_ONE ||
+		req_count == WL_CHANIM_US_DUR_GET)) {
+		stats_us = list->stats_us;
+		stats_us->total_tm = htod32(stats_us->total_tm);
+		stats_us->busy_tm = htod32(stats_us->busy_tm);
+		stats_us->chanspec = htod16(stats_us->chanspec);
+		stats_us->rxcrs_pri20 = htod32(stats_us->rxcrs_pri20);
+		stats_us->rxcrs_sec20 = htod32(stats_us->rxcrs_sec20);
+		stats_us->rxcrs_sec40 = htod32(stats_us->rxcrs_sec40);
+
+		printf("chanspec    tx           inbss          obss           total_tm           "
+				"busy_tm           pri20            sec20          sec40\n");
+		printf("0x%4x\t", stats_us->chanspec);
+		printf("%10u\t%10u\t%10u\t%10u\t%10u\t%10u\t%10u\t%10u\t\n",
+				dtoh32(stats_us->ccastats_us[CCASTATS_TXDUR]),
+				dtoh32(stats_us->ccastats_us[CCASTATS_INBSS]), dtoh32(stats_us->ccastats_us[CCASTATS_OBSS]),
+				dtoh32(stats_us->total_tm), dtoh32(stats_us->busy_tm),
+				dtoh32(stats_us->rxcrs_pri20), dtoh32(stats_us->rxcrs_sec20),
+				dtoh32(stats_us->rxcrs_sec40));
+	} else if (list->count >= 1 && req_count == WL_CHANIM_COUNT_US_ALL) {
+		unsigned int i, j;
+		printf("CHAN Interference Measurement:\n");
+		printf("Stats during last scan:\n");
+		for (i = 0; i < list->count; i++) {
+			printf("%-10s  %-10s  %-10s  %-10s  %-10s  %-10s  %-10s  %-10s"
+				"  %-10s  %-10s  %-10s  %-10s\n",
+				"chanspec", "tx", "inbss", "obss", "nocat", "nopkt",
+				"doze", "txop", "goodtx", "badtx",  "total_tm", "busy_tm");
+			printf("0x%-8x  ", list->stats_us[i].chanspec);
+
+			for (j = 0; j < CCASTATS_MAX; j++) {
+				printf("%-10u  ", list->stats_us[i].ccastats_us[j]);
+			}
+			printf("%-10u  %-10u\n", list->stats_us[i].total_tm,
+					list->stats_us[i].rxcrs_pri20);
+		}
+	}
+
+	printf("\n");
+}
+
+static int wl_chanim_stats_us_dur(void *wl, cmd_t *cmd, char **argv)
+{
+	int err;
+	wl_chanim_stats_us_t param_us;
+	void *ptr;
+
+	argv++;
+	if (*argv != NULL) {
+		param_us.dur = atoi(*argv);
+		param_us.count = htod32(WL_CHANIM_US_DUR);
+	} else {
+		param_us.count = htod32(WL_CHANIM_US_DUR_GET);
+	}
+
+	param_us.buflen = htod32(sizeof(wl_chanim_stats_us_t));
+	if ((err = wlu_var_getbuf(wl, cmd->name, &param_us, sizeof(wl_chanim_stats_us_t),
+			&ptr)) < 0) {
+		printf("failed to get chanim results\n");
+	}
+	wl_chanim_stats_us_print(ptr, param_us.count);
+	return err;
+
+}
+
+
+static void
+wl_chanim_stats_print(void *ptr, uint32 count)
+{
+	wl_chanim_stats_t *list;
+	chanim_stats_t *stats;
+
+	list = (wl_chanim_stats_t*)ptr;
+
+	list->buflen = dtoh32(list->buflen);
+	list->version = dtoh32(list->version);
+	list->count = dtoh32(list->count);
+
+	printf("version: %d \n", list->version);
+
+	if (list->buflen == 0) {
+		list->version = 0;
+		list->count = 0;
+	} else if (list->version != WL_CHANIM_STATS_VERSION) {
+		printf("Sorry, your driver has wl_chanim_stats version %d "
+			"but this program supports only version %d.\n",
+				list->version, WL_CHANIM_STATS_VERSION);
+		list->buflen = 0;
+		list->count = 0;
+	}
+
+	if (list->count == 1 && count == WL_CHANIM_COUNT_ONE) {
+		unsigned int i;
+		stats = list->stats;
+		stats->glitchcnt = htod32(stats->glitchcnt);
+		stats->badplcp = htod32(stats->badplcp);
+		stats->chanspec = htod16(stats->chanspec);
+		stats->timestamp = htod32(stats->timestamp);
+
+		printf("chanspec tx   inbss   obss   nocat   nopkt   doze     txop     "
+			"goodtx  badtx   glitch   badplcp  knoise  idle  timestamp\n");
+		printf("0x%4x\t", stats->chanspec);
+			for (i = 0; i < CCASTATS_MAX; i++) {
+				printf("%d\t", stats->ccastats[i]);
+			}
+		printf("%d\t%d\t%d\t%d\t%d", dtoh32(stats->glitchcnt), dtoh32(stats->badplcp),
+			stats->bgnoise, stats->chan_idle, dtoh32(stats->timestamp));
+	} else if (list->count >= 1 && count == WL_CHANIM_COUNT_ALL) {
+		unsigned int i;
+		printf("CHAN Interference Measurement:\n");
+		printf("Stats during last scan:\n");
+		for (i = 0; i < list->count; i++) {
+			printf(" chanspec: 0x%x crsglitch cnt: %d bad plcp: %d noise: %d\n",
+					list->stats[i].chanspec, list->stats[i].glitchcnt,
+					list->stats[i].badplcp, list->stats[i].bgnoise);
+
+			printf("\t cca_txdur: %d cca_inbss: %d cca_obss:"
+					"%d cca_nocat: %d cca_nopkt: %d\n",
+					list->stats[i].ccastats[CCASTATS_TXDUR],
+					list->stats[i].ccastats[CCASTATS_INBSS],
+					list->stats[i].ccastats[CCASTATS_OBSS],
+					list->stats[i].ccastats[CCASTATS_NOCTG],
+					list->stats[i].ccastats[CCASTATS_NOPKT]);
+		}
+	}
+
+	printf("\n");
+}
+
 static int
 wl_chanim_stats(void *wl, cmd_t *cmd, char **argv)
 {
-	wl_chanim_stats_t *stats;
-	int stats_size;
-	int i, err;
+	int err;
+	wl_chanim_stats_t param;
 	void *ptr;
 
-	UNUSED_PARAMETER(argv);
+	argv++;
 
-	/* get fw chanim stats version */
-	stats_size = WL_CHANIM_STATS_FIXED_LEN +
-		MAX(sizeof(chanim_stats_t), sizeof(chanim_stats_v2_t));
-	stats = (wl_chanim_stats_t *)malloc(stats_size);
-	if (stats == NULL) {
-		fprintf(stderr, "memory alloc failure\n");
-		return BCME_NOMEM;
+	if (*argv != NULL) {
+		if (!strcmp(*argv, "us")) {
+			//wl_chanim_stats_t *list;
+			param.count = WL_CHANIM_READ_VERSION;
+			param.buflen = htod32(sizeof(wl_chanim_stats_t));
+			if ((err = wlu_var_getbuf(wl, cmd->name, &param,
+				sizeof(wl_chanim_stats_t), &ptr)) < 0) {
+				printf("failed to get chanim results");
+				return err;
+			}
+
+			//list = (wl_chanim_stats_t*)ptr;
+			//version = dtoh32(list->version);
+
+			argv++;
+			if (*argv != NULL) {
+				if (!strcmp(*argv, "all")) {
+					param.count = htod32(WL_CHANIM_COUNT_US_ALL);
+					param.buflen = htod32(WL_CHANIM_BUF_LEN);
+				} else if (!strcmp(*argv, "reset")) {
+					param.count = htod32(WL_CHANIM_COUNT_US_RESET);
+					param.buflen = 0;
+				} else if (!strcmp(*argv, "dur")) {
+					err = wl_chanim_stats_us_dur(wl, cmd, argv);
+						return err;
+				} else {
+					printf("Invalid option\n");
+					return 0;
+				}
+			} else {
+				param.count = htod32(WL_CHANIM_COUNT_US_ONE);
+				param.buflen = htod32(sizeof(wl_chanim_stats_us_t));
+			}
+
+			if ((err = wlu_var_getbuf(wl, cmd->name, &param,
+					sizeof(wl_chanim_stats_us_t), &ptr)) < 0) {
+				printf("failed to get chanim results\n");
+				return err;
+			}
+			wl_chanim_stats_us_print(ptr, param.count);
+			return 0;
+		} else if (!strcmp(*argv, "all")) {
+			param.buflen = htod32(sizeof(wl_chanim_stats_t)*28);
+			param.count = htod32(WL_CHANIM_COUNT_ALL);
+		} else {
+			printf("Invalid option\n");
+			return 0;
+		}
+	} else {
+		param.buflen = htod32(sizeof(wl_chanim_stats_t));
+		param.count = htod32(WL_CHANIM_COUNT_ONE);
 	}
-	memset(stats, 0, stats_size);
 
-	stats->buflen = htod32(stats_size);
-	if ((err = wlu_var_getbuf(wl, cmd->name, stats, stats_size, &ptr)) < 0) {
+	if ((err = wlu_var_getbuf(wl, cmd->name, &param,
+		sizeof(wl_chanim_stats_t), &ptr)) < 0) {
 		printf("failed to get chanim results");
-		free(stats);
 		return err;
 	}
-	memcpy(stats, ptr, stats_size);
 
-	stats->version = dtoh32(stats->version);
-	if (!((stats->version == WL_CHANIM_STATS_VERSION) ||
-		(stats->version == WL_CHANIM_STATS_V2))) {
-		printf("Sorry, your driver has wl_chanim_stats version %d "
-			"but this program supports only version %d and %d.\n",
-			stats->version, WL_CHANIM_STATS_V2, WL_CHANIM_STATS_VERSION);
-		free(stats);
-		return 0;
-	}
-
-	/* get fw chanim stats */
-	stats->buflen = htod32(stats_size);
-	stats->count = htod32(WL_CHANIM_COUNT_ONE);
-	if ((err = wlu_var_getbuf(wl, cmd->name, stats, stats_size, &ptr)) < 0) {
-		printf("failed to get chanim results");
-		free(stats);
-		return err;
-	}
-	memcpy(stats, ptr, stats_size);
-	stats->version = dtoh32(stats->version);
-	stats->buflen = dtoh32(stats->buflen);
-	stats->count = dtoh32(stats->count);
-
-	printf("version: %d \n", stats->version);
-
-	if (stats->version == WL_CHANIM_STATS_VERSION) {
-		chanim_stats_t *stats_v3 = (chanim_stats_t *)stats->stats;
-		stats_v3->glitchcnt = dtoh32(stats_v3->glitchcnt);
-		stats_v3->badplcp = dtoh32(stats_v3->badplcp);
-		stats_v3->chanspec = dtoh16(stats_v3->chanspec);
-		stats_v3->timestamp = dtoh32(stats_v3->timestamp);
-
-		printf("chanspec tx   inbss   obss   nocat   nopkt   doze     txop     "
-				"goodtx  badtx   glitch   badplcp  knoise  idle  timestamp\n");
-		printf("0x%4x\t", stats_v3->chanspec);
-		for (i = 0; i < CCASTATS_MAX; i++) {
-			printf("%d\t", stats_v3->ccastats[i]);
-		}
-		printf("%d\t%d\t%d\t%d\t%d", stats_v3->glitchcnt, stats_v3->badplcp,
-				stats_v3->bgnoise, stats_v3->chan_idle, stats_v3->timestamp);
-		printf("\n");
-	} else if (stats->version == WL_CHANIM_STATS_V2) {
-		chanim_stats_v2_t *stats_v2 = (chanim_stats_v2_t *)stats->stats;
-		stats_v2->glitchcnt = dtoh32(stats_v2->glitchcnt);
-		stats_v2->badplcp = dtoh32(stats_v2->badplcp);
-		stats_v2->chanspec = dtoh16(stats_v2->chanspec);
-		stats_v2->timestamp = dtoh32(stats_v2->timestamp);
-
-		printf("chanspec tx   inbss   obss   nocat   nopkt   doze     txop     "
-				"goodtx  badtx   glitch   badplcp  knoise  idle  timestamp\n");
-		printf("0x%4x\t", stats_v2->chanspec);
-		for (i = 0; i < CCASTATS_V2_MAX; i++) {
-			 printf("%d\t", stats_v2->ccastats[i]);
-		}
-		printf("%d\t%d\t%d\t%d\t%d", stats_v2->glitchcnt, stats_v2->badplcp,
-				stats_v2->bgnoise, stats_v2->chan_idle, stats_v2->timestamp);
-		printf("\n");
-	}
-
-	free(stats);
+	wl_chanim_stats_print(ptr, param.count);
 	return (err);
 }

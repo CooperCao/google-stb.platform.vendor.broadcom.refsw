@@ -89,6 +89,8 @@ extern void wlc_authresp_client(wlc_bsscfg_t *cfg,
 	struct dot11_management_header *hdr, uint8 *body, uint body_len, bool short_preamble);
 extern void wlc_assocresp_client(wlc_bsscfg_t *cfg, struct scb *scb,
 	struct dot11_management_header *hdr, uint8 *body, uint body_len);
+extern void wlc_process_assocresp_decision(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg,
+	assoc_decision_t * dc);
 extern void wlc_auth_tx_complete(wlc_info_t *wlc, uint txstatus, void *arg);
 extern void wlc_auth_complete(wlc_bsscfg_t *cfg, uint status, struct ether_addr *addr,
 	uint auth_status, uint auth_type);

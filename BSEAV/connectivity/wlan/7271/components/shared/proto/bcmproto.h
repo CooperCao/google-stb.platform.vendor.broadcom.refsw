@@ -33,7 +33,11 @@
 #include "vlan.h"
 #include "bcmtcp.h"
 /* copy from igsc.h */
-#define IGMP_HLEN			8
+#define IGMP_HLEN				8
+#define IGMPV2_TYPE_OFFSET                      0
+#define IGMPV2_GRP_ADDR_OFFSET                  4
+#define IGMPV2_HOST_MEMBERSHIP_REPORT           0x12
+#define IGMPV2_HOST_NEW_MEMBERSHIP_REPORT       0x16
 
 enum frame_l2_hdr {
 FRAME_L2_SNAP_H = 1,

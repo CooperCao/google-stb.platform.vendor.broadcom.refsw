@@ -529,8 +529,19 @@ struct cca_ucode_counts {
 #endif /* ISID_STATS */
 };
 
+typedef struct {
+	uint32 busy_tm;
+	uint32 ccastats_cnt[CCASTATS_MAX];
+	uint32 rxcrs_pri20;
+	uint32 rxcrs_sec20;             /* rx crs secondary 20 */
+	uint32 rxcrs_sec40;             /* rx crs secondary 40 */
+	uint32 rxcrs_sec80;             /* rx crs secondary 80 */
+	uint32 total_tm;
+	uint32 start_tm;
+} chanim_cnt_us_t;
 extern int wlc_bmac_cca_stats_read(wlc_hw_info_t *wlc_hw, cca_ucode_counts_t *cca_counts);
 extern int wlc_bmac_obss_stats_read(wlc_hw_info_t *wlc_hw, wlc_bmac_obss_counts_t *obss_counts);
+extern int wlc_bmaq_lq_stats_read(wlc_hw_info_t *wlc_hw, chanim_cnt_us_t *chanIm_cnt_us);
 extern uint32 wlc_bmac_cca_read_counter(wlc_hw_info_t* wlc_hw, int lo_off, int hi_off);
 extern uint32 wlc_bmac_read_counter(wlc_hw_info_t* wlc_hw, uint baseaddr, int lo_off, int hi_off);
 extern void wlc_bmac_antsel_set(wlc_hw_info_t *wlc_hw, uint32 antsel_avail);

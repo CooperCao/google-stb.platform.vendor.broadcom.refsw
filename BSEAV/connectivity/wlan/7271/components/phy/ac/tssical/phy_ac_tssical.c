@@ -1104,6 +1104,8 @@ wlc_phy_tssi_radio_setup_acphy_20696(phy_info_t *pi, uint8 for_iqcal)
 				iqcal2adc, 0x0);
 		MOD_RADIO_REG_20696(pi, IQCAL_CFG4, core,
 				auxpga2adc, 0x1);
+		MOD_RADIO_REG_20696(pi, IQCAL_CFG4, core,
+				loopback_biasadj, 0x7);
 
 		MOD_RADIO_REG_20696(pi, TESTBUF_OVR1, core,
 				ovr_testbuf_PU, 0x1);

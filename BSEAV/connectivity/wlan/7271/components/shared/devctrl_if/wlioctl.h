@@ -7,11 +7,11 @@
  * Definitions subject to change without notice.
  *
  * Copyright (C) 2017, Broadcom. All Rights Reserved.
- * 
+ *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
@@ -86,18 +86,39 @@ typedef struct wl_dfs_forced_params {
 #define WL_DFS_FORCED_PARAMS_MAX_SIZE \
 	WL_DFS_FORCED_PARAMS_FIXED_SIZE + (WL_NUMCHANNELS * sizeof(chanspec_t))
 
+#define WLC_DC_DWDS_DATA_LENGTH 1
+enum {
+	WL_ASSOC_DC_DWDS_DISABLE = 0,	/* DWDS disabled by user */
+	WL_ASSOC_DC_DWDS_ENABLE = 1		/* DWDS enabled by user */
+};
+
+enum wl_assoc_dc_type {
+	WLC_DC_DWDS,
+	WLC_DC_OTHER
+};
+
+typedef struct {
+	uint8 type;
+	uint8 len;
+	uint8 data[1];
+} wl_dc_tlv_t;
+
+typedef struct {
+	uint16 len;
+	wl_dc_tlv_t tlv[1];
+} wl_dc_info_t;
 /**association decision information */
 typedef struct {
-	uint8		assoc_approved;		/**< (re)association approved */
+	bool		assoc_approved;		/* (re)association approved */
 	uint8		reject_data;		/**< rejection data */
 	uint16		reject_reason;		/**< reason code for rejecting association */
 	struct		ether_addr   da;
-	uint8		pad1[6];
 #if 0 && (0>= 0x0620)
 	LARGE_INTEGER	sys_time;		/**< current system time */
 #else
 	int64		sys_time;		/**< current system time */
 #endif
+	wl_dc_info_t	dc_info;
 } assoc_decision_t;
 
 #define DFS_SCAN_S_IDLE		-1
@@ -110,11 +131,13 @@ typedef struct {
 
 
 #define ACTION_FRAME_SIZE 1800
+#define BCN_RQST_OPTIONAL_DATA 256
+#define RRM_IOVAR_VERSION 1
 
 typedef struct wl_action_frame {
-	struct ether_addr 	da;
-	uint16 			len;
-	ulong	 		packetId;
+	struct ether_addr	da;
+	uint16			len;
+	ulong			packetId;
 	uint8			data[ACTION_FRAME_SIZE];
 } wl_action_frame_t;
 
@@ -6616,6 +6639,17 @@ typedef struct chanim_stats {
 	uint8 chan_idle;                /**< normalized as 0~255 */
 } chanim_stats_t;
 
+typedef struct chanim_stats_us {
+	uint32 total_tm;                /* total time radio was actiave on channel */
+	uint32 busy_tm;                 /* time channel is busy reciveing traffic */
+	uint32 ccastats_us[CCASTATS_MAX];
+	uint32 rxcrs_pri20;             /* rx crs primary 20 */
+	uint32 rxcrs_sec20;             /* rx crs secondary 20 */
+	uint32 rxcrs_sec40;             /* rx crs secondary 40 */
+	uint32 rxcrs_sec80;             /* rx crs secondary 80 */
+	chanspec_t chanspec;            /* ctrl chanspec of the interface */
+} chanim_stats_us_t;
+
 typedef struct {
 	uint32 buflen;
 	uint32 version;
@@ -6624,8 +6658,19 @@ typedef struct {
 } wl_chanim_stats_v2_t;
 
 #define WL_CHANIM_STATS_V2_FIXED_LEN OFFSETOF(wl_chanim_stats_v2_t, stats)
+#define WL_CHANIM_BUF_LEN               (2*1024)
 
 #define WL_CHANIM_STATS_VERSION 3
+#define WL_CHANIM_STATS_US_VERSION      1
+#define WL_CHANIM_READ_VERSION		0x00
+#ifndef WL_CHANIM_COUNT_US_ONE
+#define WL_CHANIM_US_DUR                0xfa
+#define WL_CHANIM_US_DUR_GET            0xfb
+#define WL_CHANIM_COUNT_US_ONE          0xfc
+#define WL_CHANIM_COUNT_US_ALL          0xfd
+#define WL_CHANIM_COUNT_US_RESET        0xfe
+#endif /* WL_CHANIM_COUNT_US_ONE */
+
 typedef struct {
 	uint32 buflen;
 	uint32 version;
@@ -6633,7 +6678,17 @@ typedef struct {
 	chanim_stats_t stats[1];
 } wl_chanim_stats_t;
 
+typedef struct {
+	uint32 buflen;
+	uint32 version;
+	uint32 count;
+	uint32 dur;
+	chanim_stats_us_t stats_us[1];
+} wl_chanim_stats_us_t;
+
 #define WL_CHANIM_STATS_FIXED_LEN OFFSETOF(wl_chanim_stats_t, stats)
+#define WL_CHANIM_STATS_US_FIXED_LEN OFFSETOF(wl_chanim_stats_us_t, stats_us)
+
 
 /** Noise measurement metrics. */
 #define NOISE_MEASURE_KNOISE	0x1
@@ -10116,8 +10171,9 @@ typedef struct net_detect_wake_data {
 
 /* endif NET_DETECT */
 
-/* (unversioned, deprecated) */
 typedef struct bcnreq {
+	uint8 version;
+	uint16 len;
 	uint8 bcn_mode;
 	int32 dur;
 	int32 channel;
@@ -10125,6 +10181,11 @@ typedef struct bcnreq {
 	uint16 random_int;
 	wlc_ssid_t ssid;
 	uint16 reps;
+	uint8 opclass;	/* operating class */
+	uint8 padding1;	/* 4 byte alignment */
+	uint16 bcn_rqst_opt_data_len;	/* optional subelement bytes */
+	uint8 padding2[2];	/* 4 byte alignment */
+	uint8 data[BCN_RQST_OPTIONAL_DATA];
 } bcnreq_t;
 
 #define WL_RRM_BCN_REQ_VER		1
@@ -13421,7 +13482,7 @@ typedef struct wlc_btc_2gchain_dis {
 #define RXIQ_IRR_HIST_LENGTH  10
 typedef struct acphy_rxiq_irr_struct {
 	bool valid;
-	uint8 calrun;
+	uint16 calrun;
 	uint16 chanspec;
 	uint8 irr[4];
 }acphy_rxiq_irr_struct_t;

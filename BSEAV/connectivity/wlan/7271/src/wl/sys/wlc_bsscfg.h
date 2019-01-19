@@ -415,6 +415,9 @@ struct wlc_bsscfg {
 							 * regulatory class
 							 */
 #endif /* WL_GLOBAL_RCLASS */
+#ifdef IGMPREP_FILTER
+	bool			igmprep_filter_enable;	/* Filter IGMP membership report */
+#endif /* IGMPREP_FILTER */
 	/* ====== !!! ADD NEW FIELDS ABOVE HERE !!! ====== */
 
 #ifdef BCMDBG
@@ -476,6 +479,9 @@ struct wlc_bsscfg {
 #define WLC_BSSCFG_FL2_TBOW_ACTIVE  0x800  /* The flag is for TBOW Active on the BSS */
 #define WLC_BSSCFG_FL2_CSA_IN_PROGRESS 0x1000   /* The BSS is doing CSA */
 #define WLC_BSSCFG_FL2_BYPASS_DATA_ENC_DEC 0x4000 /* bypass encryption/decryption on awdl link */
+
+#define WLC_BSSCFG_FL2_SPLIT_ASSOC_REQ	0x8000	/* The BSS split assoc req into two parts */
+#define WLC_BSSCFG_FL2_SPLIT_ASSOC_RESP	0x10000	/* The BSS split assoc resp into two parts */
 
 #define BSSCFG_IS_MU(cfg)     (((cfg)->flags2 & WLC_BSSCFG_FL2_MU) != 0)
 #define BSSCFG_CLR_MU(cfg)    ((cfg)->flags2 &= ~WLC_BSSCFG_FL2_MU)
@@ -565,6 +571,9 @@ struct wlc_bsscfg {
 #define MAP_ENAB(cfg)	FALSE
 #endif	/* MULTIAP */
 
+#define SPLIT_ASSOC_REQ(cfg)	((cfg)->flags2 & WLC_BSSCFG_FL2_SPLIT_ASSOC_REQ)
+#define SPLIT_ASSOC_RESP(cfg)	((cfg)->flags2 & WLC_BSSCFG_FL2_SPLIT_ASSOC_RESP)
+
 #ifdef MCAST_REGEN
 #define MCAST_REGEN_ENAB(cfg)	((cfg)->mcast_regen_enable)
 #else
@@ -575,6 +584,12 @@ struct wlc_bsscfg {
 #define BSSCFG_IS_MODESW_BWSW(cfg)	(((cfg)->flags2 & WLC_BSSCFG_FL2_MODESW_BWSW) != 0)
 #else
 #define BSSCFG_IS_MODESW_BWSW(cfg)	FALSE
+#endif
+
+#ifdef IGMPREP_FILTER
+#define IGMPREP_FILTER_ENAB(cfg)	((cfg)->igmprep_filter_enable)
+#else
+#define IGMPREP_FILTER_ENAB(cfg)	FALSE
 #endif
 
 #ifdef WL_TBOW

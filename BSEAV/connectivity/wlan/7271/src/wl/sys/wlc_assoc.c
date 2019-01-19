@@ -5978,8 +5978,10 @@ wlc_assoc_change_state(wlc_bsscfg_t *cfg, uint newstate)
 			from_radar = (wlc_radar_chanspec(wlc->cmi,
 					cfg->current_bss->chanspec) == TRUE);
 			to_radar = wlc_radar_chanspec(wlc->cmi, bi->chanspec);
-			if (wlc_dfs_get_radar(wlc->dfs) && (!from_radar && to_radar)) {
-				cfg->pm->PM_oldvalue = cfg->pm->PM;
+			if (wlc_dfs_get_radar(wlc->dfs) && (to_radar)) {
+				if (!from_radar || (from_radar && (cfg->pm->PM != PM_OFF)))
+					cfg->pm->PM_oldvalue = cfg->pm->PM;
+
 				wlc_set_pm_mode(wlc, PM_OFF, cfg);
 				cfg->pm->PMmodeChangeDisabled = TRUE;
 				wlc->mpc = FALSE;
@@ -5999,8 +6001,10 @@ wlc_assoc_change_state(wlc_bsscfg_t *cfg, uint newstate)
 			from_radar = (wlc_radar_chanspec(wlc->cmi,
 					cfg->current_bss->chanspec) == TRUE);
 			to_radar = wlc_radar_chanspec(wlc->cmi, bi->chanspec);
-			if (wlc_dfs_get_radar(wlc->dfs) && ((!from_radar && to_radar))) {
-				cfg->pm->PM_oldvalue = cfg->pm->PM;
+			if (wlc_dfs_get_radar(wlc->dfs) && (to_radar)) {
+				if (!from_radar || (from_radar && (cfg->pm->PM != PM_OFF)))
+					cfg->pm->PM_oldvalue = cfg->pm->PM;
+
 				wlc_set_pm_mode(wlc, PM_OFF, cfg);
 				cfg->pm->PMmodeChangeDisabled = TRUE;
 				wlc->mpc = FALSE;
@@ -7658,6 +7662,137 @@ err:
 	return BCME_ERROR;
 } /* wlc_bss_list_expand */
 
+static void wlc_assocresp_client_next(wlc_info_t *wlc, wlc_bsscfg_t *cfg,
+	assoc_decision_t * assoc_decision, struct scb *scb);
+
+void wlc_process_assocresp_decision(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, assoc_decision_t *dc)
+{
+	wlc_assocresp_client_next(wlc, bsscfg, dc, NULL);
+}
+
+static void wlc_assocresp_client_next(wlc_info_t *wlc, wlc_bsscfg_t *cfg,
+	assoc_decision_t * dc, struct scb *scb)
+{
+	wlc_assoc_t *as = cfg->assoc;
+	wlc_bss_info_t *target_bss = cfg->target_bss;
+	uint16 status;
+#if defined(BCMDBG) || defined(BCMDBG_ERR) || defined(WLMSG_ASSOC)
+	char eabuf[ETHER_ADDR_STR_LEN], *da = bcm_ether_ntoa(&dc->da, eabuf);
+#endif // endif
+
+	scb = wlc_scbfind(wlc, cfg, &dc->da);
+	if (scb == NULL) {
+		WL_ERROR(("wl%d.%d %s could not find scb\n",
+			wlc->pub->unit, WLC_BSSCFG_IDX(cfg), da));
+		return;
+	}
+
+	status = (dc->assoc_approved == TRUE) ? DOT11_SC_SUCCESS : dc->reject_reason;
+
+	if (status != DOT11_SC_SUCCESS) {
+		wlc_assoc_complete(cfg, WLC_E_STATUS_FAIL, &target_bss->BSSID,
+			status, as->type != AS_ASSOCIATION,
+			WLC_DOT11_BSSTYPE(target_bss->infra));
+		return;
+	}
+
+#if defined(SPLIT_ASSOC)
+	if (SPLIT_ASSOC_RESP(cfg)) {
+#if defined(BCMDBG) || defined(WLMSG_ASSOC)
+		WL_ASSOC(("wl%d: %s: da(%s) systime(%u)\n",
+			wlc->pub->unit, __FUNCTION__, da, OSL_SYSUPTIME()));
+#endif // endif
+		wlc_assoc_dc_dispatch(wlc, cfg, dc, scb);
+	}
+#endif /* SPLIT_ASSOC */
+
+#ifdef EXT_STA
+	if (WLEXTSTA_ENAB(wlc->pub)) {
+		wlc_assoc_success(cfg, scb);
+
+		wlc_assoc_complete(cfg, WLC_E_STATUS_SUCCESS, &target_bss->BSSID,
+			status, as->type != AS_ASSOCIATION,
+			WLC_DOT11_BSSTYPE(target_bss->infra));
+	} else
+#endif /* EXT_STA */
+	{
+		wlc_assoc_complete(cfg, WLC_E_STATUS_SUCCESS, &target_bss->BSSID,
+			status, as->type != AS_ASSOCIATION,
+			WLC_DOT11_BSSTYPE(target_bss->infra));
+
+		wlc_assoc_success(cfg, scb);
+#ifdef PSTA
+		/* Enable PM if primary BSS is wlancoex STA interface */
+		if (PSTA_ENAB(wlc->pub) && wlc_wlancoex_on(wlc)) {
+			int force_pm = PM_MAX;
+			if (wlc_ioctl(wlc, WLC_SET_PM, (void *)&force_pm,
+				sizeof(int), cfg->wlcif))
+				WL_PSTA(("wl%d.%d: wlancoex sta entering to PM error\n",
+					WLCWLUNIT(wlc), WLC_BSSCFG_IDX(cfg)));
+		}
+#endif /* PSTA */
+#ifdef BCMCCX
+		if (CCX_ENAB(wlc->pub) && CCX_ASSOCIATION(wlc->ccx, cfg)) {
+#ifdef BCMSUP_PSK
+			if (SUP_ENAB(wlc->pub) &&
+				(BSS_SUP_TYPE(wlc->idsup, cfg) == SUP_UNUSED))
+#endif // endif
+			{
+				wlc_ccx_iapp_roam_rpt(wlc->ccx, cfg);
+			}
+		}
+#endif /* BCMCCX */
+	}
+
+	WL_ASSOC(("wl%d.%d: Checking if key needs to be inserted\n",
+	          WLCWLUNIT(wlc), WLC_BSSCFG_IDX(cfg)));
+	/* If Multi-SSID is enabled, and Legacy WEP is in use for this bsscfg,
+	 * a "pairwise" key must be created by copying the default key from the bsscfg.
+	 */
+
+	if (cfg->WPA_auth == WPA_AUTH_DISABLED)
+		WL_ASSOC(("wl%d: WPA disabled\n", WLCWLUNIT(wlc)));
+	if (WSEC_WEP_ENABLED(cfg->wsec))
+		WL_ASSOC(("wl%d: WEP enabled\n", WLCWLUNIT(wlc)));
+	if (MBSS_ENAB(wlc->pub))
+		WL_ASSOC(("wl%d: MBSS on\n", WLCWLUNIT(wlc)));
+	if ((MBSS_ENAB(wlc->pub) || PSTA_ENAB(wlc->pub) || cfg != wlc->cfg) &&
+	    cfg->WPA_auth == WPA_AUTH_DISABLED && WSEC_WEP_ENABLED(cfg->wsec)) {
+		wlc_key_t *key;
+		wlc_key_info_t key_info;
+		uint8 data[WEP128_KEY_SIZE];
+		size_t data_len;
+		wlc_key_algo_t algo;
+		int err;
+
+#ifdef PSTA
+		key = wlc_keymgmt_get_bss_tx_key(wlc->keymgmt,
+			(BSSCFG_PSTA(cfg) ? wlc_bsscfg_primary(wlc) : cfg), FALSE, &key_info);
+#else /* PSTA */
+		key = wlc_keymgmt_get_bss_tx_key(wlc->keymgmt, cfg, FALSE, &key_info);
+#endif /* PSTA */
+
+		algo = key_info.algo;
+		if (algo != CRYPTO_ALGO_OFF) {
+			WL_ASSOC(("wl%d: Def key installed\n", WLCWLUNIT(wlc)));
+			if (algo == CRYPTO_ALGO_WEP1 || algo == CRYPTO_ALGO_WEP128) {
+				wlc_key_t *bss_key;
+
+				WL_ASSOC(("wl%d: Inserting key for %s\n", wlc->pub->unit, eabuf));
+				err = wlc_key_get_data(key, data, sizeof(data), &data_len);
+				if (err == BCME_OK) {
+					bss_key = wlc_keymgmt_get_key_by_addr(wlc->keymgmt,
+						cfg, &target_bss->BSSID, 0, NULL);
+					err = wlc_key_set_data(bss_key, algo, data, data_len);
+				}
+				if (err != BCME_OK)
+					WL_ERROR(("wl%d.%d: Error %d inserting key for bss %s\n",
+						WLCWLUNIT(wlc), WLC_BSSCFG_IDX(cfg), err, eabuf));
+			}
+		}
+	}
+}
+
 void
 wlc_assocresp_client(wlc_bsscfg_t *cfg, struct scb *scb,
 	struct dot11_management_header *hdr, uint8 *body, uint body_len)
@@ -7671,6 +7806,7 @@ wlc_assocresp_client(wlc_bsscfg_t *cfg, struct scb *scb,
 	wlc_iem_upp_t upp;
 	wlc_iem_ft_pparm_t ftpparm;
 	wlc_iem_pparm_t pparm;
+	assoc_decision_t decision;
 #if defined(BCMDBG) || defined(BCMDBG_ERR) || defined(WLMSG_ASSOC)
 	char eabuf[ETHER_ADDR_STR_LEN];
 
@@ -7791,74 +7927,26 @@ wlc_assocresp_client(wlc_bsscfg_t *cfg, struct scb *scb,
 
 	/* Association success */
 	cfg->AID = ltoh16(assoc->aid);
+	wlc->AID = cfg->AID;
 
-	wlc_assoc_success(cfg, scb);
+#if defined(SPLIT_ASSOC)
+	if (SPLIT_ASSOC_RESP(cfg)) {
+		/* send event */
+		wlc_bss_mac_event(wlc, cfg, WLC_E_PRE_ASSOC_RSEP_IND,
+			&hdr->sa, WLC_E_STATUS_SUCCESS, status, 0, body, body_len);
+#if defined(BCMDBG) || defined(BCMDBG_ERR) || defined(WLMSG_ASSOC)
+		WL_ASSOC(("wl%d: %s: recv assoc resp from (%s) systime(%u)\n",
+			wlc->pub->unit, __FUNCTION__, eabuf, OSL_SYSUPTIME()));
+#endif // endif
+		return;
 
-	wlc_assoc_complete(cfg, WLC_E_STATUS_SUCCESS, &target_bss->BSSID,
-		status, as->type != AS_ASSOCIATION,
-		target_bss->bss_type);
-#ifdef BCMCCX
-	if (CCX_ENAB(wlc->pub) && CCX_ASSOCIATION(wlc->ccx, cfg)) {
-#ifdef BCMSUP_PSK
-		if (SUP_ENAB(wlc->pub) &&
-			(BSS_SUP_TYPE(wlc->idsup, cfg) == SUP_UNUSED))
-#endif
-		{
-			wlc_ccx_iapp_roam_rpt(wlc->ccx, cfg);
-		}
-	}
-#endif /* BCMCCX */
-
-	WL_ASSOC(("wl%d.%d: Checking if key needs to be inserted\n",
-	          WLCWLUNIT(wlc), WLC_BSSCFG_IDX(cfg)));
-	/* If Multi-SSID is enabled, and Legacy WEP is in use for this bsscfg,
-	 * a "pairwise" key must be created by copying the default key from the bsscfg.
-	 */
-
-	if (cfg->WPA_auth == WPA_AUTH_DISABLED)
-		WL_ASSOC(("wl%d: WPA disabled\n", WLCWLUNIT(wlc)));
-	if (WSEC_WEP_ENABLED(cfg->wsec))
-		WL_ASSOC(("wl%d: WEP enabled\n", WLCWLUNIT(wlc)));
-	if (MBSS_ENAB(wlc->pub))
-		WL_ASSOC(("wl%d: MBSS on\n", WLCWLUNIT(wlc)));
-	if ((MBSS_ENAB(wlc->pub) || PSTA_ENAB(wlc->pub) || cfg != wlc->cfg) &&
-	    cfg->WPA_auth == WPA_AUTH_DISABLED && WSEC_WEP_ENABLED(cfg->wsec)) {
-		wlc_key_t *key;
-		wlc_key_info_t key_info;
-		uint8 data[WEP128_KEY_SIZE];
-		size_t data_len;
-		wlc_key_algo_t algo;
-		int err;
-
-#ifdef PSTA
-		key = wlc_keymgmt_get_bss_tx_key(wlc->keymgmt,
-			(BSSCFG_PSTA(cfg) ? wlc_bsscfg_primary(wlc) : cfg), FALSE, &key_info);
-#else /* PSTA */
-		key = wlc_keymgmt_get_bss_tx_key(wlc->keymgmt, cfg, FALSE, &key_info);
-#endif /* PSTA */
-		BCM_REFERENCE(data_len);
-		BCM_REFERENCE(data);
-		BCM_REFERENCE(key);
-
-		algo = key_info.algo;
-		if (algo != CRYPTO_ALGO_OFF) {
-			WL_ASSOC(("wl%d: Def key installed\n", WLCWLUNIT(wlc)));
-			if (algo == CRYPTO_ALGO_WEP1 || algo == CRYPTO_ALGO_WEP128) {
-				wlc_key_t *bss_key;
-				BCM_REFERENCE(bss_key);
-				WL_ASSOC(("wl%d: Inserting key for %s\n", wlc->pub->unit, eabuf));
-				err = wlc_key_get_data(key, data, sizeof(data), &data_len);
-				if (err == BCME_OK) {
-					bss_key = wlc_keymgmt_get_key_by_addr(wlc->keymgmt,
-						cfg, &target_bss->BSSID, 0, NULL);
-					err = wlc_key_set_data(bss_key, algo, data, data_len);
-				}
-				if (err != BCME_OK)
-					WL_ASSOC_ERROR(("wl%d.%d: Error %d inserting key for"
-							"bss %s\n", WLCWLUNIT(wlc),
-							WLC_BSSCFG_IDX(cfg), err, eabuf));
-			}
-		}
+	} else
+#endif /* SPLIT_ASSOC */
+	{
+		decision.assoc_approved = (status == DOT11_SC_SUCCESS) ? TRUE : FALSE;
+		decision.reject_reason = (status == DOT11_SC_SUCCESS) ? 0 : status;
+		bcopy(&scb->ea, &decision.da, ETHER_ADDR_LEN);
+		wlc_assocresp_client_next(wlc, cfg, &decision, scb);
 	}
 } /* wlc_assocresp_client */
 

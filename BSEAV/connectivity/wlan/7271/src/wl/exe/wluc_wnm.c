@@ -185,10 +185,15 @@ static cmd_t wl_wnm_cmds[] = {
 	{ "wnm_bsstrans_req", wl_wnm_bsstrans_req, -1, WLC_SET_VAR,
 	"send BSS transition management request frame with BSS termination included bit set\n"
 	"\tUsage: wl wnm_bsstrans_req <reqmode> <tbtt> <dur> [unicast]\n"
+	"\t       wl wnm_bsstrans_req <reqmode> <disassoc timer> <sta_mac>\n"
 	"\treqmode: request mode of BSS transition request\n"
 	"\ttbtt: time of BSS to end of life, in unit of TBTT, max to 65535\n"
 	"\tdur: time of BSS to keep off, in unit of minute, max to 65535\n"
-	"\tunicast: [1|0] unicast or broadcast to notify STA in BSS.  Default in unicast."
+	"\tunicast: [1|0] unicast or broadcast to notify STA in BSS.  Default in unicast.\n"
+	"\tdisassoc timer: time after which sta will be disassociated, in unit of TBTT.\n"
+	"\tsta mac: mac address of sta to which bss transition request to be sent.\n"
+	"\tretry_delay: delay(seconds) for sta to again try join \n"
+	"\treason: reason for steering."
 	},
 	{ "wnm_keepalives_max_idle", wl_wnm_keepalives_max_idle, -1, -1,
 	"\tUsage: wl wnm_keepalives_max_idle <keepalives_per_bss_max_idle> <mkeepalive_index>"
@@ -1704,14 +1709,16 @@ wl_wnm_bsstrans_req_param(void *wl, cmd_t *cmd, char **argv)
 	memset(&bsstrans_req, 0, sizeof(bsstrans_req));
 	/* req mode parsing */
 	if (*++argv == NULL) {
-		ret = wlu_get(wl, cmd->get, &bsstrans_req, sizeof(bsstrans_req));
+		ret = wlu_get(wl, cmd->get, buf, WLC_IOCTL_MAXLEN);
 		if (ret < 0) {
-			fprintf(stderr, "%s error in get wnm_bsstrans_req_param \n", __FUNCTION__);
-			fprintf(stderr, "reqmode = %x \n", bsstrans_req.reqmode);
-			fprintf(stderr, "tbtt = %d \n", bsstrans_req.tbtt);
-			fprintf(stderr, "dur = %d \n", bsstrans_req.dur);
-			return ret;
+			fprintf(stderr, "%s error in get wnm_bsstrans_req_param\n", __FUNCTION__);
+		} else {
+			memcpy(&bsstrans_req, (wl_bsstrans_req_t *)buf, sizeof(bsstrans_req));
+			printf("reqmode = %x \n", bsstrans_req.reqmode);
+			printf("tbtt = %d \n", bsstrans_req.tbtt);
+			printf("dur = %d \n", bsstrans_req.dur);
 		}
+		return ret;
 	} else {
 		wl_wnm_fill_struct_bsstrans_req(&bsstrans_req, argv);
 		memcpy(&buf[buflen], &bsstrans_req, sizeof(bsstrans_req));

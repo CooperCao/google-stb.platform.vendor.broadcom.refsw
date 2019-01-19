@@ -121,6 +121,7 @@
 #define CMD_RSSI_ANT	"PHY_RSSI_ANT"
 #define CMD_MIMO_BW_CAP	"MIMO_BW_CAP"
 #define CMD_VER			"VER"
+#define CMD_PHY_NOISE	"phy_noise"
 #endif /* WL_NEWCFG_PRIVCMD_SUPPORT */
 
 #ifdef CUSTOMER_HW4_PRIVATE_CMD
@@ -5367,6 +5368,29 @@ static int wl_android_btc_set_iovar(
 	return error;
 }
 
+static int wl_android_get_ioctl(
+	struct net_device *dev, int ioctl, char *command, int total_len)
+{
+	int retry = IOCTL_RETRY_COUNT;
+	int value, err;
+	int bytes_written = -1;
+	while (retry--) {
+		value = -1;
+		err = wldev_ioctl_get(dev, ioctl, &value,sizeof(value));
+		if (err >=	0) {
+			break;
+		}
+		WL_DBG(("%s attempt = %d, err = %d, \n", command,
+			(IOCTL_RETRY_COUNT - retry), err));
+	}
+	if (retry <= 0) {
+		WL_ERR(("Get %s failed, error = %d\n", command, err));
+	} else {
+		bytes_written = snprintf(command, total_len, "%s %d",
+				command, value);
+	}
+	return bytes_written;
+}
 
 static int wl_android_get_iovar(
 	struct net_device *dev, char *iovar, char *command, int total_len, bool value)
@@ -5497,6 +5521,19 @@ wl_handle_private_cmd(struct net_device *net, char *command, u32 cmd_len)
 	else if (strnicmp(command, CMD_RXFILTER_REMOVE, strlen(CMD_RXFILTER_REMOVE)) == 0) {
 		int filter_num = *(command + strlen(CMD_RXFILTER_REMOVE) + 1) - '0';
 		bytes_written = net_os_rxfilter_add_remove(net, FALSE, filter_num);
+	}
+#else
+	else if (strnicmp(command, CMD_RXFILTER_START, strlen(CMD_RXFILTER_START)) == 0) {
+		bytes_written = scnprintf(command, sizeof("FAIL"), "FAIL");
+	}
+	else if (strnicmp(command, CMD_RXFILTER_STOP, strlen(CMD_RXFILTER_STOP)) == 0) {
+		bytes_written = scnprintf(command, sizeof("FAIL"), "FAIL");
+	}
+	else if (strnicmp(command, CMD_RXFILTER_ADD, strlen(CMD_RXFILTER_ADD)) == 0) {
+		bytes_written = scnprintf(command, sizeof("FAIL"), "FAIL");
+	}
+	else if (strnicmp(command, CMD_RXFILTER_REMOVE, strlen(CMD_RXFILTER_REMOVE)) == 0) {
+		bytes_written = scnprintf(command, sizeof("FAIL"), "FAIL");
 	}
 #endif /* PKT_FILTER_SUPPORT */
 	else if (strnicmp(command, CMD_BTCOEXSCAN_START, strlen(CMD_BTCOEXSCAN_START)) == 0) {
@@ -5677,6 +5714,8 @@ wl_handle_private_cmd(struct net_device *net, char *command, u32 cmd_len)
 		}
 	} else if (strnicmp(command, CMD_VER, strlen(CMD_VER)) == 0) {
 		bytes_written = wl_android_get_iovar(net, "ver", command, priv_cmd.total_len, false);
+	} else if (strnicmp(command, CMD_PHY_NOISE, strlen(CMD_PHY_NOISE)) == 0) {
+		bytes_written = wl_android_get_ioctl(net, WLC_GET_PHY_NOISE, command, priv_cmd.total_len);
 	}
 #endif /* WL_NEWCFG_PRIVCMD_SUPPORT */
 

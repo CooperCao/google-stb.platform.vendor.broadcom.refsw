@@ -692,7 +692,7 @@ wlc_stf_doiovar(void *hdl, uint32 actionid,
 			}
 #endif
 
-			if(wlc->chains_2g && (int_val & ~wlc->chains_2g)) {
+			if((CHSPEC_IS2G(wlc->chanspec)) && wlc->chains_2g && (int_val & ~wlc->chains_2g) ) {
 				WL_ERROR(("wl%d: -2glock- disallows rxchain %x\n", wlc->pub->unit, wlc->chains_2g));
 				return BCME_RANGE;
 			}

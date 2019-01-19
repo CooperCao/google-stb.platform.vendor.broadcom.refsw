@@ -616,6 +616,9 @@ extern const uint8 prio2fifo[];
 #define WLC_CHAN2SPEC(chan)	((chan) <= CH_MAX_2G_CHANNEL ? \
 	(uint16)((chan) | WL_CHANSPEC_BAND_2G) : (uint16)((chan) | WL_CHANSPEC_BAND_5G))
 
+#define WLC_DOT11_BSSTYPE(infra) ((infra) == 0 ? DOT11_BSSTYPE_INDEPENDENT : \
+	DOT11_BSSTYPE_INFRASTRUCTURE)
+
 /* wsec macros */
 #ifdef EXT_STA
 #define UCAST_NONE(prsn)	(((prsn)->ucount == 1) && \
@@ -875,6 +878,20 @@ typedef	struct modulecb {
 typedef struct modulecb_data {
 	void *hdl;		/**< Module Instance/Handle passed when 'doiovar' is called */
 } modulecb_data_t;
+
+typedef int (*wlc_assoc_dc_handle_fn_t)(void *handle,
+	wlc_bsscfg_t *cfg, void *arg, struct scb *scb);
+
+typedef struct wlc_dc_handle_s {
+	uint16	dc_type;
+	wlc_assoc_dc_handle_fn_t dc_handle_fn;
+} wlc_dc_handle_t;
+
+typedef struct wlc_assoc_dc_cb_s {
+	uint16	assoc_dc_type;		/* dc type */
+	wlc_assoc_dc_handle_fn_t assoc_dc_handle_fn;	/* dc handler */
+	struct wlc_assoc_dc_cb_s *next;
+} wlc_assoc_dc_cb_t;
 
 /** virtual interface */
 struct wlc_if {
@@ -1795,6 +1812,8 @@ struct wlc_info {
 	bool atm_perc; /* ATM percentage is enabled or not */
 #endif /* WLATM_PERC */
 	int chains_2g;
+	wlc_assoc_dc_cb_t	*assoc_dc_cb_head;	/* assoc decision callback */
+	uint16		AID;			/* association ID */
 	/* ====== !!! ADD NEW FIELDS ABOVE HERE !!! ====== */
 
 #ifdef BCMDBG
@@ -2766,4 +2785,12 @@ extern uint8 wlc_template_plcp_offset(wlc_info_t *wlc, ratespec_t rspec);
 bool wlc_update_multiap_ie(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg);
 void wlc_process_multiap_ie(wlc_info_t *wlc, struct scb *scb, multiap_ie_t *multiap_ie);
 #endif /* MULTIAP */
+#ifdef SPLIT_ASSOC
+extern int wlc_assoc_dc_handle_regisiter(wlc_pub_t *pub,
+	const wlc_dc_handle_t *dc_handle, int size);
+extern void wlc_assoc_dc_dispatch(wlc_info_t *wlc,
+	wlc_bsscfg_t *cfg, assoc_decision_t *dc, struct scb *scb);
+extern int wlc_assoc_dc_handle_deregisiter(wlc_pub_t *pub,
+	const wlc_dc_handle_t *dc_handle, int size);
+#endif // endif
 #endif	/* _wlc_h_ */

@@ -558,7 +558,7 @@ wlc_key_rx_mpdu(wlc_key_t *key, void *pkt, d11rxhdr_t *rxh)
 		}
 
 		pkt_info.status = err;
-		pkt_info.flags =  hwdec ? KEY_PKT_HWDEC : 0;
+		pkt_info.flags |=  hwdec ? KEY_PKT_HWDEC : 0;
 		pkt_info.flags |=  (KEY_PKT_PKTC_FIRST | KEY_PKT_PKTC_LAST);
 		if (WLPKTTAG(pkt)->flags & WLF_RX_PKTC_NOTFIRST)
 			pkt_info.flags &= ~KEY_PKT_PKTC_FIRST;

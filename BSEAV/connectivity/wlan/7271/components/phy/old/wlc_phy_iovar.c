@@ -37,6 +37,8 @@
 #include <wlc_phy_iovar.h>
 #include <phy_utils_pmu.h>
 #include <wlc_phy_n.h>
+#include <wlc_iocv.h>
+#include <phy_temp.h>
 
 #if defined(WLTEST) || defined(DBG_PHY_IOV) || defined(BCMDBG)
 static void wlc_phy_iovar_set_papd_offset(phy_info_t *pi, int16 int_val);
@@ -874,7 +876,16 @@ wlc_phy_cal_perical(wlc_phy_t *pih, uint8 reason)
 		if (temp->phycal_tempdelta && (ISNPHY(pi) || ISHTPHY(pi) || ISACPHY(pi))) {
 
 			int cal_chanspec = 0;
-			phy_temp_get_tempsense_degree(pi->tempi, &current_temp);
+			bool tempsense_disable = FALSE;
+
+			/* Call the tempsense function only if tempsense is disabled */
+		//	wlc_iovar_getint(wlc, "tempsense_disable", &tempsense_disable);
+			if (tempsense_disable == TRUE) {
+				phy_temp_get_tempsense_degree(pi->tempi, &current_temp);
+			}
+			else {
+				current_temp = phy_temp_get_cur_temp(pi->tempi);
+			}
 			if (ISNPHY(pi)) {
 				cal_chanspec = pi->cal_info->u.ncal.txiqlocal_chanspec;
 			} else if (ISHTPHY(pi)) {

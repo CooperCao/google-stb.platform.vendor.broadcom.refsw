@@ -43,9 +43,7 @@
 #include <wl_cfg80211.h>
 #include <wl_cfgp2p.h>
 #include <wldev_common.h>
-#ifdef OEM_ANDROID
 #include <wl_android.h>
-#endif
 #if defined(BCMDONGLEHOST)
 #include <dngl_stats.h>
 #include <dhd.h>
@@ -2405,11 +2403,7 @@ static int wl_cfgp2p_do_ioctl(struct net_device *net, struct ifreq *ifr, int cmd
 	 * For Android PRIV CMD handling map it to primary I/F
 	 */
 	if (cmd == SIOCDEVPRIVATE+1) {
-#if defined(OEM_ANDROID)
 		ret = wl_android_priv_cmd(ndev, ifr, cmd);
-#else
-	(void)ndev;
-#endif
 
 	} else {
 		CFGP2P_ERR(("%s: IOCTL req 0x%x on p2p0 I/F. Ignoring. \n",

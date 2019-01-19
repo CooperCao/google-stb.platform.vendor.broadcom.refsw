@@ -60,7 +60,7 @@ static cmd_t wl_rrm_cmds[] = {
 	{ "rrm_bcn_req", wl_rrm_bcn_req, -1, WLC_SET_VAR,
 	"send 11k beacon measurement request\n"
 	"\tUsage: wl rrm_bcn_req [bcn mode] [da] [duration] [random int] [channel] [ssid]"
-	" [repetitions]"},
+	" [repetitions] [opclass] [optional data]"},
 	{ "rrm_chload_req", wl_rrm_chload_req, -1, WLC_SET_VAR,
 	"send 11k channel load measurement request\n"
 	"\tUsage: wl rrm_chload_req [regulatory] [da] [duration] [random int] [channel]"
@@ -552,6 +552,10 @@ wl_rrm_bcn_req(void *wl, cmd_t *cmd, char **argv)
 	UNUSED_PARAMETER(cmd);
 	memset(&bcnreq_buf, 0, sizeof(bcnreq_t));
 
+	if (ARGCNT(argv) < 9) {
+		printf("Incorrect args provided\n");
+		return BCME_BADARG;
+	}
 	if (argv[1]) {
 		/* bcn mode: ACTIVE/PASSIVE/SCAN_CACHE */
 		mode = htod32(strtoul(argv[1], NULL, 0));
@@ -605,7 +609,30 @@ wl_rrm_bcn_req(void *wl, cmd_t *cmd, char **argv)
 	if (argv[7]) {
 		bcnreq_buf.reps = htod32(strtoul(argv[7], NULL, 0));
 	}
+	/* opclass */
+	if (argv[8]) {
+		bcnreq_buf.opclass = htod32(strtoul(argv[8], NULL, 0));
+	}
 
+	bcnreq_buf.version = RRM_IOVAR_VERSION;
+	bcnreq_buf.len = OFFSETOF(bcnreq_t, data);
+	/* Read optional subelement data */
+	if (argv[9]) {
+		bcnreq_buf.bcn_rqst_opt_data_len = htod16(strlen(argv[9])) / 2;
+		if (bcnreq_buf.bcn_rqst_opt_data_len) {
+			if (bcnreq_buf.bcn_rqst_opt_data_len < BCN_RQST_OPTIONAL_DATA) {
+				if ((err = get_ie_data ((uchar *)argv[9], &bcnreq_buf.data[0],
+						bcnreq_buf.bcn_rqst_opt_data_len))) {
+					printf("Error parsing data arg\n");
+					return BCME_BADARG;
+				}
+				bcnreq_buf.len += bcnreq_buf.bcn_rqst_opt_data_len;
+			} else {
+				printf("buffer too short \n");
+				return BCME_BUFTOOSHORT;
+			}
+		}
+	}
 	err = wlu_iovar_set(wl, cmdname, &bcnreq_buf, sizeof(bcnreq_buf));
 	return err;
 }
@@ -710,7 +737,7 @@ wl_rrm_nbr_list(void *wl, cmd_t *cmd, char **argv)
 		printf("reg %2d channel %3d phytype %d\n", nbr_elt->reg,
 			nbr_elt->channel, nbr_elt->phytype);
 
-		ptr += TLV_HDR_LEN + DOT11_NEIGHBOR_REP_IE_FIXED_LEN;
+		ptr += sizeof(nbr_element_t);
 	}
 
 	return err;
@@ -753,7 +780,7 @@ wl_rrm_nbr_add_nbr(void *wl, cmd_t *cmd, char **argv)
 	for (argc = 0; argv[argc]; argc++)
 		;
 
-	if (argc != 6)
+	if (argc != 7)
 		return BCME_USAGE_ERROR;
 
 	/* bssid */
@@ -766,18 +793,21 @@ wl_rrm_nbr_add_nbr(void *wl, cmd_t *cmd, char **argv)
 	nbr_elt.bssid_info = htod32(strtoul(argv[2], NULL, 0));
 
 	/* Regulatory class */
-	nbr_elt.reg = htod32(strtoul(argv[3], NULL, 0));
+	nbr_elt.reg = (uint8)(strtoul(argv[3], NULL, 0));
 
 	/* channel */
-	nbr_elt.channel = htod32(strtoul(argv[4], NULL, 0));
+	nbr_elt.channel = (uint8)(strtoul(argv[4], NULL, 0));
 
 	/* phytype */
-	nbr_elt.phytype = htod32(strtoul(argv[5], NULL, 0));
+	nbr_elt.phytype = (uint8)(strtoul(argv[5], NULL, 0));
+
+	/* preference */
+	nbr_elt.bss_trans_preference = (uint8)(strtoul(argv[6], NULL, 0));
 
 	nbr_elt.id = DOT11_MNG_NEIGHBOR_REP_ID;
 	nbr_elt.len = DOT11_NEIGHBOR_REP_IE_FIXED_LEN;
 
-	err = wlu_iovar_set(wl, cmdname, &nbr_elt, TLV_HDR_LEN + DOT11_NEIGHBOR_REP_IE_FIXED_LEN);
+	err = wlu_iovar_set(wl, cmdname, &nbr_elt, sizeof(nbr_elt));
 	return err;
 }
 

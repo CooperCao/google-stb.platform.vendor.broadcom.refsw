@@ -40,7 +40,7 @@
 
 /* high iovar table & dispatcher registry capacity */
 #ifndef WLC_IOVT_HIGH_REG_SZ
-#define WLC_IOVT_HIGH_REG_SZ 113
+#define WLC_IOVT_HIGH_REG_SZ 128
 #endif
 
 /* high ioctl table & dispatcher registry capacity */
