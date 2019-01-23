@@ -76,12 +76,12 @@ typedef struct {
 	wlc_bmac_obss_counts_t *curr_stats;
 	/* Cummulative stat counters */
 	wlc_bmac_obss_counts_t *total_stats;
-#if defined(BCMDBG) || defined(BCMDBG_DUMP)
+#if defined(BCMDBG) || defined(BCMDBG_DUMP) || defined(WL_SUPPORT_ACS)
 	/* For diagnostic measurements */
 	wlc_bmac_obss_counts_t *msrmnt_stored;
 	cca_stats_n_flags *results;
 	struct wl_timer *stats_timer;
-#endif
+#endif /* BCMDBG || BCMDBG_DUMP || WL_SUPPORT_ACS */
 	uint16 obss_inactivity;	/* # of secs of OBSS inactivity */
 	int8 mode;
 } wlc_prot_obss_info_priv_t;
@@ -98,11 +98,11 @@ typedef struct {
 	wlc_bmac_obss_counts_t curr_stats;
 	/* Cummulative stat counters */
 	wlc_bmac_obss_counts_t total_stats;
-#if defined(BCMDBG) || defined(BCMDBG_DUMP)
+#if defined(BCMDBG) || defined(BCMDBG_DUMP) || defined(WL_SUPPORT_ACS)
 	/* For diagnostic measurements */
 	wlc_bmac_obss_counts_t msrmnt_stored;
 	cca_stats_n_flags results;
-#endif
+#endif /* BCMDBG || BCMDBG_DUMP || WL_SUPPORT_ACS */
 } wlc_prot_obss_t;
 
 static uint16 wlc_prot_obss_info_priv_offset = OFFSETOF(wlc_prot_obss_t, priv);
@@ -122,12 +122,12 @@ static const bcm_iovar_t wlc_prot_obss_iovars[] = {
 	{"obss_dur", IOV_OBSS_DUR,
 	(0), 0, IOVT_UINT8, 0
 	},
-#endif 
-#if defined(BCMDBG) || defined(BCMDBG_DUMP)
+#endif
+#if defined(BCMDBG) || defined(BCMDBG_DUMP) || defined(WL_SUPPORT_ACS)
 	{"ccastats", IOV_CCASTATS,
 	(IOVF_GET_UP), 0, IOVT_BUFFER, sizeof(cca_stats_n_flags),
 	},
-#endif 
+#endif /* BCMDBG || BCMDBG_DUMP || WL_SUPPORT_ACS */
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -142,7 +142,7 @@ wlc_prot_obss_doiovar(void *hdl, uint32 actionid,
 	void *p, uint plen,
 	void *a, uint alen, uint val_size, struct wlc_if *wlcif);
 
-#if defined(BCMDBG) || defined(BCMDBG_DUMP)
+#if defined(BCMDBG) || defined(BCMDBG_DUMP) || defined(WL_SUPPORT_ACS)
 static int
 wlc_prot_obss_dump(wlc_prot_obss_info_t *prot, void *input, int buf_len, void *output);
 
@@ -151,7 +151,7 @@ wlc_prot_obss_stats_sample(wlc_prot_obss_info_t *prot, int duration);
 
 static void
 wlc_prot_obss_stats_timeout(void *arg);
-#endif
+#endif /* BCMDBG || BCMDBG_DUMP || WL_SUPPORT_ACS */
 
 static void
 wlc_prot_obss_enable(wlc_prot_obss_info_t *prot, bool enable);
@@ -168,7 +168,7 @@ wlc_prot_obss_watchdog(void *cntxt);
  */
 #include <wlc_patch.h>
 
-#if defined(BCMDBG) || defined(BCMDBG_DUMP)
+#if defined(BCMDBG) || defined(BCMDBG_DUMP) || defined(WL_SUPPORT_ACS)
 static void
 wlc_prot_obss_stats_sample(wlc_prot_obss_info_t *prot, int duration)
 {
@@ -235,7 +235,7 @@ wlc_prot_obss_stats_timeout(void *arg)
 	wlc_prot_obss_info_t *prot = (wlc_prot_obss_info_t *) arg;
 	wlc_prot_obss_stats_sample(prot, 0);
 }
-#endif 
+#endif /* BCMDBG || BCMDBG_DUMP || WL_SUPPORT_ACS */
 
 static void
 wlc_prot_obss_enable(wlc_prot_obss_info_t *prot, bool enable)
@@ -361,7 +361,7 @@ wlc_prot_obss_watchdog(void *cntxt)
 	}
 }
 
-#if defined(BCMDBG) || defined(BCMDBG_DUMP)
+#if defined(BCMDBG) || defined(BCMDBG_DUMP) || defined(WL_SUPPORT_ACS)
 static int
 wlc_prot_obss_dump(wlc_prot_obss_info_t *prot, void *input, int buf_len, void *output)
 {
@@ -395,7 +395,7 @@ wlc_prot_obss_dump(wlc_prot_obss_info_t *prot, void *input, int buf_len, void *o
 	}
 	return 0;
 }
-#endif 
+#endif /* BCMDBG || BCMDBG_DUMP || WL_SUPPORT_ACS */
 
 static int
 wlc_prot_obss_doiovar(void *hdl, uint32 actionid,
@@ -468,11 +468,11 @@ wlc_prot_obss_doiovar(void *hdl, uint32 actionid,
 	        priv->config->obss_dur_thres = (uint8) int_val;
 	        break;
 #endif /* BCMINTDBG */
-#if defined(BCMDBG) || defined(BCMDBG_DUMP)
+#if defined(BCMDBG) || defined(BCMDBG_DUMP) || defined(WL_SUPPORT_ACS)
 	case IOV_GVAL(IOV_CCASTATS):
 	        err = wlc_prot_obss_dump(prot, p, alen, a);
 		break;
-#endif 
+#endif /* BCMDBG || BCMDBG_DUMP || WL_SUPPORT_ACS */
 	default:
 		err = BCME_UNSUPPORTED;
 	}
@@ -502,7 +502,7 @@ BCMATTACHFN(wlc_prot_obss_attach)(wlc_info_t *wlc)
 	priv->prev_stats = &obss->prev_stats;
 	priv->curr_stats = &obss->curr_stats;
 	priv->total_stats = &obss->total_stats;
-#if defined(BCMDBG) || defined(BCMDBG_DUMP)
+#if defined(BCMDBG) || defined(BCMDBG_DUMP) || defined(WL_SUPPORT_ACS)
 	priv->msrmnt_stored = &obss->msrmnt_stored;
 	priv->results = &obss->results;
 	priv->stats_timer = wl_init_timer(wlc->wl, wlc_prot_obss_stats_timeout, prot, "obss_prot");
@@ -512,7 +512,7 @@ BCMATTACHFN(wlc_prot_obss_attach)(wlc_info_t *wlc)
 			wlc->pub->unit, __FUNCTION__));
 		goto fail;
 	}
-#endif 
+#endif /* BCMDBG || BCMDBG_DUMP || WL_SUPPORT_ACS */
 
 	if (D11REV_GE(wlc->pub->corerev, 40)) {
 		priv->config->obss_sec_rssi_lim0 = OBSS_SEC_RSSI_LIM0_DEFAULT;
@@ -548,9 +548,9 @@ BCMATTACHFN(wlc_prot_obss_detach)(wlc_prot_obss_info_t *prot)
 	wlc = priv->wlc;
 	wlc->pub->_prot_obss = FALSE;
 
-#if defined(BCMDBG) || defined(BCMDBG_DUMP)
+#if defined(BCMDBG) || defined(BCMDBG_DUMP) || defined(WL_SUPPORT_ACS)
 	wl_free_timer(wlc->wl, priv->stats_timer);
-#endif 
+#endif /* BCMDBG || BCMDBG_DUMP || WL_SUPPORT_ACS */
 	wlc_module_unregister(wlc->pub, "prot_obss", prot);
 	MFREE(wlc->osh, prot, WLC_PROT_OBSS_SIZE);
 }

@@ -43,7 +43,20 @@ else
 DEBUG_SUFFIX=release
 endif
 
+#WLAN_DRIVER_PATH used for BSEAV tools ie.  bmon,bysperf
+ifeq ($(NEXUS_PLATFORM),97271)
 B_WLAN_VER?=7271
+WLAN_DRIVER_PATH ?= $(B_REFSW_OBJ_ROOT)/BSEAV/connectivity/wlan/7271
+else ifeq ($(NEXUS_PLATFORM),97255)
+B_WLAN_VER?=43570
+WLAN_DRIVER_PATH ?= $(B_REFSW_OBJ_ROOT)/BSEAV/connectivity/wlan/43570/source/DHD_REL_1_363_110_86
+else ifeq ($(NEXUS_PLATFORM),97216)
+B_WLAN_VER?=4375
+WLAN_DRIVER_PATH ?= $(B_REFSW_OBJ_ROOT)/BSEAV/connectivity/wlan/4375/dhd
+else
+B_WLAN_VER =
+WLAN_DRIVER_PATH =
+endif
 
 ifneq ($(B_WLAN_VER),STB7271_BRANCH_15_10)
 endif

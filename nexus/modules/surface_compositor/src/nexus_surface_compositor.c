@@ -563,6 +563,39 @@ create_error:
     return rc;
 }
 
+static void nexus_surface_compositor_p_set_bypass_clip(NEXUS_SurfaceCompositorHandle server, NEXUS_SurfaceHandle surface)
+{
+    NEXUS_GraphicsSettings graphicsSettings;
+    unsigned w, h;
+
+    if (!server->display[0]) return;
+
+    if (surface) {
+        NEXUS_SurfaceStatus status;
+        NEXUS_Surface_GetStatus(surface, &status);
+        w = status.width;
+        h = status.height;
+    }
+    else {
+        w = server->settings.display[0].framebuffer.width;
+        h = server->settings.display[0].framebuffer.height;
+    }
+    NEXUS_Display_GetGraphicsSettings(server->display[0]->display, &graphicsSettings);
+    if (graphicsSettings.clip.width != w || graphicsSettings.clip.height != h) {
+        NEXUS_Error rc;
+        graphicsSettings.clip.width = w;
+        graphicsSettings.clip.height = h;
+        /* temporarily disable then reenable graphics, which clears the current fb which may
+        not match this clipping. */
+        graphicsSettings.enabled = false;
+        rc = NEXUS_Display_SetGraphicsSettings(server->display[0]->display, &graphicsSettings);
+        if (rc) rc = BERR_TRACE(rc);
+        graphicsSettings.enabled = true;
+        rc = NEXUS_Display_SetGraphicsSettings(server->display[0]->display, &graphicsSettings);
+        if (rc) rc = BERR_TRACE(rc);
+    }
+}
+
 /* In bypass mode, we dynamaically alloc/free the framebuffers. Bypass mode is usually for low bandwidth systems, which
 are also memory size systems. */
 NEXUS_Error nexus_surface_compositor_p_realloc_framebuffers(NEXUS_SurfaceCompositorHandle server)
@@ -584,6 +617,9 @@ NEXUS_Error nexus_surface_compositor_p_realloc_framebuffers(NEXUS_SurfaceComposi
             /* if we cannot alloc, system is in unusable state */
             rc = nexus_surface_compositor_p_alloc_framebuffers(cmpDisplay, &server->settings.display[i]);
             if (rc) return BERR_TRACE(rc);
+            if (i == 0) {
+                nexus_surface_compositor_p_set_bypass_clip(server, NULL);
+            }
         }
     }
     return NEXUS_SUCCESS;
@@ -1763,6 +1799,8 @@ static int nexus_surface_compositor_p_check_bypass(NEXUS_SurfaceCompositorHandle
             if (server->bypass_compose.set && !BLST_SQ_NEXT(e, link)) {
                 return 1; /* no BERR_TRACE */
             }
+
+            nexus_surface_compositor_p_set_bypass_clip(server, e->surface.surface);
         }
     }
 done:

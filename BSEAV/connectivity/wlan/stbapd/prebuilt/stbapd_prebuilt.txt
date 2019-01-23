@@ -1,0 +1,4 @@
+## Multi AP prebuilt binaries  Metadata v0.0.1
+## use: sha1sum at command line to get checksum
+## unique_key checksum_type checksum url
+stbapd_prebuilt.tar.gz sha1 fc6fae88b9bdae45b83415cd6844bd28df2958f5 http://git-irv-03.irv.broadcom.com:88/files/connectivity/wlan/stbapd_prebuilt/stbapd_prebuilt_STB7271_REL_15_30_41.tar.gz

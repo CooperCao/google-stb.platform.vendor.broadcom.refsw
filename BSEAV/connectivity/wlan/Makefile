@@ -234,18 +234,27 @@ else
     endif
 endif
 
+#External BCA chips
+ifneq (${B_WLAN_VER},7271)
+B_WLAN_EXTRA_INSTALL += ${B_WLAN_VER}_install
+B_WLAN_EXTRA_CLEAN += ${B_WLAN_VER}_clean
+else
 # Copy any updated files from the in-source tree to the out-of-source tree.
-$(info  Syncing WLAN Out-of-source tree...)
+$(info  Syncing WLAN Out-of-source tree  to ${B_WLAN_OOSRC_VER_DIR}...)
 a:=$(shell ${MKDIR} -p ${B_WLAN_OOSRC_VER_DIR} )
 a:=$(shell $(CP) -a -u  ${B_WLAN_INSRC_VER_DIR}/components   ${B_WLAN_OOSRC_VER_DIR} )
 a:=$(shell $(CP) -a -u  ${B_WLAN_INSRC_VER_DIR}/src   ${B_WLAN_OOSRC_VER_DIR} )
 a:=$(shell $(CP) -a -u  ${B_WLAN_INSRC_DIR}/utils   ${B_WLAN_OOSRC_DIR} )
+endif
+
+#STBAPD variables
 ifeq ($(B_WLAN_STBAPD),1)
 a:=$(shell $(CP) -a -u  ${B_WLAN_INSRC_DIR}/stbapd   ${B_WLAN_OOSRC_DIR} )
+$(info  copying open sources from ${B_WLAN_INSRC_DIR}/../../opensource to ${B_WLAN_OOSRC_DIR}/../../ )
+a:=$(shell $(CP) -a -u  ${B_WLAN_INSRC_DIR}/../../opensource  ${B_WLAN_OOSRC_DIR}/../../ )
 B_WLAN_EXTRA_INSTALL += stbapd_install
 B_WLAN_EXTRA_CLEAN += stbapd_clean
 B_WLAN_STBAPD_OOSRC_DIR:=${B_WLAN_OOSRC_DIR}/stbapd/router
-
 
 # alot of apps here should we list all the apps.
 export INSTALLDIR=${B_WLAN_OOSRC_DIR}/stbapd/router/src/router/${ARCH}-glibc/target
@@ -313,7 +322,7 @@ B_WLAN_NVRAM_INSRC_DIR?=$(B_WLAN_INSRC_VER_DIR)/components/nvram
 # Make a list of the various NVRAM files.
 B_WLAN_NVRAM_INSRC_PATH_LIST:=$(wildcard $(B_WLAN_NVRAM_INSRC_DIR)/*)
 ifeq ($(B_WLAN_NVRAM_INSRC_PATH_LIST),)
-    $(info *** Warning, cannot find NVRAM files in: "${B_WLAN_NVRAM_INSRC_DIR}".  Continuing anyway...)
+    $(info *** Message, cannot find NVRAM files in: "${B_WLAN_NVRAM_INSRC_DIR}".  Continuing anyway...)
 endif
 B_WLAN_NVRAM_RESULT_FILE_NAME_LIST:=$(foreach f,${B_WLAN_NVRAM_INSRC_PATH_LIST},$(notdir $f))
 
@@ -387,6 +396,8 @@ stbapd_apps_build:
 		echo "Error:B_WLAN_STBAPD=$(B_WLAN_STBAPD), must export to 1 if building for stbapd"; \
 		exit 1; \
 	fi
+	make -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/include
+	make -C ${B_WLAN_OOSRC_DIR}/../../opensource/ebtables
 	if [ -e "${B_WLAN_STBAPD_OOSRC_DIR}/components/opensource/jsonc" ]; then \
 		echo "================ autogen jsonc =========================="; \
 		echo "========= (cd ${B_WLAN_STBAPD_OOSRC_DIR}/components/opensource/jsonc && chmod 777 ./autogen.sh && ./autogen.sh CC=${ARCHTOOL}-gcc -host=${ARCH}-unknown-linux -build=x86_64-pc-linux-gnu STRIP=${ARCHTOOL}-strip LD=${ARCHTOOL}-ld --prefix=`pwd` ) ========="; \
@@ -419,6 +430,14 @@ stbapd_drv_build: stbapd_apps_build
 	make -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/dpsta SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}-
 
 	cat ${EMF_EXTRA_SYMBOLS} ${DPSTA_EXTRA_SYMBOLS} > ${KBUILD_EXTRA_SYMBOLS}
+	$(B_TRACE_RECIPE_END)
+
+#Submake for  BCA driver
+.PHONY: ${B_WLAN_VER}_build
+${B_WLAN_VER}_build:
+	$(B_TRACE_RECIPE_BEGIN)
+	@echo "[Submake... Unpackaging for ${(B_WLAN_VER} ]"
+	make -C ${WORKING_DIR}/${B_WLAN_VER}
 	$(B_TRACE_RECIPE_END)
 
 #  After submaking the driver and wl executable (via prerequisites), create a marker file.
@@ -611,20 +630,39 @@ stbapd_install: stbapd_drv_build
 		cp ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/emf/igs/obj-igs-${LINUXVER}/igs.ko  ${B_WLAN_STBAPD_INSTALL_PATH}/lib/modules/; \
 		cp ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/dpsta/obj-dpsta-${LINUXVER}/dpsta.ko  ${B_WLAN_STBAPD_INSTALL_PATH}/lib/modules/; \
 		$(CP) -r ${B_WLAN_STBAPD_INSTALL_PATH}/lib/* ${B_WLAN_STBAPD_INSTALL_PATH}/lib64;\
+		$(MKDIR) -p ${B_WLAN_STBAPD_INSTALL_PATH}/prebuilt;\
+		if [ -d ${B_WLAN_STBAPD_OOSRC_DIR}/components/apps/ieee1905/prebuilt ]; then \
+			$(CP) ${B_WLAN_STBAPD_OOSRC_DIR}/components/apps/ieee1905/prebuilt/* ${B_WLAN_STBAPD_INSTALL_PATH}/prebuilt; \
+		fi; \
+		if [ -d ${B_WLAN_STBAPD_OOSRC_DIR}/components/apps/wbd/prebuilt ]; then \
+			$(CP) ${B_WLAN_STBAPD_OOSRC_DIR}/components/apps/wbd/prebuilt/* ${B_WLAN_STBAPD_INSTALL_PATH}/prebuilt; \
+		fi; \
 	fi
 
 	$(B_TRACE_RECIPE_END)
 
+
+.PHONY: ${B_WLAN_VER}_install
+${B_WLAN_VER}_install: ${B_WLAN_VER}_build
+	$(B_TRACE_RECIPE_BEGIN)
+	@echo "Done. Unpacking ${B_WLAN_VER}"
+	$(B_TRACE_RECIPE_END)
 ###################################################################
 #  install target
 ###################################################################
 #  The "install" target just lists all of the installed files as its prerequisites.
 .PHONY: install
+ifeq (${B_WLAN_VER},)
+install:
+	$(info *** Warning, NO wifi chip designated for "${NEXUS_PLATFORM}". Check BSEAV/connectivity/wlan/wlan.inc for NEXUS_PLATFORM->B_WLAN_VER. Exit.)
+else ifneq (${B_WLAN_VER},7271)
+install: ${B_WLAN_EXTRA_INSTALL}
+else
 install: ${B_WLAN_EXTRA_INSTALL} ${B_WLAN_DRIVER_INSTALL_PATH_LIST} ${B_WLAN_WLPLAT_INSTALL_PATH_LIST} ${B_WLAN_WLEXE_INSTALL_PATH_LIST} ${B_WLAN_NVRAMEXE_INSTALL_PATH_LIST} ${B_WLAN_ENVRAM_INSTALL_PATH_LIST} ${B_WLAN_NVRAM_INSTALL_PATH_LIST} ${B_WLAN_UTILS_INSTALL_PATH_LIST} ${B_WLAN_IGS_INSTALL_PATH_LIST} ${B_WLAN_EMF_INSTALL_PATH_LIST}
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "Done."
 	$(B_TRACE_RECIPE_END)
-
+endif
 # The "driver" intended for Coverity just builds driver related files
 driver: build_wldriver
 	$(B_TRACE_RECIPE_BEGIN)
@@ -650,7 +688,17 @@ stbapd_clean:
 	$(Q_)$(RM) -rf ${B_WLAN_STBAPD_INSTALL_PATH}
 	$(B_TRACE_RECIPE_END)
 
+${B_WLAN_VER}_clean:
+	$(B_TRACE_RECIPE_BEGIN)
+	@echo "Cleaning ${B_WLAN_VER} package..."
+	$(Q_)$(MAKE) -C ${WORKING_DIR}/${B_WLAN_VER} clean
+	$(B_TRACE_RECIPE_END)
+
 .PHONY: clean
+ifeq (${B_WLAN_VER},)
+clean:
+	$(info *** Warning, NO wifi chip designated for "${NEXUS_PLATFORM}". Check BSEAV/connectivity/wlan/wlan.inc for NEXUS_PLATFORM->B_WLAN_VER. Exit.)
+else
 clean: ${B_WLAN_EXTRA_CLEAN}
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "Cleaning..."
@@ -658,7 +706,7 @@ clean: ${B_WLAN_EXTRA_CLEAN}
 	$(Q_)$(RM) -f ${B_WLAN_DRIVER_INSTALL_PATH_LIST} ${B_WLAN_WLPLAT_INSTALL_PATH_LIST} ${B_WLAN_WLEXE_INSTALL_PATH_LIST} ${B_WLAN_NVRAMEXE_INSTALL_PATH_LIST} ${B_WLAN_ENVRAM_INSTALL_PATH_LIST} ${B_WLAN_NVRAM_INSTALL_PATH_LIST} ${B_WLAN_UTILS_INSTALL_PATH_LIST} ${B_WLAN_IGS_INSTALL_PATH_LIST} ${B_WLAN_EMF_INSTALL_PATH_LIST}
 	$(Q_)$(MAKE) -C $(BSEAV_TOP)/connectivity/wlan/wakeonwlan clean
 	$(B_TRACE_RECIPE_END)
-
+endif
 
 #  Print out a list of make variables for debugging.
 ifeq (${B_WLAN_MAKEFILE_ENABLE_DEBUG},y)

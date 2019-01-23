@@ -914,7 +914,7 @@ wl_rsdb_block_netdev(struct wl_cmn_data *cmndata, uint unit)
 
 	// Allow Non-RSDB Chips to register always
 	if ((!cmndata->sih) || (si_numd11coreunits(cmndata->sih) <= 1)) {
-		return 0;
+	return 0;
 	}
 
 	var = getvar(NULL, "rsdb_mode");
@@ -938,6 +938,67 @@ wl_rsdb_block_netdev(struct wl_cmn_data *cmndata, uint unit)
 }
 #endif /* WLRSDB */
 #endif /* CONFIG_WL_MODULE && CONFIG_BCM47XX */
+
+static ssize_t wlver_proc_read(struct file *filp,char *buf, size_t count, loff_t *offp )
+{
+	size_t wlver_len;
+	int err;
+	wl_info_t * wl;
+
+	wl = (wl_info_t *)PDE_DATA(file_inode(filp));
+	wlver_len=strlen(wl->wlver);
+
+	/* wl_proc_read continues to get called until this condition met */
+	if ((size_t) (*offp) > wlver_len) {
+		return 0;
+	}
+
+	wlver_len = wlver_len + 1; /* +1 for \0 */
+
+	err = copy_to_user(buf, wl->wlver, wlver_len);
+	if (err) {
+		WL_ERROR(("Error copying entire data to user"));
+		return -1;
+	}
+
+	*offp = wlver_len;
+
+	return wlver_len;
+}
+
+struct file_operations wlver_proc_fops = {
+    .read = wlver_proc_read,
+};
+
+static int
+create_wlver_proc_entry(wl_info_t *wl)
+{
+	char wlver_proc_path[128];
+	wl->wlver_proc_entry = NULL;
+	memset(wl->wlver, 0, sizeof(wl->wlver));
+
+	(void)snprintf(wlver_proc_path, sizeof(wlver_proc_path), "wlver%d", wl->pub->unit);
+	(void)snprintf(wl->wlver, sizeof(wl->wlver), "%s\n%s\n", EPI_VERSION_TAG,BCMTARGETS);
+
+	wl->wlver_proc_entry = proc_create_data(wlver_proc_path, 0, NULL, &wlver_proc_fops, (void *)wl);
+
+	if (wl->wlver_proc_entry) {
+		return 0;
+	}
+
+	WL_ERROR(("failed proc_create_data"));
+	return -1;
+}
+
+static void
+remove_wlver_proc_entry(wl_info_t *wl)
+{
+	char wlver_proc_path[128];
+	if ((wl->wlver_proc_entry != NULL) && (wl->pub != NULL)) {
+		(void)snprintf(wlver_proc_path, sizeof(wlver_proc_path), "wlver%d", wl->pub->unit);
+		remove_proc_entry(wlver_proc_path, NULL);
+	}
+}
 
 /**
  * attach to the WL device.
@@ -1235,6 +1296,10 @@ wl_attach(uint16 vendor, uint16 device, ulong regs,
 
 	if (wlc_iovar_setint(wl->wlc, "pay_decode_war", FALSE)) {
 		WL_ERROR(("wl%d: Error setting pay_decode_war variable to FALSE\n", unit));
+	}
+
+	if(create_wlver_proc_entry(wl)) {
+		WL_ERROR(("wl%d: Error creating wlver proc entry\n", unit));
 	}
 
 #if defined(CONFIG_PROC_FS)
@@ -2333,6 +2398,9 @@ wl_free(wl_info_t *wl)
 
 	/* free common resources */
 	if (wl->wlc) {
+		/* removing wlver proc entry */
+		remove_wlver_proc_entry(wl);
+
 #if defined(CONFIG_PROC_FS)
 		if ((wl->proc_entry != NULL) && (wl->pub != NULL)) {
 			/* remove /proc/net/wl<unit> */

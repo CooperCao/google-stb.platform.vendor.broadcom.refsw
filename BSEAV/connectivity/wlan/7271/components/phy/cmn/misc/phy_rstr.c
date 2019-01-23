@@ -498,7 +498,6 @@ const char BCMATTACHDATA(rstr_spurcan_spfreq)[] = "spurcan_sp_freq_KHz";
 const char BCMATTACHDATA(rstr_spurcan_numspur)[] = "spurcan_NumSpur";
 
 const char BCMATTACHDATA(rstr_vcotune)[] = "vcotune";
-const char BCMATTACHDATA(rstr_lowcmen)[] = "lowcmen";
 
 #ifdef WLC_SW_DIVERSITY
 const char BCMATTACHDATA(rstr_swdiv_en)[] = "swdiv_en";

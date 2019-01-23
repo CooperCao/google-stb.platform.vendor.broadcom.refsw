@@ -43,4 +43,5 @@ typedef struct {
  */
 phy_txcore_temp_t *phy_temp_get_st(phy_temp_info_t *ti);
 
+int phy_temp_get_cur_temp(phy_temp_info_t *ti);
 #endif /* _phy_temp_st_ */

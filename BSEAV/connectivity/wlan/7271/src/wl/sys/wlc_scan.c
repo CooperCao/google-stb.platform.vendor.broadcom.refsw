@@ -2755,6 +2755,10 @@ wlc_scan_chnsw_clbk(void* handler_ctxt, wlc_msch_cb_info_t *cb_info)
 			else {
 				scan_info->state = WLC_SCAN_STATE_COMPLETE;
 				WLC_SCAN_ADD_TIMER(scan_info, 0, 0);
+#ifdef WLCHANIM
+				/* update chanim_stats for the last scanned channel */
+				wlc_lq_chanim_update(wlc, cb_info->chanspec, CHANIM_CHANSPEC);
+#endif /* WLCHANIM */
 			}
 			break;
 		}

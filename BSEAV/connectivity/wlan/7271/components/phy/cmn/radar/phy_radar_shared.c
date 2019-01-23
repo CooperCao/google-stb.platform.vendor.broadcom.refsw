@@ -1144,6 +1144,12 @@ phy_radar_detect_fcc5(const phy_info_t *pi,
 		valid_lp = valid_lp &&(deltat <= (int32) rparams->max_deltat_lp ||
 			deltat >= (int32) rparams->radar_args.min_burst_intv_lp);
 
+		if (valid_lp) {
+			rt_status->intv[(rlpt->lp_length)%10] =
+				ABS((int32)(rt->pulses[i+1].interval - rt->pulses[i].interval));
+			rt_status->pw[(rlpt->lp_length)%10] = rt->pulses[i].pw;
+			rt_status->fm[(rlpt->lp_length)%10] = rt->pulses[i].fm;
+		}
 		//Need to check notradar for bin5 radar detection of scan core
 		if (PHY_RADAR_FIFO_SUBBAND_FORMAT(pi)) {
 			if (sec_pll == FALSE && bw80_80_mode == FALSE) {

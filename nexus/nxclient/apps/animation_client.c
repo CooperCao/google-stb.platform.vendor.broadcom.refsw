@@ -97,6 +97,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     "  -secure\n"
     "  -compress                submit compressed surfaces\n"
     "  -timeout SECONDS\n"
+    "  -surface_size w,h\n"
     );
     nxapps_cmdline_print_usage(cmdline);
 }
@@ -200,6 +201,7 @@ int main(int argc, const char **argv)
     bool bypass = false;
     bool secure = false;
     bool compress = false;
+    unsigned w = 0, h = 0;
 
     srand(time(NULL));
     nxapps_cmdline_init(&cmdline);
@@ -252,6 +254,9 @@ int main(int argc, const char **argv)
         }
         else if (!strcmp(argv[curarg], "-secure")) {
             secure = true;
+        }
+        else if (!strcmp(argv[curarg], "-surface_size") && argc>curarg+1) {
+            sscanf(argv[++curarg], "%u,%u", &w, &h);
         }
         else if ((n = nxapps_cmdline_parse(curarg, argc, argv, &cmdline))) {
             if (n < 0) {
@@ -326,19 +331,25 @@ int main(int argc, const char **argv)
     BDBG_ASSERT(!rc);
 
     NEXUS_Surface_GetDefaultCreateSettings(&g_queue.surfaceCreateSettings);
+    g_queue.surfaceCreateSettings.width = w;
+    g_queue.surfaceCreateSettings.height = h;
 
     g_queue.surfaceCreateSettings.pixelFormat = compress?NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8:NEXUS_PixelFormat_eR5_G6_B5;
     if (bypass) {
-        NEXUS_SurfaceClientStatus status;
-        NEXUS_SurfaceClient_GetStatus(blit_client, &status);
-        g_queue.surfaceCreateSettings.width = status.display.framebuffer.width;
-        g_queue.surfaceCreateSettings.height = status.display.framebuffer.height;
+        if (!g_queue.surfaceCreateSettings.width) {
+            NEXUS_SurfaceClientStatus status;
+            NEXUS_SurfaceClient_GetStatus(blit_client, &status);
+            g_queue.surfaceCreateSettings.width = status.display.framebuffer.width;
+            g_queue.surfaceCreateSettings.height = status.display.framebuffer.height;
+        }
         g_queue.surfaceCreateSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
     }
     else {
+        g_queue.surfaceCreateSettings.heap = clientConfig.heap[NXCLIENT_SECONDARY_GRAPHICS_HEAP]; /* if NULL, will use NXCLIENT_DEFAULT_HEAP */
+    }
+    if (!g_queue.surfaceCreateSettings.width) {
         g_queue.surfaceCreateSettings.width = SURFACE_WIDTH;
         g_queue.surfaceCreateSettings.height = SURFACE_HEIGHT;
-        g_queue.surfaceCreateSettings.heap = clientConfig.heap[NXCLIENT_SECONDARY_GRAPHICS_HEAP]; /* if NULL, will use NXCLIENT_DEFAULT_HEAP */
     }
     if (secure) {
         g_queue.surfaceCreateSettings.heap = clientConfig.heap[NXCLIENT_SECURE_GRAPHICS_HEAP];

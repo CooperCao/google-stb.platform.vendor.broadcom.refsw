@@ -1905,6 +1905,8 @@ wlc_dfs_down(void *ctx)
 
 	/* cancel the radar timer */
 	if (dfs->dfs_cac.timer_running == TRUE) {
+		wlc_dfs_cacstate_idle_set(dfs);
+		dfs->dfs_cac.status.chanspec_cleared = 0;
 		if (!wlc_dfs_timer_delete(dfs))
 			callback = 1;
 		dfs->dfs_cac_enabled = FALSE;
@@ -3661,6 +3663,13 @@ wlc_dfs_set_radar(wlc_dfs_info_t *dfs, int radar)
 					"as chanspec (0x%x) is not a DFS channel\n",
 					wlc->pub->unit, __FUNCTION__, chanspec));
 			return BCME_BADCHAN;
+		}
+
+		if (BSSCFG_STA (wlc->cfg)&& (!(WL11H_STA_ENAB(wlc) && SLVRADAR_ENAB(wlc->pub)) || cfg == NULL)){
+			WL_DFS(("wl%d: %s rejecting one shot radar simulation "
+					"slave radar is not enabled.\n",
+					wlc->pub->unit, __FUNCTION__));
+			return BCME_UNSUPPORTED;
 		}
 
 		wlc_11h_set_spect_state(wlc->m11h, cfg, spec_state, spec_state);

@@ -101,3 +101,6 @@ WLBSSLOAD_REPORT=1
 
 # For ATM percentage
 WLATM_PERC=1
+
+# IGMP Report Filter
+IGMPREP_FILTER=1

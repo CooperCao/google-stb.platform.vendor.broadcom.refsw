@@ -22,6 +22,8 @@
 #include <phy_ac.h>
 #include <phy_rxiqcal.h>
 
+#define RXIQCAL_MAX_RETRIES   2   /* Maximum retry count for rxiqcal */
+
 /* forward declaration */
 typedef struct phy_ac_rxiqcal_info phy_ac_rxiqcal_info_t;
 
@@ -119,4 +121,5 @@ void phy_ac_rxiqcal_save_cache(phy_ac_rxiqcal_info_t *rxiqcali, ch_calcache_t *c
 #else
 void wlc_phy_scanroam_cache_rxcal_acphy(void *ctx, bool set);
 #endif
+void phy_ac_rxiqcal_diag_update(phy_info_t *pi, bool fail);
 #endif /* _phy_ac_rxiqcal_h_ */

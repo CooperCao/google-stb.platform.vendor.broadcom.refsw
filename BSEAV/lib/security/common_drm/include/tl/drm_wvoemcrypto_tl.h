@@ -266,6 +266,16 @@ typedef struct Drm_WVOemCryptoEncryptPattern_t {
   size_t offset;   /* (Ignore) offset into the pattern in blocks for this call. */
 } Drm_WVOemCryptoEncryptPattern_t;
 
+typedef enum Drm_WVOemCryptoHDCPCapability {
+  Drm_WVOemCryptoHDCPCapability_HDCP_NONE = 0,
+  Drm_WVOemCryptoHDCPCapability_HDCP_V1 = 1,
+  Drm_WVOemCryptoHDCPCapability_HDCP_V2 = 2,
+  Drm_WVOemCryptoHDCPCapability_HDCP_V2_1 = 3,
+  Drm_WVOemCryptoHDCPCapability_HDCP_V2_2 = 4,
+  Drm_WVOemCryptoHDCPCapability_HDCP_NO_DIGITAL_OUTPUT = 0xff
+
+} Drm_WVOemCryptoHDCPCapability;
+
 #define SAGE_WVKBOX_DEVID_LEN 32
 #define SAGE_WVKBOX_DEVKEY_LEN 16
 #define SAGE_WVKBOX_KEYDATA_LEN 72

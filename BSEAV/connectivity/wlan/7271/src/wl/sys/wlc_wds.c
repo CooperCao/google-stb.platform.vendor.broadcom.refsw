@@ -63,6 +63,9 @@
 #include <wlc_event_utils.h>
 #include <wlc_dump.h>
 #include <wlc_iocv.h>
+#if defined(SPLIT_ASSOC)
+#include <wlc_psta.h>
+#endif // endif
 #ifdef WLAMPDU
 #include <wlc_ampdu_cmn.h>
 #endif
@@ -123,11 +126,15 @@ static void wlc_ap_wds_probe(wlc_wds_info_t *mwds, struct scb *scb);
 #ifdef DWDS
 static int wlc_dwds_config(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, wlc_dwds_config_t *dwds);
 static void wlc_dwds_scb_state_upd(void *ctx, scb_state_upd_data_t *data);
-#endif /* DWDS */
+#if defined(SPLIT_ASSOC)
+static int wlc_dwds_dc_handle(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg,
+	void *arg, struct scb *scb);
+#endif /* SPLIT_ASSOC */
 
 static wlc_bsscfg_t* wlc_dwds_iface_create(void *if_module_ctx, wl_interface_create_t *if_buf,
 	wl_interface_info_t *wl_info, int32 *err);
 static int32 wlc_dwds_iface_remove(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg);
+#endif /* DWDS */
 
 #if defined(DPSTA) || defined(DWDS)
 static void wlc_dwds_mode_enable(wlc_info_t *wlc, struct scb *scb,
@@ -159,6 +166,9 @@ static int wlc_wds_parse_multiap_ie(void *ctx, wlc_iem_parse_data_t *data);
 #ifdef PSPRETEND
 #include <wlc_apps.h>
 #endif /* PSPRETEND */
+#if defined(PROP_TXSTATUS)
+#include <wlfc_proto.h>
+#endif /* PROP_TXSTATUS */
 
 /* PS listen interval (no of beacon intervals) for WDS SCB.
  * Used for PS pretend probing timeout also.
@@ -170,6 +180,12 @@ static int wlc_wds_parse_multiap_ie(void *ctx, wlc_iem_parse_data_t *data);
  * source file may reference private constants, types, variables, and functions).
  */
 #include <wlc_patch.h>
+
+#if defined(DWDS) && defined(SPLIT_ASSOC)
+static const wlc_dc_handle_t dwds_dc_handle[] = {
+	{WLC_DC_DWDS, (wlc_assoc_dc_handle_fn_t) wlc_dwds_dc_handle},
+};
+#endif // endif
 
 wlc_wds_info_t *
 BCMATTACHFN(wlc_wds_attach)(wlc_info_t *wlc)
@@ -235,6 +251,13 @@ BCMATTACHFN(wlc_wds_attach)(wlc_info_t *wlc)
 		goto fail;
 	}
 	}
+#if defined(SPLIT_ASSOC)
+	err = wlc_assoc_dc_handle_regisiter(wlc->pub, dwds_dc_handle, ARRAYSIZE(dwds_dc_handle));
+	if (err) {
+		WL_ERROR(("%s: wlc_assoc_dc_handle_regisiter err=%d\n", __FUNCTION__, err));
+		goto fail;
+	}
+#endif /* SPLIT_ASSOC */
 #endif /* DWDS */
 
 	if (wlc_scb_cubby_reserve(wlc, 0, NULL, wlc_wds_scb_deinit, NULL, mwds) < 0) {
@@ -289,8 +312,11 @@ BCMATTACHFN(wlc_wds_detach)(wlc_wds_info_t *mwds)
 		return;
 
 	wlc = mwds->wlc;
-#if defined(DWDS)
+#ifdef DWDS
 	wlc_scb_state_upd_unregister(wlc, wlc_dwds_scb_state_upd, (void*)wlc);
+#if defined(SPLIT_ASSOC)
+	wlc_assoc_dc_handle_deregisiter(wlc->pub, dwds_dc_handle, ARRAYSIZE(dwds_dc_handle));
+#endif /* SPLIT_ASSOC */
 #endif /* DWDS */
 	wlc_module_unregister(wlc->pub, "wds", mwds);
 
@@ -503,6 +529,15 @@ wlc_wds_ioctl(void *hdl, uint cmd, void *arg, uint len, struct wlc_if *wlcif)
 				bcmerror = BCME_NOMEM;
 				break;
 			}
+
+#ifdef PROP_TXSTATUS
+			if (wlc_scb_wlfc_entry_add(wlc, scb) == BCME_OK) {
+				WLFC_DBGMESG(("AP: MAC-ADD for "MACF" handle [%d] if:%d t_idx:%d\n",
+					ETHER_TO_MACF(scb->ea), scb->mac_address_handle,
+					((scb->bsscfg == NULL) ? 0 : scb->bsscfg->wlcif->index),
+					WLFC_MAC_DESC_GET_LOOKUP_INDEX(scb->mac_address_handle)));
+			}
+#endif /* PROP_TXSTATUS */
 
 			bcmerror = wlc_wds_create(wlc, scb, 0);
 			if (bcmerror) {
@@ -1337,6 +1372,37 @@ wlc_dwds_parse_brcm_ie(void *ctx, wlc_iem_parse_data_t *data)
 
 	return BCME_OK;
 }
+#if defined(SPLIT_ASSOC)
+static int
+wlc_dwds_dc_handle(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg,
+	void *arg, struct scb *scb)
+{
+
+	wl_dc_tlv_t *dc_ie = (wl_dc_tlv_t*) arg;
+
+	if (dc_ie->len != WLC_DC_DWDS_DATA_LENGTH)
+		return BCME_ERROR;
+
+	if (dc_ie->data[0] == WL_ASSOC_DC_DWDS_ENABLE) {
+		scb->flags3 |= SCB3_DWDS_CAP;
+	} else {
+#ifdef PSTA
+		/*
+		 * In case if driver has been dynamically switched
+		 * to DWDS mode from one of the PSTA mode then the
+		 * function below will restore that particular PSTA
+		 * mode back.
+		 */
+		wlc_psta_mode_update(wlc->psta, bsscfg, NULL,
+			PSTA_MODE_UPDATE_ACTION_RESTORE);
+#endif /* PSTA */
+		scb->flags3 &= ~SCB3_DWDS_CAP;
+	}
+
+	return BCME_OK;
+}
+#endif /* SPLIT_ASSOC */
+
 #endif /* DWDS */
 #ifdef MULTIAP
 /* VS: Multi-AP IE */

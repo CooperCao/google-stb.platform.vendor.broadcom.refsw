@@ -423,7 +423,7 @@ static void wlc_lq_monitor_dump(wlc_info_t *wlc, struct bcmstrbuf *b);
 #endif
 #endif /* WL_MONITOR && WLTEST */
 
-#ifdef WLCHANIM
+#ifndef WLCHANIM_DISABLED
 /* **** chanim **** */
 
 /* TODO: move chanim code out to a different file */
@@ -438,6 +438,16 @@ typedef struct {
 	uint32 bphy_glitch_cnt;
 	uint32 bphy_badplcp_cnt;
 } chanim_accum_t;
+
+typedef struct {
+	uint32 busy_tm;
+	uint32 ccastats_us[CCASTATS_MAX]; /* in microsecond */
+	uint32 rxcrs_pri20;             /* rx crs primary 20 */
+	uint32 rxcrs_sec20;             /* rx crs secondary 20 */
+	uint32 rxcrs_sec40;             /* rx crs secondary 40 */
+	uint32 rxcrs_sec80;             /* rx crs secondary 80 */
+	chanspec_t chanspec;
+} chanim_acc_us_t;
 
 /** basic count struct */
 typedef struct {
@@ -478,12 +488,22 @@ typedef struct wlc_chanim_stats {
 	bool is_valid;
 } wlc_chanim_stats_t;
 
+typedef struct wlc_chanim_stats_us {
+	struct wlc_chanim_stats_us *next;
+	chanim_stats_us_t chanim_stats_us;
+} wlc_chanim_stats_us_t;
+
+
 /* chanim module info struct */
 typedef struct chanim_interface_info {
 	struct chanim_interface_info *next;
 	chanim_accum_t accum;		/* accumulative counts */
 	wlc_chanim_stats_t *stats;	/* respective chspec stats wlc->chanim_info->stats */
 	chanspec_t chanspec;		/* chanspec of the interface */
+	chanim_acc_us_t acc_us;
+	chanim_acc_us_t last_acc_us;
+	wlc_chanim_stats_us_t *stats_us;
+	chanim_stats_us_t chanim_stats_us;
 } chanim_interface_info_t;
 
 struct chanim_info {
@@ -495,6 +515,9 @@ struct chanim_info {
 	wlc_info_t *wlc;
 	chanim_interface_info_t *ifaces;
 	chanim_interface_info_t *free_list;
+	wlc_chanim_stats_us_t *stats_us;
+	chanim_cnt_us_t last_cnt_us;       /* count from last read */
+	struct wl_timer *chanim_timer;     /* time to switch channel after last beacon */
 };
 
 #define chanim_mark(c_info)	(c_info)->mark
@@ -521,33 +544,45 @@ struct chanim_info {
 
 static bool wlc_lq_chanim_any_if_info_setup(chanim_interface_info_t *ifaces);
 
-#ifndef WLCHANIM_DISABLED
 static int wlc_lq_chanim_attach(wlc_info_t *wlc);
 static void wlc_lq_chanim_detach(wlc_info_t *wlc);
 static void wlc_chanim_mfree(osl_t *osh, chanim_info_t *c_info);
+static wlc_chanim_stats_us_t *wlc_lq_chanim_create_stats_us(wlc_info_t *wlc, chanspec_t chanspec);
+static int wlc_lq_chanim_get_stats_us(chanim_info_t *c_info, wl_chanim_stats_us_t* iob,
+	int *len, int count, uint32 dur);
+static wlc_chanim_stats_us_t *wlc_lq_chanim_find_stats_us(wlc_info_t *wlc, chanspec_t chanspec);
+static wlc_chanim_stats_us_t *wlc_lq_chanim_chanspec_to_stats_us(chanim_info_t *c_info,
+	chanspec_t chanspec);
+static void wlc_lq_chanim_insert_stats_us(wlc_chanim_stats_us_t **rootp,
+	wlc_chanim_stats_us_t *new);
+static void wlc_lq_chanim_us_accum(chanim_info_t* c_info, chanim_cnt_us_t *cur_cnt_us, chanim_acc_us_t *acc_us);
+static void wlc_chanim_msec_timeout(void *arg);
 
 #if defined(BCMDBG_DUMP)
 static int wlc_dump_chanim(wlc_info_t *wlc, struct bcmstrbuf *b);
 #endif
-#endif /* WLCHANIM_DISABLED */
 
 static wlc_chanim_stats_t *wlc_lq_chanim_create_stats(wlc_info_t *wlc, chanspec_t chanspec);
 static int wlc_lq_chanim_get_stats(chanim_info_t *c_info, void *iob, int *len, int);
 static wlc_chanim_stats_t *wlc_lq_chanim_find_stats(wlc_info_t *wlc, chanspec_t chanspec);
 static int wlc_lq_chanim_get_acs_record(chanim_info_t *c_info, int buf_len, void *output);
 static void wlc_lq_chanim_insert_stats(wlc_chanim_stats_t **rootp, wlc_chanim_stats_t *new);
-static void wlc_lq_chanim_meas(wlc_info_t *wlc, chanim_cnt_t *chanim_cnt);
+static void wlc_lq_chanim_meas(wlc_info_t *wlc, chanim_cnt_t *chanim_cnt,
+	chanim_cnt_us_t *chanim_cnt_us);
 static void wlc_lq_chanim_glitch_accum(chanim_info_t* c_info, chanim_cnt_t *cur_cnt,
 	chanim_accum_t *acc);
 static void wlc_lq_chanim_badplcp_accum(chanim_info_t* c_info, chanim_cnt_t *cur_cnt,
 	chanim_accum_t *acc);
 static void wlc_lq_chanim_ccastats_accum(chanim_info_t* c_info, chanim_cnt_t *cur_cnt,
 	chanim_accum_t *acc);
-static void wlc_lq_chanim_accum(wlc_info_t* wlc, chanspec_t chanspec, chanim_accum_t *acc);
-static void wlc_lq_chanim_clear_acc(wlc_info_t* wlc, chanim_accum_t* acc);
-static int8 wlc_lq_chanim_phy_noise(wlc_info_t *wlc, chanspec_t chspec);
+static void wlc_lq_chanim_accum(wlc_info_t* wlc, chanspec_t chanspec, chanim_accum_t *acc,
+	chanim_acc_us_t *acc_us);
+static void wlc_lq_chanim_clear_acc(wlc_info_t* wlc, chanim_accum_t* acc, chanim_acc_us_t* acc_us,
+	bool chan_switch);
+static int8 wlc_lq_chanim_phy_noise(wlc_info_t *wlc, chanspec_t chanspec);
 static void wlc_lq_chanim_close(wlc_info_t* wlc, chanspec_t chanspec, chanim_accum_t* acc,
-	wlc_chanim_stats_t *cur_stats);
+	wlc_chanim_stats_t *cur_stats, chanim_acc_us_t *acc_us,
+	wlc_chanim_stats_us_t *cur_stats_us, bool chan_switch);
 static bool wlc_lq_chanim_interfered_glitch(wlc_chanim_stats_t *stats, uint32 thres);
 static bool wlc_lq_chanim_interfered_cca(wlc_chanim_stats_t *stats, uint32 thres);
 static bool wlc_lq_chanim_interfered_noise(wlc_chanim_stats_t *stats, int8 thres);
@@ -560,7 +595,7 @@ static wlc_chanim_stats_t *wlc_lq_chanim_chanspec_to_stats(chanim_info_t *c_info
 static int wlc_lq_chanim_display(wlc_info_t *wlc, chanspec_t chanspec,
 	wlc_chanim_stats_t *cur_stats);
 #endif
-#endif /* WLCHANIM */
+#endif /* WLCHANIM_DISABLED */
 
 #ifdef WLCQ
 static int wlc_lq_channel_qa_start(wlc_info_t *wlc);
@@ -1189,23 +1224,56 @@ wlc_lq_doiovar(void *hdl, uint32 actionid,
 		break;
 
 	case IOV_GVAL(IOV_CHANIM_STATS): {
-		wl_chanim_stats_t input = *((wl_chanim_stats_t *)p);
-		void *iob = a;
 		int buflen;
+		wl_chanim_stats_t input = *((wl_chanim_stats_t *)p);
 
-		if ((uint)alen < WL_CHANIM_STATS_FIXED_LEN) {
-			err = BCME_BUFTOOSHORT;
-			break;
+		if (input.count == WL_CHANIM_COUNT_ONE || input.count == WL_CHANIM_COUNT_ALL ||
+			input.count == WL_CHANIM_READ_VERSION) {
+			wl_chanim_stats_t *iob = (wl_chanim_stats_t*) a;
+
+			if (input.count == WL_CHANIM_READ_VERSION) {
+				iob->version = WL_CHANIM_STATS_VERSION;
+				iob->count = 0;
+				return err;
+			}
+
+			if ((uint)alen < WL_CHANIM_STATS_FIXED_LEN) {
+				err = BCME_BUFTOOSHORT;
+				break;
+			}
+
+			buflen = (int)input.buflen;
+
+			if ((uint)buflen < WL_CHANIM_STATS_FIXED_LEN) {
+				err = BCME_BUFTOOSHORT;
+				break;
+			}
+
+			err = wlc_lq_chanim_get_stats(wlc->chanim_info, iob, &buflen, input.count);
+		}else if (input.count == WL_CHANIM_COUNT_US_ONE ||
+				input.count == WL_CHANIM_COUNT_US_ALL ||
+				input.count == WL_CHANIM_COUNT_US_RESET ||
+				input.count == WL_CHANIM_US_DUR ||
+				input.count == WL_CHANIM_US_DUR_GET) {
+				wl_chanim_stats_us_t *iob = (wl_chanim_stats_us_t*) a;
+				wl_chanim_stats_us_t input_us = *((wl_chanim_stats_us_t *)p);
+				if (input.count != WL_CHANIM_COUNT_US_RESET) {
+					if ((uint)alen < WL_CHANIM_STATS_US_FIXED_LEN) {
+						err = BCME_BUFTOOSHORT;
+						break;
+					}
+					buflen = (int)input.buflen;
+					if ((uint)buflen < WL_CHANIM_STATS_US_FIXED_LEN) {
+						err = BCME_BUFTOOSHORT;
+						break;
+					}
+				}
+				err = wlc_lq_chanim_get_stats_us(wlc->chanim_info, iob,
+					&buflen, input.count, input_us.dur);
+			}
+		else {
+			err = BCME_UNSUPPORTED;
 		}
-
-		buflen = (int)input.buflen;
-
-		if ((uint)buflen < WL_CHANIM_STATS_FIXED_LEN) {
-			err = BCME_BUFTOOSHORT;
-			break;
-		}
-
-		err = wlc_lq_chanim_get_stats(wlc->chanim_info, iob, &buflen, input.count);
 		break;
 	}
 #endif /* WLCHANIM */
@@ -2729,6 +2797,32 @@ wlc_lq_chanim_create_stats(wlc_info_t *wlc, chanspec_t chanspec)
 	return new_stats;
 }
 
+static wlc_chanim_stats_us_t *
+wlc_lq_chanim_create_stats_us(wlc_info_t *wlc, chanspec_t chanspec)
+{
+	wlc_chanim_stats_us_t *new_stats = NULL;
+	chanspec_t ctl_chanspec;
+
+	/* if the chanspec passed is malformed or Zero avoid allocation of memory */
+	if (chanspec == 0 || wf_chspec_malformed(chanspec)) {
+		return NULL;
+	}
+
+	new_stats = (wlc_chanim_stats_us_t *) MALLOCZ(wlc->osh, sizeof(wlc_chanim_stats_us_t));
+
+	if (!new_stats) {
+		WL_ERROR(("wl%d: %s: out of memory %d bytes\n",
+			wlc->pub->unit, __FUNCTION__, (uint)sizeof(wlc_chanim_stats_us_t)));
+	}
+	else {
+		memset(new_stats, 0, sizeof(*new_stats));
+		ctl_chanspec = wf_chspec_ctlchspec(chanspec);
+		new_stats->chanim_stats_us.chanspec = ctl_chanspec;
+		new_stats->next = NULL;
+	}
+	return new_stats;
+}
+
 static void
 wlc_lq_chanim_insert_stats(wlc_chanim_stats_t **rootp, wlc_chanim_stats_t *new)
 {
@@ -2750,6 +2844,29 @@ wlc_lq_chanim_insert_stats(wlc_chanim_stats_t **rootp, wlc_chanim_stats_t *new)
 	else
 		previous->next = new;
 }
+static void
+wlc_lq_chanim_insert_stats_us(wlc_chanim_stats_us_t **rootp, wlc_chanim_stats_us_t *new)
+{
+	wlc_chanim_stats_us_t *curptr;
+	wlc_chanim_stats_us_t *previous;
+
+	curptr = *rootp;
+	previous = NULL;
+
+	while (curptr &&
+		(curptr->chanim_stats_us.chanspec < new->chanim_stats_us.chanspec)) {
+		previous = curptr;
+		curptr = curptr->next;
+	}
+	new->next = curptr;
+
+	if (previous == NULL) {
+		*rootp = new;
+	} else {
+		previous->next = new;
+	}
+}
+
 
 chanim_stats_t *
 wlc_lq_chanspec_to_chanim_stats(chanim_info_t *c_info, chanspec_t chanspec)
@@ -2783,6 +2900,31 @@ wlc_lq_chanim_chanspec_to_stats(chanim_info_t *c_info, chanspec_t chanspec)
 	return cur_stats;
 }
 
+static wlc_chanim_stats_us_t *
+wlc_lq_chanim_chanspec_to_stats_us(chanim_info_t *c_info, chanspec_t chanspec)
+{
+	chanspec_t ctl_chanspec;
+	wlc_chanim_stats_us_t *cur_stats_us = c_info->stats_us;
+	chanim_interface_info_t *if_info = NULL;
+
+	/* For quicker access, look in cache first. Otherwise, walk the list. */
+	if ((if_info = wlc_lq_chanim_if_info_find(c_info->ifaces, chanspec)) != NULL) {
+		if (if_info->stats_us != NULL &&
+				if_info->stats_us->chanim_stats_us.chanspec == chanspec) {
+			return if_info->stats_us;
+		}
+	}
+
+	ctl_chanspec = wf_chspec_ctlchspec(chanspec);
+	while (cur_stats_us) {
+		if (cur_stats_us->chanim_stats_us.chanspec == ctl_chanspec) {
+			return cur_stats_us;
+		}
+		cur_stats_us = cur_stats_us->next;
+	}
+	return cur_stats_us;
+}
+
 bool
 wlc_lq_chanim_stats_get(chanim_info_t *c_info, chanspec_t chanspec, chanim_stats_t *stats)
 {
@@ -2809,8 +2951,25 @@ wlc_lq_chanim_find_stats(wlc_info_t *wlc, chanspec_t chanspec)
 	return stats;
 }
 
+static wlc_chanim_stats_us_t *
+wlc_lq_chanim_find_stats_us(wlc_info_t *wlc, chanspec_t chanspec)
+{
+	wlc_chanim_stats_us_t *stats_us = NULL;
+	chanim_info_t *c_info = wlc->chanim_info;
+	stats_us = wlc_lq_chanim_chanspec_to_stats_us(c_info, chanspec);
+
+	if (!stats_us) {
+		stats_us = wlc_lq_chanim_create_stats_us(wlc, chanspec);
+		if (stats_us) {
+			wlc_lq_chanim_insert_stats_us(&c_info->stats_us, stats_us);
+		}
+	}
+
+	return stats_us;
+}
+
 static void
-wlc_lq_chanim_meas(wlc_info_t *wlc, chanim_cnt_t *chanim_cnt)
+wlc_lq_chanim_meas(wlc_info_t *wlc, chanim_cnt_t *chanim_cnt, chanim_cnt_us_t *chanim_cnt_us)
 {
 	uint16 rxcrsglitch = 0;
 	uint16 rxbadplcp = 0;
@@ -2832,6 +2991,9 @@ wlc_lq_chanim_meas(wlc_info_t *wlc, chanim_cnt_t *chanim_cnt)
 	chanim_cnt->bphy_badplcp_cnt = wlc_bmac_read_shm(wlc->hw,
 		MACSTAT_ADDR(wlc, MCSTOFF_BPHY_BADPLCP));
 
+	wlc_bmaq_lq_stats_read(wlc->hw, chanim_cnt_us);
+	chanim_cnt_us->busy_tm = 0;
+
 	for (i = 0; i < CCASTATS_MAX; i++) {
 #ifdef WLCHANIM_V2
 		if (i == CCASTATS_MYRX) {
@@ -2843,6 +3005,10 @@ wlc_lq_chanim_meas(wlc_info_t *wlc, chanim_cnt_t *chanim_cnt)
 		{
 			ccastats_cnt[i] =
 				wlc_bmac_cca_read_counter(wlc->hw, 4 * i, (4 * i + 2));
+			chanim_cnt_us->ccastats_cnt[i] =
+				wlc_bmac_cca_read_counter(wlc->hw, 4 * i, (4 * i + 2));
+			if (i > 0 && i <= 4)
+				chanim_cnt_us->busy_tm += chanim_cnt_us->ccastats_cnt[i];
 		}
 		chanim_cnt->ccastats_cnt[i] = ccastats_cnt[i];
 	}
@@ -2923,14 +3089,17 @@ wlc_lq_chanim_ccastats_accum(chanim_info_t* c_info, chanim_cnt_t *cur_cnt, chani
  * also, update the last
  */
 static void
-wlc_lq_chanim_accum(wlc_info_t* wlc, chanspec_t chanspec, chanim_accum_t *acc)
+wlc_lq_chanim_accum(wlc_info_t* wlc, chanspec_t chanspec, chanim_accum_t *acc,
+	chanim_acc_us_t *acc_us)
 {
 	chanim_info_t* c_info = wlc->chanim_info;
 	chanim_cnt_t cur_cnt, *last_cnt;
+	chanim_cnt_us_t cur_cnt_us;
+
 	uint interval = 0;
 
 	/* read the current measurement counters */
-	wlc_lq_chanim_meas(wlc, &cur_cnt);
+	wlc_lq_chanim_meas(wlc, &cur_cnt, &cur_cnt_us);
 
 	last_cnt = &c_info->last_cnt;
 	if (last_cnt->timestamp)
@@ -2941,13 +3110,50 @@ wlc_lq_chanim_accum(wlc_info_t* wlc, chanspec_t chanspec, chanim_accum_t *acc)
 	wlc_lq_chanim_badplcp_accum(c_info, &cur_cnt, acc);
 	wlc_lq_chanim_ccastats_accum(c_info, &cur_cnt, acc);
 
+	wlc_lq_chanim_us_accum(c_info, &cur_cnt_us, acc_us);
+	acc_us->chanspec = chanspec;
 	last_cnt->timestamp = cur_cnt.timestamp;
 	acc->stats_ms += interval;
 	acc->chanspec = chanspec;
 }
 
 static void
-wlc_lq_chanim_clear_acc(wlc_info_t* wlc, chanim_accum_t* acc)
+wlc_lq_chanim_us_accum(chanim_info_t* c_info, chanim_cnt_us_t *cur_cnt_us, chanim_acc_us_t *acc_us)
+{
+	int i;
+	uint32 ccastats_us_delta = 0;
+	chanim_cnt_us_t *last_cnt_us;
+
+	last_cnt_us = &c_info->last_cnt_us;
+
+	for (i = 0; i < CCASTATS_MAX; i++) {
+		if (last_cnt_us->ccastats_cnt[i] || acc_us->chanspec) {
+			ccastats_us_delta = cur_cnt_us->ccastats_cnt[i] -
+				last_cnt_us->ccastats_cnt[i];
+			acc_us->ccastats_us[i] += ccastats_us_delta;
+		}
+		last_cnt_us->ccastats_cnt[i] = cur_cnt_us->ccastats_cnt[i];
+	}
+	ccastats_us_delta = cur_cnt_us->busy_tm - last_cnt_us->busy_tm;
+	acc_us->busy_tm += ccastats_us_delta;
+	last_cnt_us->busy_tm =  cur_cnt_us->busy_tm;
+
+	ccastats_us_delta = cur_cnt_us->rxcrs_pri20 - last_cnt_us->rxcrs_pri20;
+	acc_us->rxcrs_pri20 += ccastats_us_delta;
+	last_cnt_us->rxcrs_pri20 =  cur_cnt_us->rxcrs_pri20;
+
+	ccastats_us_delta = cur_cnt_us->rxcrs_sec20 - last_cnt_us->rxcrs_sec20;
+	acc_us->rxcrs_sec20 += ccastats_us_delta;
+	last_cnt_us->rxcrs_sec20 =  cur_cnt_us->rxcrs_sec20;
+
+	ccastats_us_delta = cur_cnt_us->rxcrs_sec40 - last_cnt_us->rxcrs_sec40;
+	acc_us->rxcrs_sec40 += ccastats_us_delta;
+	last_cnt_us->rxcrs_sec40 =  cur_cnt_us->rxcrs_sec40;
+}
+
+static void
+wlc_lq_chanim_clear_acc(wlc_info_t* wlc, chanim_accum_t* acc, chanim_acc_us_t* acc_us,
+	bool chan_switch)
 {
 	int i;
 
@@ -2961,6 +3167,16 @@ wlc_lq_chanim_clear_acc(wlc_info_t* wlc, chanim_accum_t* acc)
 			acc->ccastats_us[i] = 0;
 
 		acc->stats_ms = 0;
+	}
+	if (acc_us && (chan_switch == TRUE)) {
+			acc_us->busy_tm = 0;
+			acc_us->rxcrs_pri20 = 0;
+			acc_us->rxcrs_sec20 = 0;
+			acc_us->rxcrs_sec40 = 0;
+
+			for (i = 0; i < CCASTATS_MAX; i++) {
+				acc_us->ccastats_us[i] = 0;
+			}
 	}
 }
 
@@ -3036,11 +3252,14 @@ wlc_lq_chanim_phy_noise(wlc_info_t *wlc, chanspec_t chanspec)
  */
 static void
 wlc_lq_chanim_close(wlc_info_t* wlc, chanspec_t chanspec, chanim_accum_t* acc,
-		wlc_chanim_stats_t *cur_stats)
+	wlc_chanim_stats_t *cur_stats, chanim_acc_us_t *acc_us,
+	wlc_chanim_stats_us_t *cur_stats_us, bool chan_switch)
 {
 	int i;
 	uint8 stats_frac = 0;
 	int32 aci_chan_vld_dur;
+	chanim_info_t* c_info = wlc->chanim_info;
+	chanim_cnt_us_t *last_cnt_us;
 	uint txop_us = 0;
 	uint slottime = APHY_SLOT_TIME;
 	uint txop = 0, txop_nom = 0;
@@ -3124,7 +3343,23 @@ wlc_lq_chanim_close(wlc_info_t* wlc, chanspec_t chanspec, chanim_accum_t* acc,
 	cur_stats->chanim_stats.bgnoise = wlc_lq_chanim_phy_noise(wlc, chanspec);
 
 	cur_stats->chanim_stats.timestamp = OSL_SYSUPTIME();
-	wlc_lq_chanim_clear_acc(wlc, acc);
+	last_cnt_us = &c_info->last_cnt_us;
+	cur_stats_us->chanim_stats_us.total_tm = ((OSL_SYSUPTIME() -
+		last_cnt_us->start_tm)*1000) +
+		last_cnt_us->total_tm;
+	cur_stats_us->chanim_stats_us.busy_tm = acc_us->busy_tm;
+
+	for (i = 0; i < CCASTATS_MAX; i++) {
+			cur_stats_us->chanim_stats_us.ccastats_us[i] = acc_us->ccastats_us[i];
+	}
+
+	cur_stats_us->chanim_stats_us.rxcrs_pri20 = acc_us->rxcrs_pri20;
+	cur_stats_us->chanim_stats_us.rxcrs_sec20 = acc_us->rxcrs_sec20;
+	cur_stats_us->chanim_stats_us.rxcrs_sec40 = acc_us->rxcrs_sec40;
+	if (chan_switch == TRUE) {
+		last_cnt_us->start_tm = 0;
+	}
+	wlc_lq_chanim_clear_acc(wlc, acc, acc_us, chan_switch);
 }
 
 #ifdef BCMDBG
@@ -3195,6 +3430,8 @@ wlc_lq_chanim_if_info_setup(chanim_info_t *c_info, chanspec_t chanspec)
 		if_info->stats = wlc_lq_chanim_find_stats(wlc, chanspec);
 		if_info->chanspec = chanspec;
 		ASSERT(if_info->stats != NULL);
+		if_info->stats_us = wlc_lq_chanim_find_stats_us(wlc, chanspec);
+		ASSERT(if_info->stats_us != NULL);
 	}
 
 	return if_info;
@@ -3276,15 +3513,20 @@ wlc_lq_chanim_if_switch_channels(wlc_info_t *wlc,
 	chanspec_t chanspec,
 	chanspec_t prev_chanspec)
 {
+	int i;
+	chanim_info_t* c_info = wlc->chanim_info;
+	chanim_cnt_us_t *last_cnt_us= &c_info->last_cnt_us;;
+
 	ASSERT(if_info != NULL);
 	/*
 	 * NOTE: the new chanspec is passed in because it will overwrite the chanspec field with
 	 * this value.
 	 */
-	wlc_lq_chanim_accum(wlc, chanspec, &if_info->accum);
+	wlc_lq_chanim_accum(wlc, chanspec, &if_info->accum, &if_info->acc_us);
 
 	/* Close the previous channel. */
-	wlc_lq_chanim_close(wlc, prev_chanspec, &if_info->accum, if_info->stats);
+	wlc_lq_chanim_close(wlc, prev_chanspec, &if_info->accum, if_info->stats,
+		&if_info->acc_us, if_info->stats_us, TRUE);
 #ifdef BCMDBG
 	if (wlc_lq_chanim_display(wlc, prev_chanspec, if_info->stats) != BCME_OK) {
 		WL_ERROR(("wl%d: %s: if_info->stats is NULL\n", wlc->pub->unit, __FUNCTION__));
@@ -3298,6 +3540,24 @@ wlc_lq_chanim_if_switch_channels(wlc_info_t *wlc,
 	if_info->stats = wlc_lq_chanim_find_stats(wlc, chanspec);
 
 	ASSERT(if_info->stats != NULL);
+
+	if_info->stats_us = wlc_lq_chanim_find_stats_us(wlc, chanspec);
+	ASSERT(if_info->stats_us != NULL);
+
+	/*
+	 * Since we are switching to new channel update  accumulated counter with new channel
+	 * stats
+	 */
+	last_cnt_us->start_tm = OSL_SYSUPTIME();
+	last_cnt_us->total_tm = if_info->stats_us->chanim_stats_us.total_tm;
+	if_info->acc_us.busy_tm = if_info->stats_us->chanim_stats_us.busy_tm;
+	if_info->acc_us.rxcrs_pri20 = if_info->stats_us->chanim_stats_us.rxcrs_pri20;
+	if_info->acc_us.rxcrs_sec20 = if_info->stats_us->chanim_stats_us.rxcrs_sec20;
+	if_info->acc_us.rxcrs_sec40 = if_info->stats_us->chanim_stats_us.rxcrs_sec40;
+	for (i = 0; i < CCASTATS_MAX; i++) {
+		if_info->acc_us.ccastats_us[i] = if_info->stats_us->chanim_stats_us.ccastats_us[i];
+	}
+	if_info->stats_us->chanim_stats_us.total_tm = 0;
 
 	/* Finally, update chanspec to reflect the new one. */
 	if_info->chanspec = chanspec;
@@ -3419,6 +3679,7 @@ BCMATTACHFN(wlc_lq_chanim_attach)(wlc_info_t *wlc)
 	c_info->config.scb_max_probe = CHANIM_SCB_MAX_PROBE;
 
 	c_info->stats = NULL;
+	c_info->stats_us = NULL;
 	c_info->wlc = wlc;
 
 	if_info = MALLOCZ(wlc->osh, sizeof(chanim_interface_info_t));
@@ -3439,7 +3700,18 @@ BCMATTACHFN(wlc_lq_chanim_attach)(wlc_info_t *wlc)
 	 */
 	if_info->chanspec = 0x1001;
 	if_info->stats = wlc_lq_chanim_find_stats(wlc, if_info->chanspec);
+	if_info->stats_us = wlc_lq_chanim_find_stats_us(wlc, if_info->chanspec);
+
+	c_info->last_cnt_us.start_tm = OSL_SYSUPTIME();
 	wlc->pub->_chanim = TRUE;
+
+	c_info->chanim_timer = wl_init_timer(wlc->wl, wlc_chanim_msec_timeout,
+			(void *)wlc, "chanim");
+	if (!c_info->chanim_timer) {
+		WL_ERROR(("wl%d: %s: wl_init_timer failed\n",
+				wlc->pub->unit, __FUNCTION__));
+		return BCME_NORESOURCE;
+	}
 	return BCME_OK;
 err:
 #ifdef WLCHANIM
@@ -3461,6 +3733,17 @@ BCMATTACHFN(wlc_chanim_mfree)(osl_t *osh, chanim_info_t *c_info)
 	}
 	c_info->stats = NULL;
 
+	{
+		wlc_chanim_stats_us_t *head_us = c_info->stats_us;
+		wlc_chanim_stats_us_t *cur_us;
+
+		while (head_us) {
+			cur_us = head_us;
+			head_us = head_us->next;
+			MFREE(osh, cur_us, sizeof(*cur_us));
+		}
+		c_info->stats_us = NULL;
+	}
 	MFREE(osh, c_info, sizeof(chanim_info_t));
 }
 
@@ -3560,12 +3843,13 @@ wlc_lq_chanim_update(wlc_info_t *wlc, chanspec_t chanspec, uint32 flags)
 			if (!wf_chspec_malformed(if_info->chanspec)) {
 				if (chanspec == if_info->chanspec) {
 					wlc_lq_chanim_accum(wlc, if_info->chanspec,
-						&if_info->accum);
+						&if_info->accum, &if_info->acc_us);
 				}
 
 				if ((wlc->pub->now % chanim_config(c_info).sample_period) == 0) {
 					wlc_lq_chanim_close(wlc, if_info->chanspec, &if_info->accum,
-							if_info->stats);
+							if_info->stats, &if_info->acc_us,
+						if_info->stats_us, FALSE);
 #ifdef BCMDBG
 					if (wlc_lq_chanim_display(wlc, if_info->chanspec,
 						if_info->stats) != BCME_OK)
@@ -3589,7 +3873,7 @@ wlc_lq_chanim_update(wlc_info_t *wlc, chanspec_t chanspec, uint32 flags)
 		} else {
 			if_info = wlc_lq_chanim_if_info_find(ifaces, chanspec);
 			if (if_info != NULL)
-				wlc_lq_chanim_accum(wlc, chanspec, &if_info->accum);
+				wlc_lq_chanim_accum(wlc, chanspec, &if_info->accum, &if_info->acc_us);
 		}
 	}
 	WL_TSLOG(wlc, __FUNCTION__, TS_EXIT, 0);
@@ -3605,7 +3889,7 @@ wlc_lq_chanim_acc_reset(wlc_info_t *wlc)
 	if_info = wlc_lq_chanim_if_info_find(c_info->ifaces, wlc->chanspec);
 
 	if (if_info != NULL) {
-		wlc_lq_chanim_clear_acc(wlc, &if_info->accum);
+		wlc_lq_chanim_clear_acc(wlc, &if_info->accum, &if_info->acc_us, TRUE);
 	}
 	bzero((char*)&c_info->last_cnt, sizeof(chanim_cnt_t));
 }
@@ -3809,18 +4093,10 @@ wlc_lq_chanim_get_stats(chanim_info_t *c_info, void *iob, int *len, int cnt)
 	int buflen = *len;
 	wlc_chanim_stats_t cur_stats;
 
-	/* For STBAPD, we convert chanim_stats from v3 structure to v2 structure */
-#ifdef STBAPD
-	wl_chanim_stats_v2_t *iob_stats = (wl_chanim_stats_v2_t *)iob;
-	iob_stats->version = WL_CHANIM_STATS_V2;
-	datalen = WL_CHANIM_STATS_V2_FIXED_LEN;
-	stats_size = sizeof(chanim_stats_v2_t);
-#else
 	wl_chanim_stats_t *iob_stats = (wl_chanim_stats_t *)iob;
 	iob_stats->version = WL_CHANIM_STATS_VERSION;
 	datalen = WL_CHANIM_STATS_FIXED_LEN;
 	stats_size = sizeof(chanim_stats_t);
-#endif /* STBAPD */
 
 	if (cnt == WL_CHANIM_COUNT_ALL)
 		stats = c_info->stats;
@@ -3878,6 +4154,162 @@ wlc_lq_chanim_get_stats(chanim_info_t *c_info, void *iob, int *len, int cnt)
 
 	return bcmerror;
 }
+
+static int
+wlc_lq_chanim_get_stats_us(chanim_info_t *c_info, wl_chanim_stats_us_t* iob,
+	int *len, int cnt, uint32 dur)
+{
+	uint32 count = 0;
+	uint32 datalen;
+	wlc_chanim_stats_us_t* stats_us = NULL;
+	int bcmerror = BCME_OK;
+	int buflen = *len;
+	int i;
+	wlc_chanim_stats_us_t cur_stats_us;
+	chanim_interface_info_t *if_info = c_info->ifaces;
+	datalen = WL_CHANIM_STATS_US_FIXED_LEN;
+
+	if (cnt == WL_CHANIM_COUNT_US_ALL) {
+		stats_us = c_info->stats_us;
+	} else if (cnt == WL_CHANIM_COUNT_US_ONE) {
+		/*
+		 * There are multiple i/f. To preserve original behavior, find the i/f that matches
+		 * home chanspec.
+		 */
+		while ((if_info = if_info->next)) {
+			if (c_info->wlc->home_chanspec == if_info->chanspec) {
+				cur_stats_us = *if_info->stats_us;
+				cur_stats_us.next = NULL;
+				stats_us = &cur_stats_us;
+				break;
+			}
+		}
+	} else if (cnt == WL_CHANIM_COUNT_US_RESET) {
+		int32 home_chspec_band = CHSPEC_BAND(c_info->wlc->home_chanspec);
+		chanim_cnt_us_t *last_cnt_us;
+
+		last_cnt_us = &c_info->last_cnt_us;
+		stats_us = c_info->stats_us;
+		while (stats_us) {
+			chanspec_t  chanspec_temp;
+			if (home_chspec_band == CHSPEC_BAND(stats_us->chanim_stats_us.chanspec)) {
+				while ((if_info = if_info->next)) {
+					if (c_info->wlc->home_chanspec == if_info->chanspec) {
+						{
+							if_info->acc_us.busy_tm = 0;
+							if_info->acc_us.rxcrs_pri20 = 0;
+							if_info->acc_us.rxcrs_sec20 = 0;
+							if_info->acc_us.rxcrs_sec40 = 0;
+
+							for (i = 0; i < CCASTATS_MAX; i++) {
+								if_info->acc_us.ccastats_us[i] = 0;
+							}
+						}
+						break;
+					}
+				}
+				chanspec_temp = stats_us->chanim_stats_us.chanspec;
+				bzero(&stats_us->chanim_stats_us, sizeof(chanim_stats_us_t));
+				stats_us->chanim_stats_us.chanspec = chanspec_temp;
+				last_cnt_us->start_tm = OSL_SYSUPTIME();
+				last_cnt_us->total_tm = 0;
+			}
+			stats_us = stats_us->next;
+		}
+		iob->count = WL_CHANIM_COUNT_US_RESET;
+		iob->version = WL_CHANIM_STATS_US_VERSION;
+		return bcmerror;
+	}else if (cnt == WL_CHANIM_US_DUR) {
+		while ((if_info = if_info->next)) {
+			if (c_info->wlc->home_chanspec == if_info->chanspec) {
+				bzero(&if_info->chanim_stats_us, sizeof(chanim_stats_us_t));
+				wlc_lq_chanim_accum(c_info->wlc, if_info->chanspec, &if_info->accum,
+					&if_info->acc_us);
+				if_info->chanim_stats_us.total_tm = dur * 1000;
+				if_info->chanim_stats_us.chanspec = if_info->chanspec;
+				bcopy(&if_info->acc_us, &if_info->last_acc_us,  sizeof(chanim_acc_us_t));
+				break;
+			}
+		}
+		wl_del_timer(c_info->wlc->wl, c_info->chanim_timer);
+		wl_add_timer(c_info->wlc->wl, c_info->chanim_timer, dur, 0);
+		iob->version = WL_CHANIM_STATS_US_VERSION;
+		return bcmerror;
+	} else if (cnt == WL_CHANIM_US_DUR_GET) {
+		while ((if_info = if_info->next)) {
+			if (c_info->wlc->home_chanspec == if_info->chanspec) {
+				bcopy(&if_info->chanim_stats_us, &iob->stats_us[count],
+						sizeof(chanim_stats_us_t));
+				count++;
+				datalen += sizeof(chanim_stats_us_t);
+				buflen -= sizeof(chanim_stats_us_t);
+				iob->count = count;
+				iob->buflen = datalen;
+				iob->version = WL_CHANIM_STATS_US_VERSION;
+				return bcmerror;
+			}
+		}
+	}
+
+	if (stats_us == NULL) {
+		memset(&iob->stats_us[0], 0, sizeof(chanim_stats_us_t));
+		count = 0;
+	} else {
+		int32 home_chspec_band = CHSPEC_BAND(c_info->wlc->home_chanspec);
+
+		while (stats_us) {
+			if (buflen < (int)sizeof(chanim_stats_us_t)) {
+				bcmerror = BCME_BUFTOOSHORT;
+				break;
+			}
+			if (home_chspec_band == CHSPEC_BAND(stats_us->chanim_stats_us.chanspec)) {
+				bcopy(&stats_us->chanim_stats_us, &iob->stats_us[count],
+					sizeof(chanim_stats_us_t));
+				count++;
+				datalen += sizeof(chanim_stats_us_t);
+				buflen -= sizeof(chanim_stats_us_t);
+			}
+
+			stats_us = stats_us->next;
+		}
+	}
+
+	iob->count = count;
+	iob->buflen = datalen;
+	iob->version = WL_CHANIM_STATS_US_VERSION;
+
+	return bcmerror;
+}
+
+static void wlc_chanim_msec_timeout(void *arg)
+{
+	wlc_info_t *wlc = (wlc_info_t *)arg;
+	chanim_info_t* c_info = wlc->chanim_info;
+	chanim_interface_info_t *if_info = c_info->ifaces;
+	int j;
+	while ((if_info = if_info->next)) {
+		if (c_info->wlc->home_chanspec == if_info->chanspec) {
+			wlc_lq_chanim_accum(c_info->wlc, if_info->chanspec, &if_info->accum,
+					&if_info->acc_us);
+			if_info->chanim_stats_us.chanspec = if_info->chanspec;
+			if_info->chanim_stats_us.busy_tm =
+					if_info->acc_us.busy_tm - if_info->last_acc_us.busy_tm;
+			for (j = 0; j < CCASTATS_MAX; j++) {
+				if_info->chanim_stats_us.ccastats_us[j]	=
+					if_info->acc_us.ccastats_us[j]-
+					if_info->last_acc_us.ccastats_us[j];
+			}
+			if_info->chanim_stats_us.rxcrs_pri20 = if_info->acc_us.rxcrs_pri20 -
+				if_info->last_acc_us.rxcrs_pri20;
+			if_info->chanim_stats_us.rxcrs_sec20 = if_info->acc_us.rxcrs_sec20 -
+				if_info->last_acc_us.rxcrs_sec20;
+			if_info->chanim_stats_us.rxcrs_sec40 = if_info->acc_us.rxcrs_sec40 -
+				if_info->last_acc_us.rxcrs_sec40;
+			break;
+		}
+	}
+}
+
 
 #ifdef APCS
 static bool

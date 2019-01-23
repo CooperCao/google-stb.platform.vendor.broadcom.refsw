@@ -54,6 +54,7 @@
 #include "nexus_random_number.h"
 #include "nexus_security.h"
 #include "nexus_base_mmap.h"
+#include "nexus_hdmi_output_hdcp.h"
 
 #if (NEXUS_SECURITY_API_VERSION==1)
 #include "nexus_otpmsp.h"
@@ -96,6 +97,17 @@ static uint32_t gKeySlotMaxAvail = 0;
 
 static uint32_t gLastHeaderLen = 0;
 static uint32_t gLastEntryLen = 0;
+
+static NEXUS_HdmiOutputHandle gHdmi;
+
+static uint8_t gCache_device_id[SAGE_WVKBOX_DEVID_LEN] = {0};
+static bool gDevice_id_cached = false;
+
+static uint8_t gCache_key_data[SAGE_WVKBOX_KEYDATA_LEN] = { 0 };
+static bool gKey_data_cached = false;
+
+static uint32_t gCache_max_sessions = 0;
+static bool gMax_sessions_cached = false;
 
 /* #define DEBUG 1 */
 void dump(const unsigned char* data, unsigned length, const char* prompt)
@@ -544,6 +556,11 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
           }
        }
        gWVCopyBounceBufferIndex = -1;
+    }
+
+    if(gHdmi)
+    {
+        NEXUS_HdmiOutput_Close(gHdmi);
     }
 
     BDBG_WRN(("%s - Uninitializing complete", BSTD_FUNCTION));
@@ -3857,6 +3874,7 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
     bool hold_keyslot = false;
     uint32_t i = 0;
     bool keyslot_found = false;
+    bool wait_for_clear_transfer = false;
 
     BDBG_ENTER(drm_WVOemCrypto_P_DecryptPatternBlock);
     BDBG_MSG(("%s: Input data len=%d,is_encrypted=%d, sf:%d, secure:%d",
@@ -3888,9 +3906,10 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
         goto ErrorExit;
     }
 
-    if(!force_transfer && isSecureDecrypt && (data_length % AES_BLOCK_SIZE) != 0)
+    if(!force_transfer && isSecureDecrypt && is_encrypted && (data_length % AES_BLOCK_SIZE) != 0)
     {
         /* Force transfer to prevent secure buffer mis-alignment */
+        BDBG_MSG(("%s - Forcing transfer to prevent buffer mis-alignment on data length of %u", BSTD_FUNCTION, data_length));
         force_transfer = true;
     }
 
@@ -3901,7 +3920,7 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
             current_time >= gHostSessionCtx[session].decrypt_verify_time + WV_DECRYPT_VERIFY_INTERVAL)
         {
             /* Force a transfer if an encrypted portion is present and we've met the deadline */
-            BDBG_ERR(("%s - Forcing transfer to meet deadline", BSTD_FUNCTION));
+            BDBG_MSG(("%s - Forcing transfer to meet deadline", BSTD_FUNCTION));
             force_transfer = true;
         }
     }
@@ -3923,6 +3942,7 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
                 *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
                 goto ErrorExit;
             }
+            wait_for_clear_transfer = true;
         }
         else
         {
@@ -3944,6 +3964,21 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
     }
     else
     {
+        if(isSecureDecrypt)
+        {
+            if (subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE)
+            {
+                if (drm_WVOemCrypto_P_CopyBuffer_Secure_SG(NULL, NULL, 0, subsample_flags, false) != Drm_Success)
+                {
+                    BDBG_ERR(("%s: Operation failed for copy buffer SG Secure Buffer Type",BSTD_FUNCTION));
+                    rc = Drm_Err;
+                    *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
+                    goto ErrorExit;
+                }
+            }
+            wait_for_clear_transfer = true;
+        }
+
         if(gHostSessionCtx[session].cipher_mode == Drm_WVOemCrypto_CipherMode_CBC)
         {
              /* Verify block offset is 0 when cipher mode is CBC */
@@ -4165,23 +4200,11 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
         }
 
         BKNI_ReleaseMutex(gWVKeySlotMutex);
-
-        if(isSecureDecrypt)
-        {
-            if (subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE)
-            {
-                if (drm_WVOemCrypto_P_CopyBuffer_Secure_SG(NULL, NULL, 0, subsample_flags, false) != Drm_Success)
-                {
-                    BDBG_ERR(("%s: Operation failed for copy buffer SG Secure Buffer Type",BSTD_FUNCTION));
-                    rc = Drm_Err;
-                    *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
-                    goto ErrorExit;
-                }
-            }
-        }
     }
 
-    if(isSecureDecrypt)
+ErrorExit:
+
+    if(wait_for_clear_transfer && isSecureDecrypt)
     {
         /* If the clear buffer DMA job is queued, wait for completion here */
         BKNI_AcquireMutex(gWVClrMutex);
@@ -4195,8 +4218,6 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
         }
         BKNI_ReleaseMutex(gWVClrMutex);
     }
-
-ErrorExit:
 
     if(hold_keyslot)
     {
@@ -4286,7 +4307,7 @@ This function may be called simultaneously with functions on other sessions, but
 functions on this session.
 ******************************************************************************************************/
 
-DrmRC drm_WVOemCrypto_DecryptCTR_V10(uint32_t session,
+DrmRC DRM_WVOemCrypto_DecryptCTR_V10(uint32_t session,
                                      const uint8_t* data_addr,
                                      uint32_t data_length,
                                      bool is_encrypted,
@@ -5090,9 +5111,38 @@ DrmRC drm_WVOemCrypto_GetDeviceID(uint8_t* deviceID,
 
     *wvRc = SAGE_OEMCrypto_SUCCESS;
 
+    if(idLength == NULL)
+    {
+        BDBG_ERR(("%s - idLength is NULL ", BSTD_FUNCTION));
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_SHORT_BUFFER;
+        goto ErrorExit;
+    }
+
     if(deviceID == NULL)
     {
-        BDBG_MSG(("%s - deviceID buffer is NULL", BSTD_FUNCTION));
+        BDBG_ERR(("%s - deviceID is NULL", BSTD_FUNCTION));
+        *idLength = SAGE_WVKBOX_DEVID_LEN;
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_SHORT_BUFFER;
+        goto ErrorExit;
+    }
+
+    if(*idLength < SAGE_WVKBOX_DEVID_LEN)
+    {
+        BDBG_MSG(("%s - Device ID buffer too short", BSTD_FUNCTION));
+        *idLength = SAGE_WVKBOX_DEVID_LEN;
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_SHORT_BUFFER;
+        goto ErrorExit;
+    }
+
+    if(gDevice_id_cached)
+    {
+        *idLength = SAGE_WVKBOX_DEVID_LEN;
+        BKNI_Memcpy(deviceID, gCache_device_id, SAGE_WVKBOX_DEVID_LEN);
+        /* Provide cached value and exit */
+        goto ErrorExit;
     }
 
     container = SRAI_Container_Allocate();
@@ -5105,24 +5155,15 @@ DrmRC drm_WVOemCrypto_GetDeviceID(uint8_t* deviceID,
     }
 
     /* allocate buffers accessible by Sage*/
-    if(deviceID == NULL)
+    container->blocks[0].data.ptr = SRAI_Memory_Allocate(SAGE_WVKBOX_DEVID_LEN, SRAI_MemoryType_Shared);
+    if(container->blocks[0].data.ptr == NULL)
     {
-        container->blocks[0].data.ptr =NULL;
-        container->blocks[0].len = 0;
+        BDBG_ERR(("%s: Out of memory for device ID (%u bytes)", BSTD_FUNCTION, SAGE_WVKBOX_DEVID_LEN));
+        *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+        rc = Drm_Err;
+        goto ErrorExit;
     }
-    else
-    {
-        container->blocks[0].data.ptr = SRAI_Memory_Allocate(SAGE_WVKBOX_DEVID_LEN, SRAI_MemoryType_Shared);
-        if(container->blocks[0].data.ptr == NULL)
-        {
-            BDBG_ERR(("%s: Out of memory for device ID (%u bytes)", BSTD_FUNCTION, SAGE_WVKBOX_DEVID_LEN));
-            *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
-            rc = Drm_Err;
-            goto ErrorExit;
-        }
-        container->blocks[0].len = *idLength;
-
-    }
+    container->blocks[0].len = SAGE_WVKBOX_DEVID_LEN;
 
     sage_rc = SRAI_Module_ProcessCommand(gWVmoduleHandle, DrmWVOEMCrypto_CommandId_eGetDeviceID, container);
     *wvRc=container->basicOut[2];
@@ -5136,7 +5177,6 @@ DrmRC drm_WVOemCrypto_GetDeviceID(uint8_t* deviceID,
 
     *idLength = container->basicOut[1];
     BDBG_MSG(("%s: idlength=%d",BSTD_FUNCTION,*idLength));
-
 
     if (*wvRc!= SAGE_OEMCrypto_SUCCESS)
     {
@@ -5152,15 +5192,12 @@ DrmRC drm_WVOemCrypto_GetDeviceID(uint8_t* deviceID,
     }
     else
     {
-        if(deviceID != NULL)
-        {
-            BKNI_Memcpy( deviceID, container->blocks[0].data.ptr, *idLength);
-            BDBG_MSG(("%s: Device is %s",BSTD_FUNCTION,deviceID ));
-        }
-        else
-        {
-            BDBG_WRN(("%s:deviceID buffer is NULL!!!",BSTD_FUNCTION));
-        }
+        BKNI_Memcpy(deviceID, container->blocks[0].data.ptr, *idLength);
+        BDBG_MSG(("%s: Device is %s",BSTD_FUNCTION, deviceID ));
+
+        /* Cache the device ID */
+        BKNI_Memcpy(gCache_device_id, container->blocks[0].data.ptr, *idLength);
+        gDevice_id_cached = true;
     }
 
 ErrorExit:
@@ -5177,7 +5214,6 @@ ErrorExit:
         container = NULL;
     }
 
-    BDBG_MSG(("%s: Exiting funciton",BSTD_FUNCTION));
     BDBG_LEAVE(drm_WVOemCrypto_GetDeviceID);
 
     return rc;
@@ -5215,19 +5251,37 @@ DrmRC drm_WVOemCrypto_GetKeyData(uint8_t* keyData,
 
     *wvRc = SAGE_OEMCrypto_SUCCESS;
 
-    if(keyData == NULL)
-    {
-        BDBG_ERR(("%s - keydata  is NULL ", BSTD_FUNCTION));
-        rc = Drm_Err;
-        *wvRc = SAGE_OEMCrypto_ERROR_INVALID_CONTEXT;
-        goto ErrorExit;
-    }
-
     if(keyDataLength == NULL)
     {
         BDBG_ERR(("%s - keyDataLength is NULL ", BSTD_FUNCTION));
         rc = Drm_Err;
-        *wvRc = SAGE_OEMCrypto_ERROR_INVALID_CONTEXT;
+        *wvRc = SAGE_OEMCrypto_ERROR_SHORT_BUFFER;
+        goto ErrorExit;
+    }
+
+    if(keyData == NULL)
+    {
+        BDBG_ERR(("%s - keydata  is NULL ", BSTD_FUNCTION));
+        *keyDataLength = SAGE_WVKBOX_KEYDATA_LEN;
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_SHORT_BUFFER;
+        goto ErrorExit;
+    }
+
+    if(*keyDataLength < SAGE_WVKBOX_KEYDATA_LEN)
+    {
+        BDBG_MSG(("%s - Key data buffer too short", BSTD_FUNCTION));
+        *keyDataLength = SAGE_WVKBOX_KEYDATA_LEN;
+        rc = Drm_Err;
+        *wvRc = SAGE_OEMCrypto_ERROR_SHORT_BUFFER;
+        goto ErrorExit;
+    }
+
+    if(gKey_data_cached)
+    {
+        *keyDataLength = SAGE_WVKBOX_KEYDATA_LEN;
+        BKNI_Memcpy(keyData, gCache_key_data, SAGE_WVKBOX_KEYDATA_LEN);
+        /* Provide cached value and exit */
         goto ErrorExit;
     }
 
@@ -5241,35 +5295,15 @@ DrmRC drm_WVOemCrypto_GetKeyData(uint8_t* keyData,
     }
 
     /* allocate buffers accessible by Sage*/
-    if(*keyDataLength != 0)
+    container->blocks[0].data.ptr = SRAI_Memory_Allocate(SAGE_WVKBOX_KEYDATA_LEN, SRAI_MemoryType_Shared);
+    if(container->blocks[0].data.ptr == NULL)
     {
-        BDBG_MSG(("----------------%s: keyDataLength is %d",BSTD_FUNCTION,*keyDataLength));
-        container->blocks[0].data.ptr = SRAI_Memory_Allocate(*keyDataLength, SRAI_MemoryType_Shared);
-        if(container->blocks[0].data.ptr == NULL)
-        {
-            BDBG_ERR(("%s: Out of memory for key data (%u bytes)", BSTD_FUNCTION, *keyDataLength));
-            *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
-            rc = Drm_Err;
-            goto ErrorExit;
-        }
-        container->blocks[0].len = *keyDataLength;
-        BKNI_Memcpy(container->blocks[0].data.ptr, keyData, *keyDataLength);
+        BDBG_ERR(("%s: Out of memory for key data buffer (%u bytes)", BSTD_FUNCTION, SAGE_WVKBOX_KEYDATA_LEN));
+        *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+        rc = Drm_Err;
+        goto ErrorExit;
     }
-    else
-    {
-        BDBG_MSG(("%s: ------------Input keydata len is zero. lets get the needed size and set short buffer error",BSTD_FUNCTION));
-        container->blocks[0].data.ptr = SRAI_Memory_Allocate(SAGE_WVKBOX_KEYDATA_LEN, SRAI_MemoryType_Shared);
-        if(container->blocks[0].data.ptr == NULL)
-        {
-            BDBG_ERR(("%s: Out of memory for key data buffer (%u bytes)", BSTD_FUNCTION, SAGE_WVKBOX_KEYDATA_LEN));
-            *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
-            rc = Drm_Err;
-            goto ErrorExit;
-        }
-        container->blocks[0].len = SAGE_WVKBOX_KEYDATA_LEN;
-    }
-
-
+    container->blocks[0].len = SAGE_WVKBOX_KEYDATA_LEN;
 
     sage_rc = SRAI_Module_ProcessCommand(gWVmoduleHandle, DrmWVOEMCrypto_CommandId_eGetKeyData, container);
     if (sage_rc != BERR_SUCCESS)
@@ -5300,18 +5334,12 @@ DrmRC drm_WVOemCrypto_GetKeyData(uint8_t* keyData,
         goto ErrorExit;
     }
 
-    if(*keyDataLength < (uint32_t)container->basicOut[1])
-    {
-        rc = Drm_Err;
-        *wvRc = SAGE_OEMCrypto_ERROR_SHORT_BUFFER;
-        goto ErrorExit;
-    }
-    else
-    {
-        *keyDataLength = container->basicOut[1];
-        BDBG_MSG(("%s:copying %d bytes of keydata to host memory",BSTD_FUNCTION,*keyDataLength));
-        BKNI_Memcpy(keyData,container->blocks[0].data.ptr,*keyDataLength);
-    }
+    *keyDataLength = container->basicOut[1];
+    BDBG_MSG(("%s:copying %d bytes of keydata to host memory",BSTD_FUNCTION,*keyDataLength));
+    BKNI_Memcpy(keyData, container->blocks[0].data.ptr, *keyDataLength);
+
+    BKNI_Memcpy(gCache_key_data, container->blocks[0].data.ptr, *keyDataLength);
+    gKey_data_cached = true;
 
 ErrorExit:
 
@@ -5327,10 +5355,9 @@ ErrorExit:
         container = NULL;
     }
 
+    BDBG_LEAVE(drm_WVOemCrypto_GetKeyData);
 
-    BDBG_LEAVE(drm_WVOemCrypto_GetDeviceID);
-
-   return rc;
+    return rc;
 }
 
 
@@ -6277,8 +6304,7 @@ ErrorExit:
 DrmRC drm_WVOemCrypto_GetHDCPCapability(uint32_t *current, uint32_t *maximum, int *wvRc)
 {
     DrmRC rc = Drm_Success;
-    BERR_Code sage_rc = BERR_SUCCESS;
-    BSAGElib_InOutContainer *container = NULL;
+    NEXUS_HdmiOutputHdcpStatus hstatus;
 
     if((current == NULL) || (maximum == NULL) || (wvRc == NULL))
     {
@@ -6286,50 +6312,39 @@ DrmRC drm_WVOemCrypto_GetHDCPCapability(uint32_t *current, uint32_t *maximum, in
         goto ErrorExit;
     }
 
-    container = SRAI_Container_Allocate();
-    if (container == NULL)
+#ifdef NEXUS_HAS_HDCP_2X_SUPPORT
+    *maximum = Drm_WVOemCryptoHDCPCapability_HDCP_V2_2;
+#else
+    *maximum = Drm_WVOemCryptoHDCPCapability_HDCP_V1;
+#endif
+
+    *current = Drm_WVOemCryptoHDCPCapability_HDCP_NONE;
+
+    if(!gHdmi)
     {
-        BDBG_ERR(("%s - Error allocating SRAI container.", BSTD_FUNCTION));
-        rc = Drm_Err;
-        *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
-        goto ErrorExit;
+        gHdmi = NEXUS_HdmiOutput_Open(0+NEXUS_ALIAS_ID, NULL);
+        if(!gHdmi)
+        {
+            BDBG_ERR(("%s - Unable to open HDMI output", BSTD_FUNCTION));
+            rc = Drm_Err;
+            goto ErrorExit;
+        }
     }
 
-    sage_rc = SRAI_Module_ProcessCommand(gWVmoduleHandle, DrmWVOEMCrypto_CommandId_eGetHDCPCapability, container);
-    if (sage_rc != BERR_SUCCESS)
+    NEXUS_HdmiOutput_GetHdcpStatus(gHdmi, &hstatus);
+    if(hstatus.linkReadyForEncryption)
     {
-        BDBG_ERR(("%s - Error processing SAGE command.", BSTD_FUNCTION));
-        rc = Drm_Err;
-        goto ErrorExit;
+        if(hstatus.selectedHdcpVersion == NEXUS_HdcpVersion_e2x)
+        {
+            *current = Drm_WVOemCryptoHDCPCapability_HDCP_V2_2;
+        }
+        else if(hstatus.selectedHdcpVersion == NEXUS_HdcpVersion_e1x)
+        {
+            *current = Drm_WVOemCryptoHDCPCapability_HDCP_V1;
+        }
     }
-
-    *wvRc = container->basicOut[2];
-
-    if (container->basicOut[0] != BERR_SUCCESS)
-    {
-        BDBG_ERR(("%s - Error in SAGE command. (0x%08x), wvRC = %d", BSTD_FUNCTION, container->basicOut[0], container->basicOut[2]));
-        rc = Drm_Err;
-        goto ErrorExit;
-    }
-
-
-    if(*wvRc != 0)
-    {
-        BDBG_ERR(("%s - WV Error in SAGE command (0x%08x).", BSTD_FUNCTION, *wvRc));
-        rc = Drm_Err;
-        goto ErrorExit;
-    }
-
-    *current = (uint32_t)container->basicOut[1];
-    *maximum = (uint32_t)container->basicOut[3];
-
-    BDBG_MSG(("%s - current: %d, max: %d.", BSTD_FUNCTION, *current, *maximum));
 
 ErrorExit:
-    if(container!=NULL)
-    {
-        SRAI_Container_Free(container);
-    }
     return rc;
 }
 
@@ -8234,6 +8249,13 @@ DrmRC DRM_WVOemCrypto_GetMaxNumberOfSessions(uint32_t* noOfMaxSessions,int *wvRc
 
     *wvRc = SAGE_OEMCrypto_SUCCESS;
 
+    if(gMax_sessions_cached)
+    {
+        *noOfMaxSessions = gCache_max_sessions;
+        /* Provide cached value and exit */
+        goto ErrorExit;
+    }
+
     container = SRAI_Container_Allocate();
     if(container == NULL)
     {
@@ -8261,13 +8283,13 @@ DrmRC DRM_WVOemCrypto_GetMaxNumberOfSessions(uint32_t* noOfMaxSessions,int *wvRc
         goto ErrorExit;
     }
 
-
-
     /* if success, extract index from container */
     (*noOfMaxSessions) = container->basicOut[1];
 
-    BDBG_MSG(("%s: Max no. of sessions supported = %d",BSTD_FUNCTION,container->basicOut[1] ));
+    BDBG_MSG(("%s: Max no. of sessions supported = %d",BSTD_FUNCTION,container->basicOut[1]));
 
+    gCache_max_sessions = container->basicOut[1];
+    gMax_sessions_cached = true;
 
 ErrorExit:
     if(container != NULL)

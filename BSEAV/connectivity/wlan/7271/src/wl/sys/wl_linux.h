@@ -183,6 +183,9 @@ struct wl_info {
 
 	uint processed;		/**< Number of rx frames processed */
 	struct proc_dir_entry *proc_entry;
+	struct proc_dir_entry *wlver_proc_entry;   /** < wl version proc entry */
+	char wlver[256];   /** < Storing wl version info string */
+
 #if defined(WLVASIP)
 	uchar* bar1_addr;
 	uint32 bar1_size;

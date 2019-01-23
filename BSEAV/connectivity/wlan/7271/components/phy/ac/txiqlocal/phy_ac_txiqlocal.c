@@ -174,7 +174,6 @@ struct phy_ac_txiqlocal_info {
 	uint8  cmd_idx;
 	uint8  num_cores;
 	uint8  prerxcal;
-	bool   lowcmen;
 };
 
 /* local functions */
@@ -638,7 +637,6 @@ BCMATTACHFN(phy_ac_txiqlocal_register_impl)(phy_info_t *pi, phy_ac_info_t *aci,
 		goto fail;
 	}
 	phy_ac_txiqlocal_populate_params(ac_info);
-	ac_info->lowcmen = (bool)PHY_GETINTVAR_DEFAULT_SLICE(pi, rstr_lowcmen, 0);
 
 	/* allocate phyreg save restore bin */
 	if ((ac_info->paramsi->porig =
@@ -1761,25 +1759,8 @@ wlc_phy_txcal_radio_setup_acphy_20696(phy_ac_txiqlocal_info_t *ti, uint8 Biq2byp
 		        MOD_RADIO_REG_20696(pi, LPF_REG7, core, lpf_sw_dac_bq2,		0x0);
 		        MOD_RADIO_REG_20696(pi, LPF_REG7, core, lpf_sw_bq2_rc,		0x0);
 		        MOD_RADIO_REG_20696(pi, LPF_REG7, core, lpf_sw_dac_rc,		0x1);
-
-			MOD_RADIO_REG_20696(pi, TXDAC_REG3, core, i_config_IQDACbuf_2g_cmref_en,
-					CHSPEC_IS2G(pi->radio_chanspec) ? 1 : 0);
-			MOD_RADIO_REG_20696(pi, TXDAC_REG0, core, iqdac_buf_cmsel, 0);
-			/*MOD_RADIO_REG_20696(pi, TXDAC_REG1, core, iqdac_lowcm_en, 1);*/
-			MOD_RADIO_REG_20696(pi, TXDAC_REG0, core, iqdac_attn, 3);
-			if (ti->lowcmen == 0) {
-				MOD_RADIO_REG_20696(pi, TXDAC_REG1, core, iqdac_lowcm_en, 0);
-				MOD_RADIO_REG_20696(pi, TXDAC_REG0, core, iqdac_buf_bw, 3);
-				MOD_RADIO_REG_20696(pi, TX2G_MIX_REG2, core, tx2g_mx_idac_bb, 15);
-			} else {
-				MOD_RADIO_REG_20696(pi, TXDAC_REG1, core, iqdac_lowcm_en, 1);
-			}
 		} else {
 			/* Put alpf default position during txiqlocal is in Tx path */
-			MOD_RADIO_REG_20696(pi, TXDAC_REG3, core, i_config_IQDACbuf_2g_cmref_en, 0);
-			MOD_RADIO_REG_20696(pi, TXDAC_REG0, core, iqdac_buf_cmsel, 1);
-			MOD_RADIO_REG_20696(pi, TXDAC_REG1, core, iqdac_lowcm_en, 0);
-			MOD_RADIO_REG_20696(pi, TXDAC_REG0, core, iqdac_attn, 0);
 		}
 
 		/* Adjust the accuracy of power detector for 5g */
@@ -4535,8 +4516,13 @@ wlc_phy_cal_txiqlo_acphy(phy_info_t *pi, uint8 searchmode, uint8 mphase, uint8 B
 	 */
 	if (searchmode == PHY_CAL_SEARCHMODE_RESTART) {
 		if (ti->prerxcal) {
-			ti->cmds = paramsi->cmds_RESTART_PRERX;
-			ti->num_cmds_per_core = paramsi->num_cmds_restart_prerx;
+			if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
+				ti->cmds = paramsi->cmds_RESTART;
+				ti->num_cmds_per_core = paramsi->num_cmds_restart;
+			} else {
+				ti->cmds = paramsi->cmds_RESTART_PRERX;
+				ti->num_cmds_per_core = paramsi->num_cmds_restart_prerx;
+			}
 		} else
 #if !defined(PHY_VER)  || (defined(PHY_VER) && (defined(PHY_ACMAJORREV_32) || defined(PHY_ACMAJORREV_33)))
 		if (ACMAJORREV_32(pi->pubpi->phy_rev) ||

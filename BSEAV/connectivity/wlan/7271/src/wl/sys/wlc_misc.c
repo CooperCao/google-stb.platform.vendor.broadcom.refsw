@@ -45,6 +45,7 @@ enum {
 	IOV_DUMP_PMU = 3,
 	IOV_PMU_KEEP_ON = 4,
 	IOV_POWER_ISLAND = 5,
+	IOV_IGMPREP_FILTER_ENABLE = 6,
 	IOV_LAST
 };
 
@@ -63,6 +64,9 @@ static const bcm_iovar_t misc_iovars[] = {
 	{"sr_power_island", IOV_POWER_ISLAND, IOVF_SET_UP | IOVF_GET_UP, 0, IOVT_UINT16,
 	sizeof(int)},
 #endif /* SR_DEBUG */
+#ifdef IGMPREP_FILTER
+	{"igmp_report_filter", IOV_IGMPREP_FILTER_ENABLE, (0), 0, IOVT_BOOL, 0},
+#endif /* IGMPREP_FILTER */
 	{NULL, 0, 0, 0, 0, 0},
 };
 
@@ -208,6 +212,15 @@ wlc_misc_doiovar(void *ctx, uint32 actionid,
 		}
 		break;
 #endif /*  SR_DEBUG */
+
+#ifdef IGMPREP_FILTER
+	case IOV_GVAL(IOV_IGMPREP_FILTER_ENABLE):
+		*ret_int_ptr = bsscfg->igmprep_filter_enable;
+		break;
+	case IOV_SVAL(IOV_IGMPREP_FILTER_ENABLE):
+		bsscfg->igmprep_filter_enable = bool_val;
+		break;
+#endif /* IGMPREP_FILTER */
 
 	default:
 		BCM_REFERENCE(ret_int_ptr);

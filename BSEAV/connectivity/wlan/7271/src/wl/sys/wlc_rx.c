@@ -2845,6 +2845,18 @@ wlc_recvdata_sendup(wlc_info_t *wlc, struct scb *scb, bool wds, struct ether_add
 			}
 		}
 	}
+#ifdef IGMPREP_FILTER
+	/* When receiving IGMP report from other host, it would stop sending report of its own.
+	 * There has chance to cause AP mcast-to-ucast entry aged out. We filter IGMP report here.
+	 */
+	if (IGMPREP_FILTER_ENAB(bsscfg) && BSSCFG_STA(bsscfg) && multi) {
+		if (wlc_filter_igmp_report(eh)) {
+			/* Filter IGMP report */
+			PKTFREE(osh, p, FALSE);
+			return;
+		}
+	}
+#endif /* IGMPREP_FILTER */
 #ifdef WLMESH
 	if (WLMESH_ENAB(wlc->pub) && BSSCFG_MESH(bsscfg)) {
 		if (wlc_mroute_recvdata_sendup(wlc->mesh_info, bsscfg, da, eh) == BCME_OK) {
@@ -3154,6 +3166,7 @@ wlc_recv_mgmt_ctl(wlc_info_t *wlc, osl_t *osh, wlc_d11rxhdr_t *wrxh, void *p)
 	bool multi;
 	bool tome = FALSE;
 	bool short_preamble;
+	wlc_pkttag_t *pkttag;
 	/* - bsscfg_current is the bsscfg whose BSSID matches the incoming frame's BSSID
 	 * - bsscfg_target is the bsscfg whose target_bss->BSSID matches the incoming frame's
 	 *   BSSID
@@ -3370,6 +3383,14 @@ wlc_recv_mgmt_ctl(wlc_info_t *wlc, osl_t *osh, wlc_d11rxhdr_t *wrxh, void *p)
 		if (RMC_ENAB(wlc->pub))
 			wlc_rmc_mgmtctl_rssi_update(wlc->rmc, wrxh, scb, FALSE);
 #endif
+		pkttag = WLPKTTAG(p);
+		if ((!BCMPCIEDEV_ENAB()) && (WLC_RX_LQ_SAMP_ENAB(scb)) &&
+				bsscfg && (wrxh->rssi != WLC_RSSI_INVALID)) {
+			rx_lq_samp_t lq_samp;
+			wlc_lq_sample(wlc, bsscfg, scb, wrxh, tome, &lq_samp);
+			pkttag->pktinfo.misc.rssi = lq_samp.rssi;
+			pkttag->pktinfo.misc.snr = lq_samp.snr;
+		}
 	}
 
 	/* a. ctl pkts, we only process PS_POLL/BAR/BA, others are handled in ucode */

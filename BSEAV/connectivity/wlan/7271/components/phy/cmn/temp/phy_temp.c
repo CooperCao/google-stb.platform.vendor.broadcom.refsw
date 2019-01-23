@@ -188,6 +188,8 @@ phy_temp_get_thresh(phy_temp_info_t *ti)
 	return temp->disable_temp;
 }
 
+#endif /* WL_DYNAMIC_TEMPSENSE */
+
 /*
  * Move this to wlc_phy_cmn.c and do it based on PHY
  * This function DOES NOT calculate temperature and it also DOES NOT
@@ -216,7 +218,6 @@ phy_temp_get_cur_temp(phy_temp_info_t *ti)
 		return BCME_RANGE;
 	return ct;
 }
-#endif /* WL_DYNAMIC_TEMPSENSE */
 
 void
 wlc_phy_upd_gain_wrt_temp_phy(phy_info_t *pi, int16 *gain_err_temp_adj)

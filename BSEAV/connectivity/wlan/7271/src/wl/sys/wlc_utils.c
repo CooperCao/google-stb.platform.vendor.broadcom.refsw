@@ -17,12 +17,18 @@
  */
 
 #include <wlc_cfg.h>
+#include <wlc.h>
 #include <typedefs.h>
 #include <bcmutils.h>
 #include <bcmendian.h>
 #include <proto/802.11.h>
 #include <proto/ethernet.h>
+#include <proto/bcmarp.h>
 #include <proto/bcmip.h>
+#include <proto/bcmicmp.h>
+#include <proto/bcmtcp.h>
+#include <proto/bcmudp.h>
+#include <proto/bcmproto.h>
 #include <devctrl_if/wlioctl_defs.h>
 #include <wlc_utils.h>
 #include <wlioctl_utils.h>
@@ -293,6 +299,49 @@ is_igmp(struct ether_header *eh)
 	else
 		return FALSE;
 }
+
+#ifdef IGMPREP_FILTER
+int32
+wlc_filter_igmp_report(struct ether_header *eh)
+{
+	uint8 *iph;
+	uint8 *igmph;
+	int dropped = 0;
+
+	/* not IGMP */
+	if (!is_igmp(eh))
+		return 0;
+
+	iph = (uint8 *)eh + ETHER_HDR_LEN;
+	igmph = iph + IPV4_HLEN(iph);
+
+	switch (igmph[IGMPV2_TYPE_OFFSET]) {
+	case IGMPV2_HOST_MEMBERSHIP_REPORT:
+	case IGMPV2_HOST_NEW_MEMBERSHIP_REPORT: {
+#ifdef BCMINTDBG
+		uint32 mh_ip, mgrp_ip;
+
+		mh_ip = ntoh32(*((uint32 *)(iph + IPV4_SRC_IP_OFFSET)));
+		mgrp_ip = ntoh32(*((uint32 *)(igmph + IGMPV2_GRP_ADDR_OFFSET)));
+		WL_ERROR(("%s: Filter IGMP membership report from %d.%d.%d.%d for %d.%d.%d.%d\n",
+			__FUNCTION__,
+			(mh_ip >> 24), ((mh_ip >> 16) & 0xff),
+			((mh_ip >> 8) & 0xff), (mh_ip & 0xff),
+			(mgrp_ip >> 24), ((mgrp_ip >> 16) & 0xff),
+			((mgrp_ip >> 8) & 0xff), (mgrp_ip & 0xff)));
+#endif
+		dropped = 1;
+		break;
+	}
+	default:
+		WL_INFORM(("%s: IGMP type %d not handled!\n", __FUNCTION__,
+			igmph[IGMPV2_TYPE_OFFSET]));
+		break;
+	}
+
+	return dropped;
+}
+#endif /* IGMPREP_FILTER */
 
 /* map between DOT11_BSSTYPE_ value space and WL_BSSTYPE_ value space */
 /* TODO: wl2dot11/wlc_bsstype_wl2dot11() and dot112wl/wlc_bsstype_dot112wl

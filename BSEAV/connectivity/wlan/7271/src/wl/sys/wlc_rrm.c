@@ -128,6 +128,7 @@
 
 #define MAX_NEIGHBORS 64
 #define MAX_CHANNEL_REPORT_IES 8
+#define WLC_RRM_WILDCARD_SSID_IND   "*" /* indicates the wildcard SSID (SSID len of 0) */
 
 /* Radio Measurement states */
 #define WLC_RRM_IDLE                     0 /* Idle */
@@ -3957,22 +3958,35 @@ wlc_rrm_send_bcnreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, bcnreq_t *bcnre
 	dot11_rmreq_t *rmreq;
 	dot11_rmreq_bcn_t *rmreq_bcn;
 	uint8 bcnmode;
+	uint8 *ptr = NULL;
 
 	wlc_info_t *wlc = rrm_info->wlc;
 	dur = bcnreq->dur;
 	channel = bcnreq->channel;
 	interval = bcnreq->random_int;
 	bcnmode = bcnreq->bcn_mode;
+	ptr = (uint8*)bcnreq;
 
 	/* rm frame action header + bcn request header */
-	buflen = DOT11_RMREQ_LEN + DOT11_RMREQ_BCN_LEN +
-		1 + TLV_HDR_LEN + /* Reporting detail TLV */
-		3 + TLV_HDR_LEN;  /* AP Channel report TLV */
-	if (bcnreq->ssid.SSID_len)
+	buflen = DOT11_RMREQ_LEN + DOT11_RMREQ_BCN_LEN;
+	if (bcnreq->ssid.SSID_len == 1 &&
+		memcmp(bcnreq->ssid.SSID, WLC_RRM_WILDCARD_SSID_IND, 1) == 0) {
+		buflen += TLV_HDR_LEN;
+	} else if (bcnreq->ssid.SSID_len)
 		buflen += bcnreq->ssid.SSID_len + TLV_HDR_LEN;
-	/* AP Channel Report */
-	if (channel == 255)
-		buflen += 5;
+
+	if (bcnreq->version == RRM_IOVAR_VERSION) {
+		/* read optional data if present */
+		buflen += bcnreq->bcn_rqst_opt_data_len;
+	} else {
+		/* Maintain backward compatibility */
+		buflen += (1 + TLV_HDR_LEN) + /* Reporting detail TLV */
+			  (3 + TLV_HDR_LEN);  /* AP Channel report TLV */
+		/* AP Channel Report */
+		if (channel == 255)
+			buflen += 5;
+	}
+	/* include bcn request element */
 	if ((p = wlc_rrm_prep_gen_request(rrm_info, cfg, &bcnreq->da, buflen, &pbody)) == NULL)
 		return;
 
@@ -3992,7 +4006,11 @@ wlc_rrm_send_bcnreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, bcnreq_t *bcnre
 	rmreq_bcn->mode = 0;
 
 	rmreq_bcn->type = DOT11_MEASURE_TYPE_BEACON;
-	rmreq_bcn->reg = 0;
+	if (bcnreq->version == RRM_IOVAR_VERSION) {
+		rmreq_bcn->reg = bcnreq->opclass;
+	} else {
+		rmreq_bcn->reg = 0;
+	}
 	rmreq_bcn->channel = channel;
 	rmreq_bcn->interval = interval;
 	rmreq_bcn->duration = dur;
@@ -4001,28 +4019,38 @@ wlc_rrm_send_bcnreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, bcnreq_t *bcnre
 	pbody += DOT11_RMREQ_BCN_LEN;
 	/* sub-element SSID */
 	if (bcnreq->ssid.SSID_len) {
+		if (bcnreq->ssid.SSID_len == 1 &&
+			memcmp(bcnreq->ssid.SSID, WLC_RRM_WILDCARD_SSID_IND, 1) == 0) {
+			bcnreq->ssid.SSID_len = 0;
+		}
 
 		pbody = bcm_write_tlv(DOT11_MNG_SSID_ID, (uint8 *)bcnreq->ssid.SSID,
 			bcnreq->ssid.SSID_len, pbody);
+		rmreq_bcn->len += bcnreq->ssid.SSID_len + TLV_HDR_LEN;
 	}
-	/* Reporting detail */
-	repdet = 1;
-	pbody = bcm_write_tlv(DOT11_RMREQ_BCN_REPDET_ID, &repdet, 1, pbody);
 
-	/* AP Channel Report */
-	*pbody++ = DOT11_RMREQ_BCN_APCHREP_ID;
-	/* Length */
-	*pbody++ = 3;
-	/* operating class */
-	*pbody++ = 0;
-	/* first channel */
-	*pbody++ = 1;
-	/* second channel */
-	*pbody++ = 6;
-	WL_ERROR(("%s: id: %d, len: %d, type: %d, channel: %d, duration: %d, bcn_mode: %d\n",
-		__FUNCTION__, rmreq_bcn->id, rmreq_bcn->len, rmreq_bcn->type, rmreq_bcn->channel,
-		rmreq_bcn->duration, rmreq_bcn->bcn_mode));
+	if ((bcnreq->version == RRM_IOVAR_VERSION) && (bcnreq->bcn_rqst_opt_data_len)) {
+		memcpy(pbody, bcnreq->data, bcnreq->bcn_rqst_opt_data_len);
+	} else {
+		/* Maintain backward compatibility */
+		/* Reporting detail */
+		repdet = 1;
+		pbody = bcm_write_tlv(DOT11_RMREQ_BCN_REPDET_ID, &repdet, 1, pbody);
 
+		/* AP Channel Report */
+		*pbody++ = DOT11_RMREQ_BCN_APCHREP_ID;
+		/* Length */
+		*pbody++ = 3;
+		/* operating class */
+		*pbody++ = 0;
+		/* first channel */
+		*pbody++ = 1;
+		/* second channel */
+		*pbody++ = 6;
+		WL_ERROR(("%s: id: %d, len: %d, type: %d, channel: %d, duration: %d, bcn_mode: %d\n",
+			__FUNCTION__, rmreq_bcn->id, rmreq_bcn->len, rmreq_bcn->type, rmreq_bcn->channel,
+			rmreq_bcn->duration, rmreq_bcn->bcn_mode));
+	}
 	memset(&rmreq_bcn->bssid.octet, 0xff, ETHER_ADDR_LEN);
 	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, NULL);
 }
@@ -6978,7 +7006,7 @@ wlc_rrm_calc_mptx_ie_len(void *ctx, wlc_iem_calc_data_t *data)
 	wlc_info_t *wlc = rrm->wlc;
 
 	if (WL11K_ENAB(wlc->pub) && BSSCFG_AP(data->cfg))
-		return TLV_HDR_LEN + 2;
+		return TLV_HDR_LEN + 1;
 
 	return 0;
 }
@@ -6990,13 +7018,12 @@ wlc_rrm_write_mptx_ie(void *ctx, wlc_iem_build_data_t *data)
 	wlc_info_t *wlc = rrm->wlc;
 
 	if (WL11K_ENAB(wlc->pub) && BSSCFG_AP(data->cfg)) {
-		int8 pilot_tx[2];
+		int8 pilot_tx[1];
 
 		/* Measurement Pilot Transmission Information */
 		pilot_tx[0] = data->cfg->mp_period; /* pilot tx interval */
-		pilot_tx[1] = 0;
 
-		bcm_write_tlv(DOT11_MNG_MEASUREMENT_PILOT_TX_ID, pilot_tx, 2, data->buf);
+		bcm_write_tlv(DOT11_MNG_MEASUREMENT_PILOT_TX_ID, pilot_tx, 1, data->buf);
 	}
 
 	return BCME_OK;

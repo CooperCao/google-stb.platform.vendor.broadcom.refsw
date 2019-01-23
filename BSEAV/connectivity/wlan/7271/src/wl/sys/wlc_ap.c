@@ -630,12 +630,12 @@ static void wlc_radio_pwrsave_off_time_start(wlc_ap_info_t *ap);
 static void wlc_radio_pwrsave_timer(void *arg);
 #endif /* RADIO_PWRSAVE */
 
-#if defined(EXT_STA)
+#if defined(EXT_STA) || defined(SPLIT_ASSOC)
 static int wlc_as_scb_init(void *context, struct scb *scb);
 static void wlc_as_scb_deinit(void *context, struct scb *scb);
 static uint wlc_as_scb_secsz(void *context, struct scb *scb);
 static int wlc_as_scb_update(void *context, struct scb *scb, wlc_bsscfg_t* new_cfg);
-#endif /* defined(EXT_STA) */
+#endif /* defined(EXT_STA) || defined(SPLIT_ASSOC) */
 
 static void wlc_ap_probe_complete(wlc_info_t *wlc, void *pkt, uint txs);
 
@@ -768,13 +768,16 @@ BCMATTACHFN(wlc_ap_attach)(wlc_info_t *wlc)
 		goto fail;
 	}
 
-#if defined(EXT_STA)
+#if defined(EXT_STA) || defined(SPLIT_ASSOC)
+
+#if defined(EXT_STA) && defined(EXT_STA_DISABLED)
 	BCM_REFERENCE(wlc_as_scb_init);
 	BCM_REFERENCE(wlc_as_scb_deinit);
 	BCM_REFERENCE(wlc_as_scb_secsz);
 	BCM_REFERENCE(wlc_as_scb_update);
+#endif
 
-#if !defined(EXT_STA_DISABLED)
+#if !defined(EXT_STA_DISABLED) || defined(SPLIT_ASSOC)
 	/* reserve cubby in the scb container for per-scb private data */
 	bzero(&cubby_params, sizeof(cubby_params));
 
@@ -792,8 +795,8 @@ BCMATTACHFN(wlc_ap_attach)(wlc_info_t *wlc)
 		WL_ERROR(("%s: wlc_scb_cubby_reserve for as req failed\n", __FUNCTION__));
 		goto fail;
 	}
-#endif /* !defined(EXT_STA_DISABLED) */
-#endif /* defined(EXT_STA) */
+#endif /* !defined(EXT_STA_DISABLED) || defined(SPLIT_ASSOC) */
+#endif /* defined(EXT_STA) || defined(SPLIT_ASSOC) */
 
 	/* reserve cubby in the scb container for per-scb private data */
 	bzero(&cubby_params, sizeof(cubby_params));
@@ -2100,6 +2103,16 @@ wlc_ap_process_assocreq(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg,
 
 	WL_TRACE(("wl%d: %s\n", wlc->pub->unit, __FUNCTION__));
 
+#if defined (MULTIAP) && defined (SPLIT_ASSOC)
+	/* WAR: enable split assoc for backhaul bss always
+	* TODO: fix this proper by handling virtual interfaces in wbd
+	* only slave process the event associated to split assoc
+	*/
+	if (bsscfg->map_attr & MAP_EXT_ATTR_BACKHAUL_BSS) {
+		bsscfg->flags2 |= WLC_BSSCFG_FL2_SPLIT_ASSOC_REQ;
+	}
+#endif /* defined (MULTIAP) && defined (SPLIT_ASSOC) */
+
 	ASSERT(bsscfg != NULL);
 	ASSERT(bsscfg->up);
 	ASSERT(BSSCFG_AP(bsscfg));
@@ -2109,10 +2122,13 @@ wlc_ap_process_assocreq(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg,
 	opmode_cap_reqd = ap_cfg->opmode_cap_reqd;
 	bzero(&decision, sizeof(assoc_decision_t));
 	param = &param_buf;
-#if defined(EXT_STA)
-	if (WLEXTSTA_ENAB(wlc->pub)) {
+#if defined(EXT_STA) || defined(SPLIT_ASSOC)
+	if (WLEXTSTA_ENAB(wlc->pub) || SPLIT_ASSOC_REQ(bsscfg)) {
 		param = AS_SCB_CUBBY(appvt, scb);
 
+		if (param == NULL) {
+			return;
+		}
 		/*
 		* ignore the req if there is one pending, based on the assumption
 		* that param was zeroed on allocation (as part of scbpub in wlc_userscb_alloc)
@@ -2124,12 +2140,12 @@ wlc_ap_process_assocreq(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg,
 			return;
 		}
 	}
-#endif /* EXT_STA */
+#endif /* EXT_STA || SPLIT_ASSOC */
 	bzero(param, sizeof(wlc_assoc_req_t));
 	param->hdr = hdr;
 	param->body = body;
-#if defined(EXT_STA)
-	if (WLEXTSTA_ENAB(wlc->pub)) {
+#if defined(EXT_STA) || defined(SPLIT_ASSOC)
+	if (WLEXTSTA_ENAB(wlc->pub) || SPLIT_ASSOC_REQ(bsscfg)) {
 		param->buf_len = body_len + sizeof(struct dot11_management_header);
 		param->body = MALLOC(wlc->osh, param->buf_len);
 		if (param->body == NULL) {
@@ -2429,7 +2445,7 @@ wlc_ap_process_assocreq(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg,
 			goto done;
 		}
 	}
-#endif
+#endif // endif
 
 #ifdef PSTA
 	/* Send WLC_E_PSTA_PRIMARY_INTF_IND event to indicate psta primary mac addr */
@@ -2456,9 +2472,9 @@ wlc_ap_process_assocreq(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg,
 
 	param->status = status;
 	bcopy(&req_rates, &param->req_rates, sizeof(wlc_rateset_t));
-
-#if defined(EXT_STA)
-	if (WLEXTSTA_ENAB(wlc->pub) && BSSCFG_HAS_NATIVEIF(bsscfg)) {
+#if defined(EXT_STA) || defined(SPLIT_ASSOC)
+	if ((WLEXTSTA_ENAB(wlc->pub) && BSSCFG_HAS_NATIVEIF(bsscfg)) ||
+		SPLIT_ASSOC_REQ(bsscfg)) {
 		/* indicate pre-(re)association event to OS and get association
 		* decision from OS from the same thread
 		* vif doesn't use this mac event and needs auto-reply of assoc req
@@ -2466,13 +2482,15 @@ wlc_ap_process_assocreq(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg,
 		wlc_bss_mac_event(wlc, bsscfg,
 			reassoc ? WLC_E_PRE_REASSOC_IND : WLC_E_PRE_ASSOC_IND,
 			&hdr->sa, WLC_E_STATUS_SUCCESS, status, 0, body, body_len);
+		WL_ASSOC(("wl%d: %s: sa(%s) reassoc(%d) systime(%u)\n",
+			wlc->pub->unit, __FUNCTION__, sa, reassoc, OSL_SYSUPTIME()));
 	} else
-#endif /* defined(EXT_STA) */
+#endif /* defined(EXT_STA) || defined(SPLIT_ASSOC) */
 	{
-	decision.assoc_approved = TRUE;
-	decision.reject_reason = 0;
-	bcopy(&scb->ea, &decision.da, ETHER_ADDR_LEN);
-	wlc_ap_process_assocreq_next(wlc, bsscfg, &decision, scb, param);
+		decision.assoc_approved = TRUE;
+		decision.reject_reason = 0;
+		bcopy(&scb->ea, &decision.da, ETHER_ADDR_LEN);
+		wlc_ap_process_assocreq_next(wlc, bsscfg, &decision, scb, param);
 	}
 
 	return;
@@ -2494,28 +2512,27 @@ exit:
 		/* fall through */
 	}
 body_free:
-#if defined(EXT_STA)
-	if (WLEXTSTA_ENAB(wlc->pub) && param->body) {
+#if defined(EXT_STA) || defined(SPLIT_ASSOC)
+	if ((WLEXTSTA_ENAB(wlc->pub) || SPLIT_ASSOC_REQ(bsscfg)) && param->body) {
 		MFREE(wlc->osh, param->body, param->buf_len);
 		bzero(param, sizeof(wlc_assoc_req_t));
 	}
-#endif /* defined(EXT_STA) */
+#endif /* defined(EXT_STA) || defined(SPLIT_ASSOC) */
 	return;
 }
 	/*
 	 * here if association request parsing is successful...
 	 */
 
-#if defined(EXT_STA)
 void wlc_ap_process_assocreq_decision(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, assoc_decision_t *dc)
 {
 	BCM_REFERENCE(dc);
 	BCM_REFERENCE(wlc);
 	BCM_REFERENCE(bsscfg);
-
+#if defined(EXT_STA)|| defined(SPLIT_ASSOC)
 	wlc_ap_process_assocreq_next(wlc, bsscfg, dc, NULL, NULL);
+#endif /* defined(EXT_STA) || defined(SPLIT_ASSOC) */
 }
-#endif /* defined(EXT_STA) */
 
 static void wlc_ap_process_assocreq_next(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg,
 	assoc_decision_t * dc, struct scb *scb, wlc_assoc_req_t * param)
@@ -2524,18 +2541,18 @@ static void wlc_ap_process_assocreq_next(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg,
 	struct dot11_management_header *hdr;
 	uint8 *body;
 	uint body_len;
-#if defined(EXT_STA)
+#if defined(EXT_STA) || defined(SPLIT_ASSOC)
 	wlc_ap_info_pvt_t *appvt;
-#endif
+#endif // endif
 	struct dot11_assoc_req *req;
 
 	uint16 capability;
 #if defined(BCMDBG_ERR)
 	char dabuf[ETHER_ADDR_STR_LEN], *da = bcm_ether_ntoa(&dc->da, dabuf);
-#endif
+#endif // endif
 #if  defined(BCMDBG_ERR) || defined(BCMDBG) || defined(WLMSG_ASSOC)
 	char sabuf[ETHER_ADDR_STR_LEN], *sa;
-#endif
+#endif // endif
 
 	WL_TRACE(("wl%d: wlc_process_assocreq_next\n", wlc->pub->unit));
 
@@ -2545,9 +2562,9 @@ static void wlc_ap_process_assocreq_next(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg,
 
 	ap = wlc->ap;
 
-#if defined(EXT_STA)
+#if defined(EXT_STA)|| defined(SPLIT_ASSOC)
 	appvt = (wlc_ap_info_pvt_t *) ap;
-	if (WLEXTSTA_ENAB(wlc->pub)) {
+	if (WLEXTSTA_ENAB(wlc->pub) || SPLIT_ASSOC_REQ(bsscfg)) {
 
 		scb = wlc_scbfind(wlc, bsscfg, &dc->da);
 		if (scb == NULL) {
@@ -2569,7 +2586,7 @@ static void wlc_ap_process_assocreq_next(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg,
 			return;
 		}
 	}
-#endif /* EXT_STA */
+#endif /* EXT_STA || SPLIT_ASSOC */
 
 #if  defined(BCMDBG_ERR) || defined(BCMDBG) || defined(WLMSG_ASSOC)
 	sa = bcm_ether_ntoa(&param->hdr->sa, sabuf);
@@ -2591,6 +2608,16 @@ static void wlc_ap_process_assocreq_next(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg,
 			wlc->pub->unit, WLC_BSSCFG_IDX(bsscfg), da));
 		goto done;
 	}
+
+#if defined(SPLIT_ASSOC)
+	if (SPLIT_ASSOC_REQ(bsscfg)) {
+#if defined(BCMDBG) || defined(WLMSG_ASSOC)
+		WL_ASSOC(("wl%d: %s: da(%s) systime(%u)\n",
+			wlc->pub->unit, __FUNCTION__, da, OSL_SYSUPTIME()));
+#endif // endif
+		wlc_assoc_dc_dispatch(wlc, bsscfg, dc, scb);
+	}
+#endif /* SPLIT_ASSOC */
 
 	capability = ltoh16(req->capability);
 
@@ -2725,12 +2752,12 @@ defkey_done:
 #endif
 done:
 	wlc_ap_process_assocreq_done(ap, bsscfg, dc, hdr, body, body_len, scb, param);
-#if defined(EXT_STA)
-	if (WLEXTSTA_ENAB(wlc->pub)) {
+#if defined(EXT_STA)|| defined(SPLIT_ASSOC)
+	if (WLEXTSTA_ENAB(wlc->pub) || SPLIT_ASSOC_REQ(bsscfg)) {
 		MFREE(wlc->osh, param->body, param->buf_len);
 		bzero(param, sizeof(wlc_assoc_req_t));
 	}
-#endif /* defined (EXT_STA) */
+#endif /* defined (EXT_STA) || defined(SPLIT_ASSOC) */
 	return;
 }
 
@@ -2897,10 +2924,6 @@ static void wlc_ap_process_assocreq_done(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg
 	wlc_apps_set_listen_prd(wlc, scb, MAX(current_bss->dtim_period, listen));
 
 	scb->assoctime = wlc->pub->now;
-#ifdef WL_GLOBAL_RCLASS
-	wlc_bsscfg_update_gbl_rclass_support_scb(wlc, bsscfg, scb);
-	wlc_bsscfg_update_rclass(wlc, bsscfg);
-#endif /* WL_GLOBAL_RCLASS */
 
 	/* copy sanitized set to scb */
 #ifdef WLP2P
@@ -2933,6 +2956,11 @@ static void wlc_ap_process_assocreq_done(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg
 	wlc_scb_ratesel_init(wlc, scb);
 
 	wlc_scb_setstatebit(wlc, scb, ASSOCIATED);
+#ifdef WL_GLOBAL_RCLASS
+	wlc_bsscfg_update_gbl_rclass_support_scb(wlc, bsscfg, scb);
+	wlc_bsscfg_update_rclass(wlc, bsscfg);
+#endif /* WL_GLOBAL_RCLASS */
+
 
 	/* Start beaconing if this is first STA */
 	if (DYNBCN_ENAB(bsscfg) && wlc_bss_assocscb_getcnt(wlc, bsscfg) == 1) {
@@ -5680,7 +5708,7 @@ wlc_ap_scb_init(void *context, struct scb *scb)
 
 	return BCME_OK;
 }
-#if defined(EXT_STA)
+#if defined(EXT_STA) || defined(SPLIT_ASSOC)
 static int
 wlc_as_scb_init(void *context, struct scb *scb)
 {
@@ -5691,8 +5719,8 @@ wlc_as_scb_init(void *context, struct scb *scb)
 	BCM_REFERENCE(wlc);
 	BCM_REFERENCE(cfg);
 
-	if (WLEXTSTA_ENAB(wlc->pub) &&
-	    BSSCFG_AP(cfg) &&
+	/* shared among split assoc and ext sta */
+	if (BSSCFG_AP(cfg) &&
 	    !SCB_INTERNAL(scb)) {
 		wlc_assoc_req_t **pas_scb = AS_SCB_CUBBY_LOC(appvt, scb);
 		wlc_assoc_req_t *as_scb = AS_SCB_CUBBY(appvt, scb);
@@ -5716,21 +5744,19 @@ wlc_as_scb_deinit(void *context, struct scb *scb)
 	wlc_ap_info_pvt_t *appvt = (wlc_ap_info_pvt_t*)context;
 	wlc_info_t *wlc = appvt->wlc;
 
+	/* free param body if not freed during assoc stage */
+	wlc_assoc_req_t **pas_scb = AS_SCB_CUBBY_LOC(appvt, scb);
+	wlc_assoc_req_t *param = AS_SCB_CUBBY(appvt, scb);
+
 	BCM_REFERENCE(wlc);
 
-	/* free param body if not freed during assoc stage */
-	if (WLEXTSTA_ENAB(wlc->pub)) {
-		wlc_assoc_req_t **pas_scb = AS_SCB_CUBBY_LOC(appvt, scb);
-		wlc_assoc_req_t *param = AS_SCB_CUBBY(appvt, scb);
-
-		if (param != NULL) {
-			if (param->body != NULL) {
-				MFREE(wlc->osh, param->body, param->buf_len);
-			}
-			wlc_scb_sec_cubby_free(wlc, scb, param);
+	if (param != NULL) {
+		if (param->body != NULL) {
+			MFREE(wlc->osh, param->body, param->buf_len);
 		}
-		*pas_scb = NULL;
+		wlc_scb_sec_cubby_free(wlc, scb, param);
 	}
+	*pas_scb = NULL;
 }
 
 static uint
@@ -5743,8 +5769,7 @@ wlc_as_scb_secsz(void *context, struct scb *scb)
 	BCM_REFERENCE(wlc);
 	BCM_REFERENCE(cfg);
 
-	if (WLEXTSTA_ENAB(wlc->pub) &&
-	    BSSCFG_AP(cfg) &&
+	if (BSSCFG_AP(cfg) &&
 	    !SCB_INTERNAL(scb)) {
 		return sizeof(wlc_assoc_req_t);
 	}
@@ -5777,7 +5802,19 @@ wlc_ap_scb_deinit(void *context, struct scb *scb)
 #endif /* BCMDBG */
 	ap_scb_cubby_t *ap_scb = AP_SCB_CUBBY(appvt, scb);
 	ap_bsscfg_cubby_t *ap_cfg = AP_BSSCFG_CUBBY(appvt, bsscfg);
+#if defined(EXT_STA)|| defined(SPLIT_ASSOC)
+	{
+		wlc_assoc_req_t * param = AS_SCB_CUBBY(appvt, scb);
 
+		/* free param body if not freed during assoc stage */
+		if (WLEXTSTA_ENAB(wlc->pub) || SPLIT_ASSOC_REQ(bsscfg)) {
+			if (param != NULL && param->body != NULL) {
+				MFREE(wlc->osh, param->body, param->buf_len);
+				bzero(param, sizeof(wlc_assoc_req_t));
+			}
+		}
+	}
+#endif
 	/* notify the station that we are deauthenticating it */
 	if (BSSCFG_AP(bsscfg) && SCB_MARKED_DEAUTH(scb)) {
 		(void)wlc_senddeauth(wlc, bsscfg, scb, &scb->ea, &bsscfg->BSSID,

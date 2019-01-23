@@ -46,7 +46,7 @@
 
 
 #define RXIQCAL_PRE_IRR_THRESH      10			/* Minimum IRR threshold for pre cal */
-#define RXIQCAL_POST_IRR_THRESH     35			/* Minimum IRR threshold for post cal */
+#define RXIQCAL_POST_IRR_THRESH     39			/* Minimum IRR threshold for post cal */
 
 typedef struct acphy_rx_fdiqi_ctl_struct {
 	bool forced;
@@ -74,7 +74,6 @@ struct phy_ac_rxiqcal_info {
 	phy_iq_est_t rxcal_noise[PHY_CORE_MAX];
 	phy_iq_est_t rxcal_signal[PHY_CORE_MAX];
 #endif /* BCMDBG_RXCAL */
-	bool lowcmen;
 /* add other variable size variables here at the end */
 };
 
@@ -89,12 +88,15 @@ static int phy_ac_rxiqcal_dump_clear(void *ctx);
 #endif /* BCMDBG || BCMDBG_DUMP ||  BCMDBG_PHYDUMP || WLTEST */
 
 static void phy_ac_rxiqlocal_std_params(phy_ac_rxiqcal_info_t *ac_info);
-static void phy_ac_rxiqlocal_nvram_attach(phy_ac_rxiqcal_info_t *vcocali);
 
 static void phy_ac_rxiqcal_diag_init(void);
-static void phy_ac_rxiqcal_diag_update(phy_info_t *pi, uint8 irr[], bool fail);
+void phy_ac_rxiqcal_diag_update(phy_info_t *pi, bool fail);
 
 acphy_ac_rxiqcal_diag_struct_t acphy_ac_rxiqcal_diag;
+
+
+static uint8 rxiqcal_irr1[PHY_CORE_MAX];
+static uint8 rxiqcal_irr2[PHY_CORE_MAX];
 
 static void phy_ac_rxiqcal_diag_init(void)
 {
@@ -115,7 +117,7 @@ static void phy_ac_rxiqcal_diag_init(void)
 	}
 }
 
-static void phy_ac_rxiqcal_diag_update(phy_info_t *pi, uint8 irr[], bool fail)
+void phy_ac_rxiqcal_diag_update(phy_info_t *pi, bool fail)
 {
 	uint8 core;
 	uint8 hist_write_idx;
@@ -128,20 +130,21 @@ static void phy_ac_rxiqcal_diag_update(phy_info_t *pi, uint8 irr[], bool fail)
 		acphy_ac_rxiqcal_diag.rxiq_irr_lastfail.chanspec = pi->radio_chanspec;
 		acphy_ac_rxiqcal_diag.fails++;
 	}
+	/* rxiqcal_irr1 has the bettter of the two IRRs and assigned in wlc_phy_cal_rx_fdiqi_acphy() */
 	FOREACH_CORE(pi, core) {
 		/* Update fail case */
 		if (fail == TRUE) {
-			acphy_ac_rxiqcal_diag.rxiq_irr_lastfail.irr[core] = irr[core];
+			acphy_ac_rxiqcal_diag.rxiq_irr_lastfail.irr[core] = rxiqcal_irr1[core];
 			acphy_ac_rxiqcal_diag.rxiq_irr_lastfail.calrun = acphy_ac_rxiqcal_diag.runs;
 		}
 		/* Update 'worst' case */
-		if (acphy_ac_rxiqcal_diag.rxiq_irr_worst[core].irr[core] > irr[core]) {
+		if (acphy_ac_rxiqcal_diag.rxiq_irr_worst[core].irr[core] > rxiqcal_irr1[core]) {
 			acphy_ac_rxiqcal_diag.rxiq_irr_worst[core].chanspec = pi->radio_chanspec;
-			acphy_ac_rxiqcal_diag.rxiq_irr_worst[core].irr[core] = irr[core];
+			acphy_ac_rxiqcal_diag.rxiq_irr_worst[core].irr[core] = rxiqcal_irr1[core];
 			acphy_ac_rxiqcal_diag.rxiq_irr_worst[core].calrun = acphy_ac_rxiqcal_diag.runs;
 		}
 		/* Update 'history' */
-		acphy_ac_rxiqcal_diag.rxiq_irr_history[hist_write_idx].irr[core] = irr[core];
+		acphy_ac_rxiqcal_diag.rxiq_irr_history[hist_write_idx].irr[core] = rxiqcal_irr1[core];
 		acphy_ac_rxiqcal_diag.rxiq_irr_history[hist_write_idx].calrun = acphy_ac_rxiqcal_diag.runs;
 	}
 	acphy_ac_rxiqcal_diag.valid_hist_entries++;
@@ -222,9 +225,6 @@ BCMATTACHFN(phy_ac_rxiqcal_register_impl)(phy_info_t *pi, phy_ac_info_t *aci,
 
 	phy_ac_rxiqlocal_std_params(ac_info);
 
-	/* Read optimization option for dac buffer vcm from nvram */
-	phy_ac_rxiqlocal_nvram_attach(ac_info);
-
 	if (phy_rxiqcal_register_impl(cmn_info, &fns) != BCME_OK) {
 		PHY_ERROR(("%s: phy_rxiqcal_register_impl failed\n", __FUNCTION__));
 		goto fail;
@@ -276,15 +276,6 @@ BCMATTACHFN(phy_ac_rxiqcal_unregister_impl)(phy_ac_rxiqcal_info_t *ac_info)
 	}
 
 	phy_mfree(pi, ac_info, sizeof(phy_ac_rxiqcal_info_t));
-}
-
-static void
-BCMATTACHFN(phy_ac_rxiqlocal_nvram_attach)(phy_ac_rxiqcal_info_t *rxiqcali)
-{
-	phy_info_t *pi = rxiqcali->pi;
-
-	/* lowcmen = 0 => optimized setting for dacvcm */
-	rxiqcali->lowcmen = (bool)PHY_GETINTVAR_DEFAULT_SLICE(pi, rstr_lowcmen, 0);
 }
 
 int32
@@ -399,7 +390,7 @@ static math_cint32 wlc_phy_calc_iq_mismatch_acphy(phy_iq_est_t *est, acphy_iq_mi
 static void wlc_phy_rxcal_snr_acphy(phy_ac_rxiqcal_info_t *ri, uint16 num_samps, uint8 core_mask);
 #endif /* BCMDBG_RXCAL */
 
-static int wlc_phy_cal_rx_irr_check(phy_info_t *pi, phy_iq_est_t *iq_est, acphy_iq_mismatch_t *loopback_mismatch, bool rxiq_cal);
+static int wlc_phy_cal_rx_irr_check(phy_info_t *pi, phy_iq_est_t *iq_est, acphy_iq_mismatch_t *loopback_mismatch, uint8 *irr, bool rxiq_cal);
 
 static void
 wlc_phy_rxcal_phy_setup_acphy(phy_ac_rxiqcal_info_t *rxiqcali)
@@ -1237,18 +1228,6 @@ wlc_phy_rxcal_radio_setup_acphy_20696(phy_ac_rxiqcal_info_t *ti)
 		MOD_RADIO_REG_20696(pi, TIA_CFG1_OVR, core, ovr_tia_pu, 1);
 		MOD_RADIO_REG_20696(pi, TIA_REG7, core, tia_bias_pu, 1);
 		MOD_RADIO_REG_20696(pi, TIA_CFG1_OVR, core, ovr_tia_bias_pu, 1);
-
-		MOD_RADIO_REG_20696(pi, TXDAC_REG0, core, iqdac_buf_cmsel, 0);
-		/*MOD_RADIO_REG_20696(pi, TXDAC_REG1, core, iqdac_lowcm_en, 1);*/
-		MOD_RADIO_REG_20696(pi, TXDAC_REG0, core, iqdac_attn, 3);
-
-		if (ti->lowcmen == 0) {
-			MOD_RADIO_REG_20696(pi, TXDAC_REG1, core, iqdac_lowcm_en, 0);
-			MOD_RADIO_REG_20696(pi, TXDAC_REG0, core, iqdac_buf_bw, 3);
-			MOD_RADIO_REG_20696(pi, TX2G_MIX_REG2, core, tx2g_mx_idac_bb, 15);
-		} else {
-			MOD_RADIO_REG_20696(pi, TXDAC_REG1, core, iqdac_lowcm_en, 1);
-		}
 
 		if (CHSPEC_IS2G(pi->radio_chanspec)) {
 			MOD_RADIO_REG_20696(pi, RX2G_CFG1_OVR, core, ovr_lna2g_lna1_out_short_pu,
@@ -2528,7 +2507,6 @@ wlc_phy_rx_fdiqi_freq_config(phy_ac_rxiqcal_info_t *rxiqcali, int8 *fdiqi_cal_fr
 			*num_data = 4;
 		}
 	}
-
 }
 
 
@@ -2688,7 +2666,15 @@ phy_ac_rxiqcal_rx_fdiqi_lin_reg(phy_ac_rxiqcal_info_t *rxiqcali, acphy_rx_fdiqi_
 	FOREACH_CORE(pi, core) {
 		wlc_phy_rx_iq_comp_acphy(pi, 1, &(coeffs[core]), core);
 	}
-
+	PHY_RXIQ(("rx_iq_comp coeff-a/b = %4d %4d  %4d %4d  %4d %4d  %4d %4d\n",
+					((coeffs[0].a >= 512) ? coeffs[0].a - 1024 : coeffs[0].a),
+					((coeffs[0].b >= 512) ? coeffs[0].b - 1024 : coeffs[0].b),
+					((coeffs[1].a >= 512) ? coeffs[1].a - 1024 : coeffs[1].a),
+					((coeffs[1].b >= 512) ? coeffs[1].b - 1024 : coeffs[1].b),
+					((coeffs[2].a >= 512) ? coeffs[2].a - 1024 : coeffs[2].a),
+					((coeffs[2].b >= 512) ? coeffs[2].b - 1024 : coeffs[2].b),
+					((coeffs[3].a >= 512) ? coeffs[3].a - 1024 : coeffs[3].a),
+					((coeffs[3].b >= 512) ? coeffs[3].b - 1024 : coeffs[3].b)));
 	if (pi->u.pi_acphy->rxiqcali->fdiqi->enabled) {
 		wlc_phy_rx_fdiqi_comp_acphy(pi, TRUE);
 	}
@@ -3168,7 +3154,7 @@ wlc_phy_turnoff_rxlogen_20694(phy_info_t *pi, uint8 *sr_reg)
 	}
 }
 
-int wlc_phy_cal_rx_irr_check(phy_info_t *pi, phy_iq_est_t *iq_est, acphy_iq_mismatch_t *loopback_mismatch, bool rxiq_cal)
+int wlc_phy_cal_rx_irr_check(phy_info_t *pi, phy_iq_est_t *iq_est, acphy_iq_mismatch_t *loopback_mismatch, uint8 *irr, bool rxiq_cal)
 {
 	uint8 core;
 	math_cint32 cos_sin_val;
@@ -3177,8 +3163,8 @@ int wlc_phy_cal_rx_irr_check(phy_info_t *pi, phy_iq_est_t *iq_est, acphy_iq_mism
 	uint32 res_val, nf_res;
 	int8 dB_val;
 	uint8 thresh;
-	uint8 irr[PHY_CORE_MAX];
 	bool fail = FALSE;
+	int status = 0;
 	uint8 band, bw, chan;
 
 	thresh = rxiq_cal ? RXIQCAL_PRE_IRR_THRESH: RXIQCAL_POST_IRR_THRESH;
@@ -3210,21 +3196,22 @@ int wlc_phy_cal_rx_irr_check(phy_info_t *pi, phy_iq_est_t *iq_est, acphy_iq_mism
 		/* Convert to dB */
 		phy_utils_computedB(&res_val, &dB_val, 1);
 
-		irr[core]= dB_val;
-		if (!rxiq_cal && (dB_val < thresh)) {
-			PHY_ERROR(("ERROR : RxIQCal failed! [Core = %d, Band = %d, Bw = %d, Chan = %d, IRR_Est = %d, Thresh = %d]\n",
-						core, band, bw, chan, dB_val, thresh));
-			fail = TRUE;
+		if (!rxiq_cal) {
+			irr[core]= dB_val;
+			if (dB_val < thresh) {
+				PHY_ERROR(("ERROR : RxIQCal failed! [Core = %d, Band = %d, Bw = %d, Chan = %d, IRR_Est = %d, Thresh = %d]\n",
+							core, band, bw, chan, dB_val, thresh));
+				fail = TRUE;
+				status |= (1 << core);
+			}
 		}
 	}
 
-	PHY_RXIQ(("RXIQCAL IRR (dB) [%scomp]: %4d %4d %4d %4d\n", rxiq_cal ? "Pre":"Post", irr[0], irr[1], irr[2], irr[3]));
 
 	if (!rxiq_cal) {
-		phy_ac_rxiqcal_diag_update(pi, irr, fail);
-		// phy_ac_rxiqcal_diag_print(pi);
+		PHY_RXIQ(("RXIQCAL IRR (dB) [%scomp]: %4d %4d %4d %4d\n", rxiq_cal ? "Pre":"Post", irr[0], irr[1], irr[2], irr[3]));
 	}
-	return BCME_OK;
+	return status;
 }
 
 int
@@ -3248,6 +3235,7 @@ wlc_phy_cal_rx_fdiqi_acphy(phy_info_t *pi)
 	phy_info_acphy_t *pi_ac = (phy_info_acphy_t *)pi->u.pi_acphy;
 	phy_ac_rxiqcal_info_t *ti = pi_ac->rxiqcali;
 	acphy_iq_mismatch_t loopback_mismatch[PHY_CORE_MAX];
+	int status = BCME_OK;
 
 #if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_2))
 	bool suspend = TRUE;
@@ -3429,7 +3417,6 @@ wlc_phy_cal_rx_fdiqi_acphy(phy_info_t *pi)
 		} else {
 			wlc_phy_rx_iq_est_acphy(pi, loopback_rx_iq, 0x4000, 32, 0, TRUE);
 		}
-		wlc_phy_cal_rx_irr_check(pi, loopback_rx_iq, loopback_mismatch, TRUE);
 
 		if (ti->fdiqi->leakage_comp_mode == ACPHY_RXCAL_LEAKAGE_COMP) {
 			if (TINY_RADIO(pi)) {
@@ -3471,10 +3458,26 @@ wlc_phy_cal_rx_fdiqi_acphy(phy_info_t *pi)
 	phy_ac_rxiqcal_rx_fdiqi_lin_reg(pi->u.pi_acphy->rxiqcali, freq_ang_mag, num_data);
 
 	/* Check IRR with the newly calibrated rxiq coefficients */
-	wlc_phy_tx_tone_acphy(pi, (int32)tone_freq, ACPHY_RXCAL_TONEAMP, 0, 0, FALSE);
-	wlc_phy_rx_iq_est_acphy(pi, loopback_rx_iq, 0x4000, 32, 0, TRUE);
-	wlc_phy_cal_rx_irr_check(pi, loopback_rx_iq, loopback_mismatch, FALSE);
-	wlc_phy_stopplayback_acphy(pi);
+	if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
+		uint8 status1, status2;
+
+		wlc_phy_tx_tone_acphy(pi, (int32)tone_freq, ACPHY_RXCAL_TONEAMP, 0, 0, FALSE);
+		wlc_phy_rx_iq_est_acphy(pi, loopback_rx_iq, 0x4000, 32, 0, TRUE);
+		status1 = wlc_phy_cal_rx_irr_check(pi, loopback_rx_iq, loopback_mismatch, rxiqcal_irr1, FALSE);
+		wlc_phy_rx_iq_est_acphy(pi, loopback_rx_iq, 0x4000, 32, 0, TRUE);
+		status2 = wlc_phy_cal_rx_irr_check(pi, loopback_rx_iq, loopback_mismatch, rxiqcal_irr2, FALSE);
+		wlc_phy_stopplayback_acphy(pi);
+		status = BCME_OK;
+		if (status1 & status2) {	/* Declare an error only if the same core has failures */
+			status = BCME_ERROR;
+		}
+		FOREACH_CORE(pi, core) {
+			rxiqcal_irr1[core] = MAX(rxiqcal_irr1[core], rxiqcal_irr2[core]);
+		}
+		PHY_RXIQ(("rxiqcal status1/2 = %d,%d, irr1 = %d, %d, %d, %d: irr2 = %d, %d, %d, %d\n",
+				status1, status2, rxiqcal_irr1[0], rxiqcal_irr1[1], rxiqcal_irr1[2], rxiqcal_irr1[3],
+				rxiqcal_irr2[0], rxiqcal_irr2[1], rxiqcal_irr2[2], rxiqcal_irr2[3]));
+	}
 
 #if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_40))
 	if (pi->u.pi_acphy->sromi->srom_low_adc_rate_en && ACMAJORREV_40(pi->pubpi->phy_rev)) {
@@ -3581,7 +3584,7 @@ wlc_phy_cal_rx_fdiqi_acphy(phy_info_t *pi)
 	}
 
 
-	return BCME_OK;
+	return status;
 }
 
 static void
@@ -4335,7 +4338,23 @@ phy_ac_rxiqcal(phy_info_t *pi)
 		wlc_phy_btcx_override_disable(pi);
 	} else
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_36)) */
-	{
+	if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
+		int iter;
+
+		/* Limit the number of retries to 2 */
+		for (iter = 0; iter <= RXIQCAL_MAX_RETRIES; iter++) {
+			if (wlc_phy_cal_rx_fdiqi_acphy(pi) == BCME_OK) {
+				break;
+			}
+		}
+		if (iter > RXIQCAL_MAX_RETRIES) {
+			phy_ac_rxiqcal_diag_update(pi, FALSE);
+		}
+		else {
+		    phy_ac_rxiqcal_diag_update(pi, FALSE);
+		}
+	}
+	else {
 		wlc_phy_cal_rx_fdiqi_acphy(pi);
 	}
 

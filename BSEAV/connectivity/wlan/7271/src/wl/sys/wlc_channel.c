@@ -2119,6 +2119,7 @@ wlc_set_country_common(wlc_cm_info_t *wlc_cmi,
 	}
 #endif /* WLOLPC */
 
+	wlc_ht_frameburst_limit(wlc->hti);
 	return;
 }
 

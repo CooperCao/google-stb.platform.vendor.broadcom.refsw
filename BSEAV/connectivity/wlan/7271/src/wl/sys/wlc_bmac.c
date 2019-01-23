@@ -16245,6 +16245,23 @@ wlc_bmac_obss_stats_read(wlc_hw_info_t *wlc_hw, wlc_bmac_obss_counts_t *obss_cou
 	return 0;
 } /* wlc_bmac_obss_stats_read */
 
+int  wlc_bmaq_lq_stats_read(wlc_hw_info_t *wlc_hw, chanim_cnt_us_t *chanim_cnt_us)
+{
+	//chanim_cnt_us->tx_tm = wlc_bmac_cca_read_counter(wlc_hw, M_CCA_TXDUR_L, M_CCA_TXDUR_H);
+	if (D11REV_GE(wlc_hw->corerev, 40)) {
+		chanim_cnt_us->rxcrs_pri20 = wlc_bmac_read_counter(wlc_hw,
+				wlc_hw->macstat1_shm_base, OFFSETOF(macstat1_t, rxpri_durl),
+				OFFSETOF(macstat1_t, rxpri_durh));
+		chanim_cnt_us->rxcrs_sec20 = wlc_bmac_read_counter(wlc_hw,
+				wlc_hw->macstat1_shm_base, OFFSETOF(macstat1_t, rxsec20_durl),
+				OFFSETOF(macstat1_t, rxsec20_durh));
+		chanim_cnt_us->rxcrs_sec40 = wlc_bmac_read_counter(wlc_hw,
+				wlc_hw->macstat1_shm_base, OFFSETOF(macstat1_t, rxsec40_durl),
+				OFFSETOF(macstat1_t, rxsec40_durh));
+	}
+	return 0;
+}
+
 void
 wlc_bmac_antsel_set(wlc_hw_info_t *wlc_hw, uint32 antsel_avail)
 {

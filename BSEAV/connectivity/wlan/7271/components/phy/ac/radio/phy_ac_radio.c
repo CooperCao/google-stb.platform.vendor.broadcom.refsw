@@ -2034,9 +2034,6 @@ static void wlc_phy_radio20696_wars(phy_info_t *pi)
 		/* 7271: BUGFIX - HWJUSTY-285 TxEVM in 5GHz influenced by ovr_auxpga_i_pu */
 		MOD_RADIO_REG_20696(pi, AUXPGA_OVR1, core, ovr_auxpga_i_pu, 0x1);
 		MOD_RADIO_REG_20696(pi, AUXPGA_CFG1, core, auxpga_i_pu, 0x1);
-
-		/* HWJUSTY-272 part 1 */
-		MOD_RADIO_REG_20696(pi, TXDAC_REG0, core, iqdac_buf_cmsel, 1);
 	}
 	/* HWJUSTY-272 part 2, improve LOFT comp range */
 	MOD_PHYREG(pi, Core1TxControl, loft_comp_shift, 1);
@@ -2082,7 +2079,7 @@ static void wlc_phy_radio20696_upd_prfd_values(phy_info_t *pi)
 	switch (RADIOREV(pi->pubpi->radiorev)) {
 	case 0: prefregs_20696_ptr = prefregs_20696_rev0;
 		break;
-	case 2: /* TODO: Update when there is a prefregs_20696_rev2 */
+	case 2:
 		prefregs_20696_ptr = prefregs_20696_rev0;
 		break;
 	default:
@@ -2139,7 +2136,7 @@ static void wlc_phy_radio20696_upd_prfd_values(phy_info_t *pi)
 		MOD_RADIO_REG_20696(pi, TX2G_CFG1_OVR, core, ovr_tx2g_pad_bias_reset_gm, 1);
 		MOD_RADIO_REG_20696(pi, TX2G_CFG1_OVR, core, ovr_tx2g_pad_bias_reset_cas, 1);
 		MOD_RADIO_REG_20696(pi, TX2G_PAD_REG1, core, tx2g_pad_idac_gm, 4);
-		MOD_RADIO_REG_20696(pi, TX2G_MIX_REG2, core, tx2g_mx_idac_bb, 11);
+		MOD_RADIO_REG_20696(pi, TX2G_MIX_REG2, core, tx2g_mx_idac_bb, 15);
 		/* Rx */
 		MOD_RADIO_REG_20696(pi, RX2G_REG5, core, rx2g_wrssi0_low_pu, 1);
 		MOD_RADIO_REG_20696(pi, RX2G_REG5, core, rx2g_wrssi0_mid_pu, 1);
@@ -2156,7 +2153,7 @@ static void wlc_phy_radio20696_upd_prfd_values(phy_info_t *pi)
 		MOD_RADIO_REG_20696(pi, TX5G_MIX_REG1, core, tx5g_idac_mx5g_tuning, 9);
 		MOD_RADIO_REG_20696(pi, TX5G_MIX_REG1, core, tx5g_idac_mx_bbdc, 26);
 		MOD_RADIO_REG_20696(pi, TX5G_MIX_REG2, core, tx5g_idac_mx_lodc, 15);
-		MOD_RADIO_REG_20696(pi, TX5G_PAD_REG1, core, tx5g_idac_pad_main, 28);
+		MOD_RADIO_REG_20696(pi, TX5G_PAD_REG1, core, tx5g_idac_pad_main, 14);
 		MOD_RADIO_REG_20696(pi, TX5G_PAD_REG1, core, tx5g_idac_pad_main_slope, 3);
 		MOD_RADIO_REG_20696(pi, TX5G_PAD_REG1, core, tx5g_idac_pad_cas_bot, 15);
 		MOD_RADIO_REG_20696(pi, TX5G_PAD_REG2, core, tx5g_idac_pad_tuning, 8);
@@ -5415,6 +5412,7 @@ wlc_phy_radio20696_upd_band_related_reg(phy_info_t *pi)
 			MOD_RADIO_REG_20696(pi, TXDAC_REG1, core, iqdac_buf_Cfb, 127);
 			MOD_RADIO_REG_20696(pi, RX2G_REG2, core, rx2g_gm_ptat, 7);
 			MOD_RADIO_REG_20696(pi, LNA2G_REG2, core, lna2g_lna1_bias_ptat, 7);
+			MOD_RADIO_REG_20696(pi, TXDAC_REG3, core, i_config_IQDACbuf_2g_cmref_en, 1);
 		}
 	} else {
 		MOD_RADIO_PLLREG_20696(pi, LOGEN_REG0, logen_div3en, 0);
@@ -5426,12 +5424,13 @@ wlc_phy_radio20696_upd_band_related_reg(phy_info_t *pi)
 			MOD_RADIO_REG_20696(pi, TXDAC_REG1, core, iqdac_Rfb, 0);
 			MOD_RADIO_REG_20696(pi, LOGEN_CORE_REG0, core,
 			    logen_5g_tx_rccr_iqbias_short, 1);
-			MOD_RADIO_REG_20696(pi, LOGEN_CORE_REG2, core, logen_tx_rccr_idac26u, 7);
+			MOD_RADIO_REG_20696(pi, LOGEN_CORE_REG2, core, logen_tx_rccr_idac26u, 6);
 			// RX settings RCCR related 5G
 			MOD_RADIO_REG_20696(pi, LOGEN_CORE_REG4, core, logen_rx_rccr_tune, 0);
 			MOD_RADIO_REG_20696(pi, LOGEN_CORE_REG2, core, logen_rx_rccr_idac26u, 7);
 			MOD_RADIO_REG_20696(pi, LOGEN_CORE_REG0, core,
 			    logen_5g_rx_rccr_iqbias_short, 1);
+			MOD_RADIO_REG_20696(pi, TXDAC_REG3, core, i_config_IQDACbuf_2g_cmref_en, 0);
 		}
 	}
 }
@@ -6347,14 +6346,6 @@ wlc_phy_radio20696_txdac_bw_setup(phy_info_t *pi, uint8 filter_type, uint8 dacbw
 	ASSERT(dacbw != 0);
 
 	FOREACH_CORE(pi, core) {
-		MOD_RADIO_REG_20696(pi, TXDAC_REG1, core, iqdac_buf_op_cur, 0x0);
-
-		if ((dacbw == DACBW_120) || (dacbw == DACBW_150)) {
-			MOD_RADIO_REG_20696(pi, TXDAC_REG0, core, iqdac_buf_bw, 0x0);
-		} else if ((dacbw == DACBW_60) || (dacbw == DACBW_30)) {
-			MOD_RADIO_REG_20696(pi, TXDAC_REG0, core, iqdac_buf_bw, 0x4);
-		}
-
 		MOD_RADIO_REG_20696(pi, TXDAC_REG1, core, iqdac_buf_Cfb, 127);
 	}
 }

@@ -385,6 +385,7 @@ struct wlc_bss_info {
 	uint8   sync_method_id;
 	uint8   auth_prot_id;
 	uint8	eat_frac;	/**< estimated air time fraction ESP IE */
+	int8	infra;	/* 0=IBSS, 1=infrastructure, 2=unknown */
 };
 
 /* NDIS compatibility macro */
@@ -2999,6 +3000,8 @@ extern const uint8 fifo2prio[];
 
 #if defined(SLAVE_RADAR)
 #define SLVRADAR_ENAB(pub) ((pub)->cmn->_slvradar)
+#else
+#define SLVRADAR_ENAB(pub) (0)
 #endif /* SLAVE_RADAR */
 
 /* Interworking -- 11u Support */

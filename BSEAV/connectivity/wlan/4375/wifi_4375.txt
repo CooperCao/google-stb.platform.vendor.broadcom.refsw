@@ -1,0 +1,3 @@
+## Wifi driver DHD Metadata v0.0.1
+## unique_key checksum_type checksum url
+stb_4375_wifi.tar.gz sha1 121fc19812c9f0dd04eee976a6de1554d30ba4b9 http://git-irv-03.irv.broadcom.com:88/files/connectivity/wlan/4375/BCM4375_REL_1_7.tar.gz
