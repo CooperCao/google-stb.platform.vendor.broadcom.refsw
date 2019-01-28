@@ -9793,60 +9793,19 @@ bool DRM_WVOemCrypto_IsAntiRollbackHwPresent(void)
     return gAntiRollbackHw;
 }
 
+#define DRM_WVOEMCRYPTO_UNKNOWN_ANALOG_OUTPUT (1<<31)
+
 DrmRC DRM_WVOemCrypto_GetAnalogOutputFlags(uint32_t *output_flags, int *wvRc)
 {
     DrmRC rc = Drm_Success;
-    BERR_Code sage_rc = BERR_SUCCESS;
-    BSAGElib_InOutContainer *container = NULL;
-
     BDBG_ENTER(DRM_WVOemCrypto_GetAnalogOutputFlags);
 
     *wvRc = SAGE_OEMCrypto_SUCCESS;
-
-    container = SRAI_Container_Allocate();
-    if(container == NULL)
-    {
-        BDBG_ERR(("%s - Error allocating container in GetAnalogOutputFlags", BSTD_FUNCTION));
-        rc = Drm_Err;
-        *wvRc =SAGE_OEMCrypto_ERROR_INVALID_CONTEXT;
-        goto ErrorExit;
-    }
-
-    sage_rc = SRAI_Module_ProcessCommand(gWVmoduleHandle, DrmWVOEMCrypto_CommandId_eGetAnalogOutputFlags, container);
-    if (sage_rc != BERR_SUCCESS)
-    {
-        BDBG_ERR(("%s - Error sending command to SAGE", BSTD_FUNCTION));
-        rc = Drm_Err;
-        *wvRc = SAGE_OEMCrypto_ERROR_INIT_FAILED ;
-        goto ErrorExit;
-    }
-    /* if success, extract status from container */
-    sage_rc = container->basicOut[0];
-    *wvRc = container->basicOut[2];
-    if(sage_rc != BERR_SUCCESS)
-    {
-        BDBG_ERR(("%s - command sent successfully, but actual operation failed with err -(wvRC = %d)", BSTD_FUNCTION,*wvRc));
-        rc =Drm_Err;
-        goto ErrorExit;
-    }
-
-
-
-    /* if success, extract index from container */
-    (*output_flags) = container->basicOut[1];
-
-    BDBG_MSG(("%s: analog output flags = 0x%x",BSTD_FUNCTION,container->basicOut[1] ));
-
-
-ErrorExit:
-    if(container != NULL)
-    {
-        SRAI_Container_Free(container);
-    }
+    *output_flags = DRM_WVOEMCRYPTO_UNKNOWN_ANALOG_OUTPUT;
 
     BDBG_LEAVE(DRM_WVOemCrypto_GetAnalogOutputFlags);
 
-   return rc;
+    return rc;
 }
 
 DrmRC DRM_WVOemCrypto_LoadEntitledContentKeys(uint32_t session,
