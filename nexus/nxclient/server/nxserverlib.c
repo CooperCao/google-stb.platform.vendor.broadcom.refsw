@@ -2295,6 +2295,7 @@ static void nxserver_check_hdcp(struct b_session *session)
 
     case nxserver_hdcp_follow:
         if (!is_hdcp_start_complete(&hdcpStatus)) {
+            curr_version_state = session->hdcp.version_state = nxserver_hdcp_begin;
             initializeHdmiOutputHdcpSettings(session, curr_version_select);
             rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
             if (rc) BDBG_ERR(("nxserver_check_hdcp: %s: NEXUS_HdmiOutput_StartHdcpAuthentication failed: %d", g_nxserver_hdcp_str[curr_version_state], rc));
@@ -2767,7 +2768,7 @@ static void initializeHdmiOutputHdcpSettings(struct b_session *session, NxClient
     switch (version_select) {
     case NxClient_HdcpVersion_eAuto:
         hdmiOutputHdcpSettings.hdcp_version = NEXUS_HdmiOutputHdcpVersion_eAuto;
-        if (session->hdcp.version_state != nxserver_hdcp_begin) {
+        if (session->hdcp.version_state == nxserver_hdcp_follow) {
             /* second pass */
             hdmiOutputHdcpSettings.hdcp2xContentStreamControl = NEXUS_Hdcp2xContentStream_eType0;
         }
