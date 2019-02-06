@@ -103,7 +103,7 @@
 
 /*APP_MIXER_DAPV2 Size requirement*/
 #define BDSP_IMG_APP_MIXER_DAPV2_SCRATCH_SIZE                        ((uint32_t)1507328)
-#define BDSP_IMG_APP_MIXER_DAPV2_SIZE                                ((uint32_t)202752)
+#define BDSP_IMG_APP_MIXER_DAPV2_SIZE                                ((uint32_t)203264)
 #define BDSP_IMG_APP_MIXER_DAPV2_INTER_FRAME_SIZE                    ((uint32_t)523776)
 #define BDSP_IMG_APP_MIXER_DAPV2_INTER_FRAME_ENCODED_SIZE            ((uint32_t)512)
 #define BDSP_IMG_APP_MIXER_DAPV2_TABLES_SIZE                         ((uint32_t)209408)
@@ -264,7 +264,7 @@
 
 /*APP_MS11PLUS_MIXER Size requirement*/
 #define BDSP_IMG_APP_MS11PLUS_MIXER_SCRATCH_SIZE                     ((uint32_t)1273856)
-#define BDSP_IMG_APP_MS11PLUS_MIXER_SIZE                             ((uint32_t)65536)
+#define BDSP_IMG_APP_MS11PLUS_MIXER_SIZE                             ((uint32_t)66048)
 #define BDSP_IMG_APP_MS11PLUS_MIXER_INTER_FRAME_SIZE                 ((uint32_t)331776)
 #define BDSP_IMG_APP_MS11PLUS_MIXER_INTER_FRAME_ENCODED_SIZE         ((uint32_t)512)
 #define BDSP_IMG_APP_MS11PLUS_MIXER_TABLES_SIZE                      ((uint32_t)89600)

@@ -93,7 +93,7 @@ const uint32_t BDSP_IMG_mpeg1_decode_array1[] = {
 	0x3fdc4917,
 	0xd9058ba0,
 	0xd9034251,
-	0xd8d59580,
+	0xd8cd9580,
 	0xc600fb23,
 	0x4611c207,
 	0x2b02fe17,

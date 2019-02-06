@@ -1237,7 +1237,7 @@ const uint32_t BDSP_IMG_dts_ids_array1[] = {
 	0xb6fa09ff,
 	0x942a4707,
 	0xda682aa2,
-	0xd8d0b283,
+	0xd8c8b283,
 	0xf0263e43,
 	0xd858b2a3,
 	0xc6b6169b,

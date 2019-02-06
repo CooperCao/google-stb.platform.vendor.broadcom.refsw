@@ -1924,6 +1924,11 @@ NEXUS_Error NEXUS_AudioDecoder_Flush(
         (void)BERR_TRACE(rc);
     }
 
+    if ( handle->openSettings.type == NEXUS_AudioDecoderType_eDecodeToMemory )
+    {
+        NEXUS_AudioDecoder_P_FlushDecodeToMemory(handle);
+    }
+
     if ( handle->programSettings.pidChannel )
     {
         rc = NEXUS_AudioDecoder_P_EnableRaveContexts(handle, NULL);
@@ -4265,6 +4270,11 @@ NEXUS_Error NEXUS_AudioDecoder_P_Stop(NEXUS_AudioDecoderHandle handle, bool flus
             BKNI_LeaveCriticalSection();
         }
 #endif
+
+        if ( handle->openSettings.type == NEXUS_AudioDecoderType_eDecodeToMemory )
+        {
+            NEXUS_AudioDecoder_P_FlushDecodeToMemory(handle);
+        }
     }
 
     /* Unset compressed output mutes incase outputs do not get attached again for compressed output */
