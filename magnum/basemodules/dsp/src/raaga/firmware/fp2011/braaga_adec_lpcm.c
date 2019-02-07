@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -2458,7 +2458,7 @@ const uint32_t BDSP_IMG_lpcm_decode_code_array1[] = {
 	0x41a08403,
 	0x40418003,
 	0x23018003,
-	0xdab27100,
+	0xdaba7100,
 	0x2a841040,
 	0xa9fd0ffb,
 	0x15008d87,

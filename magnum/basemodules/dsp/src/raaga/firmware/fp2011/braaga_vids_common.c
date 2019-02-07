@@ -384,7 +384,7 @@ const uint32_t BDSP_IMG_vididscommon_code_array1[] = {
 	0x74020207,
 	0x74000607,
 	0x15008a47,
-	0xd8d04620,
+	0xd8c84620,
 	0x74080404,
 	0x945e0307,
 	0x946a7f04,
