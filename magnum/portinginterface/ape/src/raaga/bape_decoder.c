@@ -102,7 +102,6 @@ static bool BAPE_Decoder_P_OrphanConnector(BAPE_DecoderHandle handle, BAPE_Conne
 static BERR_Code BAPE_Decoder_P_GetPathDelay_isr(BAPE_DecoderHandle handle, unsigned *pDelay);
 static void BAPE_Decoder_P_FreeDecodeToMemory(BAPE_DecoderHandle hDecoder);
 static bool BAPE_Decoder_P_HasConnectedOutput(BAPE_DecoderHandle handle, BAPE_ConnectorFormat format);
-static void BAPE_Decoder_P_FlushDecodeToMemory(BAPE_DecoderHandle handle);
 
 #define BAVC_CODEC_IS_AAC(c) \
     (c == BAVC_AudioCompressionStd_eAacAdts || \
@@ -1751,13 +1750,14 @@ static BERR_Code BAPE_Decoder_P_Start(
             errCode = BERR_TRACE(errCode);
             goto err_stages;
         }
-        BAPE_Decoder_P_FlushDecodeToMemory(handle);
+        BDSP_Queue_Flush(handle->decodeToMem.hARQ);
         errCode = BDSP_Stage_AddQueueOutput(handle->hOutputFormatter, handle->decodeToMem.hARQ, &dummy);
         if ( errCode )
         {
             errCode = BERR_TRACE(errCode);
             goto err_stages;
         }
+        BDSP_Queue_Flush(handle->decodeToMem.hADQ);
         errCode = BDSP_Stage_AddQueueOutput(handle->hOutputFormatter, handle->decodeToMem.hADQ, &dummy);
         if ( errCode )
         {
@@ -2487,8 +2487,6 @@ static void BAPE_Decoder_P_Stop(
 #else
     BDSP_Task_Stop(handle->hTask);
 #endif
-
-    BAPE_Decoder_P_FlushDecodeToMemory(handle);
 
     BAPE_PathNode_P_StopPaths(&handle->node);
 
@@ -4896,26 +4894,6 @@ void BAPE_Decoder_InitBufferDescriptor(
     BKNI_Memset(pDescriptor, 0, sizeof(BAPE_DecoderBufferDescriptor));
 }
 
-/***************************************************************************
-Summary:
-Reset DecodeToMemory Queues
-***************************************************************************/
-static void BAPE_Decoder_P_FlushDecodeToMemory(BAPE_DecoderHandle handle)
-{
-    BAPE_DecodeToMemoryNode *pNode;
-    while ( (pNode = BLST_Q_FIRST(&handle->decodeToMem.pendingList)) )
-    {
-        BLST_Q_REMOVE_HEAD(&handle->decodeToMem.pendingList, node);
-        BLST_Q_INSERT_TAIL(&handle->decodeToMem.freeList, pNode, node);
-    }
-    while ( (pNode = BLST_Q_FIRST(&handle->decodeToMem.completedList)) )
-    {
-        BLST_Q_REMOVE_HEAD(&handle->decodeToMem.completedList, node);
-        BLST_Q_INSERT_TAIL(&handle->decodeToMem.freeList, pNode, node);
-    }
-    if ( handle->decodeToMem.hARQ ) { BDSP_Queue_Flush(handle->decodeToMem.hARQ); }
-    if ( handle->decodeToMem.hADQ ) { BDSP_Queue_Flush(handle->decodeToMem.hADQ); }
-}
 
 /***************************************************************************
 Summary:

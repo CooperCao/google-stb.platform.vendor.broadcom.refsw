@@ -1090,6 +1090,16 @@ void BDSP_Raaga_P_Close(
 		BDSP_FreeExternalInterrupt(&pRaagaExtInterrput->extInterrupt);
 	}
 
+    for(dspIndex = 0; dspIndex< pDevice->numDsp; dspIndex++)
+    {
+        errCode = BDSP_Raaga_P_DeviceInterruptUninstall((void *)pDevice, dspIndex);
+        if(errCode != BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_Raaga_P_Close: Unable to Un-Install Interrupt callbacks for DSP %d", dspIndex));
+            errCode = BERR_TRACE(errCode);
+        }
+    }
+
 	errCode = BDSP_Raaga_P_Reset(pDevice);
 	if (BERR_SUCCESS != errCode)
 	{
@@ -1119,13 +1129,6 @@ void BDSP_Raaga_P_Close(
 			BDBG_ERR(("BDSP_Raaga_P_Close: Unable to Release RW memory for DSP %d!!!", dspIndex));
 			errCode = BERR_TRACE(errCode);
 		}
-
-		errCode = BDSP_Raaga_P_DeviceInterruptUninstall((void *)pDevice, dspIndex);
-        if(errCode != BERR_SUCCESS)
-        {
-            BDBG_ERR(("BDSP_Raaga_P_Close: Unable to Un-Install Interrupt callbacks for DSP %d", dspIndex));
-            errCode = BERR_TRACE(errCode);
-        }
 
 		BDSP_MMA_P_FreeMemory(&(pDevice->memInfo.sKernelRWMemoryPool[dspIndex].Memory));
 		BDSP_MMA_P_FreeMemory(&(pDevice->memInfo.sHostSharedRWMemoryPool[dspIndex].Memory));
