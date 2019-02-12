@@ -803,12 +803,6 @@ void NEXUS_AudioDecoder_P_UninitDecodeToMemory(NEXUS_AudioDecoderHandle decoder)
 
 /***************************************************************************
 Summary:
-    Flush DecodeToMemory buffer queue on a decoder flush
- ***************************************************************************/
-void NEXUS_AudioDecoder_P_FlushDecodeToMemory(NEXUS_AudioDecoderHandle decoder);
-
-/***************************************************************************
-Summary:
     Is a playback running?
  ***************************************************************************/
 bool NEXUS_AudioPlayback_P_IsRunning(NEXUS_AudioPlaybackHandle handle);
