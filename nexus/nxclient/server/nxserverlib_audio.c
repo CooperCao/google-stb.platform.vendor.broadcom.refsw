@@ -341,6 +341,9 @@ static int b_audio_open_pb(struct b_audio_resource *r, bool i2s, unsigned index)
         if (server->settings.audioPlayback.fifoSize) {
             openSettings.fifoSize = server->settings.audioPlayback.fifoSize;
         }
+        if (server->settings.audioPlayback.threshold) {
+            openSettings.threshold = server->settings.audioPlayback.threshold;
+        }
         pb->audioPlayback = NEXUS_AudioPlayback_Open(NEXUS_ANY_ID, &openSettings);
         if (!pb->audioPlayback) { rc = BERR_TRACE(-1); goto error; }
     }

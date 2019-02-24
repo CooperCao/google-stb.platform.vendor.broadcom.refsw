@@ -153,6 +153,7 @@ struct nxserver_settings
     } audioOutputs;
     struct {
         unsigned fifoSize; /* default fifo size. if 0, use internal defaults. */
+        unsigned threshold; /* default fifo threshold. if 0, use internal defaults. */
     } audioPlayback;
 #if NEXUS_HAS_AUDIO
     struct {

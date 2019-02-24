@@ -32,6 +32,15 @@ static void attachment_init(GLXX_ATTACHMENT_T *att)
    memset(att, 0, sizeof(GLXX_ATTACHMENT_T));
 }
 
+static void flush_image(khrn_image *img)
+{
+   if (img)
+   {
+      khrn_resource *res = khrn_image_get_resource(img);
+      khrn_resource_flush_writer(res);
+   }
+}
+
 static void attachment_reset(GLXX_ATTACHMENT_T *att)
 {
    switch(att->obj_type)
@@ -39,12 +48,23 @@ static void attachment_reset(GLXX_ATTACHMENT_T *att)
       case GL_NONE:
          break;
       case GL_RENDERBUFFER:
+         flush_image(att->obj.rb->image);
          KHRN_MEM_ASSIGN(att->obj.rb, NULL);
          break;
       case GL_TEXTURE:
-         KHRN_MEM_ASSIGN(att->obj.tex_info.texture, NULL);
+         {
+            const struct texture_info* tex_info = &att->obj.tex_info;
+            GLXX_TEXTURE_T *tex = tex_info->texture;
+            if (tex_info->use_face_layer)
+               flush_image(tex->img[tex_info->face][tex_info->level]);
+            else
+               flush_image(tex->img[0][tex_info->level]);
+            KHRN_MEM_ASSIGN(att->obj.tex_info.texture, NULL);
+         }
          break;
       case GL_FRAMEBUFFER_DEFAULT:
+         flush_image(att->obj.fb_default.img);
+         flush_image(att->obj.fb_default.ms_img);
          KHRN_MEM_ASSIGN(att->obj.fb_default.img, NULL);
          KHRN_MEM_ASSIGN(att->obj.fb_default.ms_img, NULL);
          break;
