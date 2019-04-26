@@ -1251,7 +1251,7 @@ const uint32_t BDSP_IMG_ambisonics_code_array1[] = {
 	0x7520010f,
 	0x30017e17,
 	0x2b00fe0b,
-	0xd8c919a1,
+	0xd8d119a1,
 	0xd86119c1,
 	0x941e490f,
 	0x00000023,

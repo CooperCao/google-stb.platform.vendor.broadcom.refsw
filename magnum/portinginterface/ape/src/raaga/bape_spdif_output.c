@@ -1,5 +1,6 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2019 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -907,6 +908,8 @@ static void BAPE_SpdifOutput_P_SetMclk_IopOut_isr(BAPE_OutputPort output, BAPE_M
 static void BAPE_SpdifOutput_P_SetMute_IopOut(BAPE_OutputPort output, bool muted, bool sync)
 {
     BAPE_SpdifOutputHandle handle;
+    const BAPE_FMT_Descriptor     *pFormat;
+    bool compressed = false;
 
     BDBG_OBJECT_ASSERT(output, BAPE_OutputPort);
 
@@ -916,10 +919,13 @@ static void BAPE_SpdifOutput_P_SetMute_IopOut(BAPE_OutputPort output, bool muted
     /* Only support one now */
     BDBG_ASSERT(handle->offset == 0);
 
+    pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(handle->outputPort.mixer);
+    compressed = BAPE_FMT_P_IsCompressed_isrsafe(pFormat);
+
     /* Must manipulate CSTAT registers in critical section */
     BKNI_EnterCriticalSection();
 
-    if ( muted )
+    if ( muted  && compressed )
     {
         BAPE_Reg_P_UpdateEnum_isr(handle->deviceHandle, BAPE_SPDIF_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_CTRL, handle->index), AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_CTRL, OVERWRITE_DATA, Enable);
     }

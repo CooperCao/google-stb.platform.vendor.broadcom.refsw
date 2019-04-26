@@ -813,6 +813,10 @@ static BERR_Code BVDC_P_GfxFeeder_ValidateSurAndRects_isrsafe
         ulAlignedCntLeft = BVDC_P_ALIGN_DN(ulAdjCntLeftInt, 4);
         ulAlignedCntRight = BVDC_P_ALIGN_UP(ulAdjCntLeftInt + ulAdjCntWidth, 4);
         ulHsclBstcOffset = (ulAdjCntLeftInt - ulAlignedCntLeft);
+      #if 1 /* SWSTB-12907: GFD_0_CROP_CFG.SRC_OFFSET does not work? */
+        ulHsclInitPhase += (ulHsclBstcOffset << GFD_NUM_BITS_FIR_INIT_PHASE_FRAC);
+        ulHsclBstcOffset = 0;
+      #endif
         ulAdjCntLeftInt = ulAlignedCntLeft;
         ulAdjCntWidth = ulAlignedCntRight - ulAlignedCntLeft;
     }
@@ -869,6 +873,10 @@ static BERR_Code BVDC_P_GfxFeeder_ValidateSurAndRects_isrsafe
             ulAlignedCntTop = BVDC_P_ALIGN_DN(ulAdjCntTopInt, 4);
             ulAlignedCntBottom = BVDC_P_ALIGN_UP(ulAdjCntTopInt + ulAdjCntHeight, 4);
             ulVsclBstcOffset = (ulAdjCntTopInt - ulAlignedCntTop);
+          #if 1 /* SWSTB-12907: GFD_0_CROP_CFG.SRC_OFFSET does not work? */
+            ulVsclInitPhase += (ulVsclBstcOffset << GFD_VSCL_NUM_BITS_FIR_INIT_PHASE_FRAC);
+            ulVsclBstcOffset = 0;
+          #endif
             ulAdjCntTopInt = ulAlignedCntTop;
             ulAdjCntHeight = ulAlignedCntBottom - ulAlignedCntTop;
         }

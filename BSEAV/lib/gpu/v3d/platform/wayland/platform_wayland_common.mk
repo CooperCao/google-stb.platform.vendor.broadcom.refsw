@@ -164,7 +164,7 @@ endif
 $(LIBDIR)/lib$(LIBNAME).so: $(OBJS)
 	$(Q)echo Linking ... lib$(LIBNAME).so
 	$(Q)mkdir -p $(LIBDIR)
-	$(Q)$(C++) $(LDFLAGS) -static-libstdc++ -shared -o $(LIBDIR)/lib$(LIBNAME).so $(OBJS)
+	$(Q)$(C++) $(LDFLAGS) -shared -o $(LIBDIR)/lib$(LIBNAME).so $(OBJS)
 
 .PHONY: clean
 .PHONY: clean_self

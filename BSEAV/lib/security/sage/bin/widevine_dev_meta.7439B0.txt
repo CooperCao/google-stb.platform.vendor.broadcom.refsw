@@ -1,3 +1,3 @@
-## SAGE Binary Metadata - SSF 3_2_19
+## SAGE Binary Metadata - SSF 3_2_20
 ## unique_key checksum_type checksum url
-7439B0/dev/sage_ta_widevine_dev.bin sha1 d669882ef1d784733733193734c741573eaf01e9 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_19/7439B0/ZD/sage_ta_widevine_dev.bin
+7439B0/dev/sage_ta_widevine_dev.bin sha1 9a43a56ecc8c78e95be5cdc8dfa43014feee6a0e http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_20/7439B0/ZD/sage_ta_widevine_dev.bin

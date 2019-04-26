@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -192,7 +192,7 @@
 #define BDSP_IMG_H264_ENCODE_INTER_FRAME_SIZE                        ((uint32_t)2993504)
 #define BDSP_IMG_H264_ENCODE_SIZE                                    ((uint32_t)8)
 #define BDSP_IMG_H264_ENCODE_TABLES_SIZE                             ((uint32_t)124184)
-#define BDSP_IMG_IDSCOMMON_CODE_SIZE                                 ((uint32_t)37064)
+#define BDSP_IMG_IDSCOMMON_CODE_SIZE                                 ((uint32_t)37060)
 #define BDSP_IMG_ILBC_DECODE_INTER_FRAME_SIZE                        ((uint32_t)10268)
 #define BDSP_IMG_ILBC_DECODE_SIZE                                    ((uint32_t)41408)
 #define BDSP_IMG_ILBC_DECODE_TABLES_SIZE                             ((uint32_t)3320)
@@ -245,7 +245,7 @@
 #define BDSP_IMG_OPUS_ENCODE_CODE_SIZE                               ((uint32_t)8)
 #define BDSP_IMG_OPUS_ENCODE_INTER_FRAME_SIZE                        ((uint32_t)54260)
 #define BDSP_IMG_OPUS_ENCODE_TABLES_SIZE                             ((uint32_t)17896)
-#define BDSP_IMG_OUTPUTFORMATTER_CODE_SIZE                           ((uint32_t)2480)
+#define BDSP_IMG_OUTPUTFORMATTER_CODE_SIZE                           ((uint32_t)2448)
 #define BDSP_IMG_OUTPUTFORMATTER_INTER_FRAME_SIZE                    ((uint32_t)4)
 #define BDSP_IMG_OUTPUTFORMATTER_TABLES_SIZE                         ((uint32_t)40)
 #define BDSP_IMG_PCMWAV_DECODE_INTER_FRAME_SIZE                      ((uint32_t)56)

@@ -687,6 +687,9 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
     if (rc != NEXUS_SUCCESS) { goto err; }
     rc = NEXUS_SageModule_P_AddRegion(BSAGElib_RegionId_Glr, offset, size);
     if (rc != NEXUS_SUCCESS) { goto err; }
+    /* SRR/CRR/... Get secure heaps info and allocate all Sage memory */
+    rc = NEXUS_SageModule_P_ConfigureSecureRegions();
+    if(rc != NEXUS_SUCCESS) {  goto err; }
 
     switch (g_sage_module.settings.clientHeapIndex) {
     case NEXUS_SAGE_SECURE_HEAP:
@@ -705,9 +708,6 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
         break;
     }
 
-    /* SRR/CRR/... Get secure heaps info and allocate all Sage memory */
-    rc = NEXUS_SageModule_P_ConfigureSecureRegions();
-    if(rc != NEXUS_SUCCESS) {  goto err; }
 
     /* Set URR regions (accounting for adjacent buffers) */
     rc = NEXUS_Sage_P_SvpInit(&g_sage_module.internalSettings);

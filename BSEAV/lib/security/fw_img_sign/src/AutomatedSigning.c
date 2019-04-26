@@ -55,7 +55,33 @@ RSA *PrivateKey = NULL;
 #define FILENAME_LEN 300
 
 
-char privateKey[]="";
+char privateKey[]="-----BEGIN RSA PRIVATE KEY-----\n"\
+"MIIEowIBAAKCAQEAr/aFD6bhDNMvgxnITmoPFyjBZiCov+qi9UMdhRrBnUnKhkS9\n"\
+"FPZTKZ0LYDhYt3DcH4iD9vrHvCnpr4DDi1C9HMgJiNfLM7SWkyccjZK4FlfuwbhT\n"\
+"nekdwAVO93mnhZbPx8Nl9BLFMA12mzpUAXk/45m3Bcq2Cw6ZVqA24t+ABTjS9de7\n"\
+"u1JiVhUbFqPjD2KvVc7cB99L1VK9UZHX3fBORDoHhT03N9auWnmrGgt+nLxqVvxo\n"\
+"IA85azkqNw2y/o8UYj/ZjYV971gitSuqETsjw7YdnIbQHbl5pudsTErJlen8I8Db\n"\
+"/8sD+wuZ2rg1Kfi8zbm6PKUuHrugo+kzSYUHDwIDAQABAoIBAHsfkrGGAlj3+HnS\n"\
+"c48ytQZudQzh81H+ezIEWUaGl01YkcZrmKZvSXeHtKsKIkGRTeUen8AUb+fgp+wu\n"\
+"vCTiRME70zgWTtAKH4YtytPhAsBXnO+d65xFvpRa4otVa3uVMCRGPDORYrqh4Qjy\n"\
+"wk8ZqTO3nhIGamTIPVEY3+7Vln2PwTrNHMako87AD0uM05R/FwFptfe7brwKaywx\n"\
+"qIJ2sdIKjV5fKLs8C+5uuzjI32ONiGzj2C38IWrScD+YRW6hycbSjPx2tSw1J/I/\n"\
+"GpQDJuD6h5sQ6hpSkGfF+MCDE2Z4WJSufB5+AmuKxDQWobQMlkCTcMjEzRif7ECb\n"\
+"8rug+UECgYEA1sN/inH7vXxjPWoXRPnH2teIV1LaF8hHH57ZPYBvWQjtbjTkYib9\n"\
+"2AurfawsR7MwkQmfxH8AJS0Orpd3tSU0ANrZCeDtD4RqSHRKoK2AwXHrqFd4Bw/R\n"\
+"wBv9BH03uCTbOnFMLjAVztOCcC2EHiVrMyLfQhpMB9+NPalfKeOaGW8CgYEA0b/P\n"\
+"gAH38bs7P0a70UN79hHTDUsd4Cz+WzCFDLIVisYB3kgIF0onQptn3hqBwXVLlReL\n"\
+"W/0ra2dfKN9rcljBIQYvgXk0OHlJIHJKROYtcnJinQf1jRt6b7Bchu9CTBPyhQrT\n"\
+"2J5fuk/8buPecucytpV34Qj9Koa4xKMgTQca3GECgYBtBnYa3F6GBT2EEfWaKIuS\n"\
+"x1QJsJ/S7vNcVBHIrQjZ1DRkfClswoqfQN1gQSWBiLAhERewcyCpvsPzUiWNKkPK\n"\
+"I0+HOk5eUER8X7z68NmqWqDdpvnh69/5fLvnqYG908gPVTDtSa/ofWt8cz7c5vYS\n"\
+"0aMxNZRfcteK9A7Bfy/dtQKBgF3P7H7UYpE7rMQgXuC5zjfAwSSw9CvP8/PVP6zt\n"\
+"+bSX2z4P+Y5xHB4uY8ZzFJXyYFvOrAX4tfLTyTv+sY/zIm4i1hySmUio9owMkis+\n"\
+"yBToFDMn3CvAnoJV3wx69qwQP+hBb37zVt196OmwAU5jGcuQDo4X9yOOHhXU4B2T\n"\
+"j/ABAoGBAMn2DLEWRl+49qztJ8w7iOmVVESb2EL1Jk04So14SWdCJgke6lUaK5cS\n"\
+"bqUkQ24UVinA6h1zzlYb7SxqAciokzasQZhshr/tWod0f057keLU/Qrehldh90HX\n"\
+"9wB7/fhX77pvyjBwmOizHXWAnTMQuaaFhEeZ3SY3g/OrV1UAEFWu\n"\
+"-----END RSA PRIVATE KEY-----\n";
 
 RSA * ReadKeyFromPemFile(char * filename, int public)
 {

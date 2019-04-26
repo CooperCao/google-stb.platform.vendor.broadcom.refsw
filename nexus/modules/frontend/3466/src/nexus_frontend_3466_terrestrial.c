@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom.
+*  Copyright (C) 2019 Broadcom.
 *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -38,7 +38,6 @@
 *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
 *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
 *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-*
 *
 * API Description:
 *   API name: Frontend 3466
@@ -185,15 +184,6 @@ void NEXUS_FrontendDevice_P_Uninit3466(NEXUS_3466Device *pDevice)
             BODS_InstallCallback(pDevice->terrestrial.ods_chn[i], BODS_Callback_eAsyncStatusReady, NULL, (void*)&pDevice->frontendHandle[i]);
             BODS_InstallCallback(pDevice->terrestrial.ods_chn[i], BODS_Callback_eNewDiversityMaster, NULL, (void*)&pDevice->frontendHandle[i]);
         }
-
-        if ( pDevice->terrestrial.lockAppCallback[i] ){
-            NEXUS_IsrCallback_Destroy(pDevice->terrestrial.lockAppCallback[i]);
-            pDevice->terrestrial.lockAppCallback[i] = NULL;
-        }
-        if ( pDevice->terrestrial.asyncStatusAppCallback[i] ){
-             NEXUS_IsrCallback_Destroy(pDevice->terrestrial.asyncStatusAppCallback[i]);
-             pDevice->terrestrial.asyncStatusAppCallback[i] = NULL;
-        }
         if (pDevice->terrestrial.diversityEventCallback) {
             NEXUS_UnregisterEvent(pDevice->terrestrial.diversityEventCallback);
             pDevice->terrestrial.diversityEventCallback = NULL;
@@ -257,6 +247,9 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init3466(NEXUS_3466Device *pDevice)
 
     for (i=0;i<pDevice->capabilities.totalTunerChannels;i++) {
         odsChnCfg.channelNo = i;
+        /* This check is needed after resuming from standby */
+        if(pDevice->terrestrial.last_ofdm[i].mode == NEXUS_FrontendOfdmMode_eDvbt2)
+            odsChnCfg.standard=BODS_Standard_eDvbt2;
         rc = BODS_OpenChannel( pDevice->terrestrial.ods, &pDevice->terrestrial.ods_chn[i], &odsChnCfg);
         if(rc){rc = BERR_TRACE(rc); goto done;}
     }
@@ -309,7 +302,18 @@ static void NEXUS_Frontend_P_3466_Close(NEXUS_FrontendHandle handle)
     pChannel = (NEXUS_3466Channel *)handle->pDeviceHandle;
 
     if (pChannel) {
+        unsigned i=0;
         pDevice = pChannel->pDevice;
+        for ( i = 0; i < NEXUS_MAX_3466_T_FRONTENDS && NULL != pDevice->terrestrial.ods_chn[i]; i++) {
+            if ( pDevice->terrestrial.lockAppCallback[i] ){
+                NEXUS_IsrCallback_Destroy(pDevice->terrestrial.lockAppCallback[i]);
+                pDevice->terrestrial.lockAppCallback[i] = NULL;
+            }
+            if ( pDevice->terrestrial.asyncStatusAppCallback[i] ){
+                 NEXUS_IsrCallback_Destroy(pDevice->terrestrial.asyncStatusAppCallback[i]);
+                 pDevice->terrestrial.asyncStatusAppCallback[i] = NULL;
+            }
+        }
         if(pDevice->terrestrial.isPoweredOn[pChannel->chn_num]) {
             NEXUS_Frontend_P_3466_UnTune(pDevice);
         }
@@ -1657,7 +1661,6 @@ static NEXUS_Error NEXUS_Frontend_P_3466_Terrestrial_Standby(void *handle, bool 
 
     BSTD_UNUSED(enabled);
 
-    NEXUS_FrontendDevice_P_3466_UninstallCallbacks(handle);
     pDevice = pChannel->pDevice;
     if (pSettings->mode < NEXUS_StandbyMode_ePassive) {
         if (!pDevice->isTunerPoweredOn[pChannel->chn_num]) {

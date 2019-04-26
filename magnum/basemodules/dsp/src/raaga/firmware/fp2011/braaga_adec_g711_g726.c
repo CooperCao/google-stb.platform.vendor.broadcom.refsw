@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -433,7 +433,7 @@ const uint32_t BDSP_IMG_g711_g726_decode_array1[] = {
 	0x00000026,
 	0x3d808a0f,
 	0x07b77e37,
-	0xd96980a0,
+	0xd97180a0,
 	0x94000423,
 	0x94040423,
 	0xd8629340,
@@ -636,7 +636,7 @@ const uint32_t BDSP_IMG_g711_g726_decode_array1[] = {
 	0x2a827e09,
 	0x2a80fe0c,
 	0x1a3f8007,
-	0xd96a9360,
+	0xd9729360,
 	0xd9e92020,
 	0xd9512030,
 	0xb40f01f8,

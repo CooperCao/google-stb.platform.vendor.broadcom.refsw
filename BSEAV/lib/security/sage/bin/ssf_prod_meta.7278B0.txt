@@ -1,3 +1,3 @@
-## SAGE Binary Metadata - SSF 4_0_5
+## SAGE Binary Metadata - SSF 4_0_6
 ## unique_key checksum_type checksum url
-7278B0/sage_framework.bin sha1 d3a4e47d5a607619b8ffb44d939d71ef5a573245 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/4_0_5/7278B0/ZB/sage_framework.bin
+7278B0/sage_framework.bin sha1 c2f15bf7e38dd4792dbe821458092bbb04558d30 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/4_0_6/7278B0/ZB/sage_framework.bin

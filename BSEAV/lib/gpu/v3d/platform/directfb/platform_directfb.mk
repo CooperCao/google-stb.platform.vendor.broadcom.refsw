@@ -94,7 +94,6 @@ SOURCES = default_directfb.c \
 
 ifeq ("$(GCCGTEQ_40800)", "1")
 CXXFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=c++11
-LDFLAGS += -static-libstdc++
 else
 CXXFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=c++0x
 endif

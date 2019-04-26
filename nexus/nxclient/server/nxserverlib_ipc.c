@@ -242,6 +242,10 @@ static void ipc_thread(void *context)
         if(rc<0) { perror("");rc=BERR_TRACE(errno); goto done; }
         events = (unsigned)rc;
 
+        if (id == nxclient_ipc_thread_restricted) {
+            if(nxserver_is_standby(server->server)) continue;
+        }
+
         for(i=0;i<nfds && events ;i++) {
             if(fds[i].revents & POLLIN) {
                 events --;

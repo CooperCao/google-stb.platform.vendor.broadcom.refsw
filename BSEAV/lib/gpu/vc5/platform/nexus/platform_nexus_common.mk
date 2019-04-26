@@ -178,7 +178,7 @@ endif
 $(LIB_DYNAMIC): $(OBJS)
 	$(Q)echo Linking ... $(notdir $@)
 	$(Q)mkdir -p $(LIBDIR)
-	$(Q)$(C++) $(LDFLAGS) -static-libstdc++ -shared $(OBJS) -o $@
+	$(Q)$(C++) $(LDFLAGS) -shared $(OBJS) -o $@
 
 $(LIB_STATIC): $(OBJS)
 	$(Q)echo Archiving ... $(notdir $@)

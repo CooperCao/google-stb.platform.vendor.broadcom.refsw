@@ -391,12 +391,12 @@ ifeq ($(KHRN_AUTOCLIF),1)
 $(LIBDIR)/libv3ddriver.so: $(PRE_BUILD_RULES) $(OBJS) $(LIBDIR)/libautoclif.a
 	$(Q)echo Linking ... libv3ddriver.so
 	$(Q)mkdir -p $(LIBDIR)
-	$(Q)$(C++) $(LDFLAGS) -static-libstdc++ -shared -o $(LIBDIR)/libv3ddriver.so $(OBJS) $(LIBDIR)/libautoclif.a
+	$(Q)$(C++) $(LDFLAGS) -shared -o $(LIBDIR)/libv3ddriver.so $(OBJS) $(LIBDIR)/libautoclif.a
 else
 $(LIBDIR)/libv3ddriver.so: $(PRE_BUILD_RULES) $(OBJS)
 	$(Q)echo Linking ... libv3ddriver.so
 	$(Q)mkdir -p $(LIBDIR)
-	$(Q)$(C++) $(LDFLAGS) -static-libstdc++ -shared -o $(LIBDIR)/libv3ddriver.so $(OBJS)
+	$(Q)$(C++) $(LDFLAGS) -shared -o $(LIBDIR)/libv3ddriver.so $(OBJS)
 endif
 
 $(LIBDIR)/libv3ddriver.a: $(PRE_BUILD_RULES) $(OBJS)

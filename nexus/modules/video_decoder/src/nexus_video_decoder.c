@@ -5168,7 +5168,7 @@ static NEXUS_Error DisplayManagerLite_isr( void* pPrivateContext, const BXDM_Dis
 
 static NEXUS_Error NEXUS_VideoDecoder_P_InitializeQueue(NEXUS_VideoDecoderHandle videoDecoder)
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_Error rc;
 
     int i;
     void * pContext;
@@ -5204,17 +5204,19 @@ static NEXUS_Error NEXUS_VideoDecoder_P_InitializeQueue(NEXUS_VideoDecoderHandle
     displayInterrupt = videoDecoder->device->hXdmDih[videoDecoder->xdmIndex + BXVD_DisplayInterrupt_eZero];
 
     rc = BXDM_DIH_AddPictureProviderInterface_GetDefaultSettings (&addPictureProviderSettings);
-    if(rc!=BERR_SUCCESS) {BDBG_ERR(("BXDM_DIH_AddPictureProviderInterface_GetDefaultSettings Failed "));}
+    BDBG_ASSERT(!rc); /* cannot fail */
 
     /* Allow for mosaic mode with appDisplayManagement */
     addPictureProviderSettings.uiVDCRectangleNumber = videoDecoder->mosaicIndex;
 
     rc = BXDM_DisplayInterruptHandler_AddPictureProviderInterface(displayInterrupt, DisplayManagerLite_isr, videoDecoder, &addPictureProviderSettings);
-    if(rc!=BERR_SUCCESS) {BDBG_ERR(("BXDM_DisplayInterruptHandler_AddPictureProviderInterface Failed "));}
-
-    /* TODO: There should be an extern for this... */
-    rc = BXVD_Decoder_GetDMInterface(videoDecoder->dec, &(videoDecoder->externalTsm.decoderInterface), &pContext );
-    if(rc!=BERR_SUCCESS) {BDBG_ERR(("BXVD_Decoder_GetDMInterface Failed "));}
+    if(rc!=BERR_SUCCESS) {
+        BERR_TRACE(rc);
+    }
+    else {
+        rc = BXVD_Decoder_GetDMInterface(videoDecoder->dec, &(videoDecoder->externalTsm.decoderInterface), &pContext );
+        BERR_TRACE(rc);
+    }
 
     return rc;
 }

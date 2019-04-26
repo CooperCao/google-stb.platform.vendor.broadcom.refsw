@@ -2589,6 +2589,7 @@ static void NEXUS_Frontend_P_SetPendingPids(void)
     for (pidChannel = BLST_S_FIRST(&(g_NEXUS_Frontend_P_HostMtsifConfig.mtsifPidChannels)); pidChannel; pidChannel = BLST_S_NEXT(pidChannel, link)) {
         if (pidChannel->state==pendingEnable) {
             NEXUS_FrontendDeviceMtsifConfig *config = g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[pidChannel->hostPb].deviceConfig;
+            if (config==NULL) { continue; }
             pidChannel->demodPb = g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[pidChannel->hostPb].demodPb;
             pidChannel->mtsifTxSel = config->demodPbSettings[pidChannel->demodPb].mtsifTxSel;
             pidChannel->mxt = config->mxt;

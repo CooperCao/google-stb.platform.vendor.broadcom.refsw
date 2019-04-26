@@ -101,6 +101,7 @@ static uint32_t gLastEntryLen = 0;
 static NEXUS_HdmiOutputHandle gHdmi;
 
 static uint8_t gCache_device_id[SAGE_WVKBOX_DEVID_LEN] = {0};
+static uint8_t gCache_device_id_length = 0;
 static bool gDevice_id_cached = false;
 
 static uint8_t gCache_key_data[SAGE_WVKBOX_KEYDATA_LEN] = { 0 };
@@ -5139,8 +5140,8 @@ DrmRC drm_WVOemCrypto_GetDeviceID(uint8_t* deviceID,
 
     if(gDevice_id_cached)
     {
-        *idLength = SAGE_WVKBOX_DEVID_LEN;
-        BKNI_Memcpy(deviceID, gCache_device_id, SAGE_WVKBOX_DEVID_LEN);
+        *idLength = gCache_device_id_length;
+        BKNI_Memcpy(deviceID, gCache_device_id, gCache_device_id_length);
         /* Provide cached value and exit */
         goto ErrorExit;
     }
@@ -5197,6 +5198,7 @@ DrmRC drm_WVOemCrypto_GetDeviceID(uint8_t* deviceID,
 
         /* Cache the device ID */
         BKNI_Memcpy(gCache_device_id, container->blocks[0].data.ptr, *idLength);
+        gCache_device_id_length = *idLength;
         gDevice_id_cached = true;
     }
 

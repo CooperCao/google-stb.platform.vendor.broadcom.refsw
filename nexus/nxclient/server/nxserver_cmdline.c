@@ -149,6 +149,7 @@ static void print_full_usage(void)
     "  -hdcp2x_keys BINFILE \tspecify location of Hdcp2.x bin file\n"
     "  -hdcp1x_keys BINFILE \tspecify location of Hdcp1.x bin file\n"
     "  -hdcp {m|o}    \talways run [m]andatory or [o]ptional HDCP for system test\n"
+    "  -hdcp_timeout SECONDS \tstop re-authenticating after repeated failures until something changes (like hotplug, format change, standby, new keys)\n"
     );
     printf(
     "  -hdcp_version {auto|hdcp1x|hdcp22type0|hdcp22} - if hdcp is optional or mandatory, then\n"
@@ -1123,6 +1124,9 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
             case 'o': settings->hdcp.alwaysLevel = NxClient_HdcpLevel_eOptional; break;
             default: print_usage(); return -1;
             }
+        }
+        else if (!strcmp(argv[curarg], "-hdcp_timeout") && argc>curarg+1) {
+            settings->hdcp.failureTimeout = atoi(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-hdcp_version") && argc>curarg+1) {
             curarg++;

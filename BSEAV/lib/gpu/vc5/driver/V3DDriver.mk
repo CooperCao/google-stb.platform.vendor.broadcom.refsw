@@ -269,7 +269,7 @@ endif
 $(LIBDIR)/libv3ddriver.so: $(GLES_OBJS)
 	$(hide)echo Linking ... libv3ddriver.so
 	$(hide)mkdir -p $(LIBDIR)
-	$(hide)$(C++) $(LDFLAGS) -static-libstdc++ -shared -o $(LIBDIR)/libv3ddriver.so $(GLES_OBJS)
+	$(hide)$(C++) $(LDFLAGS) -shared -o $(LIBDIR)/libv3ddriver.so $(GLES_OBJS)
 
 $(LIBDIR)/libv3ddriver.a: $(GLES_OBJS)
 	$(hide)echo Archiving ... libv3ddriver.a

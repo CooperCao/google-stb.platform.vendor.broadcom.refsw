@@ -1794,10 +1794,11 @@ static NEXUS_Error NEXUS_Frontend_P_3158_TuneQam(void *handle, const NEXUS_Front
     rc = BADS_SetAcquireParams(pDevice->ads_chn[pChannel->chn_num], &ibParam );
     if(rc){rc = BERR_TRACE(rc); goto done;}
 
-    rc = BADS_Acquire(pDevice->ads_chn[pChannel->chn_num], &ibParam );
-    if(rc){rc = BERR_TRACE(rc); goto done;}
-
     pDevice->acquireInProgress[pChannel->chn_num] = true;
+
+    rc = BADS_Acquire(pDevice->ads_chn[pChannel->chn_num], &ibParam );
+    if(rc){pDevice->acquireInProgress[pChannel->chn_num] = false; rc = BERR_TRACE(rc); goto done;}
+
     pDevice->last_ads[pChannel->chn_num] = *pSettings;
 
 done:

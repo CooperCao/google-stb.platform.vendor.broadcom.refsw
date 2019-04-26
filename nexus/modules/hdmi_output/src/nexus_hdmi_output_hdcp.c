@@ -1498,12 +1498,8 @@ done:
     if ( handle->hdcpFailedStartTimer )
     {
         NEXUS_CancelTimer(handle->hdcpFailedStartTimer);
-        handle->hdcpFailedStartTimer = NULL;
     }
-    if (errCode) {
-        /* only start the timer to help applications (like nxserver) restart */
-        handle->hdcpFailedStartTimer = NEXUS_ScheduleTimer(1000, NEXUS_HdmiOutput_P_HdcpFailedStartCallback, handle);
-    }
+    handle->hdcpFailedStartTimer = NEXUS_ScheduleTimer(2000, NEXUS_HdmiOutput_P_HdcpFailedStartCallback, handle);
     return errCode ;
 }
 
@@ -1640,14 +1636,20 @@ BHDCPlib_State NEXUS_HdmiOutput_P_GetCurrentHdcplibState(
 static void NEXUS_HdmiOutput_P_HdcpFailedStartCallback(void *pContext)
 {
     NEXUS_HdmiOutputHandle handle = (NEXUS_HdmiOutputHandle)pContext;
+    NEXUS_HdmiOutputHdcpStatus status;
+    NEXUS_Error rc;
 
     handle->hdcpFailedStartTimer = NULL;
 
-    /* If StartHdcpAuthentication failed, the caller is responsible to restart. This helps them not forget,
-    or it helps them catch internally-called Starts which fail. But we make it a one-shot to not be intrusive
-    once a Start is underway. */
+    /* if authenticated, no need to continue monitoring. if not, fire callback and schedule again. */
+    rc = NEXUS_HdmiOutput_GetHdcpStatus(handle, &status);
+    if (!rc && status.hdcpState == NEXUS_HdmiOutputHdcpState_eEncryptionEnabled) {
+        return;
+    }
+
     NEXUS_TaskCallback_Fire(handle->hdcpFailureCallback);
     NEXUS_TaskCallback_Fire(handle->hdcpStateChangedCallback);
+    handle->hdcpFailedStartTimer = NEXUS_ScheduleTimer(2000, NEXUS_HdmiOutput_P_HdcpFailedStartCallback, handle);
 }
 
 static void NEXUS_HdmiOutput_P_HdcpTimerCallback(void *pContext)

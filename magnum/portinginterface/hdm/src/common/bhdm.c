@@ -2153,6 +2153,10 @@ ConfigureHdmiPackets:
 		/* set and enable the Vendor Specific Info Info Frame */
 		BHDM_CHECK_RC(rc, BHDM_SetVendorSpecificInfoFrame(hHDMI,
 			&hHDMI->DeviceSettings.stVendorSpecificInfoFrame)) ;
+
+		/* set and enable the Dynamic Range and Mastering Info Frame */
+		BHDM_CHECK_RC(rc, BHDM_SetDRMInfoFramePacket(hHDMI,
+			&hHDMI->DeviceSettings.stDRMInfoFrame)) ;
 	}
 
 #ifdef BCHP_HDMI_HDR_CFG

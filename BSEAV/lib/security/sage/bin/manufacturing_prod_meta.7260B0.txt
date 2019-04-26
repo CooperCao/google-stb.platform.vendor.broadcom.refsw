@@ -1,3 +1,3 @@
-## SAGE Binary Metadata - SSF 3_2_19
+## SAGE Binary Metadata - SSF 3_2_20
 ## unique_key checksum_type checksum url
-7260B0/sage_ta_manufacturing.bin sha1 cba3403e3f895d767a66b4a2b8001201a115e903 http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_19/7260B0/ZB/sage_ta_manufacturing.bin
+7260B0/sage_ta_manufacturing.bin sha1 dc62779de85c8c734558bd79e2ab39d6ee678b0c http://git-irv-03.irv.broadcom.com:88/files/SAGESW/3_2_20/7260B0/ZB/sage_ta_manufacturing.bin

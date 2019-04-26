@@ -1324,6 +1324,9 @@ static int nexus_simplevideodecoder_p_check_reconnect(NEXUS_SimpleVideoDecoderHa
     if (handle->clientStarted && !handle->connectedSettings.supportedCodecs[handle->startSettings.settings.codec]) {
         rc = 1;
     }
+    if (handle->startSettings.settings.appDisplayManagement) {
+        rc = 1;
+    }
     return rc;
 }
 

@@ -2839,32 +2839,30 @@ static BERR_Code BHDM_EDID_P_ParseYCbCr420CapabilityMapDB(
 	BFMT_VideoInfo *pVideoFormatInfo ;
 
 	BHDM_EDID_P_VideoDescriptor *pVideoDescriptor = NULL ;
-	uint8_t CapabilityBitMask ;
-	uint8_t CapabilityByteOffset ;
+	uint8_t i ;
+	uint8_t uiNumMapBits ;
 	uint8_t CapabilityByte ;
+	uint8_t CapabilityBitMask ;
 
 	hHDMI->AttachedEDID.YCbCr420CapabilityMapDBFound = true ;
 
-	for (pVideoDescriptor = BLST_Q_FIRST(&hHDMI->AttachedEDID.VideoDescriptorList);
-			pVideoDescriptor ; pVideoDescriptor = BLST_Q_NEXT(pVideoDescriptor, link))
+	BDBG_MSG(("YCbCr 4:2:0 Capability Map Bytes %d", DataBlockLength - 1)) ;
+
+	uiNumMapBits = (DataBlockLength - 1) * 8 ;
+	pVideoDescriptor = BLST_Q_FIRST(&hHDMI->AttachedEDID.VideoDescriptorList);
+	for (i = 0 ; pVideoDescriptor && (i < uiNumMapBits) ; i++)
 	{
-		CapabilityByteOffset = pVideoDescriptor->nthDescriptor / 8 ;
-		CapabilityBitMask = 1 << ((pVideoDescriptor->nthDescriptor)  % 8) ;
-
 		CapabilityByte =
-			hHDMI->AttachedEDID.Block[DataBlockIndex + CapabilityByteOffset + 2] ;
+			hHDMI->AttachedEDID.Block[DataBlockIndex + 2 + (i / 8)] ;
+		CapabilityBitMask = 1 << pVideoDescriptor->nthDescriptor % 8 ;
 
-		if (CapabilityByteOffset > DataBlockLength - 1)
-		{
-			BDBG_MSG(("No 420 support specified for additional VICs in VideoDB")) ;
-			break ;
-		}
+		/* VideoDescriptorList is a subset of the orginal VideoDB  */
+		/* it contains only Video DBs that are supported by the STB */
+		/* therefore the Capability Map will not match the VideoDB list */
+		/* skip formats that do not support YCbCr 420 colorspace */
 
-		/* debug message for CapabilityByte/Bit Mask */
-		BDBG_MSG((" Capability Byte 0x%02x BitMask 0x%02x", CapabilityByte, CapabilityBitMask)) ;
-
-		/* check if 4:2:0 format is supported */
-		if (CapabilityByte & CapabilityBitMask )
+		if ((BFMT_IS_4kx2k_50_60HZ(pVideoDescriptor->eVideoFmt))
+		&&  (CapabilityByte & CapabilityBitMask))
 		{
 			hHDMI->AttachedEDID.BcmSupported420VideoFormats[pVideoDescriptor->eVideoFmt] = true ;
 			pVideoFormatInfo = (BFMT_VideoInfo *) BFMT_GetVideoFormatInfoPtr(pVideoDescriptor->eVideoFmt) ;
@@ -2879,6 +2877,8 @@ static BERR_Code BHDM_EDID_P_ParseYCbCr420CapabilityMapDB(
 				BDBG_MSG(("   YCbCr 4:2:0 %s ", pVideoFormatInfo->pchFormatStr)) ;
 			}
 		}
+
+		pVideoDescriptor = BLST_Q_NEXT(pVideoDescriptor, link) ;
 	}
 
 	hHDMI->AttachedEDID.BcmSupported420VideoFormatsChecked = 1 ;

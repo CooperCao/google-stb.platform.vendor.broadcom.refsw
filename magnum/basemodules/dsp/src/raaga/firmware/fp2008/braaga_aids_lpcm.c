@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -150,7 +150,7 @@ const uint32_t BDSP_IMG_dvdlpcm_ids_array1[] = {
 	0x940c45cf,
 	0x940811cf,
 	0x013fffff,
-	0xa7188dd7,
+	0xa71889d7,
 	0x00003af0,
 	0x74000b0f,
 	0x741003cf,
@@ -652,13 +652,13 @@ const uint32_t BDSP_IMG_dvdlpcm_ids_array1[] = {
 	0x4f7fc817,
 	0x46104407,
 	0x013fffff,
-	0xa7788dd7,
+	0xa77889d7,
 	0x00003aec,
 	0x07a47e17,
 	0x013fffff,
 	0x46104407,
 	0x013fffff,
-	0xa7170dd7,
+	0xa71709d7,
 	0x00003aed,
 	0x9400111f,
 	0x2b00fe47,
@@ -686,7 +686,7 @@ const uint32_t BDSP_IMG_dvdlpcm_ids_array1[] = {
 	0x013fffff,
 	0x4610c407,
 	0x013fffff,
-	0xa7700dd7,
+	0xa77009d7,
 	0x00003aec,
 	0xb6f789ff,
 	0x07a47e17,
@@ -810,7 +810,7 @@ const uint32_t BDSP_IMG_dvdlpcm_ids_array1[] = {
 	0x07b17e0f,
 	0x3d844007,
 	0x013fffff,
-	0xa7710dd7,
+	0xa77109d7,
 	0x00003aec,
 	0x9400110f,
 	0x2b00fe47,

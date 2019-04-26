@@ -3956,6 +3956,7 @@ BERR_Code BDSP_Raaga_P_ProcessPAK(
 	BDSP_Raaga_P_Command sCommand;
 	BDSP_P_MsgType eMsgType;
 	BDSP_Raaga_P_Response sRsp;
+    unsigned uiDspIndex = 0;
 
 	BDBG_ENTER(BDSP_Raaga_P_ProcessPAK);
 
@@ -3977,43 +3978,47 @@ BERR_Code BDSP_Raaga_P_ProcessPAK(
 	sCommand.uCommand.sProcessPakCommand.pakDecryptTableAddr = pDevice->imgCache[BDSP_SystemImgId_eAlgolibTable].offset;
 	sCommand.uCommand.sProcessPakCommand.ui32PakDecryptTableSize = pDevice->imgCache[BDSP_SystemImgId_eAlgolibTable].size;
 
-	err = BDSP_Raaga_P_SendCommand(pDevice->hCmdQueue[0], &sCommand, NULL);
 
-	if (BERR_SUCCESS != err)
+	for(uiDspIndex=0; uiDspIndex<pDevice->numDsp; uiDspIndex++)
 	{
-		BDBG_ERR(("BDSP_Raaga_P_ProcessPAK: Process PAK command failed!"));
-		err = BERR_TRACE(err);
-		goto end;
-	}
+	    err = BDSP_Raaga_P_SendCommand(pDevice->hCmdQueue[uiDspIndex], &sCommand, NULL);
 
-	/* Wait for Ack_Response_Received event w/ timeout */
-	err = BKNI_WaitForEvent(pDevice->hEvent[0], BDSP_RAAGA_EVENT_TIMEOUT_IN_MS);
-	if (BERR_TIMEOUT == err)
-	{
-		BDBG_ERR(("BDSP_Raaga_P_ProcessPAK: Process PAK command TIMEOUT!"));
-		err = BERR_TRACE(err);
-		goto end;
-	}
+	    if (BERR_SUCCESS != err)
+	    {
+	        BDBG_ERR(("BDSP_Raaga_P_ProcessPAK: Process PAK command failed!"));
+	        err = BERR_TRACE(err);
+	        goto end;
+	    }
 
-	eMsgType = BDSP_P_MsgType_eSyn;
-	err = BDSP_Raaga_P_GetMsg(pDevice->hGenRspQueue[0], (void *)&sRsp, eMsgType);
+	    /* Wait for Ack_Response_Received event w/ timeout */
+	    err = BKNI_WaitForEvent(pDevice->hEvent[uiDspIndex], BDSP_RAAGA_EVENT_TIMEOUT_IN_MS);
+	    if (BERR_TIMEOUT == err)
+	    {
+	        BDBG_ERR(("BDSP_Raaga_P_ProcessPAK: Process PAK command TIMEOUT!"));
+	        err = BERR_TRACE(err);
+	        goto end;
+	    }
 
-	if (BERR_SUCCESS != err)
-	{
-		BDBG_ERR(("BDSP_Raaga_P_ProcessPAK: Unable to read ACK!"));
-		err = BERR_TRACE(err);
-		goto end;
-	}
+	    eMsgType = BDSP_P_MsgType_eSyn;
+	    err = BDSP_Raaga_P_GetMsg(pDevice->hGenRspQueue[uiDspIndex], (void *)&sRsp, eMsgType);
 
-	if ((sRsp.sCommonAckResponseHeader.eStatus != BERR_SUCCESS)||
-		(sRsp.sCommonAckResponseHeader.ui32ResponseID != BDSP_RAAGA_PROCESS_PAK_COMMAND_RESPONSE_ID)/*||
+	    if (BERR_SUCCESS != err)
+	    {
+	        BDBG_ERR(("BDSP_Raaga_P_ProcessPAK: Unable to read ACK!"));
+	        err = BERR_TRACE(err);
+	        goto end;
+	    }
+
+	    if ((sRsp.sCommonAckResponseHeader.eStatus != BERR_SUCCESS)||
+	            (sRsp.sCommonAckResponseHeader.ui32ResponseID != BDSP_RAAGA_PROCESS_PAK_COMMAND_RESPONSE_ID)/*||
 		device index(sRsp.sCommonAckResponseHeader.ui32TaskID != pRaagaTask->taskId)*/)		/* Should this be DSP Index?? */
-	{
+	    {
 
-		BDBG_ERR(("BDSP_Raaga_P_ProcessPAK: Process PAK command ACK not received successfully!eStatus = %d , ui32ResponseID = %d , ui32TaskID %d ",
-			sRsp.sCommonAckResponseHeader.eStatus,sRsp.sCommonAckResponseHeader.ui32ResponseID,sRsp.sCommonAckResponseHeader.ui32TaskID));
-		err = BERR_TRACE(BERR_INVALID_PARAMETER);
-		goto end;
+	        BDBG_ERR(("BDSP_Raaga_P_ProcessPAK: Process PAK command ACK not received successfully!eStatus = %d , ui32ResponseID = %d , ui32TaskID %d ",
+	                sRsp.sCommonAckResponseHeader.eStatus,sRsp.sCommonAckResponseHeader.ui32ResponseID,sRsp.sCommonAckResponseHeader.ui32TaskID));
+	        err = BERR_TRACE(BERR_INVALID_PARAMETER);
+	        goto end;
+	    }
 	}
 #if 0
 	BDBG_MSG(("******************************************************"));

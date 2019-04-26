@@ -95,6 +95,7 @@ static NEXUS_Error bserver_set_standby_settings(nxserver_t server, const NxClien
 static void nxserver_p_set_sd_outputs(struct b_session *session, const NxClient_DisplaySettings *pSettings);
 static NEXUS_VideoFormat nxserver_p_default_sd_format(struct b_session *session);
 static void nxserver_p_immediate_watchdog(nxclient_t client);
+static bool nxserver_is_standby_pending(nxserver_t server);
 
 #undef MIN
 #define MIN(A,B) ((A)<(B)?(A):(B))
@@ -2072,6 +2073,14 @@ static bool is_hdcp_start_complete(const NEXUS_HdmiOutputHdcpStatus *pHdcpStatus
     return (is_final_state);
 }
 
+/* return CLOCK_MONOTONIC timestamp in milliseconds */
+static unsigned nxserver_p_timestamp(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000 + ts.tv_nsec / 1000 / 1000;
+}
+
 static void nxserver_check_hdcp(struct b_session *session)
 {
     int rc;
@@ -2087,6 +2096,7 @@ static void nxserver_check_hdcp(struct b_session *session)
 
     if (!session->nxclient.displaySettings.hdmiPreferences.enabled) return;
     if (!session->hdmiOutput) return;
+    if (nxserver_is_standby_pending(session->server)) return;
 
     hdmiOutput = session->hdmiOutput;
     repeaterClient = session->hdmi.repeater.client;
@@ -2261,7 +2271,23 @@ static void nxserver_check_hdcp(struct b_session *session)
         break;
     default:
         if (hdcpStatus.hdcpError) {
+            unsigned now;
             session->hdcp.lastHdcpError = hdcpStatus.hdcpError;
+            now = nxserver_p_timestamp();
+            if (now - session->hdcp.start_timestamp < 1900) {
+                /* rely on hdmi_output's hdcpFailedStartTimer firing every 2 seconds */
+                BDBG_MSG(("skip HDCP re-auth because it was requested too soon"));
+                goto done;
+            }
+            else if (session->server->settings.hdcp.failureTimeout && (now - session->hdcp.first_start_timestamp) / 1000 >= session->server->settings.hdcp.failureTimeout) {
+                BDBG_LOG(("failed HDCP re-authentication reached %u second timeout. disabling HDCP.", session->server->settings.hdcp.failureTimeout));
+                /* we will restart from the beginning if ever nxserver_check_hdcp is called again. */
+                NEXUS_HdmiOutput_DisableHdcpAuthentication(session->hdmiOutput);
+                session->hdcp.version_state = nxserver_hdcp_begin;
+                goto done;
+            }
+
+            BDBG_MSG(("allow HDCP re-auth after %u msec", now - session->hdcp.start_timestamp));
         }
         break;
     }
@@ -2277,6 +2303,7 @@ static void nxserver_check_hdcp(struct b_session *session)
         We can call StartHdcpAuthentication at any time and the hdcp state machine will restart.
         After calling StartHdcpAuthentication, we will keep getting HDCP callbacks until authenticated or DisableHdcpAuthentication is called (keep alive timer).
         */
+        session->hdcp.first_start_timestamp = nxserver_p_timestamp();
         if (!is_hdcp_start_complete(&hdcpStatus))
         {
             BDBG_LOG(("Start hdcp authentication(version=%s level=%s)", g_hdcpSelectStr[curr_version_select], g_hdcpLevelStr[curr_hdcp_level]));
@@ -2759,6 +2786,7 @@ static void initializeHdmiOutputHdcpSettings(struct b_session *session, NxClient
     NEXUS_Error rc;
     NEXUS_HdmiOutputHdcpSettings hdmiOutputHdcpSettings;
 
+    session->hdcp.start_timestamp = nxserver_p_timestamp();
     NEXUS_HdmiOutput_GetHdcpSettings(session->hdmiOutput,  &hdmiOutputHdcpSettings);
 
     if (version_select == NxClient_HdcpVersion_eAuto && session->hdcpKeys.hdcp2x.size == 0) {
@@ -5286,6 +5314,11 @@ NEXUS_Error NxClient_P_SetStandbySettings(nxclient_t client, const NxClient_Stan
 bool nxserver_is_standby(nxserver_t server)
 {
     return (server->standby.standbySettings.settings.mode != NEXUS_PlatformStandbyMode_eOn && server->standby.state >= b_standby_state_applied?true:false);
+}
+
+static bool nxserver_is_standby_pending(nxserver_t server)
+{
+    return (server->standby.standbySettings.settings.mode != NEXUS_PlatformStandbyMode_eOn && server->standby.state >= b_standby_state_pending);
 }
 
 static nxclient_t lookup_client(nxserver_t server, NEXUS_ClientHandle nexusClient)

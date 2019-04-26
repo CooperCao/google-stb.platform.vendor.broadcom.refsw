@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -1139,16 +1139,21 @@ static void BAPE_MaiOutput_P_SetMclk_IopOut_isr(BAPE_OutputPort output, BAPE_Mcl
 static void BAPE_MaiOutput_P_SetMute_IopOut(BAPE_OutputPort output, bool muted)
 {
     BAPE_MaiOutputHandle handle;
+    const BAPE_FMT_Descriptor     *pFormat;
+    bool compressed = false;
 
     BDBG_OBJECT_ASSERT(output, BAPE_OutputPort);
 
     handle = output->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_MaiOutput);
 
+    pFormat = BAPE_Mixer_P_GetOutputFormat_isrsafe(handle->outputPort.mixer);
+    compressed = BAPE_FMT_P_IsCompressed_isrsafe(pFormat);
+
     /* Must manipulate CSTAT registers in critical section */
     BKNI_EnterCriticalSection();
 
-    if ( muted )
+    if ( muted && compressed)
     {
         BAPE_Reg_P_UpdateEnum_isr(handle->deviceHandle, BAPE_MAI_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_CTRL, handle->index), AUD_FMM_IOP_OUT_MAI_0_SPDIF_CTRL, OVERWRITE_DATA, Enable);
     }

@@ -235,6 +235,7 @@ struct nxserver_settings
         char hdcp1xBinFile[128];
         NxClient_HdcpLevel alwaysLevel;
         NxClient_HdcpVersion versionSelect;
+        unsigned failureTimeout; /* in seconds */
     } hdcp;
     struct {
         bool ignoreVideoEdid; /* use HDMI EDID for audio, but not video */

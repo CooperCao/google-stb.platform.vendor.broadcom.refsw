@@ -2964,10 +2964,16 @@ static void BVDC_P_Source_ValidateCoverage_isr
             pSourceClassLimit->landscape2[ulIndex].ulHeight,
             pSourceClassLimit->portrait[ulIndex].ulWidth,
             pSourceClassLimit->portrait[ulIndex].ulHeight));
+        BDBG_ERR(("Src[%d] PICTURE[%d] IS MUTED", hSource->eId, i));
         BDBG_ERR(("============================================================================="));
-        return;
+
+        hSource->stNewPic[i].bMute = true;
+        hSource->stNewPic[i].eOrientation = BFMT_Orientation_e2D;
+        hSource->stNewPic[i].ulSourceHorizontalSize = BVDC_P_SRC_INPUT_H_MIN;
+        hSource->stNewPic[i].ulSourceVerticalSize = BVDC_P_SRC_INPUT_V_MIN;
     }
 
+    return;
 }
 #endif
 

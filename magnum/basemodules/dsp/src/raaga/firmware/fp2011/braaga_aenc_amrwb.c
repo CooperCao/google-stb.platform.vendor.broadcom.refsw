@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -5105,7 +5105,7 @@ const uint32_t BDSP_IMG_amrwb_encode_array1[] = {
 	0x94c80453,
 	0xd8780c61,
 	0x08a10a1b,
-	0xd9680c61,
+	0xd9700c61,
 	0x64020253,
 	0x1b451d83,
 	0x08a10213,

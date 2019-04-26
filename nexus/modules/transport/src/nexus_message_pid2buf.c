@@ -1,5 +1,5 @@
-/******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ /******************************************************************************
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -551,6 +551,7 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
         msg->psiMessageSettings.StartingOffset = pStartSettings->filterOffset;
         msg->psiMessageSettings.SkipByte2 = pStartSettings->includeThirdFilterByte ? false : true;  /* BXPT preserves the hw's inverted logic. */
         msg->psiMessageSettings.UseRPipe = pStartSettings->useRPipe;
+        msg->psiMessageSettings.ByteAlign = pStartSettings->noPaddingBytes;
 
         if (msg->startSettings.filterGroup) {
             rc = BXPT_Mesg_AddFilterToGroup(pTransport->xpt, msg->PidChannelNum, msg->MesgBufferNum, msg->FilterNum, &msg->psiMessageSettings);
