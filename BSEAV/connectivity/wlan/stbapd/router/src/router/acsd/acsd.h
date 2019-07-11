@@ -42,6 +42,9 @@
 #include <arpa/inet.h>
 #include <linux/if_packet.h>
 #include <sys/ioctl.h>
+#ifdef TARGETENV_android
+#include <osl.h>
+#endif /* TARGETENV_android */
 
 typedef struct acs_bgdfs_info acs_bgdfs_info_t;
 
@@ -127,6 +130,21 @@ extern int acsd_debug_level;
 			return ret;	\
 		} \
 	} while (0)
+
+#define ACS_CHANIM_COPY_V2_TO_V3(chanimv3, chanimv2) \
+	{ \
+		int n; \
+		(chanimv3)->glitchcnt = (chanimv2)->glitchcnt; \
+		(chanimv3)->badplcp = (chanimv2)->badplcp; \
+		for (n = 0; n < CCASTATS_V2_MAX; n++) \
+			(chanimv3)->ccastats[n] = (chanimv2)->ccastats[n]; \
+		(chanimv3)->bgnoise = (chanimv2)->bgnoise; \
+		(chanimv3)->chanspec = (chanimv2)->chanspec; \
+		(chanimv3)->timestamp = (chanimv2)->timestamp; \
+		(chanimv3)->bphy_glitchcnt = (chanimv2)->bphy_glitchcnt; \
+		(chanimv3)->bphy_badplcp = (chanimv2)->bphy_badplcp; \
+		(chanimv3)->chan_idle = (chanimv2)->chan_idle; \
+	}
 
 #define SSID_FMT_BUF_LEN 4*32+1	/* Length for SSID format string */
 

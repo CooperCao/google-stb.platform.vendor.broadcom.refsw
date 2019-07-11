@@ -15,7 +15,10 @@
 include $(TOP)/.config
 
 
-CFLAGS	+= -I. -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -I$(SRCBASE)/router/shared -Wall -Werror
+CFLAGS	+= -I. -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -I$(SRCBASE)/router/shared
+ifneq ($(STBANDROID),1)
+CCFLAGS	+= -Wall -Werror
+endif
 #CFLAGS	+= -g -DDEBUG
 CFLAGS	+= -s -fPIC
 ifeq ($(CONFIG_RTR_OPTIMIZE_SIZE),y)
@@ -23,7 +26,12 @@ CFLAGS  += -Os
 else
 CFLAGS  += -O2
 endif
+ifeq ($(STBANDROID),1)
+LDFLAGS = $(SHARED_LDFLAGS)
+endif
 LDFLAGS += -L.
+
+LDFLAGS += -L$(TOP)/shared -lshared -L$(TOP)/nvram -lnvram
 
 OBJS := bcmgpio.o
 
@@ -39,4 +47,4 @@ clean:
 	rm -f *.o *.so
 
 libbcm.so: $(OBJS)
-	$(LD) -shared -o $@ $^
+	$(LD) $(LDFLAGS) -shared -o $@ $^

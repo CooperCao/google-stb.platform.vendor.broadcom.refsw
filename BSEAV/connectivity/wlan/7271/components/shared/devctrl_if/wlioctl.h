@@ -4748,16 +4748,36 @@ typedef struct {
 	uint8 query_data[1];		/**< ANQP encoded query (max ANQPO_MAX_QUERY_SIZE) */
 } wl_anqpo_set_t;
 
+#define WL_ANQPO_FLAGS_BSSID_WILDCARD		0x0001
+#define WL_ANQPO_PEER_LIST_VERSION_2		2
+
 typedef struct {
 	uint16 channel;			/**< channel of the peer */
 	struct ether_addr addr;		/**< addr of the peer */
-} wl_anqpo_peer_t;
+} wl_anqpo_peer_v1_t;
+typedef struct {
+	uint16 channel;			/**< channel of the peer */
+	struct ether_addr addr;		/**< addr of the peer */
+	uint32 flags;			/**< 0x01-Peer is MBO Capable */
+} wl_anqpo_peer_v2_t;
 
 #define ANQPO_MAX_PEER_LIST			64
 typedef struct {
 	uint16 count;				/**< number of peers in list */
-	wl_anqpo_peer_t peer[1];	/**< max ANQPO_MAX_PEER_LIST */
-} wl_anqpo_peer_list_t;
+	wl_anqpo_peer_v1_t peer[1];	/**< max ANQPO_MAX_PEER_LIST */
+} wl_anqpo_peer_list_v1_t;
+
+typedef struct {
+	uint16  version;    /**<VERSION */
+	uint16  length;     /**< length of entire structure */
+	uint16 count;				/**< number of peers in list */
+	wl_anqpo_peer_v2_t peer[1];	/**< max ANQPO_MAX_PEER_LIST */
+} wl_anqpo_peer_list_v2_t;
+
+#ifndef WL_ANQPO_PEER_LIST_TYPEDEF_HAS_ALIAS
+typedef wl_anqpo_peer_list_v1_t wl_anqpo_peer_list_t;
+typedef wl_anqpo_peer_v1_t wl_anqpo_peer_t;
+#endif /* WL_ANQPO_PEER_LIST_TYPEDEF_HAS_ALIAS */
 
 #define ANQPO_MAX_IGNORE_SSID		64
 typedef struct {
@@ -7075,6 +7095,21 @@ typedef struct trf_mgmt_stats_array {
 	trf_mgmt_stats_t  rx_queue_stats[TRF_MGMT_MAX_PRIORITIES];
 } trf_mgmt_stats_array_t;
 
+#ifdef TRAFFIC_MGMT_DWM
+/* Traffic management DSCP WMM filter */
+typedef struct trf_mgmt_dwm_filter {
+	uint16                      flags;                  /* Favored */
+	uint8                       dscp;                   /* IP DSCP */
+	uint8                       priority;               /* WMM AC */
+} trf_mgmt_dwm_filter_t;
+
+/* Traffic management filter list (variable length) */
+typedef struct trf_mgmt_dwm_filter_list     {
+	uint32                  num_filters;
+	trf_mgmt_dwm_filter_t   filter[1];
+} trf_mgmt_dwm_filter_list_t;
+#endif
+
 /* Both powersel_params and lpc_params are used by IOVAR lpc_params.
  * The powersel_params is replaced by lpc_params in later WLC versions.
  */
@@ -7289,6 +7324,16 @@ typedef struct wl_service_term {
 		wl_dms_term_t dms;
 	} u;
 } wl_service_term_t;
+
+/** Definitions for WNM/NPS BSS Transistion */
+#define WL_BSSTRANS_QUERY_VERSION_1 1
+typedef struct wl_bsstrans_query {
+	uint16 version;   /* structure  version */
+	uint16 pad0;  /* padding for 4-byte allignment */
+	wlc_ssid_t ssid; /* SSID of NBR elem to be queried for */
+	uint8 reason; /* Reason code of the BTQ */
+	uint8 pad1[3];  /* padding for 4-byte allignment */
+} wl_bsstrans_query_t;
 
 #define BTM_QUERY_NBR_COUNT_MAX 16
 
@@ -11605,7 +11650,6 @@ typedef struct wl_interface_info {
 #define PHY_RXIQEST_AVERAGING_DELAY 10
 
 typedef struct wl_iqest_params {
-	chanspec_t chspec;
 	uint32 rxiq;
 	uint8 niter;
 	uint8 delay;
@@ -13082,9 +13126,14 @@ enum wl_mbo_cmd_ids {
 	WL_MBO_CMD_FORCE_ASSOC = 7,
 	WL_MBO_CMD_BSSTRANS_REJECT = 8,
 	WL_MBO_CMD_SEND_NOTIF = 9,
-	WL_MBO_CMD_AP_ATTRIBUTE = 10,
-	WL_MBO_CMD_AP_ASSOC_DISALLOWED = 11,
-	WL_MBO_CMD_AP_FWD_GAS_RQST_TO_APP = 12,
+	WL_MBO_CMD_CLEAR_CHAN_PREF = 10,
+	WL_MBO_CMD_NBR_INFO_CACHE = 11,
+	WL_MBO_CMD_ANQPO_SUPPORT = 12,
+	WL_MBO_CMD_DBG_EVENT_CHECK = 13,
+	/* MBO AP */
+	WL_MBO_CMD_AP_ATTRIBUTE = 14,
+	WL_MBO_CMD_AP_ASSOC_DISALLOWED = 15,
+	WL_MBO_CMD_AP_FWD_GAS_RQST_TO_APP = 16,
 	/* Add before this !! */
 	WL_MBO_CMD_LAST
 };
@@ -13098,9 +13147,12 @@ enum wl_mbo_xtlv_id {
 	WL_MBO_XTLV_COUNTERS			= 0x6,
 	WL_MBO_XTLV_ENABLE			= 0x7,
 	WL_MBO_XTLV_SUB_ELEM_TYPE		= 0x8,
-	WL_MBO_XTLV_AP_ATTR			= 0x9,
-	WL_MBO_XTLV_AP_ASSOC_DISALLOWED		= 0xA,
-	WL_MBO_XTLV_AP_FWD_GAS_RQST_TO_APP	= 0xB
+	WL_MBO_XTLV_BTQ_TRIG_START_OFFSET	= 0x9,
+	WL_MBO_XTLV_BTQ_TRIG_RSSI_DELTA		= 0xa,
+	WL_MBO_XTLV_ANQP_CELL_SUPP		= 0xb,
+	WL_MBO_XTLV_AP_ATTR			= 0xc,
+	WL_MBO_XTLV_AP_ASSOC_DISALLOWED		= 0xd,
+	WL_MBO_XTLV_AP_FWD_GAS_RQST_TO_APP	= 0xe
 };
 
 typedef struct wl_mbo_counters {

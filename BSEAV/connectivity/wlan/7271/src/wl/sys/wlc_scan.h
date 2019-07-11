@@ -214,6 +214,7 @@ extern uint32 wlc_curr_roam_scan_time(wlc_info_t *wlc);
 extern wlc_bsscfg_t *wlc_scanmac_get_bsscfg(wlc_scan_info_t *scan, int macreq, wlc_bsscfg_t *cfg);
 struct ether_addr *wlc_scanmac_get_mac(wlc_scan_info_t *scan, int macreq, wlc_bsscfg_t *bsscfg);
 extern int wlc_scanmac_update(wlc_scan_info_t *scan);
+bool wlc_scan_is_randmac_needed(wlc_scan_info_t *scan, int macreq, wlc_bsscfg_t *cfg);
 extern int wlc_scan_filter_channels(wlc_scan_info_t *scan_pub,
 	chanspec_t *chspec_list, int num);
 #ifdef WL_OCE

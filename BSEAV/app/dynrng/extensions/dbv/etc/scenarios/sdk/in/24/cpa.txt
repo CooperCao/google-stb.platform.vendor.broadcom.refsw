@@ -1,4 +1,0 @@
-stream=/mnt/hd/Test_Vectors/Dolby_Vision/Metadata_Alignment_Tests/comp_alignment/dvhe.stn/UHD/24/Ves_CPA_24_3840x2160_1000Kbps_hevc_dvhe_stn___st.mp4
-forceRestart=on
-stcTrick=off
-commit

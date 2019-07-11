@@ -20,7 +20,10 @@
 
 include $(TOP)/.config
 
-CFLAGS	+= -I. -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -Wall -Werror
+CFLAGS	+= -I. -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include
+ifneq ($(STBANDROID),1)
+CFLAGS	+= -Wall -Werror
+endif
 #CFLAGS	+= -g -DDEBUG
 CFLAGS	+= -s -fPIC
 ifeq ($(CONFIG_RTR_OPTIMIZE_SIZE),y)
@@ -29,6 +32,10 @@ else
 CFLAGS  += -O2
 endif
 LDFLAGS += -L.
+
+ifneq ($(STBANDROID),1)
+LDFLAGS += -lrt
+endif
 
 ifeq ($(CONFIG_NVRAMD),y)
 OBJ = nvram_shared.o
@@ -76,11 +83,15 @@ endif
 
 
 libnvram.so: ${OBJ}
+ifneq ($(STBANDROID),1)
 	$(LD) $(LDFLAGS) -shared -o $@ $^
+else
+	$(LD)  $(SHARED_LDFLAGS) -shared -o $@ $^
+endif
 
 ifeq ($(CONFIG_NVRAMD),y)
 nvramd: nvramd.o
-	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS) $(EXTRA_LDFLAGS) -lnvram -L$(TOP)/shared -lshared -lrt -pthread
+	$(CC) -o $@ $< $(LDFLAGS) $(EXTRA_LDFLAGS) -lnvram -L$(TOP)/shared -lshared -pthread
 endif
 
 nvram: main.o libnvram.so

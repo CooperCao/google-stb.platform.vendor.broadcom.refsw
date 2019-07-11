@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom.
+*  Copyright (C) 2019 Broadcom.
 *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -95,6 +95,8 @@ static void NEXUS_AudioDecoder_P_InputFormatChange(void *pContext);
 static BERR_Code NEXUS_AudioDecoder_P_SetPcrOffset_isr(void *pContext, uint32_t pcrOffset);
 static BERR_Code NEXUS_AudioDecoder_P_GetPcrOffset_isr(void *pContext, uint32_t *pPcrOffset);
 static void NEXUS_AudioDecoder_P_DialnormChanged_isr(void *pParam1, int param2);
+static void NEXUS_AudioDecoder_P_UnlicensedAlgo_isr(void *pParam1, int param2);
+static void NEXUS_AudioDecoder_P_UnlicensedAlgo(void *pParam);
 static NEXUS_Error NEXUS_AudioDecoder_P_SetCompressedMute(NEXUS_AudioDecoderHandle decoder, bool muted);
 static NEXUS_Error NEXUS_AudioDecoder_P_SetCompressedEncoderMute(NEXUS_AudioDecoderHandle decoder, bool muted);
 static NEXUS_Error NEXUS_AudioDecoder_P_EnableRaveContexts(NEXUS_AudioDecoderHandle handle, NEXUS_AudioDecoderStartSettings * program);
@@ -751,25 +753,25 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
         goto err_channel_change_report_event;
     }
 
-     handle->channelChangeReportEventHandler = NEXUS_RegisterEvent(handle->channelChangeReportEvent, NEXUS_AudioDecoder_P_ChannelChangeReport, handle);
-     if ( NULL == handle->channelChangeReportEventHandler )
-     {
-         errCode=BERR_TRACE(BERR_OS_ERROR);
-         goto err_channel_change_report_event_handler;
-     }
+    handle->channelChangeReportEventHandler = NEXUS_RegisterEvent(handle->channelChangeReportEvent, NEXUS_AudioDecoder_P_ChannelChangeReport, handle);
+    if ( NULL == handle->channelChangeReportEventHandler )
+    {
+        errCode=BERR_TRACE(BERR_OS_ERROR);
+        goto err_channel_change_report_event_handler;
+    }
 
-     errCode = BKNI_CreateEvent(&handle->inputFormatChangeEvent);
-     if ( errCode )
-     {
-         errCode=BERR_TRACE(errCode);
-         goto err_input_format_change_event;
-     }
+    errCode = BKNI_CreateEvent(&handle->inputFormatChangeEvent);
+    if ( errCode )
+    {
+        errCode=BERR_TRACE(errCode);
+        goto err_input_format_change_event;
+    }
 
     handle->inputFormatChangeEventHandler = NEXUS_RegisterEvent(handle->inputFormatChangeEvent, NEXUS_AudioDecoder_P_InputFormatChange, handle);
     if ( NULL == handle->inputFormatChangeEventHandler )
     {
-      errCode=BERR_TRACE(BERR_OS_ERROR);
-      goto err_input_format_change_event_handler;
+        errCode=BERR_TRACE(BERR_OS_ERROR);
+        goto err_input_format_change_event_handler;
     }
 
     errCode = BKNI_CreateEvent(&handle->stc.statusChangeEvent);
@@ -784,6 +786,20 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
     {
         errCode=BERR_TRACE(BERR_OS_ERROR);
         goto err_stc_status_change_event_handler;
+    }
+
+    errCode = BKNI_CreateEvent(&handle->unlicensedAlgoEvent);
+    if ( errCode )
+    {
+        errCode=BERR_TRACE(errCode);
+        goto err_unlicensed_algo_event;
+    }
+
+    handle->unlicensedAlgoEventHandler = NEXUS_RegisterEvent(handle->unlicensedAlgoEvent, NEXUS_AudioDecoder_P_UnlicensedAlgo, handle);
+    if ( NULL == handle->unlicensedAlgoEventHandler )
+    {
+        errCode=BERR_TRACE(BERR_OS_ERROR);
+        goto err_unlicensed_algo_event_handler;
     }
 
     if ( NEXUS_GetEnv("multichannel_disabled") || NEXUS_GetEnv("audio_processing_disabled") )
@@ -940,6 +956,8 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
 #endif
     interrupts.dialnormChange.pCallback_isr = NEXUS_AudioDecoder_P_DialnormChanged_isr;
     interrupts.dialnormChange.pParam1 = handle;
+    interrupts.unlicensedAlgo.pCallback_isr = NEXUS_AudioDecoder_P_UnlicensedAlgo_isr;
+    interrupts.unlicensedAlgo.pParam1 = handle;
     BAPE_Decoder_SetInterruptHandlers(handle->channel, &interrupts);
 
     LOCK_TRANSPORT();
@@ -1089,6 +1107,10 @@ err_rave:
         UNLOCK_TRANSPORT();
     }
 err_channel:
+    NEXUS_UnregisterEvent(handle->unlicensedAlgoEventHandler);
+err_unlicensed_algo_event_handler:
+    BKNI_DestroyEvent(handle->unlicensedAlgoEvent);
+err_unlicensed_algo_event:
     NEXUS_UnregisterEvent(handle->stc.statusChangeEventHandler);
 err_stc_status_change_event_handler:
     BKNI_DestroyEvent(handle->stc.statusChangeEvent);
@@ -1193,6 +1215,8 @@ static void NEXUS_AudioDecoder_P_Finalizer(
     UNLOCK_TRANSPORT();
     NEXUS_UnregisterEvent(handle->stc.statusChangeEventHandler);
     BKNI_DestroyEvent(handle->stc.statusChangeEvent);
+    NEXUS_UnregisterEvent(handle->unlicensedAlgoEventHandler);
+    BKNI_DestroyEvent(handle->unlicensedAlgoEvent);
     NEXUS_UnregisterEvent(handle->inputFormatChangeEventHandler);
     BKNI_DestroyEvent(handle->inputFormatChangeEvent);
     NEXUS_UnregisterEvent(handle->channelChangeReportEventHandler);
@@ -3806,6 +3830,26 @@ static void NEXUS_AudioDecoder_P_DialnormChanged_isr(void *pParam1, int param2)
 
     BDBG_MSG(("Decoder %u Dialog Norm Change", pDecoder->index));
     NEXUS_IsrCallback_Fire_isr(pDecoder->dialnormChangedCallback);
+}
+
+static void NEXUS_AudioDecoder_P_UnlicensedAlgo_isr(void *pParam1, int param2)
+{
+    NEXUS_AudioDecoder *pDecoder = (NEXUS_AudioDecoder *)pParam1;
+    BSTD_UNUSED(param2);
+    BKNI_SetEvent_isr(pDecoder->unlicensedAlgoEvent);
+
+}
+
+static void NEXUS_AudioDecoder_P_UnlicensedAlgo(void *pParam)
+{
+    NEXUS_AudioDecoder *pDecoder = (NEXUS_AudioDecoder *)pParam;
+    BAPE_DecoderStatus decoderStatus;
+
+    BAPE_Decoder_GetStatus(pDecoder->channel, &decoderStatus);
+    BDBG_ERR(("*********************************************************************"));
+    BDBG_ERR(("Unlicensed Algo (%s) detected on decoder %d .  Audio will be muted.",
+              decoderStatus.codecName, pDecoder->index));
+    BDBG_ERR(("*********************************************************************"));
 }
 
 void NEXUS_AudioDecoder_P_SetTsm(NEXUS_AudioDecoderHandle handle)

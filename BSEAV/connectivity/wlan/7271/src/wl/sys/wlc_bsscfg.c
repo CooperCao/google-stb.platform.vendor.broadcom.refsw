@@ -2227,6 +2227,10 @@ wlc_bsscfg_reinit(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, wlc_bsscfg_type_t *type
 		return BCME_OK;
 	}
 
+	/*makes sure free of memory matches the allocated size before changing the bsscfg
+	 * role.*/
+	wlc_bsscfg_bcmcscbfree(wlc, bsscfg);
+
 	wlc_bsscfg_deinit(wlc, bsscfg);
 
 	bsscfg->flags = flags;

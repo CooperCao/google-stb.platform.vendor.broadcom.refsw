@@ -2241,6 +2241,9 @@ void BVDC_P_Source_GetScanOutRect_isr
     uint32_t ulBitsPerGroup = 0, ulPixelPerGroup = 0, ulMadrCnt = 0;
     BVDC_P_Mcvp_Handle hMcvp = NULL;
 #endif
+#if BVDC_P_SUPPORT_XSRC
+    bool bXsrc = false;
+#endif
 
     BDBG_ENTER(BVDC_P_Source_GetScanOutRect_isr);
     BDBG_OBJECT_ASSERT(hSource, BVDC_SRC);
@@ -2393,6 +2396,14 @@ void BVDC_P_Source_GetScanOutRect_isr
             lXMin_R = BVDC_P_MIN(lXMin_R, lWinXMin_R);
             lXMax = BVDC_P_MAX(lXMax, lWinXMax);
             lYMax = BVDC_P_MAX(lYMax, lWinYMax);
+
+#if BVDC_P_SUPPORT_XSRC
+            /* if any window of this source has XSRC, needs to mark it to align scanout size to 4x */
+            if(hSource->ahWindow[i]->stCurResource.hXsrc)
+            {
+                bXsrc = true;
+            }
+#endif
         }
 
         /* Handle the case when no window connect to source. Make sure
@@ -2415,6 +2426,15 @@ void BVDC_P_Source_GetScanOutRect_isr
             lXMin_R = 0;
         }
 
+#if BVDC_P_SUPPORT_XSRC
+        /* in case XSRC halves scanout to odd left and width, need to align up to 4x size */
+        if(bXsrc)
+        {
+            lXMin = BVDC_P_ALIGN_DN(lXMin, 4<< BVDC_P_16TH_PIXEL_SHIFT);
+            lXMin_R = BVDC_P_ALIGN_DN(lXMin_R, 4<< BVDC_P_16TH_PIXEL_SHIFT);
+            lXMax  = BVDC_P_ALIGN_UP(lXMax, 4<< BVDC_P_16TH_PIXEL_SHIFT);
+        }
+#endif
         /* Currently MVD/XVD always pass 4:2:0 format to VDC. Therefore scanOut (left,
         * right) are expanded to multiple of 2 pixel boundary, (top, bot) are expanded
         * to multiple of 2 line in the progressive src case, and multiple of 4 line in
@@ -2424,8 +2444,8 @@ void BVDC_P_Source_GetScanOutRect_isr
         * CAP and/or SCL will clip up to sub-pixel position.
         *
         * Note: BVDC_P_16TH_PIXEL_SHIFT = 4 */
-        lXSize = (lXMax - lXMin + 0xF) >> 4;
-        lYSize = (lYMax - lYMin + 0xF) >> 4;
+        lXSize = (lXMax - lXMin + 0xF) >> BVDC_P_16TH_PIXEL_SHIFT;
+        lYSize = (lYMax - lYMin + 0xF) >> BVDC_P_16TH_PIXEL_SHIFT;
         /* if only one win is using this src, zoom and pan will get the same
         * scan size, so MAD don't need hard-start */
 #if (BVDC_P_MADR_HSIZE_WORKAROUND)

@@ -94,9 +94,43 @@
 #include "cgi_wbd.h"
 #endif /* BCM_WBD */
 
-#include <cgi_common.h>
+#include "cgi_common.h"
+
+#ifdef DISABLE_HSEARCH
+typedef struct ts_entry
+{
+    char *key;
+    void *data;
+}
+TS_ENTRY;
+#endif
 
 #define HTTP_ERR_BAD_REQUEST		400
+
+#ifdef CONFIG_HOSTAPD
+#ifdef TARGETENV_android
+#define HAPD_DIR	"/data/var/run/hostapd"
+#else
+#define HAPD_DIR	"/var/run/hostapd"
+#endif /* TARGETENV_android */
+
+static wlif_wps_t hapd_data = { .prefix = "", .ifname = "", .cmd = "", .start = 0,
+	.board_fp = 0, .op = 0, .mode = 0 };
+
+static void hapd_wps_cleanup();
+static void hapd_wps_reg_status(char *nvifname, char *osifname,
+	wlif_wps_op_type_t op, wlif_wps_mode_t mode);
+static inline bool
+hapd_disabled()
+{
+	return nvram_match("hapd_enable", "0") ? TRUE : FALSE;
+}
+#define	HAPD_DISABLED() hapd_disabled()
+#endif	/* CONFIG_HOSTAPD */
+
+#ifdef TARGETENV_android
+#define WPA_SUPP_CTRL_INTF		"/data/misc/wifi/sockets"
+#endif /* TARGETENV_android */
 
 /* FILE-CSTYLED */
 int internal_init(void);
@@ -182,7 +216,11 @@ extern inline void sys_reboot(void);
 inline void sys_reboot(void)
 {
 	eval("wl", "reboot");
+#ifdef TARGETENV_android
+	system("reboot");
+#else
 	kill(1, SIGTERM);
+#endif
 }
 
 #define sys_stats(url) eval("stats", (url))
@@ -2165,7 +2203,7 @@ ej_nvram_match(int eid, webs_t wp, int argc, char_t **argv)
 	assert(output);
 
 	if (nvram_match(name, match))
-		return websWrite(wp, output);
+		return websWrite(wp, "%s", output);
 
 	return 0;
 }
@@ -2193,7 +2231,7 @@ ej_nvram_match_bitflag(int eid, webs_t wp, int argc, char_t **argv)
 	assert(output);
 
 	if (nvram_match_bitflag(name, bit, match))
-		return websWrite(wp, output);
+		return websWrite(wp, "%s", output);
 
 	return 0;
 }
@@ -2219,7 +2257,7 @@ ej_nvram_get_bitflag(int eid, webs_t wp, int argc, char_t ** argv)
 
 	assert(name);
 	ptr = nvram_get_bitflag(name, bit);
-	ret += websWrite(wp, (ptr ? ptr : "0"));
+	ret += websWrite(wp, "%s", (ptr ? ptr : "0"));
 	return ret;
 }
 REG_EJ_HANDLER(nvram_get_bitflag);
@@ -2248,7 +2286,7 @@ ej_nvram_invmatch(int eid, webs_t wp, int argc, char_t **argv)
 	assert(output);
 
 	if (nvram_invmatch(name, invmatch))
-		return websWrite(wp, output);
+		return websWrite(wp, "%s", output);
 
 	return 0;
 }
@@ -2274,7 +2312,7 @@ ej_nvram_list(int eid, webs_t wp, int argc, char_t **argv)
 
 	foreach(word, nvram_safe_get(name), next) {
 		if (which-- == 0)
-			return websWrite(wp, word);
+			return websWrite(wp, "%s", word);
 	}
 
 	return 0;
@@ -2294,7 +2332,7 @@ ej_nvram_inlist(int eid, webs_t wp, int argc, char_t **argv)
 
 	foreach(word, nvram_safe_get(name), next) {
 		if (!strcmp(word, item))
-			return websWrite(wp, output);
+			return websWrite(wp, "%s", output);
 	}
 
 	return 0;
@@ -2317,7 +2355,7 @@ ej_nvram_invinlist(int eid, webs_t wp, int argc, char_t **argv)
 			return 0;
 	}
 
-	return websWrite(wp, output);
+	return websWrite(wp, "%s", output);
 }
 REG_EJ_HANDLER(nvram_invinlist);
 
@@ -2345,7 +2383,7 @@ ej_nvram_indexmatch(int eid, webs_t wp, int argc, char_t **argv)
 
 	foreach(word, nvram_safe_get(name), next)
 	        if (index-- == 0 && !strcmp(word, match))
-			return websWrite(wp, output);
+			return websWrite(wp, "%s", output);
 
 	return 0;
 }
@@ -2612,7 +2650,7 @@ ej_wl_crypto(int eid, webs_t wp, int argc, char_t **argv)
 
 	snprintf( nv_param, sizeof(nv_param), "wl%d_crypto", unit);
 
-	websWrite(wp, nvram_safe_get(nv_param));
+	websWrite(wp, "%s", nvram_safe_get(nv_param));
 
 	return 0;
 }
@@ -2639,7 +2677,7 @@ ej_wl_wep(int eid, webs_t wp, int argc, char_t **argv)
 
 	snprintf( nv_param, sizeof(nv_param), "wl%d_wep", unit);
 
-	websWrite(wp, nvram_safe_get(nv_param));
+	websWrite(wp, "%s", nvram_safe_get(nv_param));
 
 	return 0;
 }
@@ -2659,6 +2697,58 @@ wan_name(int unit, char *prefix, char *name, int len)
 }
 
 #endif	/* __CONFIG_NAT__ */
+
+#ifdef CONFIG_HOSTAPD
+/* Resets the wps state variables */
+static void
+hapd_wps_cleanup()
+{
+	if ((hapd_data.op == WLIF_WPS_START) ||
+		(hapd_data.op == WLIF_WPS_RESTART)) {
+		wps_config_command = WPS_UI_CMD_NONE;
+		hapd_data.op = WLIF_WPS_IDLE;
+		wl_wlif_wps_gpio_led_blink(hapd_data.board_fp,
+			WLIF_WPS_BLINKTYPE_STOP);
+		wl_wlif_wps_gpio_cleanup(hapd_data.board_fp);
+	} else {
+		nvram_set("wps_proc_status", "0");
+		nvram_commit();
+	}
+}
+
+/* Polls the wps status for Registrar */
+static void
+hapd_wps_reg_status(char *nvifname, char *osifname, wlif_wps_op_type_t op, wlif_wps_mode_t mode)
+{
+	char wpa_sup_ctrl_intf[36] = {0};
+	wps_config_command = WPS_UI_CMD_START;
+	WLIF_STRNCPY(hapd_data.prefix, nvifname,
+		sizeof(hapd_data.prefix));
+	WLIF_STRNCPY(hapd_data.ifname, osifname,
+		sizeof(hapd_data.ifname));
+#ifdef TARGETENV_android
+	snprintf(wpa_sup_ctrl_intf, sizeof(wpa_sup_ctrl_intf), WPA_SUPP_CTRL_INTF);
+#else
+	snprintf(wpa_sup_ctrl_intf, sizeof(wpa_sup_ctrl_intf), "/var/run/%s_wpa_supplicant", nvifname);
+#endif
+	if (mode == WLIF_WPS_REGISTRAR) {
+		snprintf(hapd_data.cmd, sizeof(hapd_data.cmd),
+			"hostapd_cli -p %s -i %s wps_get_status", HAPD_DIR, osifname);
+	} else if (mode == WLIF_WPS_ENROLLEE) {
+		snprintf(hapd_data.cmd, sizeof(hapd_data.cmd),
+			"wpa_cli -p %s -i %s status", wpa_sup_ctrl_intf, osifname);
+	}
+	hapd_data.start = time(NULL);
+	hapd_data.op = op;
+	hapd_data.mode = mode;
+	if (hapd_data.board_fp <= 0) {
+		hapd_data.board_fp = wl_wlif_wps_gpio_init();
+	}
+	wl_wlif_wps_gpio_led_blink(hapd_data.board_fp,
+		WLIF_WPS_BLINKTYPE_INPROGRESS);
+	wl_wlif_wps_check_status(&hapd_data);
+}
+#endif	/* CONFIG_HOSTAPD */
 
 #ifdef __CONFIG_WPS__
 static int
@@ -2708,15 +2798,30 @@ ej_wps_process(int eid, webs_t wp, int argc, char_t **argv)
 	case WPS_UI_OK:
 	case WPS_UI_MSGDONE:
 		websWrite(wp, "Success");
+#ifdef CONFIG_HOSTAPD
+		if (!HAPD_DISABLED()) {
+			hapd_wps_cleanup();
+		}
+#endif	/* CONFIG_HOSTAPD */
 		break;
 	case WPS_UI_MSG_ERR:
 		websWrite(wp, "Fail due to WPS message exchange error!");
 		break;
 	case WPS_UI_TIMEOUT:
 		websWrite(wp, "Fail due to WPS time out!");
+#ifdef CONFIG_HOSTAPD
+		if (!HAPD_DISABLED()) {
+			hapd_wps_cleanup();
+		}
+#endif	/* CONFIG_HOSTAPD */
 		break;
 	case WPS_UI_PBCOVERLAP:
 		websWrite(wp, "Fail due to WPS session overlap!");
+#ifdef CONFIG_HOSTAPD
+		if (!HAPD_DISABLED()) {
+			hapd_wps_cleanup();
+		}
+#endif	/* CONFIG_HOSTAPD */
 		break;
 #ifdef __CONFIG_NFC__
 	case WPS_UI_NFC_WR_CFG:
@@ -2760,6 +2865,11 @@ ej_wps_process(int eid, webs_t wp, int argc, char_t **argv)
 		break;
 #endif /* __CONFIG_NFC__ */
 	default:
+#ifdef CONFIG_HOSTAPD
+		if (!HAPD_DISABLED()) {
+			hapd_wps_cleanup();
+		}
+#endif /* CONFIG_HOSTAPD */
 		websWrite(wp, "Init");
 	}
 
@@ -3396,12 +3506,22 @@ ej_wps_enr_process(int eid, webs_t wp, int argc, char_t **argv)
 		break;
 	case WPS_UI_OK:
 		websWrite(wp, "Succeeded...");
+#ifdef CONFIG_HOSTAPD
+		if (!HAPD_DISABLED()) {
+			hapd_wps_cleanup();
+		}
+#endif	/* CONFIG_HOSTAPD */
 		break;
 	case WPS_UI_MSG_ERR:
 		websWrite(wp, "Failed...");
 		break;
 	case WPS_UI_TIMEOUT:
 		websWrite(wp, "Failed (timeout)...");
+#ifdef CONFIG_HOSTAPD
+		if (!HAPD_DISABLED()) {
+			hapd_wps_cleanup();
+		}
+#endif /* CONFIG_HOSTAPD */
 		break;
 	case WPS_UI_PBCOVERLAP:
 		websWrite(wp, "Failed (pbc overlap)...");
@@ -3455,6 +3575,11 @@ ej_wps_enr_process(int eid, webs_t wp, int argc, char_t **argv)
 #endif /* __CONFIG_NFC__ */
 	default:
 		websWrite(wp, "Init");
+#ifdef CONFIG_HOSTAPD
+		if (!HAPD_DISABLED()) {
+			hapd_wps_cleanup();
+		}
+#endif /* CONFIG_HOSTAPD */
 		break;
 	}
 
@@ -7151,7 +7276,7 @@ validate_wl_wme_params(webs_t wp, char *value, struct variable *v, char *varname
 
 error:
         websBufferWrite(wp, "Error setting WME AC value: <b>");
-        websBufferWrite(wp, errmsg);
+        websBufferWrite(wp, "%s", errmsg);
 	websBufferWrite(wp, "<b><br>");
 }
 
@@ -7364,7 +7489,7 @@ validate_wl_wme_tx_params(webs_t wp, char *value, struct variable *v, char *varn
 
 error:
 	websBufferWrite(wp, "Error setting WME TX parameters value: <b>");
-	websBufferWrite(wp, errmsg);
+	websBufferWrite(wp, "%s", errmsg);
 	websBufferWrite(wp, "<b><br>");
 }
 
@@ -7763,7 +7888,11 @@ static char lan_prefix[]="lan";
 static char dhcp_prefix[]="dhcp";
 static char vlan_prefix[]="vlan";
 
+#ifndef DISABLE_HSEARCH
 static struct hsearch_data vtab;
+#else
+static void *troot = NULL;
+#endif
 
 #ifdef __CONFIG_NAT__
 static char *wan_proto_argv[] = {
@@ -8124,6 +8253,26 @@ struct variable variables[] = {
 	{ "telnet_enable", "Telnet Service", NULL, validate_choice, ARGV("0", "1"), FALSE, 0 },
 };
 
+#ifdef DISABLE_HSEARCH
+static int
+compare(const void *pa, const void *pb)
+{
+	TS_ENTRY *ts1, *ts2;
+
+	ts1 = (TS_ENTRY *)pa;
+	ts2 = (TS_ENTRY *)pb;
+
+	return strcmp(ts1->key, ts2->key);
+}
+
+static void ts_free(void *p)
+{
+	if (p) {
+		free(p);
+	}
+}
+#endif
+
 /* build hashtable of the monster v-block
 
    Inputs:
@@ -8134,6 +8283,7 @@ struct variable variables[] = {
    Returns: 0 on success -1 on error
 */
 
+#ifndef DISABLE_HSEARCH
 int
 hash_vtab(struct hsearch_data *tab,struct variable *vblock,int num_items)
 {
@@ -8161,6 +8311,32 @@ hash_vtab(struct hsearch_data *tab,struct variable *vblock,int num_items)
 	return 0;
 
 }
+#else
+int
+hash_vtab(void *troot,struct variable *vblock,int num_items)
+{
+	TS_ENTRY *ep=NULL;
+	int count;
+
+	assert(vblock);
+
+	if (!num_items) return -1;
+
+	if (troot) {
+		tdestroy(troot, ts_free);
+	}
+
+	for (count=0; count < num_items; count++)
+	{
+		ep = (TS_ENTRY *)malloc(sizeof(TS_ENTRY));
+		ep->key = vblock[count].name;
+		ep->data = &vblock[count];
+		tsearch((void*)ep, &troot, compare);
+	}
+
+	return 0;
+}
+#endif
 /* The routine gets the pointer into the giant "V" block above give the cgi var name..
    Inputs:
    -varname: Pointer to cgi var name
@@ -8179,7 +8355,12 @@ hash_vtab(struct hsearch_data *tab,struct variable *vblock,int num_items)
 static struct variable*
 get_var_handle(char *varname)
 {
+#ifndef DISABLE_HSEARCH
 	ENTRY e, *ep=NULL;
+#else
+	TS_ENTRY e, *ep=NULL;
+	void *result;
+#endif
 	struct variable *variable=NULL;
 	char *ptr=NULL,*ptr2=NULL;
 	int offset;
@@ -8190,7 +8371,18 @@ get_var_handle(char *varname)
 
 	ep=NULL;
 	e.key = varname;
+#ifndef DISABLE_HSEARCH
 	hsearch_r(e, FIND, &ep, &vtab);
+#else
+	result = tfind((void*)&e, &troot, compare);
+	if (result == NULL) {
+		printf("can't find %s in tree\n", varname);
+		ep = NULL;
+	} else {
+		ep = *(TS_ENTRY **)result;
+		printf("find %s = %s\n", varname, (char *)ep->data);
+	}
+#endif
 
 	/* found something */
 	if (ep)
@@ -8229,7 +8421,18 @@ get_var_handle(char *varname)
 		tmp[offset] = '\0';
 		ep = NULL;
 		e.key = tmp;
+#ifndef DISABLE_HSEARCH
 		hsearch_r(e, FIND, &ep, &vtab);
+#else
+		result = tfind((void*)&e, &troot, compare);
+		if (result == NULL) {
+			printf("can't find %s in tree\n", varname);
+			ep = NULL;
+		} else {
+			ep = *(TS_ENTRY **)result;
+			printf("find %s = %s\n", varname, (char *)ep->data);
+		}
+#endif
 
 		/* check to see if this has the
 		   NVRAM_VLAN MULTI flag set in the v-block
@@ -8256,7 +8459,18 @@ get_var_handle(char *varname)
 
 	ep = NULL;
 	e.key = tmp;
+#ifndef DISABLE_HSEARCH
 	hsearch_r(e, FIND, &ep, &vtab);
+#else
+	result = tfind((void*)&e, &troot, compare);
+	if (result == NULL) {
+		printf("can't find %s in tree\n", varname);
+		ep = NULL;
+	} else {
+		ep = *(TS_ENTRY **)result;
+		printf("find %s = %s\n", varname, (char *)ep->data);
+	}
+#endif
 
 	if (ep){
 		variable = (struct variable *)ep->data;
@@ -8273,7 +8487,18 @@ get_var_handle(char *varname)
 			tmp[offset--] = '\0';
 	ep = NULL;
 	e.key = tmp;
+#ifndef DISABLE_HSEARCH
 	hsearch_r(e, FIND, &ep, &vtab);
+#else
+	result = tfind((void*)&e, &troot, compare);
+	if (result == NULL) {
+		printf("can't find %s in tree\n", varname);
+		ep = NULL;
+	} else {
+		ep = *(TS_ENTRY **)result;
+		printf("find %s = %s\n", varname, (char *)ep->data);
+	}
+#endif
 
 	if (ep){
 		variable = (struct variable *)ep->data;
@@ -8562,7 +8787,7 @@ validate_lan_cgi(webs_t wp)
 
 validate_lan_cgi_error:
 	if (*err_msg)
-		websWrite(wp, err_msg);
+		websWrite(wp, "%s", err_msg);
 
 	websBufferFlush(wp);
 }
@@ -9201,10 +9426,11 @@ static int wps_get_credentials(webs_t wp, char *uibuf, int uilen, int ui_buf_siz
 static int wps_cgi(webs_t wp, char_t *urlPrefix, char_t *webDir, int arg,
 	  char_t *url, char_t *path, char_t *query)
 {
-	char *value = NULL, *action_mode = NULL;
+	char *value = NULL, *action_mode = NULL, sta_mac[32] = {0};
 	char *wps_ssid = NULL, *wps_akm = NULL, *wps_crypto = NULL, *wps_psk = NULL;
 	char tmp[256];
 	char nvifname[IFNAMSIZ], osifname[IFNAMSIZ];
+	char wpa_sup_ctrl_intf[36] = {0};
 	char pin[9] = {0};
 	char uibuf[1024] = "SET ";
 	int uilen = 4;
@@ -9358,6 +9584,7 @@ static int wps_cgi(webs_t wp, char_t *urlPrefix, char_t *webDir, int arg,
 					}
 					else
 						uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_autho_sta_mac=\"%s\" ", value);
+					snprintf(sta_mac, sizeof(sta_mac), "%s", value);
 				}
 
 			}
@@ -9376,7 +9603,33 @@ static int wps_cgi(webs_t wp, char_t *urlPrefix, char_t *webDir, int arg,
 		(void)nvifname_to_osifname(nvifname, osifname, sizeof(osifname));
 
 		uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_ifname=\"%s\" ", osifname);
-		set_wps_env(uibuf);
+#ifdef CONFIG_HOSTAPD
+		if (!HAPD_DISABLED()) {
+			if (wps_method == WPS_UI_METHOD_PBC) {
+				snprintf(hapd_data.cmd, sizeof(hapd_data.cmd), "hostapd_cli -p"
+					" %s -i %s wps_pbc", HAPD_DIR, osifname);
+			} else if (wps_method == WPS_UI_METHOD_PIN) {
+				char *ptr = sta_mac[0] != '\0' ? sta_mac : "";
+				snprintf(hapd_data.cmd, sizeof(hapd_data.cmd),
+					"hostapd_cli -p %s -i %s wps_pin any %s %s",
+					HAPD_DIR, osifname, pin, ptr);
+			}
+			if (hapd_data.cmd[0] != '\0') {
+				int ret = system(hapd_data.cmd);
+				if (ret == 0) {
+					hapd_wps_reg_status(nvifname, osifname,
+						WLIF_WPS_START, WLIF_WPS_REGISTRAR);
+				} else {
+					cprintf("Err : cgi %s failed to execute %s \n",
+						__FUNCTION__, hapd_data.cmd);
+				}
+
+			}
+		} else
+#endif	/* CONFIG_HOSTAPD */
+		{
+			set_wps_env(uibuf);
+		}
 	}
 	else if (!strcmp(action_mode, "Start"))
 	{
@@ -9502,9 +9755,85 @@ static int wps_cgi(webs_t wp, char_t *urlPrefix, char_t *webDir, int arg,
 
 		snprintf(nvifname, sizeof(nvifname), "wl%s", wps_unit);
 		(void)nvifname_to_osifname(nvifname, osifname, sizeof(osifname));
+#ifdef TARGETENV_android
+		snprintf(wpa_sup_ctrl_intf, sizeof(wpa_sup_ctrl_intf), WPA_SUPP_CTRL_INTF);
+#else
+		snprintf(wpa_sup_ctrl_intf, sizeof(wpa_sup_ctrl_intf), "/var/run/%s_wpa_supplicant", nvifname);
+#endif
 
 		uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_ifname=\"%s\" ", osifname);
-		set_wps_env(uibuf);
+#ifdef CONFIG_HOSTAPD
+		if (!HAPD_DISABLED() && (wps_action == WPS_UI_ACT_ENROLL)) {
+			uint16 map = 0;
+
+			/* If backhaul sta, we set easymesh_backhaul_sta in wpa_supplicant */
+			snprintf(tmp, sizeof(tmp), "%s_map", nvifname);
+			value = nvram_safe_get(tmp);
+			if (value != NULL) {
+				map = (uint16)strtoul(value, NULL, 0);
+			}
+			if (isset(&map, 2)) {
+				snprintf(hapd_data.cmd, sizeof(hapd_data.cmd), "wpa_cli -p "
+					"%s -i %s set easymesh_backhaul_sta 1",
+					wpa_sup_ctrl_intf, osifname);
+				system(hapd_data.cmd);
+			}
+
+			switch (wps_method){
+				case WPS_UI_METHOD_PBC:
+				snprintf(hapd_data.cmd, sizeof(hapd_data.cmd), "wpa_cli -p "
+					"%s -i %s wps_pbc",
+					wpa_sup_ctrl_intf, osifname);
+				break;
+
+				case WPS_UI_METHOD_PIN:
+				snprintf(hapd_data.cmd, sizeof(hapd_data.cmd), "wpa_cli -p "
+					"%s -i %s wps_pin any %s",
+					wpa_sup_ctrl_intf, osifname, nvram_safe_get("wps_device_pin"));
+				break;
+			}
+
+			if(system(hapd_data.cmd) == 0) {
+				hapd_wps_reg_status(nvifname, osifname,
+					WLIF_WPS_START, WLIF_WPS_ENROLLEE);
+			} else {
+				cprintf("Err : cgi %s failed to execute %s \n",
+					__FUNCTION__, hapd_data.cmd);
+			}
+		} else
+#endif	/* CONFIG_HOSTAPD */
+		{
+			set_wps_env(uibuf);
+		}
+#ifdef CONFIG_HOSTAPD
+		if (!HAPD_DISABLED() && (wps_action == WPS_UI_ACT_ENROLL)) {
+			switch (wps_method){
+				case WPS_UI_METHOD_PBC:
+				snprintf(hapd_data.cmd, sizeof(hapd_data.cmd), "wpa_cli -p "
+					"%s -i %s wps_pbc",
+					wpa_sup_ctrl_intf, osifname);
+				break;
+
+				case WPS_UI_METHOD_PIN:
+				snprintf(hapd_data.cmd, sizeof(hapd_data.cmd), "wpa_cli -p "
+					"%s -i %s wps_pin any %s",
+					wpa_sup_ctrl_intf, osifname, nvram_safe_get("wps_device_pin"));
+				break;
+			}
+
+			if(system(hapd_data.cmd) == 0) {
+				hapd_wps_reg_status(nvifname, osifname,
+					WLIF_WPS_START, WLIF_WPS_ENROLLEE);
+			} else {
+				cprintf("Err : cgi %s failed to execute %s \n",
+					__FUNCTION__, hapd_data.cmd);
+			}
+		} else
+#endif	/* CONFIG_HOSTAPD */
+		{
+			set_wps_env(uibuf);
+		}
+
 		nvram_commit();
 	} /* start */
 	else if (!strcmp(action_mode, "Rescan")) {
@@ -9525,52 +9854,96 @@ static int wps_cgi(webs_t wp, char_t *urlPrefix, char_t *webDir, int arg,
 			return -1;
 		}
 		if (strcmp(value, "AddEnrollee") == 0)	{
-
-			/* Must in AddEnrollee in PBC method */
-			uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_method=\"%d\" ", WPS_UI_METHOD_PBC);
-
-			/* WSC 2.0, get authorized mac, get by wps process itself */
-			if (b_wps_version2 && strlen(wps_autho_sta_mac))
-				uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_autho_sta_mac=\"%s\" ", wps_autho_sta_mac);
-			uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_sta_pin=\"00000000\" "); /* PBC */
-			uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_action=\"%d\" ", WPS_UI_ACT_ADDENROLLEE);
-
 			websWrite(wp, "OK");
 			nvram_set("wps_proc_status", "0");
-			strncpy(wps_unit, nvram_safe_get("wl_unit"), sizeof(wps_unit));
-			wps_unit[sizeof(wps_unit)-1] = '\0';
+#ifdef CONFIG_HOSTAPD
+			if (!HAPD_DISABLED()) {
+				int ret = 0;
 
-			uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_config_command=\"%d\" ", WPS_UI_CMD_START);
+				/* Stop any actively running thread */
+				snprintf(hapd_data.cmd, sizeof(hapd_data.cmd), "hostapd_cli -p"
+					" %s -i %s wps_cancel", HAPD_DIR, osifname);
+				system(hapd_data.cmd);
+				memset(&hapd_data, 0, sizeof(hapd_data));
+				hapd_data.op = WLIF_WPS_STOP;
+				wl_wlif_wps_check_status(&hapd_data);
 
-			snprintf(nvifname, sizeof(nvifname), "wl%s", wps_unit);
-			(void)nvifname_to_osifname(nvifname, osifname, sizeof(osifname));
+				snprintf(hapd_data.cmd, sizeof(hapd_data.cmd), "hostapd_cli -p"
+					" %s -i %s wps_pbc", HAPD_DIR, osifname);
+				ret = system(hapd_data.cmd);
+				if (ret == 0) {
+					hapd_wps_reg_status(nvifname, osifname,
+						WLIF_WPS_RESTART, WLIF_WPS_REGISTRAR);
+				} else {
+					cprintf("Err : cgi %s failed to execute %s \n",
+						__FUNCTION__, hapd_data.cmd);
+				}
+			} else
+#endif	/* CONFIG_HOSTAPD */
+			{
+				/* Must in AddEnrollee in PBC method */
+				uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_method=\"%d\" ", WPS_UI_METHOD_PBC);
 
-			uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_pbc_method=\"%d\" ", WPS_UI_PBC_SW);
-			uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_ifname=\"%s\" ", osifname);
+				/* WSC 2.0, get authorized mac, get by wps process itself */
+				if (b_wps_version2 && strlen(wps_autho_sta_mac))
+					uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_autho_sta_mac=\"%s\" ", wps_autho_sta_mac);
+				uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_sta_pin=\"00000000\" "); /* PBC */
+				uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_action=\"%d\" ", WPS_UI_ACT_ADDENROLLEE);
+
+				uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_config_command=\"%d\" ", WPS_UI_CMD_START);
+				uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_pbc_method=\"%d\" ", WPS_UI_PBC_SW);
+				uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_ifname=\"%s\" ", osifname);
+				set_wps_env(uibuf);
+			}
 		}
 		else if (strcmp(value, "Enroll") == 0){
 			uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_method=\"%d\" ", WPS_UI_METHOD_PBC);
 
 			websWrite(wp, "OK");
 			nvram_set("wps_proc_status", "0");
-			strncpy(wps_unit, nvram_safe_get("wl_unit"), sizeof(wps_unit));
-			wps_unit[sizeof(wps_unit)-1] = '\0';
+#ifdef CONFIG_HOSTAPD
+			if (!HAPD_DISABLED()) {
+				/* Stop any actively running thread */
+				snprintf(hapd_data.cmd, sizeof(hapd_data.cmd), "wpa_cli -p "
+					"%s -i %s wps_cancel",
+					wpa_sup_ctrl_intf, osifname);
+				system(hapd_data.cmd);
+				memset(&hapd_data, 0, sizeof(hapd_data));
+				hapd_data.op = WLIF_WPS_STOP;
+				wl_wlif_wps_check_status(&hapd_data);
 
-			uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_action=\"%d\" ", WPS_UI_ACT_ENROLL);
-			uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_config_command=\"%d\" ", WPS_UI_CMD_START);
+				snprintf(hapd_data.cmd, sizeof(hapd_data.cmd), "wpa_cli -p "
+					"%s -i %s wps_pbc",
+					wpa_sup_ctrl_intf, osifname);
+				if(system(hapd_data.cmd) == 0) {
+					hapd_wps_reg_status(nvifname, osifname,
+						WLIF_WPS_RESTART, WLIF_WPS_ENROLLEE);
+				} else {
+					cprintf("Err : cgi %s failed to execute %s \n",
+						__FUNCTION__, hapd_data.cmd);
+				}
+			} else
+#endif	/* CONFIG_HOSTAPD */
+			{
+				strncpy(wps_unit, nvram_safe_get("wl_unit"), sizeof(wps_unit));
+				wps_unit[sizeof(wps_unit)-1] = '\0';
 
-			snprintf(nvifname, sizeof(nvifname), "wl%s", wps_unit);
-			(void)nvifname_to_osifname(nvifname, osifname, sizeof(osifname));
+				uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_action=\"%d\" ", WPS_UI_ACT_ENROLL);
+				uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_config_command=\"%d\" ", WPS_UI_CMD_START);
 
-			uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_pbc_method=\"%d\" ", WPS_UI_PBC_SW);
-			uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_ifname=\"%s\" ", osifname);
+				snprintf(nvifname, sizeof(nvifname), "wl%s", wps_unit);
+				(void)nvifname_to_osifname(nvifname, osifname, sizeof(osifname));
 
-			uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_enr_ssid=\"%s\" ", nvram_safe_get("wps_enr_ssid"));
-			uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_enr_bssid=\"%s\" ", nvram_safe_get("wps_enr_bssid"));
-			uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_enr_wsec=\"%s\" ", nvram_safe_get("wps_enr_wsec"));
-			printf("\n*****\n%s\n", uibuf);
+				uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_pbc_method=\"%d\" ", WPS_UI_PBC_SW);
+				uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_ifname=\"%s\" ", osifname);
+
+				uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_enr_ssid=\"%s\" ", nvram_safe_get("wps_enr_ssid"));
+				uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_enr_bssid=\"%s\" ", nvram_safe_get("wps_enr_bssid"));
+				uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_enr_wsec=\"%s\" ", nvram_safe_get("wps_enr_wsec"));
+				printf("\n*****\n%s\n", uibuf);
+				set_wps_env(uibuf);
+			}
 		}
-		set_wps_env(uibuf);
 	}
 	/* WPS key generate */
 	else if (!strcmp(action_mode, "Generate")) {
@@ -9590,9 +9963,45 @@ static int wps_cgi(webs_t wp, char_t *urlPrefix, char_t *webDir, int arg,
 	}
 	/* WPS stop */
 	else if (!strcmp(action_mode, "STOPWPS")) {
-		uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_config_command=\"%d\" ", WPS_UI_CMD_STOP);
-		uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_action=\"%d\" ", WPS_UI_ACT_NONE);
-		set_wps_env(uibuf);
+#ifdef CONFIG_HOSTAPD
+		if (!HAPD_DISABLED()) {
+			char *mode, tmp[32] = {0};
+			/* get osifname */
+			strncpy(wps_unit, nvram_safe_get("wl_unit"), sizeof(wps_unit));
+			wps_unit[sizeof(wps_unit)-1] = '\0';
+			snprintf(nvifname, sizeof(nvifname), "wl%s", wps_unit);
+			(void)nvifname_to_osifname(nvifname, osifname, sizeof(osifname));
+			snprintf(tmp, sizeof(tmp), "%s_mode", nvifname);
+#ifdef TARGETENV_android
+			snprintf(wpa_sup_ctrl_intf, sizeof(wpa_sup_ctrl_intf), WPA_SUPP_CTRL_INTF);
+#else
+			snprintf(wpa_sup_ctrl_intf, sizeof(wpa_sup_ctrl_intf), "/var/run/%s_wpa_supplicant", nvifname);
+#endif
+			mode = nvram_safe_get(tmp);
+			if (!strcmp(mode, "ap")) {
+				/* Execute wps_cancel cli cmd and reset the wps state variables to 0 */
+				snprintf(hapd_data.cmd, sizeof(hapd_data.cmd), "hostapd_cli -p"
+					" %s -i %s wps_cancel", HAPD_DIR, osifname);
+			} else {
+				snprintf(hapd_data.cmd, sizeof(hapd_data.cmd), "wpa_cli -p "
+					"%s -i %s wps_cancel",
+					wpa_sup_ctrl_intf, osifname);
+			}
+
+			system(hapd_data.cmd);
+			wl_wlif_wps_gpio_led_blink(hapd_data.board_fp, WLIF_WPS_BLINKTYPE_STOP);
+			wl_wlif_wps_gpio_cleanup(hapd_data.board_fp);
+			memset(&hapd_data, 0, sizeof(hapd_data));
+			hapd_data.op = WLIF_WPS_STOP;
+			wl_wlif_wps_check_status(&hapd_data);
+			wps_config_command = WPS_UI_CMD_NONE;
+		} else
+#endif	/* CONFIG_HOSTAPD */
+		{
+			uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_config_command=\"%d\" ", WPS_UI_CMD_STOP);
+			uilen += snprintf(uibuf + uilen, sizeof(uibuf) - uilen, "wps_action=\"%d\" ", WPS_UI_ACT_NONE);
+			set_wps_env(uibuf);
+		}
 		websWrite(wp, "WPS process stopped");
 	}
 #ifdef __CONFIG_NFC__
@@ -10236,7 +10645,11 @@ initHandlers(void)
 	websSetRealm("Broadcom Home Gateway Reference Design");
 
 	/* Initialize hash table */
+#ifndef DISABLE_HSEARCH
 	hash_vtab(&vtab,v,variables_arraysize());
+#else
+	hash_vtab(troot,v,variables_arraysize());
+#endif
 }
 
 #else /* !WEBS */
@@ -10244,7 +10657,11 @@ initHandlers(void)
 int internal_init(void)
 {
 	/* Initialize hash table */
+#ifndef DISABLE_HSEARCH
 	if (hash_vtab(&vtab,variables,variables_arraysize()))
+#else
+	if (hash_vtab(troot,variables,variables_arraysize()))
+#endif
 		return -1;
 	return 0;
 }
@@ -10896,7 +11313,7 @@ do_nvramul_cgi(char *url, FILE *stream)
 	if (ret_code){
 		websWrite(stream, "Error during NVRAM upload<br>");
 		if (*posterr_msg){
-			websWrite(stream, posterr_msg);
+			websWrite(stream, "%s", posterr_msg);
 			memset(posterr_msg,0,ERR_MSG_SIZE);
 		}
 
@@ -12061,7 +12478,7 @@ do_cert_ul_cgi(char *url, FILE *stream)
 	if (ret_code){
 		websWrite(stream, "Error during certificate upload<br>");
 		if (*posterr_msg){
-			websWrite(stream, posterr_msg);
+			websWrite(stream, "%s", posterr_msg);
 			memset(posterr_msg,0,ERR_MSG_SIZE);
 		}
 	} else websWrite(stream, "Certificate upload complete.");

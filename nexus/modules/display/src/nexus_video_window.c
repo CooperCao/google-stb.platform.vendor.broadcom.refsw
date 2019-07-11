@@ -937,6 +937,7 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
      */
     if (cfg->heap && cfg->heap != pVideo->heap) {
         window->vdcHeap = windowCfg.hHeap = NEXUS_Display_P_CreateHeap(cfg->heap);
+        if (window->vdcHeap == NULL) { rc = BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY); goto err_window;}
         window->vdcDeinterlacerHeap = window->vdcHeap;
     }
     else
@@ -990,11 +991,20 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
         if(windowHeapIndex < NEXUS_MAX_HEAPS && pVideo->moduleSettings.primaryDisplayHeapIndex != windowHeapIndex)
         {
            window->vdcHeap= windowCfg.hHeap = NEXUS_Display_P_CreateHeap(g_pCoreHandles->heap[windowHeapIndex].nexus);
+           if (window->vdcHeap == NULL) { rc = BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY); goto err_window;}
         }
 
         /* this should only occur to the newer chips using platform memconfig which removed primary display heap */
         if (deinterlacerHeapIndex < NEXUS_MAX_HEAPS && deinterlacerHeapIndex != windowHeapIndex) {
             window->vdcDeinterlacerHeap = windowCfg.hDeinterlacerHeap = NEXUS_Display_P_CreateHeap(g_pCoreHandles->heap[deinterlacerHeapIndex].nexus);
+            if (window->vdcDeinterlacerHeap == NULL) {
+                if (window->vdcHeap) {
+                    NEXUS_Display_P_DestroyHeap(window->vdcHeap);
+                    window->vdcHeap = NULL;
+                }
+                rc = BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
+                goto err_window;
+            }
         }
     }
 

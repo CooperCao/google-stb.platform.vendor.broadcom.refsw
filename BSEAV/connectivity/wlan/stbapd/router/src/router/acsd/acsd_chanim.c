@@ -485,7 +485,7 @@ acsd_update_chanim(acs_chaninfo_t * c_info, chanim_stats_t * stats, uint ticks)
 int
 acsd_chanim_query(acs_chaninfo_t * c_info, uint32 count, uint32 ticks)
 {
-	int ret = 0;
+	int i, ret = 0;
 	char *data_buf;
 	wl_chanim_stats_t *list;
 	wl_chanim_stats_t param;
@@ -513,11 +513,25 @@ acsd_chanim_query(acs_chaninfo_t * c_info, uint32 count, uint32 ticks)
 		list->version = 0;
 		list->count = 0;
 	} else if (list->version != WL_CHANIM_STATS_VERSION) {
-		fprintf(stderr, "Sorry, your driver has wl_chanim_stats version %d "
-			"but this program supports only version %d.\n",
-				list->version, WL_CHANIM_STATS_VERSION);
-		list->buflen = 0;
-		list->count = 0;
+		if (list->version == 2) {
+			chanim_stats_v2_t *stats = (chanim_stats_v2_t *)
+				acsd_malloc(sizeof(chanim_stats_v2_t)*list->count);
+			/* Driver uses v2 chanim_stats but the current is v3.
+			 * Convert it to v3 struct.
+			 */
+			memcpy((char *)stats, (char *)list->stats,
+				list->buflen - WL_CHANIM_STATS_FIXED_LEN);
+			for (i = 0; i < list->count; i++) {
+				ACS_CHANIM_COPY_V2_TO_V3(&list->stats[i], &stats[i]);
+			}
+			ACS_FREE(stats);
+		} else {
+			fprintf(stderr, "Sorry, your driver has wl_chanim_stats version %d "
+				"but this program supports only version %d.\n",
+					list->version, WL_CHANIM_STATS_VERSION);
+			list->buflen = 0;
+			list->count = 0;
+		}
 	}
 
 	if (count == WL_CHANIM_COUNT_ALL) {

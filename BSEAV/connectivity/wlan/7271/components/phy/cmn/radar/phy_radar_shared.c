@@ -158,7 +158,7 @@ static const radar_spec_t radar_spec[] = {
 #define CHIRP_FC_TH 60
 
 #define FCC5_CHIRP	40	/* 20 MHz */
-#define ETSI4_CHIRP	10	/* 5 MHz */
+#define ETSI4_CHIRP	12	/* 6 MHz */
 #define SUBBAND_BW	40	/* 20 MHz */
 
 static void
@@ -351,7 +351,7 @@ wlc_phy_radar_valid(const phy_info_t *pi, uint16 feature_mask, uint8 radar_type)
 	case RADAR_TYPE_ETSI_5_STG3:
 	case RADAR_TYPE_ETSI_6_STG2:
 	case RADAR_TYPE_ETSI_6_STG3:
-		return (stagger_valid && (feature_mask & RADAR_FEATURE_ETSI_DETECT) != 0);  
+		return (stagger_valid && (feature_mask & RADAR_FEATURE_ETSI_DETECT) != 0);
 
 	case RADAR_TYPE_UK1:
 	case RADAR_TYPE_UK2:
@@ -369,7 +369,7 @@ wlc_phy_radar_detect_match(phy_info_t *pi, const pulse_data_t *pulse, uint16 fea
 {
 	const radar_spec_t *pRadar;
 	const pulse_data_t *next_pulse = pulse + 1;
-  
+
 	/* scan the list of Radars for a possible match */
 	for (pRadar = &radar_spec[0]; pRadar->radar_type != RADAR_TYPE_NONE; ++pRadar) {
 
@@ -626,6 +626,7 @@ wlc_phy_radar_detect_run_epoch(phy_info_t *pi,
 	const radar_spec_t *pRadar;
 	bool lesi_on = (ACMAJORREV_32(pi->pubpi.phy_rev) || ACMAJORREV_33(pi->pubpi.phy_rev) ||
 			ACMAJORREV_37(pi->pubpi.phy_rev)) && (phy_ac_rxgcrs_get_lesi(pi->u.pi_acphy->rxgcrsi) == 1 ? TRUE : FALSE);
+       int pw_var_tol;
 
 	epoch_length = wlc_phy_radar_filter_list(rt->pulses, epoch_length,
 	                                         MIN_INTERVAL, MAX_INTERVAL);
@@ -689,13 +690,33 @@ wlc_phy_radar_detect_run_epoch(phy_info_t *pi,
 					} else {
 						pw_blank_condition = FALSE;
 					}
+					pw_var_tol = PULSE_WIDTH_DIFFERENCE + curr_pw / 200;
 				} else {
 					pw_blank_condition = FALSE;
+					pw_var_tol = PULSE_WIDTH_DIFFERENCE + curr_pw / 200;
 				}
 
 				if ((*max_detected_pw_p - *min_detected_pw_p <=
-				    PULSE_WIDTH_DIFFERENCE + curr_pw / 200) || pw_blank_condition) {
-					uint8 min_pulses = MIN(MIN_PULSES, pRadar->num_pulses);
+				    pw_var_tol) || pw_blank_condition) {
+					uint8 min_pulses;
+					if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
+					   min_pulses = (det_type == RADAR_TYPE_FCC_1 ||
+					     det_type == RADAR_TYPE_JP4 ||
+					     det_type == RADAR_TYPE_JP2_1_1) ?
+					     ((rparams->radar_args.ncontig >> 13) & 0x7) - 1 :
+					     (det_type == RADAR_TYPE_JP1_2) ?
+					     ((rparams->radar_args.ncontig >> 10) & 0x7) - 1 :
+					     (det_type == RADAR_TYPE_ETSI_1) ?
+					     (rparams->radar_args.npulses_fra & 0xf) - 1 :
+					     (det_type == RADAR_TYPE_ETSI_2) ?
+					     ((rparams->radar_args.npulses_fra >> 4) & 0xf) - 1 :
+					     (det_type == RADAR_TYPE_ETSI_3 ||
+					     det_type == RADAR_TYPE_ETSI_4) ?
+					     ((rparams->radar_args.npulses_fra >> 8) & 0xf) - 1 :
+					     rparams->radar_args.npulses - 1;
+					} else {
+						min_pulses = MIN(MIN_PULSES, pRadar->num_pulses);
+					}
 					if (++nconsecq_pulses >= min_pulses) {
 						/* requirements match a Radar */
 						radar_detected = TRUE;
@@ -1480,7 +1501,7 @@ phy_radar_detect_fcc5(const phy_info_t *pi,
 			rlpt->last_detection_time_lp, pi->sh->now, deltat, deltat/60, deltat%60));
 		rlpt->last_detection_time_lp = pi->sh->now;
 		if ((uint32) deltat < (rparams->radar_args.fra_pulse_err & 0xff)*60 ||
-		    (*first_radar_indicator == 1 && (uint32) deltat < 30 * 60)) {
+		    (*first_radar_indicator == 1 && (uint32) deltat < 34 * 60)) {
 			if (rlpt->lp_csect_single <= rparams->radar_args.npulses_lp - 2 &&
 			    rlpt->lp_skip_tot < ((rparams->radar_args.max_span_lp >> 12) & 0xf)) {
 				PHY_RADAR(("FCC-5 Radar Detection. Time from last detection"
@@ -2008,6 +2029,15 @@ bool bw80_80_mode)
 		                                     rt->pulses[j].interval));
 	}
 
+#ifdef BCMDBG
+	if ((rparams->radar_args.feature_mask & RADAR_FEATURE_DEBUG_SHORT_PULSE) != 0) {
+		PHY_RADAR(("\nShort pulses after removing pulse larger than max_notradar 600"));
+		PHY_RADAR(("\nShort pulses convert interval from tstamps to interval!"));
+		PHY_RADAR(("\n%d pulses, ", rt->length));
+		phy_radar_output_pulses(rt->pulses, rt->length, rparams->radar_args.feature_mask);
+	}
+#endif /* BCMDBG */
+
 	wlc_phy_radar_detect_run_epoch(pi, rt, rparams, rt->length,
 		&det_type, &nconsecq_pulses, &detected_pulse_index,
 		&min_detected_pw, &max_detected_pw,
@@ -2057,13 +2087,15 @@ bool bw80_80_mode)
 		}
 
 		deltat2 = (uint32) (pi->sh->now - rlpt->last_detection_time);
+		PHY_RADAR(("%s deltat2 = %d, first_radar_indicator = %d\n", __FUNCTION__, deltat2, *first_radar_indicator));
+
 		/* detection not valid if detected pulse index too large */
 		if (detected_pulse_index < ((rparams->radar_args.ncontig) & 0x3f)) {
 			rlpt->last_detection_time = pi->sh->now;
 		}
 		/* reject detection spaced more than 3 minutes and detected pulse index too larg */
 		if (((uint32) deltat2 < (rparams->radar_args.fra_pulse_err & 0xff)*60 ||
-			(*first_radar_indicator == 1 && (uint32) deltat2 < 30*60)) &&
+			(*first_radar_indicator == 1 && (uint32) deltat2 < 34*60)) &&
 			(detected_pulse_index < ((rparams->radar_args.ncontig) & 0x3f))) {
 			if (PHY_RADAR_FIFO_SUBBAND_FORMAT(pi)) {
 				if (det_type == RADAR_TYPE_ETSI_4) {

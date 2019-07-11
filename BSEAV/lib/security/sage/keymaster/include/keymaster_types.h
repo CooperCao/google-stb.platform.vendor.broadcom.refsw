@@ -62,6 +62,7 @@ typedef struct
     char drm_binfile_path[256];
     uint8_t *drm_binfile_buffer;
     uint32_t drm_binfile_size;
+    uint32_t version;
 } KeymasterTl_InitSettings;
 
 #define SKM_TAG_TYPE_SHIFT           28
@@ -159,6 +160,8 @@ typedef enum {
     SKM_TAG_ALLOW_WHILE_ON_BODY = SKM_BOOL | 506, /* Allow key to be used after authentication timeout
                                                    * if device is still on-body (requires secure
                                                    * on-body sensor. */
+    SKM_TAG_TRUSTED_USER_PRESENCE_REQUIRED = SKM_BOOL | 507,
+    SKM_TAG_TRUSTED_CONFIRMATION_REQUIRED = SKM_BOOL | 508,
     SKM_TAG_UNLOCKED_DEVICE_REQUIRED = SKM_BOOL | 509, /* Specifies that the key may only be used when
                                                         * the device is unlocked. Must be software
                                                         * enforced. (keymaster4)
@@ -206,6 +209,9 @@ typedef enum {
                                                               attestation */
     SKM_TAG_ATTESTATION_ID_MODEL = SKM_BYTES | 717,  /* Used to provide the device's model name to be
                                                         included in attestation */
+    SKM_TAG_VENDOR_PATCHLEVEL = SKM_UINT | 718,      /* Used to store the vendor patch level, set during
+                                                        configure - cannot be passed in as parameter */
+    SKM_TAG_BOOT_PATCHLEVEL = SKM_UINT | 719,        /* Used to store the boot patch level - not used */
 
     /* Tags used only to provide data to or receive data from operations */
     SKM_TAG_ASSOCIATED_DATA = SKM_BYTES | 1000, /* Used to provide associated data for AEAD modes. */
@@ -219,6 +225,9 @@ typedef enum {
     SKM_TAG_RESET_SINCE_ID_ROTATION = SKM_BOOL | 1004, /* Whether the device has beeen factory reset
                                                           since the last unique ID rotation.  Used for
                                                           key attestation. */
+    SKM_TAG_CONFIRMATION_TOKEN = SKM_BYTES | 1005,     /* Used to deliver a cryptographic token proving that
+                                                          the user confirmed a signing request. The content
+                                                          is a full HMAC-SHA256 value. */
 } km_tag_t;
 
 /**
@@ -233,6 +242,7 @@ typedef enum {
 
     /* Block ciphers algorithms */
     SKM_ALGORITHM_AES = 32,
+    SKM_ALGORITHM_TRIPLE_DES = 33,
 
     /* MAC algorithms */
     SKM_ALGORITHM_HMAC = 128,
@@ -347,6 +357,7 @@ typedef enum {
     SKM_PURPOSE_SIGN = 2,       /* Usable with RSA, EC and HMAC keys. */
     SKM_PURPOSE_VERIFY = 3,     /* Usable with RSA, EC and HMAC keys. */
     SKM_PURPOSE_DERIVE_KEY = 4, /* Usable with EC keys. */
+    SKM_PURPOSE_WRAP = 5,       /* Usable with RSA keys. */
 } km_purpose_t;
 
 typedef enum {
@@ -454,6 +465,14 @@ typedef struct {
 /* Block to receive km_tag_value_set_t must be this size */
 #define SKM_TAG_VALUE_BLOCK_SIZE     (4096)
 
+/* Max size - no derivation provided here */
+#define SKM_MAX_KEY_BLOB_SIZE        (7248)
+
+/* Max size of the wrapped key blob */
+#define SKM_WRAPPED_BLOB_MAX_SIZE    (8192)
+/* Size of mask applied to wrapping key during unwrap */
+#define SKM_WRAPPED_KEY_MASK_SIZE    (32)
+
 /* Used in km_secure_nonce_t */
 #define SKM_NONCE_HMAC_KEY_SIZE      8
 
@@ -505,6 +524,22 @@ typedef struct {
 	uint32_t num;
 	km_cert_t certificates[SKM_CERTIFICATES_NUM_MAX];
 } km_cert_chain_t;
+
+/* Main and StrongBox only, although can be generalized */
+#define SKM_MAX_SHARING_PARAMS 2
+
+typedef struct {
+    uint8_t seed[SKM_SHA256_DIGEST_SIZE];
+    uint8_t nonce[SKM_SHA256_DIGEST_SIZE];
+} km_hmac_sharing_t;
+
+typedef struct {
+    uint64_t challenge;
+    uint64_t timestamp;
+    km_security_level_t security_level;
+    uint8_t mac[SKM_SHA256_DIGEST_SIZE];
+    /* Param auth is not supported so not in token structure */
+} km_verification_token_t;
 
 
 #ifdef __cplusplus

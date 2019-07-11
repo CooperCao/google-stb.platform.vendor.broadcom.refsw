@@ -29,6 +29,15 @@
 
 #include "debug.h"
 
+#ifdef TARGETENV_android
+#define F_LOCK LOCK_EX
+#define F_ULOCK LOCK_UN
+inline int lockf(int fd, int cmd, off_t ignored_len) {
+	(void)ignored_len;
+    return flock(fd, cmd);
+}
+#endif /* TARGETENV_android */
+
 int pidfile_acquire(char *pidfile)
 {
 	int pid_fd;

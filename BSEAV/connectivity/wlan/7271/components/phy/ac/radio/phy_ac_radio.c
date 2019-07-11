@@ -12786,7 +12786,7 @@ chanspec_tune_radio(phy_info_t *pi)
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_36)) */
 #if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_37))
 		if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
-			wlc_phy_radio20696_vcocal_isdone(pi, FALSE, TRUE);
+			wlc_phy_radio20696_vcocal_isdone(pi, FALSE);
 		} else
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_37)) */
 #if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_40))
@@ -12796,7 +12796,7 @@ chanspec_tune_radio(phy_info_t *pi)
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_40)) */
 #if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_37))
 		if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
-			wlc_phy_radio20696_vcocal_isdone(pi, FALSE, TRUE);
+			wlc_phy_radio20696_vcocal_isdone(pi, FALSE);
 		} else
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_37)) */
 		{

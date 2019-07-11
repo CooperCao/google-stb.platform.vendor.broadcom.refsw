@@ -452,7 +452,7 @@ NEXUS_RaveHandle NEXUS_Rave_Open_priv(const NEXUS_RaveOpenSettings *pSettings)
         }
     }
 #endif
-
+    rave->readItbEvents.DataPtr = NULL;
     rave->openSettings = *pSettings;
     return rave;
 
@@ -1337,7 +1337,6 @@ void NEXUS_Rave_Enable_priv(NEXUS_RaveHandle rave)
     rc = BXPT_Rave_EnableContext(rave->raveHandle);
     if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);}
 
-    rave->readItbEvents.DataPtr = NULL;
     rave->enabled = true;
 }
 
@@ -1423,6 +1422,7 @@ void NEXUS_Rave_Flush_priv(NEXUS_RaveHandle rave)
         }
     #endif
     }
+    rave->readItbEvents.DataPtr = NULL;
 }
 
 NEXUS_Error NEXUS_Rave_GetStatus_priv(NEXUS_RaveHandle rave, NEXUS_RaveStatus *pStatus)

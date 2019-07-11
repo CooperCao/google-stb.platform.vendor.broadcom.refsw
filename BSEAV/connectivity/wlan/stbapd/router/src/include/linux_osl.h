@@ -1637,11 +1637,14 @@ do { \
 
 /* *printf functions */
 #include <stdio.h>
-
+#ifdef TARGETENV_android
+#define	bcmp(b1, b2, len)	memcmp((b1), (b2), (len))
+#else /* TARGETENV_android */
 /* bcopy, bcmp, and bzero */
 extern void bcopy(const void *src, void *dst, size_t len);
 extern int bcmp(const void *b1, const void *b2, size_t len);
 extern void bzero(void *b, size_t len);
+#endif /* TARGETENV_android */
 #endif /* ! BCMDRIVER */
 
 /* Current STB 7445D1 doesn't use ACP and it is non-coherrent.

@@ -159,6 +159,7 @@ static void NEXUS_AudioModule_Print(void)
             NEXUS_Error errCode;
             NEXUS_PidChannelStatus pidChannelStatus;
             BAPE_DecoderTsmSettings tsmSettings;
+            BAPE_DecoderStatus decoderStatus;
 
             errCode = NEXUS_AudioDecoder_GetStatus(handle, &status);
             if( errCode )
@@ -178,6 +179,7 @@ static void NEXUS_AudioModule_Print(void)
                 BKNI_Memset(&pidChannelStatus, 0, sizeof(pidChannelStatus));
             }
             BAPE_Decoder_GetTsmSettings(handle->channel, &tsmSettings);
+            BAPE_Decoder_GetStatus(handle->channel, &decoderStatus);
             BDBG_LOG((" channel%d: (%p) %s", i, (void *)handle->channel, status.locked ? "locked " : ""));
             BDBG_LOG(("  dsp index=%d started=%s, codec=%d, pid=0x%x, pidCh=%p, stcCh=%p",handle->openSettings.dspIndex,
                 status.started == NEXUS_AudioRunningState_eStarted ? "started" : (status.started == NEXUS_AudioRunningState_eSuspended ? "suspended" : "stopped"),
@@ -190,7 +192,10 @@ static void NEXUS_AudioModule_Print(void)
                 tsmSettings.ptsOffset, status.ptsErrorCount));
             BDBG_LOG(("  Decode: frames decoded=%d errors=%d", status.framesDecoded, status.frameErrors));
             BDBG_LOG(("  watchdogs: %d", status.numWatchdogs));
-            for (j=0; j < NEXUS_AudioDecoderConnectorType_eMax; j++)
+            if (decoderStatus.unlicensedAlgo) {
+                BDBG_LOG(("  !!!!!Unlicensed Algo Detected (%s)!!!!!", decoderStatus.codecName));
+            }
+            for (j = 0; j < NEXUS_AudioDecoderConnectorType_eMax; j++)
             {
                 NEXUS_AudioMixerHandle mixerHandle = NEXUS_AudioInput_P_LocateMixer( &handle->connectors[j], NULL);
                 while (mixerHandle)

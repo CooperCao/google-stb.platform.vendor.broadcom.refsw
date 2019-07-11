@@ -331,6 +331,12 @@ enum wlc_trf_mgmt_iov {
     IOV_TRF_MGMT_SHAPING_INFO = 9,	/* Get the shaping parameters. */
     IOV_TRF_MGMT_RSSI_POLICY = 10,	/* Get/set traffic management RSSI policy */
     IOV_TRF_MGMT_INTFER_PARAMS = 11,	/* Get/set intfer config parameters */
+    IOV_TRF_MGMT_STATS_CLEAR,       /* Clear traffic management statistics. */
+#ifdef TRAFFIC_MGMT_DWM
+    IOV_TRF_MGMT_DWM_CONFIG,
+    IOV_TRF_MGMT_DWM_FILTERS_ADD,
+    IOV_TRF_MGMT_DWM_FILTERS_REMOVE,
+#endif
     IOV_TRF_MGMT_LAST
 };
 
@@ -396,6 +402,13 @@ static const bcm_iovar_t trf_mgmt_iovars[] = {
 	sizeof(trf_mgmt_stats_array_t)
 	},
 
+	{"trf_mgmt_stats_clear",
+	IOV_TRF_MGMT_STATS_CLEAR,
+	(0), 0,
+	IOVT_VOID,
+	0
+	},
+
 #ifdef TRAFFIC_SHAPING
 	{"trf_mgmt_bandwidth",
 	IOV_TRF_MGMT_BANDWIDTH,
@@ -426,7 +439,26 @@ static const bcm_iovar_t trf_mgmt_iovars[] = {
 	IOVT_BUFFER,
 	sizeof(wl_intfer_params_t)},
 #endif  /* WLINTFERSTAT */
-
+#ifdef TRAFFIC_MGMT_DWM
+	{"trf_mgmt_dwm_config",
+	IOV_TRF_MGMT_DWM_CONFIG,
+	(0), 0,
+	IOVT_BOOL,
+	0
+	},
+	{"trf_mgmt_dwm_filters_add",
+	IOV_TRF_MGMT_DWM_FILTERS_ADD,
+	(0), 0,
+	IOVT_UINT32,
+	sizeof(trf_mgmt_dwm_filter_list_t)
+	},
+	{"trf_mgmt_dwm_filters_remove",
+	IOV_TRF_MGMT_DWM_FILTERS_REMOVE,
+	(0), 0,
+	IOVT_INT32,
+	0
+	},
+#endif /* TRAFFIC_MGMT_DWM */
 	{NULL, 0, 0, 0, 0, 0 }
 };
 
@@ -589,6 +621,17 @@ static trf_mgmt_dwm_info_t *trf_mgmt_dwm_allocate_info_block(
 				wlc_trf_mgmt_info_t *trf_mgmt_info);
 static void trf_mgmt_dwm_free_info_block(trf_mgmt_dwm_info_t *trf_mgmt_dwm_info);
 
+#ifdef TRAFFIC_MGMT_DWM
+/* forward declarations for DWM Functions */
+static int  trf_mgmt_dwm_filters_add(
+	trf_mgmt_dwm_info_t *trf_mgmt_dwm_info,
+	uint32 dscp_wmm,
+	uint32 cmd_length);
+static int trf_mgmt_dwm_filters_remove(trf_mgmt_dwm_info_t *trf_mgmt_dwm_info);
+static int trf_mgmt_dwm_filters_list(trf_mgmt_dwm_info_t *trf_mgmt_dwm_info);
+#endif /* TRAFFIC_MGMT_DWM */
+
+
 #ifdef TRAFFIC_MGMT_RSSI_POLICY
 /* Return whether RSSI needs to be collected or not. */
 static inline bool
@@ -643,6 +686,13 @@ trf_mgmt_set_rssi_policy(wlc_trf_mgmt_ctxt_t *tm, uint32 policy)
 {
 	struct scb *scb;
 	struct scb_iter scbiter;
+	wlc_bsscfg_t *bsscfg;
+	wlc_trf_mgmt_info_t *tm_info = NULL;
+
+	if (!tm)
+		return BCME_BADARG;
+	if (!tm->wlc)
+		return BCME_ERROR;
 
 	/* RSSI policy works only on the AP side */
 	if (!AP_ENAB(tm->wlc->pub))
@@ -654,6 +704,10 @@ trf_mgmt_set_rssi_policy(wlc_trf_mgmt_ctxt_t *tm, uint32 policy)
 	/* If policy has not changed, no need to take any action. */
 	if (tm->rssi_info.rssi_policy == policy)
 		return BCME_OK;
+
+	bsscfg = wlc_bsscfg_primary(tm->wlc);
+	if (bsscfg)
+		 tm_info = bsscfg->trf_mgmt_info;
 
 	/* Turn on or off RSSI collection for all SCBs as needed */
 
@@ -671,7 +725,7 @@ trf_mgmt_set_rssi_policy(wlc_trf_mgmt_ctxt_t *tm, uint32 policy)
 				wlc_lq_sample_req_enab(scb, RX_LQ_SAMP_REQ_TM, TRUE);
 
 				/* If trf_mgmt_config is off, remove the txmod, else leave it. */
-				if (!trf_mgmt_is_enabled(scb)) {
+				if (!trf_mgmt_is_enabled(scb) && !TRF_MGMT_DWM_FILTER_ENAB(tm_info)) {
 					WL_RSSI(("%s: TM is disabled, unconfig TXMOD for scb %p\n",
 					__FUNCTION__, OSL_OBFUSCATE_BUF(scb)));
 					wlc_txmod_unconfig(tm->wlc->txmodi, scb, TXMOD_TRF_MGMT);
@@ -1093,6 +1147,11 @@ static int wlc_trf_mgmt_doiovar(
 	trf_mgmt_shaping_info_array_t   *info_array;
 #endif
 
+#ifdef TRAFFIC_MGMT_DWM
+	trf_mgmt_dwm_info_t			 *dwm_info;
+#endif /* TRAFFIC_MGMT_DWM */
+
+
 	WL_TRF_MGMT(("wl%d: trf_mgmt_doiovar()\n", WLCUNIT(trf_mgmt_ctxt)));
 
 	BCM_REFERENCE(p);
@@ -1116,6 +1175,10 @@ static int wlc_trf_mgmt_doiovar(
 	} else {
 	    trf_mgmt_info = bsscfg->trf_mgmt_info;
 	}
+
+#ifdef TRAFFIC_MGMT_DWM
+	dwm_info = trf_mgmt_info->dwm_info;
+#endif /* TRAFFIC_MGMT_DWM */
 
 	switch (actionid) {
 	    case IOV_SVAL(IOV_TRF_MGMT_CONFIG):
@@ -1203,6 +1266,15 @@ static int wlc_trf_mgmt_doiovar(
 		}
 
 		break;
+
+	case IOV_SVAL(IOV_TRF_MGMT_STATS_CLEAR):
+		for (i = 0; i < TRF_MGMT_MAX_PRIORITIES; i++) {
+		    bzero(&trf_mgmt_info->tx_queue[i].stats, sizeof(trf_mgmt_stats_t));
+		    bzero(&trf_mgmt_info->rx_queue[i].stats, sizeof(trf_mgmt_stats_t));
+		}
+
+		break;
+
 
 #ifdef TRAFFIC_SHAPING
 	    case IOV_SVAL(IOV_TRF_MGMT_BANDWIDTH):
@@ -1306,6 +1378,41 @@ static int wlc_trf_mgmt_doiovar(
 			break;
 		}
 #endif  /* WLINTFERSTAT */
+
+#ifdef TRAFFIC_MGMT_DWM
+	case IOV_SVAL(IOV_TRF_MGMT_DWM_CONFIG):
+		if (alen < sizeof(bool)) {
+			err = BCME_BUFTOOSHORT;
+			break;
+		}
+		if (!dwm_info || !bsscfg) {
+				WL_ERROR(("%s: Invalid parameter \n", __FUNCTION__));
+				return BCME_BADARG;
+		}
+		dwm_info->filter_enabled = *(bool *)a;
+		break;
+
+	case IOV_GVAL(IOV_TRF_MGMT_DWM_CONFIG):
+		if (!dwm_info || !bsscfg) {
+				WL_ERROR(("%s: Invalid parameter \n", __FUNCTION__));
+				return BCME_BADARG;
+		}
+		*(uint32 *)a = (uint32)dwm_info->filter_enabled;
+		break;
+
+	case IOV_SVAL(IOV_TRF_MGMT_DWM_FILTERS_ADD):
+		err = trf_mgmt_dwm_filters_add(dwm_info, *(uint32 *)a, alen);
+		break;
+
+	case IOV_GVAL(IOV_TRF_MGMT_DWM_FILTERS_ADD):
+		*(uint32 *)a = trf_mgmt_dwm_filters_list(dwm_info);
+		break;
+
+	case IOV_SVAL(IOV_TRF_MGMT_DWM_FILTERS_REMOVE):
+	case IOV_GVAL(IOV_TRF_MGMT_DWM_FILTERS_REMOVE):
+		*(int *)a = trf_mgmt_dwm_filters_remove(dwm_info);
+		break;
+#endif /* TRAFFIC_MGMT_DWM */
 
 	    default:
 		err = BCME_UNSUPPORTED;
@@ -1547,7 +1654,7 @@ wlc_trf_mgmt_bsscfg_down(wlc_trf_mgmt_ctxt_t *trf_mgmt_ctxt, wlc_bsscfg_t *bsscf
 
 #endif /* TRAFFIC_MGMT_RSSI_POLICY */
 	    FOREACH_BSS_SCB(trf_mgmt_info->wlc->scbstate, &scbiter, trf_mgmt_info->bsscfg, scb) {
-	        if (!SCB_IS_IBSS_PEER(scb)) {
+	if (!TRF_MGMT_DWM_FILTER_ENAB(trf_mgmt_info) && !SCB_IS_IBSS_PEER(scb)) {
 		    wlc_txmod_unconfig(trf_mgmt_ctxt->wlc->txmodi, scb, TXMOD_TRF_MGMT);
 	        }
 	    }
@@ -1824,7 +1931,8 @@ wlc_trf_mgmt_handle_pkt(
 	}
 
 	/* Don't shape traffic if traffic management is not enabled. */
-	if ((trf_mgmt_info == NULL) || (trf_mgmt_info->config.trf_mgmt_enabled != TRUE)) {
+	if ((trf_mgmt_info == NULL) || ((trf_mgmt_info->config.trf_mgmt_enabled != TRUE) &&
+		!TRF_MGMT_DWM_FILTER_ENAB(trf_mgmt_info))) {
 	    return BCME_ERROR;
 	}
 
@@ -2323,6 +2431,81 @@ trf_mgmt_dwm_free_info_block(trf_mgmt_dwm_info_t *dwm_info)
 	/* Free trf_mgmt_dwm_info */
 	MFREE(WLCOSH(dwm_info->tm_info), dwm_info, sizeof(trf_mgmt_dwm_info_t));
 }
+
+#ifdef TRAFFIC_MGMT_DWM
+static int
+trf_mgmt_dwm_filters_add(
+		trf_mgmt_dwm_info_t *dwm_info,
+		uint32 dscp_wmm,
+		uint32 cmd_length)
+{
+	uint8 *dwm_tbl = NULL;
+	uint16 flags;
+	uint8 dscp;
+	uint8 priority;
+
+	if (!dwm_info || !dwm_info->tm_dwm_tbl) {
+		WL_ERROR(("%s: NULL dwm_info \n", __FUNCTION__));
+		return BCME_BADARG;
+	}
+
+	dscp = dscp_wmm >> 8;
+	if (dscp >= DWM_TBL_SIZE) {
+		WL_ERROR(("%s: dscp over %d \n", __FUNCTION__, DWM_TBL_SIZE));
+		return BCME_BADARG;
+	}
+
+	flags = dscp_wmm >> 16;
+	priority = dscp_wmm & 0xff;
+	dwm_tbl = dwm_info->tm_dwm_tbl->dwm_tbl;
+
+	dwm_tbl[dscp] = priority;
+	TRF_MGMT_DWM_SET_FILTER(dwm_tbl[dscp]);
+    if (flags & TRF_MGMT_DWM_FAVORED_BIT)
+		TRF_MGMT_DWM_SET_FAVORED(dwm_tbl[dscp]);
+
+	return BCME_OK;
+}
+
+static int trf_mgmt_dwm_filters_list(trf_mgmt_dwm_info_t *dwm_info)
+{
+	int i;
+	uint8 *dwm_tbl = NULL;
+	if (!dwm_info || !dwm_info->tm_dwm_tbl) {
+		WL_ERROR(("%s: NULL dwm_info \n", __FUNCTION__));
+		return BCME_BADARG;
+	}
+	dwm_tbl = dwm_info->tm_dwm_tbl->dwm_tbl;
+	for (i = 0; i < DWM_TBL_SIZE; i++) {
+		WL_ERROR(("%x %x %d %d\n", i, TRF_MGMT_DWM_PRIO(dwm_tbl[i]), TRF_MGMT_DWM_IS_FAVORED_SET(dwm_tbl[i]), TRF_MGMT_DWM_IS_FILTER_SET(dwm_tbl[i])));
+	}
+	return i;
+}
+
+/*
+ * Remove all dwm filters
+ */
+static int
+trf_mgmt_dwm_filters_remove(trf_mgmt_dwm_info_t *dwm_info)
+{
+	if (!dwm_info) {
+		WL_ERROR(("%s: NULL dwm_info\n", __FUNCTION__));
+		return BCME_BADARG;
+	}
+
+	if (!dwm_info->tm_dwm_tbl) {
+		WL_ERROR(("%s: NULL dwm_tbl\n", __FUNCTION__));
+		return BCME_ERROR;
+	}
+
+	WL_TRF_MGMT(("wl%d: %s\n",
+		WLCUNIT(dwm_info->tm_info->bsscfg),
+		__FUNCTION__));
+
+	bzero(dwm_info->tm_dwm_tbl->dwm_tbl, sizeof(*(dwm_info->tm_dwm_tbl->dwm_tbl)) * DWM_TBL_SIZE);
+	return BCME_OK;
+}
+#endif /* TRAFFIC_MGMT_DWM */
 
 /*
  * Frees allocated resources for a BSS info block
@@ -2998,7 +3181,8 @@ wlc_trf_mgmt_filter_pkt(
 		}
 	}
 
-	if (priority_class < trf_mgmt_priority_nochange) {
+	if (priority_class < trf_mgmt_priority_nochange &&
+		!TRF_MGMT_DWM_FILTER_ENAB(trf_mgmt_info)) {
 	    /*
 	     * Set the priority value in the packet's OOB datat.
 	     */
@@ -3547,7 +3731,9 @@ wlc_trf_mgmt_hash_wldcard_find(wlc_trf_mgmt_info_t *trf_mgmt_info, trf_mgmt_filt
 void
 wlc_scb_trf_mgmt(wlc_info_t *wlc,  wlc_bsscfg_t *bsscfg, struct scb *scb)
 {
-	if ((bsscfg->trf_mgmt_info) && (bsscfg->trf_mgmt_info->config.trf_mgmt_enabled)) {
+	if ((bsscfg->trf_mgmt_info) &&
+		((bsscfg->trf_mgmt_info->config.trf_mgmt_enabled) ||
+		TRF_MGMT_DWM_FILTER_ENAB(bsscfg->trf_mgmt_info))) {
 		 wlc_txmod_config(wlc->txmodi, scb, TXMOD_TRF_MGMT);
 	}
 }

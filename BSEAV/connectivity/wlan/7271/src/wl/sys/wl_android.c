@@ -5614,17 +5614,26 @@ wl_handle_private_cmd(struct net_device *net, char *command, u32 cmd_len)
 			strlen(CMD_COUNTRY_DELIMITER)) == 0) &&
 			(rev_info_delim + 1)) {
 			revinfo  = bcm_atoi(rev_info_delim + 1);
+			*rev_info_delim = 0;
 		}
-		bytes_written = wldev_set_country(net, country_code, true, true, revinfo);
+		if (strlen(country_code) > 2) { /* 2 bytes of country code */
+			WL_ERR(("Wrong country code format, the format should be "
+				"two byte of country code followed by '/' and regulatory revision number\n"));
+			WL_ERR(("Usage examples: DRIVER COUNTRY US or DRIVER COUNTRY US/7\n"));
+			bytes_written = -1;
+		}
+		else {
+			bytes_written = wldev_set_country(net, country_code, true, true, revinfo);
 #ifdef CUSTOMER_HW4_PRIVATE_CMD
 #ifdef FCC_PWR_LIMIT_2G
-		if (wldev_iovar_setint(net, "fccpwrlimit2g", FALSE)) {
-			DHD_ERROR(("%s: fccpwrlimit2g deactivation is failed\n", __FUNCTION__));
-		} else {
-			DHD_ERROR(("%s: fccpwrlimit2g is deactivated\n", __FUNCTION__));
-		}
+			if (wldev_iovar_setint(net, "fccpwrlimit2g", FALSE)) {
+				DHD_ERROR(("%s: fccpwrlimit2g deactivation is failed\n", __FUNCTION__));
+			} else {
+				DHD_ERROR(("%s: fccpwrlimit2g is deactivated\n", __FUNCTION__));
+			}
 #endif /* FCC_PWR_LIMIT_2G */
 #endif /* CUSTOMER_HW4_PRIVATE_CMD */
+		}
 	}
 #endif /* CUSTOMER_SET_COUNTRY */
 #endif /* WL_CFG80211 */

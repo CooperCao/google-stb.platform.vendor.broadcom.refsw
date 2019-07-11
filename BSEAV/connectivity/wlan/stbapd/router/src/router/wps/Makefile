@@ -98,8 +98,10 @@ CFLAGS += -DWPS_AP_M2D
 # But WPS 2 Test plan 4.1.13 still need this feature support.
 CFLAGS += -DWPS_ADDCLIENT_WWTP
 
-CFLAGS += -Wall -Werror -Wnested-externs -D_REENTRANT -D__linux__
-#CFLAGS += -Werror
+CFLAGS += -Wnested-externs -D_REENTRANT -D__linux__
+ifneq ($(STBANDROID),1)
+CFLAGS	+= -Wall -Werror
+endif
 
 ifeq ($(BLDTYPE), debug)
 CFLAGS += -g
@@ -119,6 +121,9 @@ endif
 LDFLAGS += $(EXTRA_LDFLAGS)
 
 WPSM_LIBS = -lnvram -lshared -lbcmcrypto -lm
+ifneq ($(STBANDROID),1)
+LDFLAGS += -lpthread
+endif
 ifeq ($(WPS_HWPB), 1)
 ifeq ($(CONFIG_LIBBCMSTB),y)
 WPSM_LIBS += -lbcmstb

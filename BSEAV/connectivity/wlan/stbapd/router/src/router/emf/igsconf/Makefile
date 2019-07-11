@@ -2,14 +2,19 @@
 # $Id: Makefile 403251 2013-05-20 05:15:55Z $
 #
 
+ifneq ($(STBANDROID),1)
 CROSS =
 CC = $(CROSS)gcc
 AR = $(CROSS)ar
 STRIP = $(CROSS)strip
+endif
 
 ALL_OBJS = igsu.o igsu_linux.o
 
-CCFLAGS = -Os -Wall -Werror -I../../../include ${WLAN_StdIncPathA} -I../../../common/include -I../../shared -I../../../include/emf/igs
+CCFLAGS = -Os -I../../../include ${WLAN_StdIncPathA} -I../../../common/include -I../../shared -I../../../include/emf/igs
+ifneq ($(STBANDROID),1)
+CCFLAGS	+= -Wall -Werror
+endif
 
 ifneq ($(wildcard ./prebuilt),)
 all:
@@ -19,13 +24,13 @@ all: igs
 endif
 
 igs: $(ALL_OBJS)
-	$(CC) $(CCFLAGS) $(LDFLAGS) -o $@ $(ALL_OBJS) $(LDLIBS)
+	$(CC) $(CFLAGS) $(CCFLAGS) $(LDFLAGS) -o $@ $(ALL_OBJS) $(LDLIBS)
 	$(STRIP) $@
 
 $(ALL_OBJS): %.o: %.c
 	@echo " "
 	@echo "Making $<"
-	$(CC) $(CCFLAGS) -c $<
+	$(CC) $(CFLAGS) $(CCFLAGS) -c $<
 
 install: all
 	install -d $(INSTALLDIR)/igs/usr/sbin

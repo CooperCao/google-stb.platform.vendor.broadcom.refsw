@@ -113,7 +113,7 @@ fi
 # Load module for NIC
 if [[ "${WIFI_WL_FD[0]}" = "1" || "${WIFI_WL_FD[1]}" = "1" ]]; then
         cd ${WIFI_DRIVER_DIR}; insmod wlplat.ko; cd -
-        cd ${WIFI_DRIVER_DIR}; insmod wl.ko ${WL1_IF} instance_base=1; cd -
+        cd ${WIFI_DRIVER_DIR}; insmod wl.ko intf_name=${WL1_IF} instance_base=1; cd -
 else
         cd ${WIFI_DRIVER_DIR}; insmod wlplat.ko; cd -
         cd ${WIFI_DRIVER_DIR}; insmod wl.ko intf_name=${WL0_IF}; cd -
@@ -134,7 +134,10 @@ if [ -f /lib/modules/${LINUXVER}/kernel/net/netfilter/x_tables.ko ]; then
 fi
 insmod /lib/modules/${LINUXVER}/kernel/net/bridge/netfilter/ebtables.ko
 insmod /lib/modules/${LINUXVER}/kernel/net/bridge/netfilter/ebtable_broute.ko
-
+#this is not required all the time
+if [ -f /lib/modules/${LINUXVER}/kernel/net/bridge/netfilter/ebtable_filter.ko ]; then
+	insmod /lib/modules/${LINUXVER}/kernel/net/bridge/netfilter/ebtable_filter.ko
+fi
 killall udhcpc
 ifconfig ${ETH_IF} 0.0.0.0
 

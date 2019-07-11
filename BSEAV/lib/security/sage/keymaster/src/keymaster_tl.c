@@ -71,6 +71,7 @@ struct KeymasterTl_Instance {
     BDBG_OBJECT(KeymasterTl_Instance)
     SRAI_ModuleHandle moduleHandle;
     SRAI_ModuleHandle ssdModuleHandle;
+    uint32_t configuredKeymasterVersion;
 };
 
 BDBG_OBJECT_ID_DECLARE(KeymasterTl_Instance);
@@ -154,6 +155,19 @@ static BERR_Code _KeymasterTl_ContextNew(KeymasterTl_InitSettings *pModuleSettin
     handle->ssdModuleHandle = NULL;
 
     BDBG_OBJECT_SET(handle, KeymasterTl_Instance);
+
+    if (!pModuleSettings->version) {
+        handle->configuredKeymasterVersion = SKM_VERSION_3;
+    } else {
+        handle->configuredKeymasterVersion = pModuleSettings->version;
+    }
+    if ((handle->configuredKeymasterVersion != SKM_VERSION_3) && (handle->configuredKeymasterVersion != SKM_VERSION_4)) {
+        BDBG_ERR(("%s: Invalid version", BSTD_FUNCTION));
+        err = BERR_INVALID_PARAMETER;
+        goto done;
+    }
+    /* Rewrite the version to reflect the configured one */
+    pModuleSettings->version = handle->configuredKeymasterVersion;
 
     KM_ALLOCATE_CONTAINER();
 
@@ -317,6 +331,7 @@ done:
 
 BERR_Code KeymasterTl_Configure(
     KeymasterTl_Handle handle,
+    uint32_t vendor_patchlevel,
     KM_Tag_ContextHandle in_params)
 {
     BERR_Code err;
@@ -343,6 +358,9 @@ BERR_Code KeymasterTl_Configure(
     KM_CMD_BASIC_CONFIGURE_IN_PARAMS_PTR = params;
     KM_CMD_BASIC_CONFIGURE_IN_PARAMS_LEN = length;
     KM_CMD_BASIC_CONFIGURE_IN_NUM_PARAMS = KM_Tag_GetNumPairs(in_params);
+    if (handle->configuredKeymasterVersion >= SKM_VERSION_4) {
+        KM_CMD_BASIC_CONFIGURE_IN_VENDOR_PATCHLEVEL = vendor_patchlevel;
+    }
     KM_PROCESS_COMMAND(KM_CommandId_eConfigure);
 
 done:
@@ -560,6 +578,68 @@ void KeymasterTl_GetDefaultImportKeySettings(
     BKNI_Memset(settings, 0, sizeof(*settings));
 }
 
+static BERR_Code kmtl_import_key_1_step(
+    KeymasterTl_Handle handle,
+    KeymasterTl_ImportKeySettings *settings)
+{
+    BERR_Code err;
+    BSAGElib_InOutContainer *inout = NULL;
+    uint8_t *key_params = NULL;
+    uint32_t length = 0;
+    uint8_t *in_key_blob_ptr = NULL;
+    uint8_t *key_blob = NULL;
+
+    BDBG_ENTER(kmtl_import_key_1_step);
+
+    if (!handle || !settings || !settings->in_key_params ||
+        !settings->in_key_blob.size || !settings->in_key_blob.buffer) {
+        BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
+        goto done;
+    }
+
+    BDBG_OBJECT_ASSERT(handle, KeymasterTl_Instance);
+
+    KM_ALLOCATE_CONTAINER();
+
+    err = _KeymasterTl_SerializeParams(settings->in_key_params, &key_params, &length, false);
+    if (err != BERR_SUCCESS) {
+        goto done;
+    }
+    KM_CMD_IMPORT_IN_KEY_PARAMS_PTR = key_params;
+    KM_CMD_IMPORT_IN_KEY_PARAMS_LEN = length;
+    KM_CMD_IMPORT_IN_NUM_KEY_PARAMS = KM_Tag_GetNumPairs(settings->in_key_params);
+    KM_CMD_IMPORT_IN_KEY_FORMAT = (uint32_t)settings->in_key_format;
+
+    KM_ALLOCATE_BLOCK(in_key_blob_ptr, settings->in_key_blob.size);
+    KM_CMD_IMPORT_IN_KEY_BLOB_PTR = in_key_blob_ptr;
+    KM_CMD_IMPORT_IN_KEY_BLOB_LEN = settings->in_key_blob.size;
+    BKNI_Memcpy(in_key_blob_ptr, settings->in_key_blob.buffer, settings->in_key_blob.size);
+
+    KM_ALLOCATE_BLOCK(key_blob, SKM_MAX_KEY_BLOB_SIZE);
+    KM_CMD_IMPORT_OUT_KEY_BLOB_PTR = key_blob;
+    KM_CMD_IMPORT_OUT_KEY_BLOB_LEN = SKM_MAX_KEY_BLOB_SIZE;
+
+    KM_PROCESS_COMMAND(KM_CommandId_eImportKey);
+
+    KM_ALLOCATE_BLOCK(settings->out_key_blob.buffer, KM_CMD_IMPORT_OUT_RET_KEY_BLOB_LEN);
+    BKNI_Memcpy(settings->out_key_blob.buffer, key_blob, KM_CMD_IMPORT_OUT_RET_KEY_BLOB_LEN);
+    settings->out_key_blob.size = KM_CMD_IMPORT_COMPLETE_OUT_RET_KEY_BLOB_LEN;
+    err = BERR_SUCCESS;
+
+done:
+    KM_FREE_CONTAINER();
+    KM_FREE_BLOCK(key_params);
+    KM_FREE_BLOCK(key_blob);
+    if (in_key_blob_ptr) {
+        /* Scrub the imported key blob */
+        BKNI_Memset(in_key_blob_ptr, 0, settings->in_key_blob.size);
+        SRAI_Memory_Free(in_key_blob_ptr);
+    }
+    BDBG_LEAVE(kmtl_import_key_1_step);
+    return err;
+}
+
 BERR_Code KeymasterTl_ImportKey(
     KeymasterTl_Handle handle,
     KeymasterTl_ImportKeySettings *settings)
@@ -572,6 +652,10 @@ BERR_Code KeymasterTl_ImportKey(
     uint8_t *in_key_blob_ptr = NULL;
     uint32_t key_blob_len = 0;
     uint8_t *key_blob = NULL;
+
+    if (handle->configuredKeymasterVersion >= SKM_VERSION_4) {
+        return kmtl_import_key_1_step(handle, settings);
+    }
 
     BDBG_ENTER(KeymasterTl_ImportKey);
 
@@ -929,8 +1013,13 @@ BERR_Code KeymasterTl_UpgradeKey(
         BDBG_WRN(("%s: key blob changed size", BSTD_FUNCTION));
     }
 
-    KM_ALLOCATE_BLOCK(out_key_blob->buffer, KM_CMD_UPGRADE_COMPLETE_OUT_RET_KEY_BLOB_LEN);
-    BKNI_Memcpy(out_key_blob->buffer, key_blob, KM_CMD_UPGRADE_COMPLETE_OUT_RET_KEY_BLOB_LEN);
+    if (KM_CMD_UPGRADE_COMPLETE_OUT_RET_KEY_BLOB_LEN) {
+        KM_ALLOCATE_BLOCK(out_key_blob->buffer, KM_CMD_UPGRADE_COMPLETE_OUT_RET_KEY_BLOB_LEN);
+        BKNI_Memcpy(out_key_blob->buffer, key_blob, KM_CMD_UPGRADE_COMPLETE_OUT_RET_KEY_BLOB_LEN);
+    } else {
+        /* If it returns 0, upgrade was not required */
+        out_key_blob->buffer = NULL;
+    }
     out_key_blob->size = KM_CMD_UPGRADE_COMPLETE_OUT_RET_KEY_BLOB_LEN;
     err = BERR_SUCCESS;
 
@@ -1004,6 +1093,33 @@ BERR_Code KeymasterTl_DeleteAllKeys(KeymasterTl_Handle handle)
 done:
     KM_FREE_CONTAINER();
     BDBG_LEAVE(KeymasterTl_DeleteAllKeys);
+    return err;
+}
+
+BERR_Code KeymasterTl_DestroyAttestationIds(KeymasterTl_Handle handle)
+{
+    BERR_Code err;
+    BSAGElib_InOutContainer *inout = NULL;
+
+    BDBG_ENTER(KeymasterTl_DestroyAttestationIds);
+
+    if (!handle) {
+        BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
+        err = BERR_INVALID_PARAMETER;
+        goto done;
+    }
+
+    BDBG_OBJECT_ASSERT(handle, KeymasterTl_Instance);
+
+    KM_ALLOCATE_CONTAINER();
+
+    KM_PROCESS_COMMAND(KM_CommandId_eDestroyAttestationIds);
+
+    err = BERR_SUCCESS;
+
+done:
+    KM_FREE_CONTAINER();
+    BDBG_LEAVE(KeymasterTl_DestroyAttestationIds);
     return err;
 }
 
@@ -1324,6 +1440,7 @@ done:
 
 BERR_Code KeymasterTl_GetConfiguration(
     KeymasterTl_Handle handle,
+    uint32_t *keymaster_version,
     bool *rpmbEnabled,
     bool *usingVms,
     uint32_t *hwKeysAvailable)
@@ -1343,6 +1460,9 @@ BERR_Code KeymasterTl_GetConfiguration(
 
     KM_ALLOCATE_CONTAINER();
     KM_PROCESS_COMMAND(KM_CommandId_eGetConfiguration);
+    if (keymaster_version) {
+        *keymaster_version = handle->configuredKeymasterVersion;
+    }
     if (rpmbEnabled) {
         *rpmbEnabled = (bool)KM_CMD_BASIC_GET_CONFIGURATION_OUT_RPMB_EN;
     }
@@ -1357,5 +1477,447 @@ BERR_Code KeymasterTl_GetConfiguration(
 done:
     KM_FREE_CONTAINER();
     BDBG_LEAVE(KeymasterTl_GetConfiguration);
+    return err;
+}
+
+BERR_Code KeymasterTl_CacheKey(
+    KeymasterTl_Handle handle,
+    uint32_t key_size,
+    uint32_t exponent)
+{
+    BERR_Code err;
+    BSAGElib_InOutContainer *inout = NULL;
+
+    BDBG_ENTER(KeymasterTl_CacheKey);
+
+    if (!handle || !key_size || !exponent) {
+        BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
+        err = BERR_INVALID_PARAMETER;
+        goto done;
+    }
+
+    BDBG_OBJECT_ASSERT(handle, KeymasterTl_Instance);
+
+    KM_ALLOCATE_CONTAINER();
+
+    KM_CMD_BASIC_CACHE_KEYS_IN_KEY_SIZE = key_size;
+    KM_CMD_BASIC_CACHE_KEYS_IN_EXPONENT = exponent;
+
+    KM_PROCESS_COMMAND(KM_CommandId_eCacheKey);
+
+    err = BERR_SUCCESS;
+
+done:
+    KM_FREE_CONTAINER();
+    BDBG_LEAVE(KeymasterTl_CacheKey);
+    return err;
+}
+
+/* Wrapped key needs to be transformed into a block of memory of
+   this structure:
+
+    uint32_t version         # Always 0
+    uint32_t transit_key_len
+    uint8_t transit_key[]    # transit_key_len bytes
+    uint32_t iv_len
+    uint8_t iv[]             # iv_len bytes
+    uint32_t key_format      # km_key_format_t
+    uint32_t auth_count      # Entries in auth, below
+    uint32_t auth_len        # Size of auth, below
+    uint8_t auth[]           # Serial form of tag/value auth data
+    uint32_t secure_key_len
+    uint8_t secure_key[]     # secure_key_len bytes
+    uint32_t tag_len
+    uint8_t tag              # AES GCM tag data (tag_len bytes)
+    uint32_t description_len
+    uint8_t description[]    # DER encoded stream of KeyDescription
+
+    This is done because there are insufficient block space in
+    the container structure to transfer them as separate parameters,
+    so we may as well stick to the format that X.509 uses.
+*/
+
+void KeymasterTl_GetDefaultImportWrappedKeySettings(
+    KeymasterTl_ImportWrappedKeySettings *settings)
+{
+    BDBG_ASSERT(settings);
+    BKNI_Memset(settings, 0, sizeof(*settings));
+}
+
+#define PUSH_UINT32(var)  if (length < sizeof(uint32_t)) goto done; \
+                          BKNI_Memcpy(ptr, &var, sizeof(uint32_t)); \
+                          ptr += sizeof(uint32_t); \
+                          length -= sizeof(uint32_t)
+
+#define PUSH_BUFFER(var, len)  if (length < len) goto done; \
+                          BKNI_Memcpy(ptr, var, len); \
+                          ptr += len; \
+                          length -= len
+
+BERR_Code KeymasterTl_ImportWrappedKey(
+    KeymasterTl_Handle handle,
+    KeymasterTl_ImportWrappedKeySettings *settings)
+{
+    BERR_Code err = BERR_UNKNOWN;
+    BSAGElib_InOutContainer *inout = NULL;
+    uint8_t *params = NULL;
+    uint32_t param_length = 0;
+    uint32_t length = 0;
+    uint32_t data = 0;
+    uint8_t *ptr;
+    uint8_t *in_wrapped_key_ptr = NULL;
+    uint8_t *in_wrapping_key_ptr = NULL;
+    uint8_t *in_masking_key_ptr = NULL;
+    uint8_t *key_blob = NULL;
+
+    BDBG_ENTER(KeymasterTl_ImportWrappedKey);
+
+    if (!handle || !settings) {
+        BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
+        goto done;
+    }
+    if (!settings->in_transit_key.size || !settings->in_transit_key.buffer || (settings->in_transit_key.size > SKM_WRAPPED_BLOB_MAX_SIZE)) {
+        BDBG_ERR(("%s: NULL transit key", BSTD_FUNCTION));
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
+        goto done;
+    }
+    if (!settings->in_iv.size || !settings->in_iv.buffer || (settings->in_iv.size > SKM_WRAPPED_BLOB_MAX_SIZE)) {
+        BDBG_ERR(("%s: NULL IV", BSTD_FUNCTION));
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
+        goto done;
+    }
+    if (!settings->in_key_params) {
+        BDBG_ERR(("%s: NULL key params", BSTD_FUNCTION));
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
+        goto done;
+    }
+    if (!settings->in_secure_key.size || !settings->in_secure_key.buffer || (settings->in_secure_key.size > SKM_WRAPPED_BLOB_MAX_SIZE)) {
+        BDBG_ERR(("%s: NULL secure key", BSTD_FUNCTION));
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
+        goto done;
+    }
+    if (!settings->in_tag_data.size || !settings->in_tag_data.buffer || (settings->in_tag_data.size > SKM_WRAPPED_BLOB_MAX_SIZE)) {
+        BDBG_ERR(("%s: NULL tag data", BSTD_FUNCTION));
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
+        goto done;
+    }
+    if (!settings->in_description.size || !settings->in_description.buffer || (settings->in_description.size > SKM_WRAPPED_BLOB_MAX_SIZE)) {
+        BDBG_ERR(("%s: NULL description", BSTD_FUNCTION));
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
+        goto done;
+    }
+    if (!settings->in_wrapping_key.size || !settings->in_wrapping_key.buffer) {
+        BDBG_ERR(("%s: NULL wrapping key", BSTD_FUNCTION));
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
+        goto done;
+    }
+    if (!settings->in_masking_key.size || !settings->in_masking_key.buffer) {
+        BDBG_ERR(("%s: NULL masking key", BSTD_FUNCTION));
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
+        goto done;
+    }
+
+    BDBG_OBJECT_ASSERT(handle, KeymasterTl_Instance);
+
+    if (handle->configuredKeymasterVersion < SKM_VERSION_4) {
+        BDBG_ERR(("%s: function only supported in KM 4", BSTD_FUNCTION));
+        err = BSAGE_ERR_MODULE_COMMAND_ID;
+        goto done;
+    }
+
+    KM_ALLOCATE_CONTAINER();
+
+    /* Work out the size of the wrapped key data - see function comment */
+    err = KM_Tag_Serialize(settings->in_key_params, NULL, &param_length);
+    if (err != BERR_SUCCESS) {
+        goto done;
+    }
+    length = param_length;
+    length += sizeof(uint32_t) * 9;
+    length += settings->in_transit_key.size;
+    length += settings->in_iv.size;
+    length += settings->in_secure_key.size;
+    length += settings->in_tag_data.size;
+    length += settings->in_description.size;
+    if (length > SKM_WRAPPED_BLOB_MAX_SIZE) {
+        BDBG_ERR(("%s: Wrapped data too large", BSTD_FUNCTION));
+        err = BERR_INVALID_PARAMETER;
+        goto done;
+    }
+    KM_ALLOCATE_BLOCK(in_wrapped_key_ptr, length);
+    KM_CMD_IMPORT_WRAPPED_KEY_IN_WRAPPED_KEY_PTR = in_wrapped_key_ptr;
+    KM_CMD_IMPORT_WRAPPED_KEY_IN_WRAPPED_KEY_LEN = length;
+    ptr = in_wrapped_key_ptr;
+
+    PUSH_UINT32(settings->version);
+    PUSH_UINT32(settings->in_transit_key.size);
+    PUSH_BUFFER(settings->in_transit_key.buffer, settings->in_transit_key.size);
+    PUSH_UINT32(settings->in_iv.size);
+    PUSH_BUFFER(settings->in_iv.buffer, settings->in_iv.size);
+    data = (uint32_t)settings->in_key_format;
+    PUSH_UINT32(data);
+    data = KM_Tag_GetNumPairs(settings->in_key_params);
+    PUSH_UINT32(data);
+    PUSH_UINT32(param_length);
+
+    data = length;
+    err = KM_Tag_Serialize(settings->in_key_params, ptr, &data);
+    if (err != BERR_SUCCESS) {
+        BDBG_ERR(("%s: serialize failed", BSTD_FUNCTION));
+        goto done;
+    }
+    if (data != param_length) {
+        BDBG_ERR(("%s: param data changed size", BSTD_FUNCTION));
+        err = BERR_UNKNOWN;
+        goto done;
+    }
+    ptr += param_length;
+    length -= param_length;
+    err = BERR_UNKNOWN;
+
+    PUSH_UINT32(settings->in_secure_key.size);
+    PUSH_BUFFER(settings->in_secure_key.buffer, settings->in_secure_key.size);
+    PUSH_UINT32(settings->in_tag_data.size);
+    PUSH_BUFFER(settings->in_tag_data.buffer, settings->in_tag_data.size);
+    PUSH_UINT32(settings->in_description.size);
+    PUSH_BUFFER(settings->in_description.buffer, settings->in_description.size);
+
+    KM_ALLOCATE_BLOCK(in_wrapping_key_ptr, settings->in_wrapping_key.size);
+    KM_CMD_IMPORT_WRAPPED_KEY_IN_WRAPPING_KEY_PTR = in_wrapping_key_ptr;
+    KM_CMD_IMPORT_WRAPPED_KEY_IN_WRAPPING_KEY_LEN = settings->in_wrapping_key.size;
+    BKNI_Memcpy(in_wrapping_key_ptr, settings->in_wrapping_key.buffer, settings->in_wrapping_key.size);
+
+    KM_ALLOCATE_BLOCK(in_masking_key_ptr, settings->in_masking_key.size);
+    KM_CMD_IMPORT_WRAPPED_KEY_IN_MASKING_KEY_PTR = in_masking_key_ptr;
+    KM_CMD_IMPORT_WRAPPED_KEY_IN_MASKING_KEY_LEN = settings->in_masking_key.size;
+    BKNI_Memcpy(in_masking_key_ptr, settings->in_masking_key.buffer, settings->in_masking_key.size);
+
+    err = _KeymasterTl_SerializeParams(settings->in_params, &params, &length, true);
+    if (err != BERR_SUCCESS) {
+        goto done;
+    }
+    KM_CMD_IMPORT_WRAPPED_KEY_IN_PARAMS_PTR = params;
+    KM_CMD_IMPORT_WRAPPED_KEY_IN_PARAMS_LEN = length;
+    KM_CMD_IMPORT_WRAPPED_KEY_IN_NUM_PARAMS = KM_Tag_GetNumPairs(settings->in_params);
+
+    KM_ALLOCATE_BLOCK(key_blob, SKM_MAX_KEY_BLOB_SIZE);
+    KM_CMD_IMPORT_WRAPPED_KEY_OUT_KEY_BLOB_PTR = key_blob;
+    KM_CMD_IMPORT_WRAPPED_KEY_OUT_KEY_BLOB_LEN = SKM_MAX_KEY_BLOB_SIZE;
+
+    KM_PROCESS_COMMAND(KM_CommandId_eImportWrappedKey);
+
+    KM_ALLOCATE_BLOCK(settings->out_key_blob.buffer, KM_CMD_IMPORT_WRAPPED_KEY_OUT_RET_KEY_BLOB_LEN);
+    BKNI_Memcpy(settings->out_key_blob.buffer, key_blob, KM_CMD_IMPORT_WRAPPED_KEY_OUT_RET_KEY_BLOB_LEN);
+    settings->out_key_blob.size = KM_CMD_IMPORT_WRAPPED_KEY_OUT_RET_KEY_BLOB_LEN;
+    err = BERR_SUCCESS;
+
+done:
+    KM_FREE_CONTAINER();
+    KM_FREE_BLOCK(params);
+    KM_FREE_BLOCK(key_blob);
+    KM_FREE_BLOCK(in_wrapping_key_ptr);
+    KM_FREE_BLOCK(in_masking_key_ptr);
+    KM_FREE_BLOCK(in_wrapped_key_ptr);
+    BDBG_LEAVE(KeymasterTl_ImportWrappedKey);
+    return err;
+}
+
+void KeymasterTl_GetDefaultHmacSharingParamsSettings(
+    KeymasterTl_GetHmacSharingParamsSettings *settings)
+{
+    BDBG_ASSERT(settings);
+    BKNI_Memset(settings, 0, sizeof(*settings));
+}
+
+BERR_Code KeymasterTl_GetHmacSharingParams(
+    KeymasterTl_Handle handle,
+    KeymasterTl_GetHmacSharingParamsSettings *settings)
+{
+    BERR_Code err;
+    BSAGElib_InOutContainer *inout = NULL;
+    uint8_t *out_seed = NULL;
+    uint8_t *out_nonce = NULL;
+
+    BDBG_ENTER(KeymasterTl_GetHmacSharingParams);
+
+    if (!handle || !settings) {
+        BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
+        goto done;
+    }
+
+    BDBG_OBJECT_ASSERT(handle, KeymasterTl_Instance);
+
+    if (handle->configuredKeymasterVersion < SKM_VERSION_4) {
+        BDBG_ERR(("%s: function only supported in KM 4", BSTD_FUNCTION));
+        err = BSAGE_ERR_MODULE_COMMAND_ID;
+        goto done;
+    }
+
+    KM_ALLOCATE_CONTAINER();
+
+    KM_ALLOCATE_BLOCK(out_seed, SKM_SHA256_DIGEST_SIZE);
+    KM_CMD_GET_HMAC_SHARING_OUT_SEED_PTR = out_seed;
+    KM_CMD_GET_HMAC_SHARING_OUT_SEED_LEN = SKM_SHA256_DIGEST_SIZE;
+
+    KM_ALLOCATE_BLOCK(out_nonce, SKM_SHA256_DIGEST_SIZE);
+    KM_CMD_GET_HMAC_SHARING_OUT_NONCE_PTR = out_nonce;
+    KM_CMD_GET_HMAC_SHARING_OUT_NONCE_LEN = SKM_SHA256_DIGEST_SIZE;
+
+    KM_PROCESS_COMMAND(KM_CommandId_eGetHmacSharingParams);
+
+    KM_ALLOCATE_BLOCK(settings->out_seed.buffer, KM_CMD_GET_HMAC_SHARING_OUT_SEED_RET_LEN);
+    BKNI_Memcpy(settings->out_seed.buffer, out_seed, KM_CMD_GET_HMAC_SHARING_OUT_SEED_RET_LEN);
+    settings->out_seed.size = KM_CMD_GET_HMAC_SHARING_OUT_SEED_RET_LEN;
+
+    KM_ALLOCATE_BLOCK(settings->out_nonce.buffer, KM_CMD_GET_HMAC_SHARING_OUT_NONCE_LEN);
+    BKNI_Memcpy(settings->out_nonce.buffer, out_nonce, KM_CMD_GET_HMAC_SHARING_OUT_NONCE_LEN);
+    settings->out_nonce.size = KM_CMD_GET_HMAC_SHARING_OUT_NONCE_LEN;
+
+    err = BERR_SUCCESS;
+
+done:
+    KM_FREE_CONTAINER();
+    KM_FREE_BLOCK(out_seed);
+    KM_FREE_BLOCK(out_nonce);
+    BDBG_LEAVE(KeymasterTl_GetHmacSharingParams);
+    return err;
+}
+
+void KeymasterTl_GetDefaultComputeSharedHmacSettings(
+    KeymasterTl_GetComputeSharedHmacSettings *settings)
+{
+    BDBG_ASSERT(settings);
+    BKNI_Memset(settings, 0, sizeof(*settings));
+}
+
+BERR_Code KeymasterTl_ComputeSharedHmac(
+    KeymasterTl_Handle handle,
+    KeymasterTl_GetComputeSharedHmacSettings *settings)
+{
+    BERR_Code err;
+    BSAGElib_InOutContainer *inout = NULL;
+    uint8_t *in_sharing_params = NULL;
+    uint8_t *out_sharing_check = NULL;
+
+    BDBG_ENTER(KeymasterTl_ComputeSharedHmac);
+
+    if (!handle || !settings || (settings->in_num_params > SKM_MAX_SHARING_PARAMS)) {
+        BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
+        goto done;
+    }
+
+    BDBG_OBJECT_ASSERT(handle, KeymasterTl_Instance);
+
+    if (handle->configuredKeymasterVersion < SKM_VERSION_4) {
+        BDBG_ERR(("%s: function only supported in KM 4", BSTD_FUNCTION));
+        err = BSAGE_ERR_MODULE_COMMAND_ID;
+        goto done;
+    }
+
+    KM_ALLOCATE_CONTAINER();
+
+    KM_ALLOCATE_BLOCK(in_sharing_params, sizeof(km_hmac_sharing_t) * settings->in_num_params);
+    KM_CMD_COMPUTE_SHARED_HMAC_IN_NUM_PARAMS = settings->in_num_params;
+    KM_CMD_COMPUTE_SHARED_HMAC_IN_PARAMS_PTR = in_sharing_params;
+    KM_CMD_COMPUTE_SHARED_HMAC_IN_PARAMS_LEN = sizeof(km_hmac_sharing_t) * settings->in_num_params;
+    BKNI_Memcpy(in_sharing_params, settings->in_sharing_params, KM_CMD_COMPUTE_SHARED_HMAC_IN_PARAMS_LEN);
+
+    KM_ALLOCATE_BLOCK(out_sharing_check, SKM_SHA256_DIGEST_SIZE);
+    KM_CMD_COMPUTE_SHARED_HMAC_OUT_SHARING_CHECK_PTR = out_sharing_check;
+    KM_CMD_COMPUTE_SHARED_HMAC_OUT_SHARING_CHECK_LEN = SKM_SHA256_DIGEST_SIZE;
+
+    KM_PROCESS_COMMAND(KM_CommandId_eComputeSharedHmac);
+
+    KM_ALLOCATE_BLOCK(settings->out_sharing_check.buffer, SKM_SHA256_DIGEST_SIZE);
+    BKNI_Memcpy(settings->out_sharing_check.buffer, out_sharing_check, SKM_SHA256_DIGEST_SIZE);
+    settings->out_sharing_check.size = SKM_SHA256_DIGEST_SIZE;
+
+    err = BERR_SUCCESS;
+
+done:
+    KM_FREE_CONTAINER();
+    KM_FREE_BLOCK(in_sharing_params);
+    KM_FREE_BLOCK(out_sharing_check);
+    BDBG_LEAVE(KeymasterTl_ComputeSharedHmac);
+    return err;
+}
+
+void KeymasterTl_GetDefaultVerifyAuthorizationSettings(
+    KeymasterTl_VerifyAuthorizationSettings *settings)
+{
+    BDBG_ASSERT(settings);
+    BKNI_Memset(settings, 0, sizeof(*settings));
+}
+
+BERR_Code KeymasterTl_VerifyAuthorization(
+    KeymasterTl_Handle handle,
+    KeymasterTl_VerifyAuthorizationSettings *settings)
+{
+    BERR_Code err;
+    BSAGElib_InOutContainer *inout = NULL;
+    uint8_t *in_challenge = NULL;
+    uint32_t length = 0;
+    uint8_t *params = NULL;
+    uint8_t *in_auth_token = NULL;
+    uint8_t *out_verification_token = NULL;
+
+    BDBG_ENTER(KeymasterTl_VerifyAuthorization);
+
+    if (!handle || !settings || !settings->out_verification_token) {
+        BDBG_ERR(("%s: Invalid input", BSTD_FUNCTION));
+        err = BSAGE_ERR_KM_UNEXPECTED_NULL_POINTER;
+        goto done;
+    }
+
+    BDBG_OBJECT_ASSERT(handle, KeymasterTl_Instance);
+
+    if (handle->configuredKeymasterVersion < SKM_VERSION_4) {
+        BDBG_ERR(("%s: function only supported in KM 4", BSTD_FUNCTION));
+        err = BSAGE_ERR_MODULE_COMMAND_ID;
+        goto done;
+    }
+
+    KM_ALLOCATE_CONTAINER();
+
+    KM_ALLOCATE_BLOCK(in_challenge, sizeof(uint64_t));
+    KM_CMD_VERIFY_AUTH_IN_CHALLENGE_PTR = in_challenge;
+    KM_CMD_VERIFY_AUTH_IN_CHALLENGE_LEN = sizeof(uint64_t);
+    BKNI_Memcpy(in_challenge, &settings->in_challenge, KM_CMD_VERIFY_AUTH_IN_CHALLENGE_LEN);
+
+    err = _KeymasterTl_SerializeParams(settings->in_params, &params, &length, true);
+    if (err != BERR_SUCCESS) {
+        goto done;
+    }
+    KM_CMD_VERIFY_AUTH_IN_PARAMS_PTR = params;
+    KM_CMD_VERIFY_AUTH_IN_PARAMS_LEN = length;
+    KM_CMD_VERIFY_AUTH_IN_NUM_PARAMS = KM_Tag_GetNumPairs(settings->in_params);
+
+    if (settings->in_auth_token) {
+        KM_ALLOCATE_BLOCK(in_auth_token, sizeof(km_hw_auth_token_t));
+        KM_CMD_VERIFY_AUTH_IN_AUTH_TOKEN_PTR = in_auth_token;
+        KM_CMD_VERIFY_AUTH_IN_AUTH_TOKEN_LEN = sizeof(km_hw_auth_token_t);
+        BKNI_Memcpy(in_auth_token, settings->in_auth_token, KM_CMD_VERIFY_AUTH_IN_AUTH_TOKEN_LEN);
+    }
+
+    KM_ALLOCATE_BLOCK(out_verification_token, sizeof(km_verification_token_t));
+    KM_CMD_VERIFY_AUTH_OUT_VERIFY_TOKEN_PTR = out_verification_token;
+    KM_CMD_VERIFY_AUTH_OUT_VERIFY_TOKEN_LEN = sizeof(km_verification_token_t);
+
+    KM_PROCESS_COMMAND(KM_CommandId_eVerifyAuthorization);
+
+    BKNI_Memcpy(settings->out_verification_token, out_verification_token, sizeof(km_verification_token_t));
+
+    err = BERR_SUCCESS;
+
+done:
+    KM_FREE_CONTAINER();
+    KM_FREE_BLOCK(in_challenge);
+    KM_FREE_BLOCK(params);
+    KM_FREE_BLOCK(in_auth_token);
+    KM_FREE_BLOCK(out_verification_token);
+    BDBG_LEAVE(KeymasterTl_VerifyAuthorization);
     return err;
 }

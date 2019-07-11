@@ -38,6 +38,9 @@
 #include <wl_anqpo.h>
 #include <wlc_event.h>
 
+#include <wlc_mbo.h>
+
+
 /** ignore mode */
 enum {
 	IGNORE_SSID,
@@ -51,7 +54,10 @@ typedef struct peer_s {
 	wlc_ssid_t ssid;			/* peer SSID */
 	bcm_gas_t	*gas;			/* gas instance */
 	uint16 num_retries;			/* number of retries */
+#ifdef WL_MBO
+	uint8 mbo_ap_cellular_aware;		/* cellular aware */
 } peer_t;
+#endif /* WL_MBO */
 
 /** linked list of ssid */
 typedef struct ssid_llist {
@@ -66,9 +72,7 @@ typedef struct ether_llist {
 } ether_llist_t;
 
 /** anqpo private info structure */
-struct wl_anqpo_info {
-	wlc_info_t *wlc;			/* pointer back to wlc structure */
-
+typedef struct anqpo_cmn_info {
 	bool is_start_query;		/* start query iovar enabled */
 
 	uint16 max_retransmit;		/* -1 use default, max retransmit on no ACK from peer */
@@ -90,15 +94,24 @@ struct wl_anqpo_info {
 
 	ssid_llist_t *ignore_ssid_llist;	/* linked list of ignored SSIDs */
 	ether_llist_t *ignore_bssid_llist;	/* linked list of ignored BSSIDs */
+	uint8 is_mac_addr_set;		/* mac address mask(bit-0 random, bit-1 default)
+					 * set before query
+					 */
+	struct ether_addr sa_addr; /* store the random/default mac generated for gas query */
+} anqpo_cmn_info_t;
 
+/** anqpo private info structure */
+struct wl_anqpo_info {
+	wlc_info_t *wlc;			/* pointer back to wlc structure */
+	anqpo_cmn_info_t *anqpo_cmn;
 	wl_gas_info_t		*gasi;		/* gas handler */
 };
 
 /* start query iovar enabled */
-#define is_start_query_enabled(anqpo)	(anqpo->is_start_query)
+#define is_start_query_enabled(anqpo)	(anqpo->anqpo_cmn->is_start_query)
 
 /* auto hotspot enabled */
-#define is_auto_hotspot_enabled(anqpo)	(anqpo->max_auto_hotspot > 0)
+#define is_auto_hotspot_enabled(anqpo)	(anqpo->anqpo_cmn->max_auto_hotspot > 0)
 
 #define PARAM_NOT_CONFIGURED		(0xffff)	/* parameter not config - use default */
 #define DEFAULT_MAX_RETRANSMIT		0		/* max retransmit on no ACK from peer */
@@ -132,7 +145,7 @@ static const bcm_iovar_t anqpo_iovars[] = {
 	{"anqpo_stop_query", IOV_ANQPO_STOP_QUERY,
 	0, 0, IOVT_BUFFER, 0},
 	{"anqpo_start_query", IOV_ANQPO_START_QUERY,
-	0, 0, IOVT_BUFFER, sizeof(wl_anqpo_peer_list_t)},
+	0, 0, IOVT_BUFFER, OFFSETOF(wl_anqpo_peer_list_t, peer)},
 	{"anqpo_auto_hotspot", IOV_ANQPO_AUTO_HOTSPOT,
 	0, 0, IOVT_UINT16, 0},
 	{"anqpo_ignore_mode", IOV_ANQPO_IGNORE_MODE,
@@ -151,10 +164,13 @@ static int wl_anqpo_set_ignore_bssid_list(wl_anqpo_info_t *anqpo, void *arg, int
 static int wl_anqpo_ignore_mode(wl_anqpo_info_t *anqpo, int mode);
 static int wl_anqpo_get_ignore_ssid_list(wl_anqpo_info_t *anqpo, void *arg, int len);
 static int wl_anqpo_set_ignore_ssid_list(wl_anqpo_info_t *anqpo, void *arg, int len);
+static chanspec_t find_peer_channel(wl_anqpo_info_t *anqpo);
 static int wl_anqpo_set(wl_anqpo_info_t *anqpo, void *arg, int len);
-static int wl_anqpo_start_query(wl_anqpo_info_t *anqpo, void *arg, int len);
+static int wl_anqpo_start_query(wl_anqpo_info_t *anqpo, void *arg, int len,
+	void *wl_drv_if);
 static int wl_anqpo_stop_query(wl_anqpo_info_t *anqpo, void *arg, int len);
 
+static const char BCMATTACHDATA(rstr_modulename)[] = "anqpo";
 
 /* This includes the auto generated ROM IOCTL/IOVAR patch handler C source file (if auto patching is
  * enabled). It must be included after the prototypes and declarations above (since the generated
@@ -207,8 +223,11 @@ add_ssid_llist(wlc_info_t *wlc, ssid_llist_t **head, uint32 ssid_len, uchar *ssi
 	}
 
 	item = MALLOCZ(wlc->osh, sizeof(ssid_llist_t));
-	if (item == 0)
+	if (item == NULL) {
+		WL_ERROR(("wl%d: add_ssid_llist: MALLOC(%d) failed, malloced %d bytes\n",
+			WLCWLUNIT(wlc), (int)sizeof(ssid_llist_t), MALLOCED(wlc->osh)));
 		return 0;
+	}
 	item->ssid.SSID_len = MIN(ssid_len, sizeof(item->ssid.SSID));
 	memcpy(item->ssid.SSID, ssid, item->ssid.SSID_len);
 
@@ -264,9 +283,12 @@ add_ether_llist(wlc_info_t *wlc, ether_llist_t **head, struct ether_addr *bssid)
 		return item;
 	}
 
-	item = MALLOC(wlc->osh, sizeof(ether_llist_t));
-	if (item == 0)
+	item = MALLOCZ(wlc->osh, sizeof(ether_llist_t));
+	if (item == NULL) {
+		WL_ERROR(("wl%d: add_ether_llist: MALLOC(%d) failed, malloced %d bytes\n",
+			WLCWLUNIT(wlc), (int)sizeof(ether_llist_t), MALLOCED(wlc->osh)));
 		return 0;
+	}
 	item->next = 0;
 	memcpy(&item->addr, bssid, sizeof(item->addr));
 
@@ -288,9 +310,9 @@ wl_anqpo_find_peer_by_gas(wl_anqpo_info_t *anqpo, bcm_gas_t *gas)
 	peer_t *peer = 0;
 	int i;
 
-	for (i = 0; i < anqpo->peer_count; i++) {
-		if (anqpo->peer[i].gas == gas) {
-			peer = &anqpo->peer[i];
+	for (i = 0; i < anqpo->anqpo_cmn->peer_count; i++) {
+		if (anqpo->anqpo_cmn->peer[i].gas == gas) {
+			peer = &anqpo->anqpo_cmn->peer[i];
 			break;
 		}
 	}
@@ -334,73 +356,208 @@ process_query_response(wlc_info_t *wlc, peer_t *peer, uint status,
 		if (bcm_gas_get_query_response(peer->gas, rsp_length, &bufLen, gas_data->data)) {
 			/* generate event to host */
 			gas_fragment_event(wlc, wlc->cfg, &peer->addr, status, gas_data, length);
-			WL_INFORM(("%s:GAS fragment 0x%02x\n", __FUNCTION__, fragment_id));
+			WL_INFORM(("process_query_response:GAS fragment 0x%02x\n", fragment_id));
 		}
 		MFREE(wlc->osh, buffer, length);
 	} else {
-		WL_ERROR(("wl%d: %s:MALLOC failed\n", WLCWLUNIT(wlc), __FUNCTION__));
+		WL_ERROR(("wl%d: process_query_response: MALLOC(%d) failed, malloced %d bytes\n",
+			WLCWLUNIT(wlc), length, MALLOCED(wlc->osh)));
 	}
 }
 
-static bool
-create_start_gas(wl_anqpo_info_t *anqpo, peer_t *peer)
+/* Updates if random or default mac address in use by anqpo module */
+void
+wl_anqpo_update_mac_addr_mask(wl_anqpo_info_t *anqpo, uint8 mac_addr_mask, bool set)
 {
+	if (set) {
+		anqpo->anqpo_cmn->is_mac_addr_set |= mac_addr_mask;
+	} else {
+		anqpo->anqpo_cmn->is_mac_addr_set &= ~mac_addr_mask;
+	}
+}
+void
+wl_anqpo_update_src_mac(wl_anqpo_info_t *anqpo, struct ether_addr *src_mac)
+{
+	if (src_mac && !ETHER_ISNULLADDR(src_mac)) {
+		memcpy(&anqpo->anqpo_cmn->sa_addr, src_mac, sizeof(anqpo->anqpo_cmn->sa_addr));
+	}
+}
+
+static void
+start_query(wl_anqpo_info_t *anqpo, void *wl_drv_if)
+{
+	wlc_bsscfg_t *drv_cfg = wlc_bsscfg_find_by_wlcif(anqpo->wlc, wl_drv_if);
+	wlc_bsscfg_t *scan_bsscfg = wlc_scan_bsscfg(anqpo->wlc->scan);
+	wlc_bsscfg_t * cfg =  scan_bsscfg ? scan_bsscfg:drv_cfg;
+	bool brand;
+
+	if (anqpo->anqpo_cmn->is_mac_addr_set) {
+		return;
+	}
+
+	brand = wlc_scan_is_randmac_needed(anqpo->wlc->scan, WLC_ACTION_SCAN, cfg);
+	if (!brand)
+	{
+		/* copy the mac addr for preparing gas query */
+		wl_anqpo_update_src_mac(anqpo, &anqpo->wlc->cfg->cur_etheraddr);
+		wl_anqpo_update_mac_addr_mask(anqpo, MAC_ADDR_DEFAULT, TRUE);
+	}
+}
+
+
+static int
+create_start_gas(wl_anqpo_info_t *anqpo, peer_t *peer, void *wl_drv_if)
+{
+	int bsscfg_index;
+	wlc_bsscfg_t *cfg = wlc_bsscfg_find_by_wlcif(anqpo->wlc, wl_drv_if);
+	wlc_bsscfg_t *scan_bsscfg = wlc_scan_bsscfg(anqpo->wlc->scan);
+#ifdef WL_MBO
+	int ret = BCME_OK;
+	uint16 mbo_len = 0, query_len = 0;
+	uint16 total_len = 0;
+	uint8 *buffer = NULL;
+#endif /* WL_MBO */
+
+	/* ANQP considered same as host scan */
+	bsscfg_index = scan_bsscfg ? WLC_BSSCFG_IDX(scan_bsscfg):cfg->_idx;
+
 	peer->gas = bcm_gas_create((struct bcm_gas_wl_drv_hdl *)anqpo->wlc,
-		0, peer->channel, &peer->addr);
-	if (peer->gas == 0)
-		return FALSE;
+		bsscfg_index, wl_drv_if, peer->channel, &peer->addr);
+	if (peer->gas == NULL)
+		return BCME_NORESOURCE;
 	if (is_auto_hotspot_enabled(anqpo)) {
 		/* max retransmit and comeback disabled for auto ANQP */
 		bcm_gas_set_max_retransmit(peer->gas, 0);
 		bcm_gas_set_max_comeback_delay(peer->gas, 0);
 
 	} else {
-		bcm_gas_set_max_retransmit(peer->gas, anqpo->max_retransmit);
-		bcm_gas_set_max_comeback_delay(peer->gas, anqpo->max_comeback_delay);
+		bcm_gas_set_max_retransmit(peer->gas, anqpo->anqpo_cmn->max_retransmit);
+		bcm_gas_set_max_comeback_delay(peer->gas, anqpo->anqpo_cmn->max_comeback_delay);
 	}
-	bcm_gas_set_response_timeout(peer->gas, anqpo->response_timeout);
-	bcm_gas_set_query_request(peer->gas, anqpo->query_len,
-		anqpo->query_data);
+	bcm_gas_set_response_timeout(peer->gas, anqpo->anqpo_cmn->response_timeout);
+
+#ifdef WL_MBO
+	total_len = anqpo->anqpo_cmn->query_len;
+	if (MBO_ENAB(cfg->wlc->pub) && (total_len > 0)) {
+		/* get mbo anqp elements len */
+		mbo_len = wlc_mbo_calc_anqp_elem_len(cfg, anqpo->anqpo_cmn->query_data,
+			anqpo->anqpo_cmn->query_len, peer->mbo_ap_cellular_aware);
+		total_len += mbo_len;
+	}
+
+	if (total_len > anqpo->anqpo_cmn->query_len) {
+		buffer = MALLOC(WLCOSH(anqpo), total_len);
+		if (buffer != NULL) {
+			query_len = anqpo->anqpo_cmn->query_len;
+			memcpy(buffer, anqpo->anqpo_cmn->query_data, anqpo->anqpo_cmn->query_len);
+			/* MBO_ENAB check with mbo_len for adding mbo anqp elem */
+			if ((MBO_ENAB(cfg->wlc->pub)) && (mbo_len != 0)) {
+				ret = wlc_mbo_build_anqp_elem(cfg, buffer, &query_len,
+					peer->mbo_ap_cellular_aware, total_len);
+				if (ret != BCME_OK) {
+					goto fail;
+				}
+				if (query_len != total_len) {
+					ret = BCME_BADLEN;
+					goto fail;
+				}
+			}
+		} else {
+			WL_ERROR(("wl%d: wl_android_get_adps_mode: MALLOC(%d) failed,"
+				" malloced %d bytes\n",
+				WLCUNIT(anqpo), total_len,
+				MALLOCED(WLCOSH(anqpo))));
+			return BCME_NOMEM;
+		}
+		bcm_gas_set_query_request(peer->gas, query_len, buffer);
+		MFREE(WLCOSH(anqpo), buffer, total_len);
+	} else {
+		bcm_gas_set_query_request(peer->gas, anqpo->anqpo_cmn->query_len,
+			anqpo->anqpo_cmn->query_data);
+	}
+#else
+	bcm_gas_set_query_request(peer->gas, anqpo->anqpo_cmn->query_len,
+		anqpo->anqpo_cmn->query_data);
+#endif /* WL_MBO */
+	if (is_start_query_enabled(anqpo)) {
+		start_query(anqpo, wl_drv_if);
+	}
 	bcm_gas_start(peer->gas);
-	return TRUE;
+	return ret;
+
+#ifdef WL_MBO
+fail:
+	MFREE(WLCOSH(anqpo), buffer, total_len);
+	return ret;
+#endif /* WL_MBO */
 }
 
 static bool
 is_queries_completed(wl_anqpo_info_t *anqpo)
 {
-	if (anqpo->active_peer_count == 0 &&
-		anqpo->started_peer_count == anqpo->peer_count)
+	if (anqpo->anqpo_cmn->active_peer_count == 0 &&
+		anqpo->anqpo_cmn->started_peer_count == anqpo->anqpo_cmn->peer_count)
 		return TRUE;
 	else
 		return FALSE;
 }
 
-static void
-start_queries(wl_anqpo_info_t *anqpo)
+static chanspec_t
+find_peer_channel(wl_anqpo_info_t *anqpo)
+{
+	chanspec_t cur_chan;
+	if (anqpo->anqpo_cmn->active_peer_count == 0) {
+		/* no peer running - current channel is next peer channel */
+		cur_chan =
+			anqpo->anqpo_cmn->peer[anqpo->anqpo_cmn->started_peer_count].channel;
+		return (cur_chan);
+	} else {
+		/* peers running - current channel is last started peer */
+		cur_chan =
+			anqpo->anqpo_cmn->peer[anqpo->anqpo_cmn->started_peer_count - 1].channel;
+		return (cur_chan);
+	}
+}
+
+bool
+wl_anqpo_is_anqp_active(wl_anqpo_info_t *anqpo)
+{
+	if (is_start_query_enabled(anqpo) ||
+		is_auto_hotspot_enabled(anqpo)) {
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
+struct ether_addr *
+wl_anqpo_get_mac(wl_anqpo_info_t *anqpo)
+{
+	if (is_start_query_enabled(anqpo) ||
+		is_auto_hotspot_enabled(anqpo)) {
+		return &anqpo->anqpo_cmn->sa_addr;
+	}
+	return NULL;
+}
+
+static int
+start_queries(wl_anqpo_info_t *anqpo, void *wl_drv_if)
 {
 	wlc_info_t *wlc = anqpo->wlc;
+	int ret = BCME_OK;
 
 	while (((is_start_query_enabled(anqpo) &&
-		anqpo->active_peer_count < MAX_ACTIVE_PEERS_START_QUERY) ||
+		anqpo->anqpo_cmn->active_peer_count < MAX_ACTIVE_PEERS_START_QUERY) ||
 		(is_auto_hotspot_enabled(anqpo) &&
-		anqpo->active_peer_count < MAX_ACTIVE_PEERS_AUTO_HOTSPOT)) &&
-		anqpo->started_peer_count < anqpo->peer_count) {
+		anqpo->anqpo_cmn->active_peer_count < MAX_ACTIVE_PEERS_AUTO_HOTSPOT)) &&
+		anqpo->anqpo_cmn->started_peer_count < anqpo->anqpo_cmn->peer_count) {
 		uint16 curr_channel;
-		peer_t *peer = &anqpo->peer[anqpo->started_peer_count];
-
+		peer_t *peer = &anqpo->anqpo_cmn->peer[anqpo->anqpo_cmn->started_peer_count];
 		if (is_auto_hotspot_enabled(anqpo)) {
 			/* current scan channel */
 			curr_channel = wf_chspec_ctlchan(WLC_BAND_PI_RADIO_CHANSPEC);
 		}
 		else {
-			if (anqpo->active_peer_count == 0) {
-				/* no peer running - current channel is next peer channel */
-				curr_channel = peer->channel;
-			}
-			else {
-				/* peers running - current channel is last started peer */
-				curr_channel = anqpo->peer[anqpo->started_peer_count - 1].channel;
-			}
+			curr_channel = find_peer_channel(anqpo);
 		}
 
 		/* channel of next peer is not current channel */
@@ -408,11 +565,15 @@ start_queries(wl_anqpo_info_t *anqpo)
 			break;
 
 		/* start next peer */
-		if (!create_start_gas(anqpo, peer))
-			return;
-		anqpo->started_peer_count++;
-		anqpo->active_peer_count++;
+		if ((ret = (!create_start_gas(anqpo, peer, wl_drv_if))) != BCME_OK) {
+			WL_ERROR(("wl%d: start_queries: create_start_gas() as failed, error:%d\n",
+				WLCWLUNIT(wlc), ret));
+			return ret;
+		}
+		anqpo->anqpo_cmn->started_peer_count++;
+		anqpo->anqpo_cmn->active_peer_count++;
 	}
+	return ret;
 }
 
 static void
@@ -421,8 +582,8 @@ reset_queries(wl_anqpo_info_t *anqpo)
 	int i;
 
 	/* stop/destroy any GAS */
-	for (i = 0; i < anqpo->peer_count; i++) {
-		peer_t *peer = &anqpo->peer[i];
+	for (i = 0; i < anqpo->anqpo_cmn->peer_count; i++) {
+		peer_t *peer = &anqpo->anqpo_cmn->peer[i];
 		if (peer->gas != 0) {
 			bcm_gas_destroy(peer->gas);
 			peer->gas = 0;
@@ -430,24 +591,48 @@ reset_queries(wl_anqpo_info_t *anqpo)
 	}
 
 	/* discard existing peer list */
-	if (anqpo->peer) {
-		MFREE(WLCOSH(anqpo), anqpo->peer, anqpo->peer_len);
-		anqpo->peer = NULL;
-		anqpo->peer_len = 0;
-		anqpo->peer_count = 0;
+	if (anqpo->anqpo_cmn->peer) {
+		MFREE(WLCOSH(anqpo), anqpo->anqpo_cmn->peer, anqpo->anqpo_cmn->peer_len);
+		anqpo->anqpo_cmn->peer = NULL;
+		anqpo->anqpo_cmn->peer_len = 0;
+		anqpo->anqpo_cmn->peer_count = 0;
 	}
 
-	anqpo->active_peer_count = 0;
-	anqpo->started_peer_count = 0;
+	anqpo->anqpo_cmn->active_peer_count = 0;
+	anqpo->anqpo_cmn->started_peer_count = 0;
+}
+
+static void
+stop_query(wl_anqpo_info_t *anqpo)
+{
+	bool brand;
+
+	brand = wlc_scan_is_randmac_needed(anqpo->wlc->scan, WLC_ACTION_SCAN, anqpo->wlc->cfg);
+
+	anqpo->anqpo_cmn->is_start_query = FALSE;
+	if (anqpo->anqpo_cmn->is_mac_addr_set) {
+		if (brand && (anqpo->anqpo_cmn->is_mac_addr_set & MAC_ADDR_RANDOM)) {
+			wl_anqpo_update_mac_addr_mask(anqpo, MAC_ADDR_RANDOM, FALSE);
+		} else if (anqpo->anqpo_cmn->is_mac_addr_set & MAC_ADDR_DEFAULT) {
+			wl_anqpo_update_mac_addr_mask(anqpo, MAC_ADDR_DEFAULT, FALSE);
+		}
+		/* reset the mac addr after use */
+		memset(&anqpo->anqpo_cmn->sa_addr, 0, sizeof(anqpo->anqpo_cmn->sa_addr));
+
+	}
 }
 
 /* callback to handle gas events */
 static void
 wl_anqpo_gas_event_cb(void *context, bcm_gas_t *gas, bcm_gas_event_t *event)
 {
-	wlc_info_t *wlc = (wlc_info_t *)context;
-	wl_anqpo_info_t *anqpo = wlc->anqpo;
 	peer_t *peer;
+	/* Use the calling bsscfg_idx, even when scanmac is enabled to send events to host. */
+	struct wlc_if *wlcif = (struct wlc_if *)bcm_gas_get_wl_drv_if(gas);
+	wlc_bsscfg_t *cfg = wlc_bsscfg_find_by_wlcif((wlc_info_t *)context, wlcif);
+	wlc_info_t *wlc = cfg->wlc;
+	wl_anqpo_info_t *anqpo = wlc->anqpo;
+	int ret = BCME_OK;
 
 	if (event->type == BCM_GAS_EVENT_QUERY_REQUEST) {
 		return;
@@ -461,7 +646,7 @@ wl_anqpo_gas_event_cb(void *context, bcm_gas_t *gas, bcm_gas_event_t *event)
 				event->rspFragment.fragmentId, DOT11_SC_SUCCESS);
 		}
 		else if (event->type == BCM_GAS_EVENT_STATUS) {
-			anqpo->active_peer_count--;
+			anqpo->anqpo_cmn->active_peer_count--;
 
 			if (event->status.statusCode == DOT11_SC_SUCCESS) {
 				process_query_response(wlc, peer, WLC_E_STATUS_SUCCESS,
@@ -470,25 +655,26 @@ wl_anqpo_gas_event_cb(void *context, bcm_gas_t *gas, bcm_gas_event_t *event)
 				bcm_gas_destroy(peer->gas);
 				peer->gas = 0;
 				if (is_auto_hotspot_enabled(anqpo)) {
-					if (anqpo->ignore_mode == IGNORE_BSSID) {
+					if (anqpo->anqpo_cmn->ignore_mode == IGNORE_BSSID) {
 						add_ether_llist(anqpo->wlc,
-							&anqpo->ignore_bssid_llist, &peer->addr);
+							&anqpo->anqpo_cmn->ignore_bssid_llist,
+							&peer->addr);
 					} else {
 						add_ssid_llist(anqpo->wlc,
-							&anqpo->ignore_ssid_llist,
+							&anqpo->anqpo_cmn->ignore_ssid_llist,
 							peer->ssid.SSID_len, peer->ssid.SSID);
 					}
 				}
 			}
 			else if (is_start_query_enabled(anqpo) &&
 				event->status.statusCode != DOT11_SC_FAILURE &&
-				peer->num_retries < anqpo->max_retries) {
+				peer->num_retries < anqpo->anqpo_cmn->max_retries) {
 				/* retry manual ANQP if not unspecified failure
 				 * which is comeback delay exceeded
 				 */
 				bcm_gas_start(peer->gas);
 				peer->num_retries++;
-				anqpo->active_peer_count++;
+				anqpo->anqpo_cmn->active_peer_count++;
 			}
 			else {
 				wl_event_gas_t gas_data;
@@ -508,26 +694,35 @@ wl_anqpo_gas_event_cb(void *context, bcm_gas_t *gas, bcm_gas_event_t *event)
 			}
 
 			if (is_start_query_enabled(anqpo)) {
-				if (anqpo->active_peer_count == 0) {
+				if (anqpo->anqpo_cmn->active_peer_count == 0) {
 					/* abort dwell time */
 					wlc_scan_abort(wlc->scan, WLC_E_STATUS_ABORT);
 				}
 
 				/* start next queries */
-				start_queries(anqpo);
+				if ((ret = start_queries(anqpo, (void *)wlcif)) != BCME_OK) {
+					WL_ERROR(("wl%d: wl_anqpo_gas_event_cb:"
+						" create_start_gas() as failed\n",
+						WLCWLUNIT(wlc)));
+					return;
+				}
 
 				if (is_queries_completed(anqpo)) {
 					wl_gas_stop_eventq(anqpo->gasi);
 					bcm_gas_unsubscribe_event(wl_anqpo_gas_event_cb);
-					anqpo->is_start_query = FALSE;
+					stop_query(anqpo);
 					wlc_bss_mac_event(wlc, wlc->cfg, WLC_E_GAS_COMPLETE, 0,
 						WLC_E_STATUS_SUCCESS, 0, 0, 0, 0);
 				}
-
 			}
 			else if (is_auto_hotspot_enabled(anqpo)) {
 				/* start next queries */
-				start_queries(anqpo);
+				if ((ret = start_queries(anqpo, (void *)wlcif)) != BCME_OK) {
+					WL_ERROR(("wl%d: wl_anqpo_gas_event_cb:"
+						" create_start_gas() failed\n",
+						WLCWLUNIT(wlc)));
+					return;
+				}
 			}
 		}
 	}
@@ -539,39 +734,46 @@ wl_anqpo_set(wl_anqpo_info_t *anqpo, void *arg, int len)
 {
 	wl_anqpo_set_t *set = (wl_anqpo_set_t *)arg;
 
+	if ((uint)len < OFFSETOF(wl_anqpo_set_t, query_data) ||
+		(uint)len < OFFSETOF(wl_anqpo_set_t, query_data) +
+		set->query_len) {
+		return BCME_BUFTOOSHORT;
+	}
+
 	/* discard existing query */
-	if (anqpo->query_data) {
-		MFREE(WLCOSH(anqpo), anqpo->query_data, anqpo->query_len);
-		anqpo->query_data = NULL;
-		anqpo->query_len = 0;
+	if (anqpo->anqpo_cmn->query_data) {
+		MFREE(WLCOSH(anqpo), anqpo->anqpo_cmn->query_data, anqpo->anqpo_cmn->query_len);
+		anqpo->anqpo_cmn->query_data = NULL;
+		anqpo->anqpo_cmn->query_len = 0;
 	}
 
 	/* default values */
-	anqpo->max_retransmit = DEFAULT_MAX_RETRANSMIT;
-	anqpo->response_timeout = DEFAULT_RESPONSE_TIMEOUT;
-	anqpo->max_comeback_delay = DEFAULT_MAX_COMEBACK_DELAY;
-	anqpo->max_retries = DEFAULT_MAX_RETRIES;
+	anqpo->anqpo_cmn->max_retransmit = DEFAULT_MAX_RETRANSMIT;
+	anqpo->anqpo_cmn->response_timeout = DEFAULT_RESPONSE_TIMEOUT;
+	anqpo->anqpo_cmn->max_comeback_delay = DEFAULT_MAX_COMEBACK_DELAY;
+	anqpo->anqpo_cmn->max_retries = DEFAULT_MAX_RETRIES;
 
 	if (set->max_retransmit != PARAM_NOT_CONFIGURED)
-		anqpo->max_retransmit = set->max_retransmit;
+		anqpo->anqpo_cmn->max_retransmit = set->max_retransmit;
 	if (set->response_timeout != PARAM_NOT_CONFIGURED)
-		anqpo->response_timeout = set->response_timeout;
+		anqpo->anqpo_cmn->response_timeout = set->response_timeout;
 	if (set->max_comeback_delay != PARAM_NOT_CONFIGURED)
-		anqpo->max_comeback_delay = set->max_comeback_delay;
+		anqpo->anqpo_cmn->max_comeback_delay = set->max_comeback_delay;
 	if (set->max_retries != PARAM_NOT_CONFIGURED)
-		anqpo->max_retries = set->max_retries;
+		anqpo->anqpo_cmn->max_retries = set->max_retries;
 
 	/* save new query */
 	if (set->query_len) {
-		anqpo->query_data = MALLOC(WLCOSH(anqpo), set->query_len);
-		if (!anqpo->query_data) {
-			WL_ERROR(("wl%d: %s: MALLOC failed; total mallocs %d bytes\n",
-			          WLCUNIT(anqpo), __FUNCTION__, MALLOCED(WLCOSH(anqpo))));
-			anqpo->query_len = 0;
+		anqpo->anqpo_cmn->query_data = MALLOC(WLCOSH(anqpo), set->query_len);
+		if (!anqpo->anqpo_cmn->query_data) {
+			WL_ERROR(("wl%d: wl_anqpo_set: MALLOC(%d) failed, malloced %d bytes\n",
+				WLCUNIT(anqpo),
+				set->query_len, MALLOCED(WLCOSH(anqpo))));
+			anqpo->anqpo_cmn->query_len = 0;
 			return BCME_NOMEM;
 		}
-		anqpo->query_len = set->query_len;
-		memcpy(anqpo->query_data, set->query_data, set->query_len);
+		anqpo->anqpo_cmn->query_len = set->query_len;
+		memcpy(anqpo->anqpo_cmn->query_data, set->query_data, set->query_len);
 	}
 
 	return BCME_OK;
@@ -593,7 +795,7 @@ wl_anqpo_stop_query(wl_anqpo_info_t *anqpo, void *arg, int len)
 		reset_queries(anqpo);
 		wl_gas_stop_eventq(anqpo->gasi);
 		bcm_gas_unsubscribe_event(wl_anqpo_gas_event_cb);
-		anqpo->is_start_query = FALSE;
+		stop_query(anqpo);
 	}
 	return BCME_OK;
 }
@@ -601,48 +803,60 @@ wl_anqpo_stop_query(wl_anqpo_info_t *anqpo, void *arg, int len)
 /** add peer to query list */
 static void
 add_peer(wl_anqpo_info_t *anqpo, uint16 channel, struct ether_addr *addr,
-	uint32 ssid_len, uchar *ssid)
+	uint32 ssid_len, uchar *ssid, uint8 cellular_aware)
 {
 	int i;
 	peer_t *p;
 
 	/* check if addr already exists */
-	for (i = 0; i < anqpo->peer_count; i++) {
-		p = &anqpo->peer[i];
-		if (memcmp(&p->addr, addr, sizeof(p->addr)) == 0)
+	for (i = 0; i < anqpo->anqpo_cmn->peer_count; i++) {
+		p = &anqpo->anqpo_cmn->peer[i];
+		if (memcmp(&p->addr, addr, sizeof(p->addr)) == 0 &&
+			p->channel == channel)
 			return;
 	}
 
-	p = &anqpo->peer[anqpo->peer_count];
+	p = &anqpo->anqpo_cmn->peer[anqpo->anqpo_cmn->peer_count];
 	p->channel = channel;
 	memcpy(&p->addr, addr, sizeof(p->addr));
 	p->ssid.SSID_len = MIN(ssid_len, sizeof(p->ssid.SSID));
 	memcpy(p->ssid.SSID, ssid, p->ssid.SSID_len);
-	anqpo->peer_count++;
+	p->mbo_ap_cellular_aware = cellular_aware;
+	anqpo->anqpo_cmn->peer_count++;
 }
 
 /** initialize queries */
 static int
 init_queries(wl_anqpo_info_t *anqpo, int count, wl_anqpo_peer_t *peer)
 {
+#define MAX_UINT16_VAL 0xffff
+
+	/* make sure we don't overflow the uint16 peer_len field */
+	if ((uint)count  > MAX_UINT16_VAL/sizeof(*anqpo->anqpo_cmn->peer)) {
+		return BCME_RANGE;
+	}
+
 	reset_queries(anqpo);
-	anqpo->peer_len = count * sizeof(*anqpo->peer);
-	anqpo->peer = MALLOC(WLCOSH(anqpo), anqpo->peer_len);
-	if (!anqpo->peer) {
-		WL_ERROR(("wl%d: %s: MALLOC failed; total mallocs %d bytes\n",
-		          WLCUNIT(anqpo), __FUNCTION__, MALLOCED(WLCOSH(anqpo))));
-		anqpo->peer_len = 0;
+
+	anqpo->anqpo_cmn->peer_len = count * sizeof(*anqpo->anqpo_cmn->peer);
+	anqpo->anqpo_cmn->peer = MALLOC(WLCOSH(anqpo), anqpo->anqpo_cmn->peer_len);
+	if (!anqpo->anqpo_cmn->peer) {
+		WL_ERROR(("wl%d: init_queries: MALLOC(%d) failed, malloced %d bytes\n",
+			WLCUNIT(anqpo),
+			anqpo->anqpo_cmn->peer_len, MALLOCED(WLCOSH(anqpo))));
+		anqpo->anqpo_cmn->peer_len = 0;
 		return BCME_NOMEM;
 	}
-	memset(anqpo->peer, 0, anqpo->peer_len);
-	anqpo->peer_count = 0;
+	memset(anqpo->anqpo_cmn->peer, 0, anqpo->anqpo_cmn->peer_len);
+	anqpo->anqpo_cmn->peer_count = 0;
 
 	/* initialize peer info if available */
 	if (peer != 0) {
 		int i;
 
 		for (i = 0; i < count; i++) {
-			add_peer(anqpo, peer[i].channel, &peer[i].addr, 0, 0);
+			add_peer(anqpo, peer[i].channel, &peer[i].addr, 0, 0,
+				(peer[i].flags & WL_ANQPO_FLAGS_BSSID_WILDCARD));
 		}
 	}
 
@@ -651,16 +865,24 @@ init_queries(wl_anqpo_info_t *anqpo, int count, wl_anqpo_peer_t *peer)
 
 /** start ANQP query */
 static int
-wl_anqpo_start_query(wl_anqpo_info_t *anqpo, void *arg, int len)
+wl_anqpo_start_query(wl_anqpo_info_t *anqpo, void *arg, int len, void *wl_drv_if)
 {
 	wl_anqpo_peer_list_t *list = (wl_anqpo_peer_list_t *)arg;
 	int err;
+	int ret = BCME_OK;
+
+	if (list->version != WL_ANQPO_PEER_LIST_VERSION_2) {
+		return BCME_VERSION;
+	}
 
 	if (is_auto_hotspot_enabled(anqpo))
 		return BCME_BUSY;
 
-	if (list->count == 0 || anqpo->query_len == 0)
+	if (list->count == 0 || anqpo->anqpo_cmn->query_len == 0)
 		return BCME_ERROR;
+
+	if (list->count > ANQPO_MAX_PEER_LIST)
+		return BCME_BADARG;
 
 	/* abort any scan in progress */
 	if (SCAN_IN_PROGRESS(anqpo->wlc->scan)) {
@@ -672,20 +894,20 @@ wl_anqpo_start_query(wl_anqpo_info_t *anqpo, void *arg, int len)
 		reset_queries(anqpo);
 		wl_gas_stop_eventq(anqpo->gasi);
 		bcm_gas_unsubscribe_event(wl_anqpo_gas_event_cb);
-		anqpo->is_start_query = FALSE;
+		stop_query(anqpo);
 	}
 
 	if ((err = init_queries(anqpo, list->count, list->peer)) != BCME_OK)
 		return err;
 
+	anqpo->anqpo_cmn->active_peer_count = 0;
+	anqpo->anqpo_cmn->started_peer_count = 0;
 	bcm_gas_subscribe_event(anqpo->wlc, wl_anqpo_gas_event_cb);
 	wl_gas_start_eventq(anqpo->gasi);
-	anqpo->is_start_query = TRUE;
-	anqpo->active_peer_count = 0;
-	anqpo->started_peer_count = 0;
-	start_queries(anqpo);
+	anqpo->anqpo_cmn->is_start_query = TRUE;
+	ret = start_queries(anqpo, wl_drv_if);
 
-	return BCME_OK;
+	return ret;
 }
 
 /** enable/disable automatic ANQP query to scanned hotspot APs */
@@ -700,14 +922,14 @@ wl_anqpo_auto_hotspot(wl_anqpo_info_t *anqpo, int max_ap)
 		wl_gas_stop_eventq(anqpo->gasi);
 		bcm_gas_unsubscribe_event(wl_anqpo_gas_event_cb);
 		reset_queries(anqpo);
-		anqpo->max_auto_hotspot = 0;
+		anqpo->anqpo_cmn->max_auto_hotspot = 0;
 	}
 
 	/* enable if requested */
 	if (max_ap > 0) {
 		int err;
 
-		if (anqpo->query_len == 0)
+		if (anqpo->anqpo_cmn->query_len == 0)
 			return BCME_ERROR;
 
 		if ((err = init_queries(anqpo, max_ap, 0)) != BCME_OK)
@@ -715,7 +937,7 @@ wl_anqpo_auto_hotspot(wl_anqpo_info_t *anqpo, int max_ap)
 
 		bcm_gas_subscribe_event(anqpo->wlc, wl_anqpo_gas_event_cb);
 		wl_gas_start_eventq(anqpo->gasi);
-		anqpo->max_auto_hotspot = max_ap;
+		anqpo->anqpo_cmn->max_auto_hotspot = max_ap;
 	}
 
 	return BCME_OK;
@@ -731,7 +953,7 @@ wl_anqpo_ignore_mode(wl_anqpo_info_t *anqpo, int mode)
 	if (is_auto_hotspot_enabled(anqpo)) {
 		return BCME_BUSY;
 	}
-	anqpo->ignore_mode = mode;
+	anqpo->anqpo_cmn->ignore_mode = mode;
 
 	return BCME_OK;
 }
@@ -741,7 +963,7 @@ static int
 wl_anqpo_get_ignore_ssid_list(wl_anqpo_info_t *anqpo, void *arg, int len)
 {
 	wl_anqpo_ignore_ssid_list_t *list = (wl_anqpo_ignore_ssid_list_t *)arg;
-	ssid_llist_t *ignore = anqpo->ignore_ssid_llist;
+	ssid_llist_t *ignore = anqpo->anqpo_cmn->ignore_ssid_llist;
 	int i;
 
 	list->count = 0;
@@ -765,11 +987,17 @@ wl_anqpo_set_ignore_ssid_list(wl_anqpo_info_t *anqpo, void *arg, int len)
 	wl_anqpo_ignore_ssid_list_t *list = (wl_anqpo_ignore_ssid_list_t *)arg;
 	int i;
 
+	if ((uint)len < OFFSETOF(wl_anqpo_ignore_ssid_list_t, ssid) ||
+		(uint)len < OFFSETOF(wl_anqpo_ignore_ssid_list_t, ssid) +
+		(list->count * sizeof(wlc_ssid_t))) {
+		return BCME_BADLEN;
+	}
+
 	if (list->is_clear)
-		free_ssid_llist(anqpo->wlc, &anqpo->ignore_ssid_llist);
+		free_ssid_llist(anqpo->wlc, &anqpo->anqpo_cmn->ignore_ssid_llist);
 
 	for (i = 0; i < list->count; i++) {
-		if (add_ssid_llist(anqpo->wlc, &anqpo->ignore_ssid_llist,
+		if (add_ssid_llist(anqpo->wlc, &anqpo->anqpo_cmn->ignore_ssid_llist,
 			list->ssid[i].SSID_len, list->ssid[i].SSID) == 0)
 			return BCME_NOMEM;
 	}
@@ -782,7 +1010,7 @@ static int
 wl_anqpo_get_ignore_bssid_list(wl_anqpo_info_t *anqpo, void *arg, int len)
 {
 	wl_anqpo_ignore_bssid_list_t *list = (wl_anqpo_ignore_bssid_list_t *)arg;
-	ether_llist_t *ignore = anqpo->ignore_bssid_llist;
+	ether_llist_t *ignore = anqpo->anqpo_cmn->ignore_bssid_llist;
 	int i;
 
 	list->count = 0;
@@ -806,11 +1034,17 @@ wl_anqpo_set_ignore_bssid_list(wl_anqpo_info_t *anqpo, void *arg, int len)
 	wl_anqpo_ignore_bssid_list_t *list = (wl_anqpo_ignore_bssid_list_t *)arg;
 	int i;
 
+	if ((uint)len < OFFSETOF(wl_anqpo_ignore_bssid_list_t, bssid) ||
+		(uint)len < OFFSETOF(wl_anqpo_ignore_bssid_list_t, bssid) +
+		(list->count * sizeof(struct ether_addr))) {
+		return BCME_BADLEN;
+	}
+
 	if (list->is_clear)
-		free_ether_llist(anqpo->wlc, &anqpo->ignore_bssid_llist);
+		free_ether_llist(anqpo->wlc, &anqpo->anqpo_cmn->ignore_bssid_llist);
 
 	for (i = 0; i < list->count; i++) {
-		if (add_ether_llist(anqpo->wlc, &anqpo->ignore_bssid_llist,
+		if (add_ether_llist(anqpo->wlc, &anqpo->anqpo_cmn->ignore_bssid_llist,
 			&list->bssid[i]) == 0)
 			return BCME_NOMEM;
 	}
@@ -827,6 +1061,7 @@ anqpo_doiovar(void *hdl, uint32 actionid,
 	int32 int_val = 0;
 	uint32 *ret_uint_ptr;
 	int err = BCME_OK;
+
 	ASSERT(anqpo);
 
 #ifndef BCMROMOFFLOAD
@@ -852,16 +1087,16 @@ anqpo_doiovar(void *hdl, uint32 actionid,
 		err = wl_anqpo_stop_query(anqpo, a, alen);
 		break;
 	case IOV_SVAL(IOV_ANQPO_START_QUERY):
-		err = wl_anqpo_start_query(anqpo, a, alen);
+		err = wl_anqpo_start_query(anqpo, a, alen, wlcif);
 		break;
 	case IOV_GVAL(IOV_ANQPO_AUTO_HOTSPOT):
-		*ret_uint_ptr = anqpo->max_auto_hotspot;
+		*ret_uint_ptr = anqpo->anqpo_cmn->max_auto_hotspot;
 		break;
 	case IOV_SVAL(IOV_ANQPO_AUTO_HOTSPOT):
 		err = wl_anqpo_auto_hotspot(anqpo, int_val);
 		break;
 	case IOV_GVAL(IOV_ANQPO_IGNORE_MODE):
-		*ret_uint_ptr = anqpo->ignore_mode;
+		*ret_uint_ptr = anqpo->anqpo_cmn->ignore_mode;
 		break;
 	case IOV_SVAL(IOV_ANQPO_IGNORE_MODE):
 		err = wl_anqpo_ignore_mode(anqpo, int_val);
@@ -898,8 +1133,8 @@ BCMATTACHFN(wl_anqpo_attach)(wlc_info_t *wlc, wl_gas_info_t *gas)
 	/* allocate anqpo private info struct */
 	anqpo = MALLOCZ(wlc->osh, sizeof(wl_anqpo_info_t));
 	if (!anqpo) {
-		WL_ERROR(("wl%d: %s: MALLOC failed; total mallocs %d bytes\n",
-			WLCWLUNIT(wlc), __FUNCTION__, MALLOCED(wlc->osh)));
+		WL_ERROR(("wl%d: wl_anqpo_attach: MALLOC(%d) failed, malloced %d bytes\n",
+			WLCWLUNIT(wlc), (int)sizeof(wl_anqpo_info_t), MALLOCED(wlc->osh)));
 		return NULL;
 	}
 
@@ -909,12 +1144,29 @@ BCMATTACHFN(wl_anqpo_attach)(wlc_info_t *wlc, wl_gas_info_t *gas)
 	anqpo->gasi = gas;
 
 	/* register module */
-	if (wlc_module_register(wlc->pub, anqpo_iovars, "anqpo",
+	if (wlc_module_register(wlc->pub, anqpo_iovars, rstr_modulename,
 		anqpo, anqpo_doiovar, NULL, NULL, NULL)) {
-		WL_ERROR(("wl%d: %s wlc_module_register() failed\n",
-			WLCWLUNIT(wlc), __FUNCTION__));
+		WL_ERROR(("wl%d: wl_anqpo_attach wlc_module_register() failed\n",
+			WLCWLUNIT(wlc)));
 		return NULL;
 	}
+
+	/* OBJECT REGISTRY: check if shared anqpo_cmn_info is already malloced */
+
+	anqpo->anqpo_cmn = (anqpo_cmn_info_t*)
+		obj_registry_get(wlc->objr, OBJR_ANQPO_CMN);
+
+	if (anqpo->anqpo_cmn == NULL) {
+		if ((anqpo->anqpo_cmn =  (anqpo_cmn_info_t*) MALLOCZ(wlc->osh,
+			sizeof(anqpo_cmn_info_t))) == NULL) {
+			WL_ERROR(("wl%d: wl_anqpo_attach: anqpo_cmn alloc failed\n",
+				WLCWLUNIT(wlc)));
+			return NULL;
+		}
+		/* OBJECT REGISTRY: We are the first instance, store value for key */
+		obj_registry_set(wlc->objr, OBJR_ANQPO_CMN, anqpo->anqpo_cmn);
+	}
+	BCM_REFERENCE(obj_registry_ref(wlc->objr, OBJR_ANQPO_CMN));
 
 #if !defined(P2PO) && !defined(WL_MBO)	/* P2PO supports incoming queries */
 	/* initiated ANQP queries only */
@@ -939,17 +1191,22 @@ BCMATTACHFN(wl_anqpo_detach)(wl_anqpo_info_t *anqpo)
 
 	anqpo->wlc->pub->_anqpo = FALSE;
 
+	/* discard existing query */
+	if (anqpo->anqpo_cmn->query_data) {
+		MFREE(WLCOSH(anqpo), anqpo->anqpo_cmn->query_data, anqpo->anqpo_cmn->query_len);
+		anqpo->anqpo_cmn->query_data = NULL;
+		anqpo->anqpo_cmn->query_len = 0;
+	}
+
+	if (obj_registry_unref(anqpo->wlc->objr, OBJR_ANQPO_CMN) == 0) {
+			obj_registry_set(anqpo->wlc->objr, OBJR_ANQPO_CMN, NULL);
+			MFREE(anqpo->wlc->osh, anqpo->anqpo_cmn, sizeof(anqpo_cmn_info_t));
+	}
+
 	/* turn off event forwarding */
 	wlc_eventq_set_ind(anqpo->wlc->eventq, WLC_E_GAS_FRAGMENT_RX, 0);
 
-	/* discard existing query */
-	if (anqpo->query_data) {
-		MFREE(WLCOSH(anqpo), anqpo->query_data, anqpo->query_len);
-		anqpo->query_data = NULL;
-		anqpo->query_len = 0;
-	}
-
-	wlc_module_unregister(anqpo->wlc->pub, "anqpo", anqpo);
+	wlc_module_unregister(anqpo->wlc->pub, rstr_modulename, anqpo);
 	MFREE(WLCOSH(anqpo), anqpo, sizeof(wl_anqpo_info_t));
 
 	anqpo = NULL;
@@ -959,7 +1216,7 @@ BCMATTACHFN(wl_anqpo_detach)(wl_anqpo_info_t *anqpo)
 void wl_anqpo_scan_start(wl_anqpo_info_t *anqpo)
 {
 	if (is_auto_hotspot_enabled(anqpo)) {
-		init_queries(anqpo, anqpo->max_auto_hotspot, 0);
+		init_queries(anqpo, anqpo->anqpo_cmn->max_auto_hotspot, 0);
 	}
 }
 
@@ -968,30 +1225,34 @@ extern void wl_anqpo_scan_stop(wl_anqpo_info_t *anqpo)
 {
 	if (is_auto_hotspot_enabled(anqpo)) {
 		reset_queries(anqpo);
+		memset(&anqpo->anqpo_cmn->sa_addr, 0, sizeof(anqpo->anqpo_cmn->sa_addr));
 	}
 }
 
 /** process scan result */
 extern void wl_anqpo_process_scan_result(wl_anqpo_info_t *anqpo,
-	wlc_bss_info_t *bi, uint8 *ie, uint32 ie_len)
+	wlc_bss_info_t *bi, uint8 *ie, uint32 ie_len, int8 cfg_idx)
 {
 	wlc_info_t *wlc = anqpo->wlc;
 	bcm_decode_t dec1, dec2;
 	bcm_decode_ie_t ies;
 	uint16 channel;
 	uint8 hotspotConfig;
+	struct wlc_if *wlcif = wl_gas_get_wlcif(wlc, cfg_idx);
+	int ret = BCME_OK;
 
-	if (anqpo->max_auto_hotspot == 0 ||
-		anqpo->peer_count == anqpo->max_auto_hotspot ||
-		anqpo->query_len == 0)
+	if (anqpo->anqpo_cmn->max_auto_hotspot == 0 ||
+		anqpo->anqpo_cmn->peer_count == anqpo->anqpo_cmn->max_auto_hotspot ||
+		anqpo->anqpo_cmn->query_len == 0)
 		return;
 
 	/* ignore if found in ignore list */
-	if (anqpo->ignore_mode == IGNORE_BSSID) {
-		if (find_ether_llist(anqpo->ignore_bssid_llist, &bi->BSSID) != 0)
+	if (anqpo->anqpo_cmn->ignore_mode == IGNORE_BSSID) {
+		if (find_ether_llist(anqpo->anqpo_cmn->ignore_bssid_llist, &bi->BSSID) != 0)
 			return;
 	} else {
-		if (find_ssid_llist(anqpo->ignore_ssid_llist, bi->SSID_len, bi->SSID) != 0)
+		if (find_ssid_llist(anqpo->anqpo_cmn->ignore_ssid_llist,
+			bi->SSID_len, bi->SSID) != 0)
 			return;
 	}
 
@@ -1024,9 +1285,41 @@ extern void wl_anqpo_process_scan_result(wl_anqpo_info_t *anqpo,
 		return;
 
 	/* add peer to query list */
-	if (anqpo->peer_count < anqpo->max_auto_hotspot) {
-		add_peer(anqpo, channel, &bi->BSSID, bi->SSID_len, bi->SSID);
+	if (anqpo->anqpo_cmn->peer_count < anqpo->anqpo_cmn->max_auto_hotspot) {
+		add_peer(anqpo, channel, &bi->BSSID, bi->SSID_len, bi->SSID,
+			(bi->flags3 & WLC_BSS3_MBO_AP_CELLULAR_AWARE));
 	}
+	if ((ret = start_queries(anqpo, (void *)wlcif)) != BCME_OK) {
+		WL_ERROR(("wl%d: wl_anqpo_process_scan_result: create_start_gas() failed\n",
+			WLCWLUNIT(wlc)));
+		return;
+	}
+}
 
-	start_queries(anqpo);
+bool
+wl_anqpo_auto_hotspot_enabled(wl_anqpo_info_t *anqpo)
+{
+	return is_auto_hotspot_enabled(anqpo);
+}
+
+/*
+ * This API will return True if Host configured ANQPO action frame to be sent using Wildcard SSID
+ * using ANQPO start query IOVAR.
+ * wildcard BSSID: ./wl -i eth1 anqpo_start_query 36 00:90:4C:50:02:0F -o 1
+ * Unicast BSSID by dafault or ./wl -i eth1 anqpo_start_query 36 00:90:4C:50:02:0F -o 0
+ */
+bool
+wl_anqpo_bssid_wildcard_isset(wl_anqpo_info_t *anqpo,
+	struct ether_addr *peer_addr)
+{
+	uint8 count;
+	peer_t *peer;
+
+	for (count = 0; count < anqpo->anqpo_cmn->peer_count; count++) {
+		peer = &anqpo->anqpo_cmn->peer[count];
+		if (!memcmp(&peer->addr, peer_addr, sizeof(*peer_addr))) {
+			return (peer->mbo_ap_cellular_aware ? TRUE: FALSE);
+		}
+	}
+	return FALSE;
 }

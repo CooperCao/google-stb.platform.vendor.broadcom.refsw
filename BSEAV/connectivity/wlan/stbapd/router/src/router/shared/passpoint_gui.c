@@ -641,7 +641,7 @@ do_uploadIcons_cgi(char *url, FILE *stream)
 	assert(url);
 	assert(stream);
 	websHeader(stream);
-	websWrite(stream, (char_t *) apply_header);
+	websWrite(stream, "%s", (char_t *) apply_header);
 	if (ret_code)
 		websWrite(stream, HSERR_ICON_UPDATE);
 	else

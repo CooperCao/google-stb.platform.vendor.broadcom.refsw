@@ -33,6 +33,9 @@
 #include <bcmwpa.h>
 #include <shutils.h>
 #include <wlif_utils.h>
+#ifdef TARGETENV_android
+#include <osl.h>
+#endif /* TARGETENV_android */
 
 #include <radius.h>
 

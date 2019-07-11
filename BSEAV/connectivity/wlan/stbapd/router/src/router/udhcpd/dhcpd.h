@@ -5,6 +5,9 @@
 
 #include <netinet/ip.h>
 #include <netinet/udp.h>
+#ifdef TARGETENV_android
+#include <osl.h>
+#endif /* TARGETENV_android */
 
 #include "libbb_udhcp.h"
 #include "leases.h"

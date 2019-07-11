@@ -184,7 +184,11 @@ acsd_proc_client_req(void)
 	int rcount = 0;
 	int fd = -1;
 	struct sockaddr_in cliaddr;
+#ifdef TARGETENV_android
+	socklen_t len = 0; /* need initialize here to avoid EINVAL */
+#else
 	uint len = 0; /* need initialize here to avoid EINVAL */
+#endif
 	char* buf;
 	int ret = 0;
 

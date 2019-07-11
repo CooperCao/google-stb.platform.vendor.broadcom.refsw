@@ -1,0 +1,186 @@
+diff -Naur wpa_supplicant-2.7-orig/src/wps/wps.h wpa_supplicant-2.7/src/wps/wps.h
+--- wpa_supplicant-2.7-orig/src/wps/wps.h	2019-02-11 11:57:54.313296187 -0800
++++ wpa_supplicant-2.7/src/wps/wps.h	2019-02-11 11:57:42.356613166 -0800
+@@ -96,6 +96,7 @@
+ 	u32 os_version;
+ 	u8 rf_bands;
+ 	u16 config_methods;
++	u32 easymesh_backhaul_sta_en;
+ 	struct wpabuf *vendor_ext_m1;
+ 	struct wpabuf *vendor_ext[MAX_WPS_VENDOR_EXTENSIONS];
+ 
+diff -Naur wpa_supplicant-2.7-orig/src/wps/wps_attr_build.c wpa_supplicant-2.7/src/wps/wps_attr_build.c
+--- wpa_supplicant-2.7-orig/src/wps/wps_attr_build.c	2019-02-11 11:57:54.501358632 -0800
++++ wpa_supplicant-2.7/src/wps/wps_attr_build.c	2019-02-11 11:57:42.529601425 -0800
+@@ -502,3 +502,69 @@
+ 	wpabuf_put_be16(msg, ap_channel);
+ 	return 0;
+ }
++
++int wps_build_wfa_ext_m1(struct wpabuf *msg, int req_to_enroll,
++		      const u8 *auth_macs, size_t auth_macs_count,
++		      int easymesh_backhaul_sta)
++{
++	u8 *len;
++
++#ifdef CONFIG_WPS_TESTING
++	if (WPS_VERSION == 0x10)
++		return 0;
++#endif /* CONFIG_WPS_TESTING */
++
++	if (wpabuf_tailroom(msg) <
++	    7 + 3 + (req_to_enroll ? 3 : 0) +
++	    (auth_macs ? 2 + auth_macs_count * ETH_ALEN : 0))
++		return -1;
++	wpabuf_put_be16(msg, ATTR_VENDOR_EXT);
++	len = wpabuf_put(msg, 2); /* to be filled */
++	wpabuf_put_be24(msg, WPS_VENDOR_ID_WFA);
++
++	wpa_printf(MSG_DEBUG, "WPS:  * Version2 (0x%x)", WPS_VERSION);
++	wpabuf_put_u8(msg, WFA_ELEM_VERSION2);
++	wpabuf_put_u8(msg, 1);
++	wpabuf_put_u8(msg, WPS_VERSION);
++
++	/* Add Multi-AP attribute */
++	if (easymesh_backhaul_sta) {
++		wpabuf_put_u8(msg, 0x06);
++		wpabuf_put_u8(msg, 0x01);
++		wpabuf_put_u8(msg, 0x80);
++	}
++
++	if (req_to_enroll) {
++		wpa_printf(MSG_DEBUG, "WPS:  * Request to Enroll (1)");
++		wpabuf_put_u8(msg, WFA_ELEM_REQUEST_TO_ENROLL);
++		wpabuf_put_u8(msg, 1);
++		wpabuf_put_u8(msg, 1);
++	}
++
++	if (auth_macs && auth_macs_count) {
++		size_t i;
++		wpa_printf(MSG_DEBUG, "WPS:  * AuthorizedMACs (count=%d)",
++			   (int) auth_macs_count);
++		wpabuf_put_u8(msg, WFA_ELEM_AUTHORIZEDMACS);
++		wpabuf_put_u8(msg, auth_macs_count * ETH_ALEN);
++		wpabuf_put_data(msg, auth_macs, auth_macs_count * ETH_ALEN);
++		for (i = 0; i < auth_macs_count; i++)
++			wpa_printf(MSG_DEBUG, "WPS:    AuthorizedMAC: " MACSTR,
++				   MAC2STR(&auth_macs[i * ETH_ALEN]));
++	}
++
++	WPA_PUT_BE16(len, (u8 *) wpabuf_put(msg, 0) - len - 2);
++
++#ifdef CONFIG_WPS_TESTING
++	if (WPS_VERSION > 0x20) {
++		if (wpabuf_tailroom(msg) < 5)
++			return -1;
++		wpa_printf(MSG_DEBUG, "WPS:  * Extensibility Testing - extra "
++			   "attribute");
++		wpabuf_put_be16(msg, ATTR_EXTENSIBILITY_TEST);
++		wpabuf_put_be16(msg, 1);
++		wpabuf_put_u8(msg, 42);
++	}
++#endif /* CONFIG_WPS_TESTING */
++	return 0;
++}
+diff -Naur wpa_supplicant-2.7-orig/src/wps/wps_enrollee.c wpa_supplicant-2.7/src/wps/wps_enrollee.c
+--- wpa_supplicant-2.7-orig/src/wps/wps_enrollee.c	2019-02-11 11:57:54.377616457 -0800
++++ wpa_supplicant-2.7/src/wps/wps_enrollee.c	2019-02-11 11:57:42.418400830 -0800
+@@ -152,7 +152,7 @@
+ 	    wps_build_dev_password_id(msg, wps->dev_pw_id) ||
+ 	    wps_build_config_error(msg, WPS_CFG_NO_ERROR) ||
+ 	    wps_build_os_version(&wps->wps->dev, msg) ||
+-	    wps_build_wfa_ext(msg, 0, NULL, 0) ||
++	    wps_build_wfa_ext_m1(msg, 0, NULL, 0, wps->wps->dev.easymesh_backhaul_sta_en) ||
+ 	    wps_build_vendor_ext_m1(&wps->wps->dev, msg)) {
+ 		wpabuf_free(msg);
+ 		return NULL;
+diff -Naur wpa_supplicant-2.7-orig/src/wps/wps_i.h wpa_supplicant-2.7/src/wps/wps_i.h
+--- wpa_supplicant-2.7-orig/src/wps/wps_i.h	2019-02-11 11:57:54.460757787 -0800
++++ wpa_supplicant-2.7/src/wps/wps_i.h	2019-02-11 11:57:42.487916998 -0800
+@@ -164,6 +164,9 @@
+ int wps_build_version(struct wpabuf *msg);
+ int wps_build_wfa_ext(struct wpabuf *msg, int req_to_enroll,
+ 		      const u8 *auth_macs, size_t auth_macs_count);
++int wps_build_wfa_ext_m1(struct wpabuf *msg, int req_to_enroll,
++		      const u8 *auth_macs, size_t auth_macs_count,
++		      int easymesh_backhaul_sta);
+ int wps_build_msg_type(struct wpabuf *msg, enum wps_msg_type msg_type);
+ int wps_build_enrollee_nonce(struct wps_data *wps, struct wpabuf *msg);
+ int wps_build_registrar_nonce(struct wps_data *wps, struct wpabuf *msg);
+diff -Naur wpa_supplicant-2.7-orig/wpa_supplicant/config.c wpa_supplicant-2.7/wpa_supplicant/config.c
+--- wpa_supplicant-2.7-orig/wpa_supplicant/config.c	2019-02-11 11:57:50.912529924 -0800
++++ wpa_supplicant-2.7/wpa_supplicant/config.c	2019-02-11 11:57:38.987097433 -0800
+@@ -4651,6 +4651,7 @@
+ 	{ STR(config_methods), CFG_CHANGED_CONFIG_METHODS },
+ 	{ INT_RANGE(wps_cred_processing, 0, 2), 0 },
+ 	{ FUNC(wps_vendor_ext_m1), CFG_CHANGED_VENDOR_EXTENSION },
++	{ INT_RANGE(easymesh_backhaul_sta, 0, 1), CFG_CHANGED_EASYMESH_BACKHAUL_STA },
+ #endif /* CONFIG_WPS */
+ #ifdef CONFIG_P2P
+ 	{ FUNC(sec_device_type), CFG_CHANGED_SEC_DEVICE_TYPE },
+diff -Naur wpa_supplicant-2.7-orig/wpa_supplicant/config.h wpa_supplicant-2.7/wpa_supplicant/config.h
+--- wpa_supplicant-2.7-orig/wpa_supplicant/config.h	2019-02-11 11:57:51.105459678 -0800
++++ wpa_supplicant-2.7/wpa_supplicant/config.h	2019-02-11 11:57:39.166774763 -0800
+@@ -374,6 +374,7 @@
+ #define CFG_CHANGED_P2P_PASSPHRASE_LEN BIT(16)
+ #define CFG_CHANGED_SCHED_SCAN_PLANS BIT(17)
+ #define CFG_CHANGED_WOWLAN_TRIGGERS BIT(18)
++#define CFG_CHANGED_EASYMESH_BACKHAUL_STA BIT(19)
+ 
+ /**
+  * struct wpa_config - wpa_supplicant configuration data
+@@ -768,6 +769,7 @@
+ 	int p2p_optimize_listen_chan;
+ 
+ 	struct wpabuf *wps_vendor_ext_m1;
++	int easymesh_backhaul_sta;
+ 
+ #define MAX_WPS_VENDOR_EXT 10
+ 	/**
+diff -Naur wpa_supplicant-2.7-orig/wpa_supplicant/config_file.c wpa_supplicant-2.7/wpa_supplicant/config_file.c
+--- wpa_supplicant-2.7-orig/wpa_supplicant/config_file.c	2019-02-11 11:57:51.283570391 -0800
++++ wpa_supplicant-2.7/wpa_supplicant/config_file.c	2019-02-11 11:57:39.405292514 -0800
+@@ -1183,6 +1183,8 @@
+ 			fprintf(f, "\n");
+ 		}
+ 	}
++	if (config->easymesh_backhaul_sta)
++		fprintf(f, "easymesh_backhaul_sta=%d\n", config->easymesh_backhaul_sta);
+ #endif /* CONFIG_WPS */
+ #ifdef CONFIG_P2P
+ 	{
+diff -Naur wpa_supplicant-2.7-orig/wpa_supplicant/wps_supplicant.c wpa_supplicant-2.7/wpa_supplicant/wps_supplicant.c
+--- wpa_supplicant-2.7-orig/wpa_supplicant/wps_supplicant.c	2019-02-11 11:57:50.048753033 -0800
++++ wpa_supplicant-2.7/wpa_supplicant/wps_supplicant.c	2019-02-11 11:57:38.155614567 -0800
+@@ -562,6 +562,9 @@
+ 	}
+ 	ssid->priority = wpa_s->conf->wps_priority;
+ 
++	if (wpa_s->conf->easymesh_backhaul_sta)
++		ssid->scan_ssid = 1;
++
+ 	wpas_wps_security_workaround(wpa_s, ssid, cred);
+ 
+ 	wpas_wps_remove_dup_network(wpa_s, ssid);
+@@ -1527,6 +1530,11 @@
+ 	}
+ }
+ 
++void wpas_wps_set_easymesh_backhaul_sta(struct wpa_supplicant *wpa_s,
++					struct wps_context *wps)
++{
++	wps->dev.easymesh_backhaul_sta_en = wpa_s->conf->easymesh_backhaul_sta;
++}
+ 
+ int wpas_wps_init(struct wpa_supplicant *wpa_s)
+ {
+@@ -2205,6 +2213,9 @@
+ 	if (wpa_s->conf->changed_parameters & CFG_CHANGED_VENDOR_EXTENSION)
+ 		wpas_wps_set_vendor_ext_m1(wpa_s, wps);
+ 
++	if (wpa_s->conf->changed_parameters & CFG_CHANGED_EASYMESH_BACKHAUL_STA)
++		wpas_wps_set_easymesh_backhaul_sta(wpa_s, wps);
++
+ 	if (wpa_s->conf->changed_parameters & CFG_CHANGED_OS_VERSION)
+ 		wps->dev.os_version = WPA_GET_BE32(wpa_s->conf->os_version);
+ 

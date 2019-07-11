@@ -1,6 +1,0 @@
-format=2160p50
-sampling=422
-depth=12
-dynrng=hdr10
-gamut=2020
-commit

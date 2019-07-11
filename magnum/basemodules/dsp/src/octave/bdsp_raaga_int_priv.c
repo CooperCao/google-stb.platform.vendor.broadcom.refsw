@@ -381,7 +381,7 @@ static void  BDSP_Raaga_P_UnlicensedAlgo_isr(
 
 	 BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
 
-	 BDBG_ERR(("BDSP_Raaga_P_UnlicensedAlgo_isr: Unlicensed Algo (%u) event occured for Task %d", pUnlicensedAlgoInfo->ui32AudioAlgorithm,pRaagaTask->taskParams.taskId));
+	 BDBG_MSG(("BDSP_Raaga_P_UnlicensedAlgo_isr: Unlicensed Algo (%s) event occured for Task %d", Algorithm2Name[pUnlicensedAlgoInfo->ui32AudioAlgorithm],pRaagaTask->taskParams.taskId));
 
 	 /* Call the application UnlicensedAlgo	callback function */
 	 if(pRaagaTask->audioInterruptHandlers.unlicensedAlgo.pCallback_isr) {

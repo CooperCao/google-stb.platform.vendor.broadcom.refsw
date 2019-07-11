@@ -463,6 +463,10 @@ struct nvram_tuple router_defaults[] = {
 	{ "wl_nas_dbg", "0", 0 }, /* Enable/Disable NAS Debugging messages */
 #endif
 
+#ifdef CONFIG_HOSTAPD
+	{ "hapd_enable", "1", 0 },		/* Toggle hostapd service. Disabled by default */
+#endif	/* CONFIG_HOSTAPD */
+
 #ifdef __CONFIG_EMF__
 	/* EMF defaults */
 	{ "emf_entry", "", 0 },			/* Static MFDB entry (mgrp:if) */

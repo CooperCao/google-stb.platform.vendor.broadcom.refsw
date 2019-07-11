@@ -44,8 +44,8 @@ extern int wlc_msch_actionframe(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg,
 	uint32 channel, uint32 dwell_time, struct ether_addr *bssid,
 	wlc_actframe_callback cb_func, void *arg);
 
-#define ACT_FRAME_IN_PROGRESS(wlc, cfg) wlc_act_frame_tx_inprog(wlc, cfg)
-bool wlc_act_frame_tx_inprog(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
+#define ACT_FRAME_IN_PROGRESS(wlc, cfg) wlc_af_inprogress(wlc, cfg)
+bool wlc_af_inprogress(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
 
 extern void wlc_set_protected_dual_publicaction(uint8 *action_frame,
 	uint8 mfp, wlc_bsscfg_t *bsscfg);

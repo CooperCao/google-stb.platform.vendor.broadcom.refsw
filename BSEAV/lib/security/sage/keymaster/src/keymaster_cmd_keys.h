@@ -100,6 +100,17 @@
 #define KM_CMD_IMPORT_COMPLETE_OUT_KEY_BLOB_PTR         inout->blocks[3].data.ptr
 #define KM_CMD_IMPORT_COMPLETE_OUT_RET_KEY_BLOB_LEN     inout->basicOut[1]
 
+/* inout parameters for the 1-step import key call */
+#define KM_CMD_IMPORT_IN_NUM_KEY_PARAMS                 inout->basicIn[0]
+#define KM_CMD_IMPORT_IN_KEY_PARAMS_LEN                 inout->blocks[0].len
+#define KM_CMD_IMPORT_IN_KEY_PARAMS_PTR                 inout->blocks[0].data.ptr
+#define KM_CMD_IMPORT_IN_KEY_FORMAT                     inout->basicIn[1]
+#define KM_CMD_IMPORT_IN_KEY_BLOB_LEN                   inout->blocks[1].len
+#define KM_CMD_IMPORT_IN_KEY_BLOB_PTR                   inout->blocks[1].data.ptr
+#define KM_CMD_IMPORT_OUT_KEY_BLOB_LEN                  inout->blocks[2].len
+#define KM_CMD_IMPORT_OUT_KEY_BLOB_PTR                  inout->blocks[2].data.ptr
+#define KM_CMD_IMPORT_OUT_RET_KEY_BLOB_LEN              inout->basicOut[1]
+
 /* inout parameters for the export key start call */
 #define KM_CMD_EXPORT_START_IN_EXPORT_FORMAT            inout->basicIn[0]
 #define KM_CMD_EXPORT_START_IN_KEY_BLOB_LEN             inout->blocks[0].len
@@ -174,6 +185,44 @@
 #define KM_CMD_DELETE_KEY_IN_KEY_BLOB_LEN               inout->blocks[0].len
 #define KM_CMD_DELETE_KEY_IN_KEY_BLOB_PTR               inout->blocks[0].data.ptr
 
+/* inout parameters for the get hmac sharing params call */
+#define KM_CMD_GET_HMAC_SHARING_OUT_SEED_RET_LEN        inout->basicOut[1]
+#define KM_CMD_GET_HMAC_SHARING_OUT_SEED_LEN            inout->blocks[0].len
+#define KM_CMD_GET_HMAC_SHARING_OUT_SEED_PTR            inout->blocks[0].data.ptr
+#define KM_CMD_GET_HMAC_SHARING_OUT_NONCE_RET_LEN       inout->basicOut[2]
+#define KM_CMD_GET_HMAC_SHARING_OUT_NONCE_LEN           inout->blocks[1].len
+#define KM_CMD_GET_HMAC_SHARING_OUT_NONCE_PTR           inout->blocks[1].data.ptr
 
+/* inout parameters for the compute shared hmac call */
+#define KM_CMD_COMPUTE_SHARED_HMAC_IN_NUM_PARAMS        inout->basicIn[0]
+#define KM_CMD_COMPUTE_SHARED_HMAC_IN_PARAMS_LEN        inout->blocks[0].len
+#define KM_CMD_COMPUTE_SHARED_HMAC_IN_PARAMS_PTR        inout->blocks[0].data.ptr
+#define KM_CMD_COMPUTE_SHARED_HMAC_OUT_SHARING_CHECK_LEN inout->blocks[1].len
+#define KM_CMD_COMPUTE_SHARED_HMAC_OUT_SHARING_CHECK_PTR inout->blocks[1].data.ptr
+
+/* inout parameters for the verify authorization call */
+#define KM_CMD_VERIFY_AUTH_IN_CHALLENGE_LEN             inout->blocks[0].len
+#define KM_CMD_VERIFY_AUTH_IN_CHALLENGE_PTR             inout->blocks[0].data.ptr
+#define KM_CMD_VERIFY_AUTH_IN_NUM_PARAMS                inout->basicIn[0]
+#define KM_CMD_VERIFY_AUTH_IN_PARAMS_LEN                inout->blocks[1].len
+#define KM_CMD_VERIFY_AUTH_IN_PARAMS_PTR                inout->blocks[1].data.ptr
+#define KM_CMD_VERIFY_AUTH_IN_AUTH_TOKEN_LEN            inout->blocks[2].len
+#define KM_CMD_VERIFY_AUTH_IN_AUTH_TOKEN_PTR            inout->blocks[2].data.ptr
+#define KM_CMD_VERIFY_AUTH_OUT_VERIFY_TOKEN_LEN         inout->blocks[3].len
+#define KM_CMD_VERIFY_AUTH_OUT_VERIFY_TOKEN_PTR         inout->blocks[3].data.ptr
+
+/* inout parameters for the import wrapped key call */
+#define KM_CMD_IMPORT_WRAPPED_KEY_IN_WRAPPED_KEY_LEN    inout->blocks[0].len
+#define KM_CMD_IMPORT_WRAPPED_KEY_IN_WRAPPED_KEY_PTR    inout->blocks[0].data.ptr
+#define KM_CMD_IMPORT_WRAPPED_KEY_IN_WRAPPING_KEY_LEN   inout->blocks[1].len
+#define KM_CMD_IMPORT_WRAPPED_KEY_IN_WRAPPING_KEY_PTR   inout->blocks[1].data.ptr
+#define KM_CMD_IMPORT_WRAPPED_KEY_IN_MASKING_KEY_LEN    inout->blocks[2].len
+#define KM_CMD_IMPORT_WRAPPED_KEY_IN_MASKING_KEY_PTR    inout->blocks[2].data.ptr
+#define KM_CMD_IMPORT_WRAPPED_KEY_IN_NUM_PARAMS         inout->basicIn[0]
+#define KM_CMD_IMPORT_WRAPPED_KEY_IN_PARAMS_LEN         inout->blocks[3].len
+#define KM_CMD_IMPORT_WRAPPED_KEY_IN_PARAMS_PTR         inout->blocks[3].data.ptr
+#define KM_CMD_IMPORT_WRAPPED_KEY_OUT_RET_KEY_BLOB_LEN  inout->basicOut[1]
+#define KM_CMD_IMPORT_WRAPPED_KEY_OUT_KEY_BLOB_LEN      inout->blocks[4].len
+#define KM_CMD_IMPORT_WRAPPED_KEY_OUT_KEY_BLOB_PTR      inout->blocks[4].data.ptr
 
 #endif  /* KEYMASTER_CMD_KEYS_H__ */

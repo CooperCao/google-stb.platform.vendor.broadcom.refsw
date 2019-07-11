@@ -147,6 +147,7 @@
 #define WL_STA_RIFS_CAP		0x00080000	/* rifs enabled */
 #define WL_STA_VHT_CAP		0x00100000	/* STA VHT(11ac) capable */
 #define WL_STA_WPS		0x00200000	/* WPS state */
+#define WL_STA_GBL_RCLASS	0x00400000	/* STA supports Global R class */
 #ifndef LINUX_POSTMOGRIFY_REMOVAL
 #define WL_STA_DWDS_CAP		0x01000000	/* DWDS CAP */
 #define WL_STA_DWDS		0x02000000	/* DWDS active */

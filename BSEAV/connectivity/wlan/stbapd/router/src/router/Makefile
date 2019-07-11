@@ -80,7 +80,7 @@ endif
 export SRCBASE_ROUTER := $(abspath $(BASEDIR)/src/router)
 
 # Opensource bases
-OPENSOURCE_BASE_DIR := $(BASEDIR)/components/opensource
+OPENSOURCE_BASE_DIR := $(BASEDIR)/../../../../opensource
 DNSMASQ_DIR := $(OPENSOURCE_BASE_DIR)/dnsmasq
 LIBNFNETLINK_DIR := $(OPENSOURCE_BASE_DIR)/netfilter/libnfnetlink
 LIBMNL_DIR := $(OPENSOURCE_BASE_DIR)/netfilter/libmnl
@@ -95,9 +95,19 @@ AMIXER_DIR := $(ALSAUTILS_DIR)/amixer
 ALSACTL_DIR := $(ALSAUTILS_DIR)/alsactl
 MDNSRESPONDERDIR := $(OPENSOURCE_BASE_DIR)/mDNSResponder
 LIBSQLITE3_DIR := $(OPENSOURCE_BASE_DIR)/sqlite3
-LIBJSONC_DIR := $(OPENSOURCE_BASE_DIR)/jsonc
+ifeq ($(ANDROID),1)
+LIBJSONC_DIR := $(BASEDIR)/components/opensource/jsonc
+else
+include $(OPENSOURCE_BASE_DIR)/jsonc/jsonc.inc
+endif
+#export for other makefiles
+export LIBJSONC_DIR
 LIBXML2_DIR := $(OPENSOURCE_BASE_DIR)/libxml2
-EBTABLES_DIR ?= $(OPENSOURCE_BASE_DIR)/ebtables*
+ifeq ($(ANDROID),1)
+EBTABLES_DIR := $(BASEDIR)/components/opensource/ebtables
+else
+include $(OPENSOURCE_BASE_DIR)/ebtables/ebtables.inc
+endif
 
 #Visualization Directories
 VISSOURCE_BASE_DIR := $(BASEDIR)/components/apps/visualization
@@ -182,7 +192,9 @@ export CONFIGURE := ./configure arm-linux --build=$(BUILD)
 export TOOLCHAIN ?= $(shell cd $(dir $(shell which $(CROSS_COMPILE)gcc))/.. && pwd -P)
 export CFLAGS += -fno-strict-aliasing
 SUBMAKE_SETTINGS += ARCH=$(ARCH)
+ifneq ($(ANDROID),1)
 EXTRA_LDFLAGS := -lgcc_s
+endif
 endif
 
 ifeq ($(PLATFORM),arm-glibc)
@@ -195,7 +207,21 @@ export CONFIGURE := ./configure arm-linux --build=$(BUILD)
 export TOOLCHAIN := $(shell cd $(dir $(shell which $(CROSS_COMPILE)gcc))/../.. && pwd -P)
 export CFLAGS += -fno-strict-aliasing
 SUBMAKE_SETTINGS += ARCH=$(ARCH)
+ifneq ($(ANDROID),1)
 EXTRA_LDFLAGS := -lgcc_s
+endif
+endif
+
+ifneq ($(ANDROID),1)
+ARCH_TOOL := $(ARCHTOOL)-
+else
+ARCH_TOOL := $(CROSS_COMPILE)
+endif
+
+ifneq ($(ANDROID),1)
+HOST := $(ARCH)-unknown-linux
+else
+HOST := $(ARCH)-linux-androideabi
 endif
 
 ifneq ($(strip $(BCA_HNDROUTER)),)
@@ -203,7 +229,11 @@ export CFLAGS += -DBCA_HNDROUTER $(USR_CFLAGS)
 ifneq ($(strip $(BUILD_MCAST_PROXY)),)
 CFLAGS += -DMCPD_PROXY
 endif
+ifneq ($(ANDROID),1)
 export EXTRA_LDFLAGS := "-lgcc_s $(USR_LDFLAGS)"
+else
+export EXTRA_LDFLAGS := "$(USR_LDFLAGS)"
+endif
 endif
 
 ifeq ($(PLATFORM),arm64-glibc)
@@ -214,7 +244,19 @@ export CFLAGS += -fno-strict-aliasing
 export CFLAGS += -Wno-pointer-to-int-cast
 export CFLAGS += -Wno-int-to-pointer-cast
 SUBMAKE_SETTINGS += ARCH=$(ARCH)
+ifneq ($(ANDROID),1)
 EXTRA_LDFLAGS := -lgcc_s
+endif
+endif
+
+# Android CFLAGS
+ifeq ($(ANDROID),1)
+export CFLAGS += -Wl,--dynamic-linker=/system/bin/linker
+export CFLAGS += -pie -fPIE
+export CFLAGS += --sysroot=$(BROADCOM_ANDROID_SYSROOT)
+export CFLAGS += -isystem $(BROADCOM_ANDROID_SYSROOT)/usr/include/
+export CFLAGS += -DTARGETENV_android
+export CFLAGS += -DDISABLE_HSEARCH
 endif
 
 ifeq ($(CONFIG_RTR_OPTIMIZE_SIZE),y)
@@ -285,9 +327,6 @@ endif
 
 ifeq ($(PLT),arm)
 ifeq ($(call wlan_version_ge,$(BCM_KVERSIONSTRING),2.6.36),TRUE)
-ifeq ($(CONFIG_VISUALIZATION),y)
-export CFLAGS += -D__CONFIG_VISUALIZATION__ -DCONFIG_VISUALIZATION_ENABLED
-endif
 endif
 endif
 
@@ -509,7 +548,6 @@ obj-$(CONFIG_HTTPD) += httpd
 obj-$(CONFIG_RC) += rc
 ifeq ($(PLT),arm)
 ifeq ($(call wlan_version_ge,$(BCM_KVERSIONSTRING),2.6.36),TRUE)
-obj-$(CONFIG_VISUALIZATION) += libsqlite3 libjsonc libxml2 visdcoll visdcon
 obj-$(CONFIG_TREND_IQOS) += libjsonc
 endif
 endif
@@ -611,6 +649,10 @@ obj-$(CONFIG_PLC) += plc
 ifeq ($(CONFIG_PLC),y)
 export CFLAGS += -D__CONFIG_PLC__ -D__CONFIG_URE__
 CFLAGS	+= -DPLC -DWPS_LONGPUSH_DISABLE
+endif
+
+ifeq ($(BUILD_BRCM_HOSTAPD),y)
+export CFLAGS += -DCONFIG_HOSTAPD
 endif
 
 #ifdef __CONFIG_TREND_IQOS__
@@ -750,7 +792,7 @@ obj-clean := $(foreach obj,$(obj-y) $(obj-n),$(obj)-clean)
 obj-install := $(foreach obj,$(obj-y),$(obj)-install)
 
 # separate the libraries which need to be built first
-obj-prelibs =$(filter nvram libbcmcrypto shared bshared netconf libupnp libz libid3tag ffmpeg libbcm nfc libsqlite3 libjsonc libxml2 pciefd, $(obj-y))
+obj-prelibs =$(filter nvram libbcmcrypto shared bshared netconf libupnp libz libid3tag ffmpeg libbcm nfc libjsonc pciefd, $(obj-y))
 
 ifeq ($(CONFIG_STBAP),y)
 obj-prelibs += $(filter libbcmstb , $(obj-y))
@@ -1911,39 +1953,9 @@ libflow-install:
 libflow-clean:
 	$(MAKE) -C $(LIBFLOW_DIR) clean
 
-libsqlite3:
-ifeq ($(CONFIG_VISUALIZATION),y)
-	[ -f $(LIBSQLITE3_DIR)/Makefile ] || \
-	(cd $(LIBSQLITE3_DIR); \
-	 CC=$(CC) ./configure \
-            --target=$(PLATFORM)-linux \
-            --host=$(PLATFORM)-linux \
-            --enable-static=no \
-            --prefix=$(LIBSQLITE3_DIR)/installbin)
-	+$(MAKE) -C $(LIBSQLITE3_DIR)
-	+$(MAKE) -C $(LIBSQLITE3_DIR) install-strip
-endif
-
-libsqlite3-install:
-ifeq ($(CONFIG_VISUALIZATION),y)
-	install -d $(INSTALLDIR)/libsqlite3/usr/lib
-	cp -rf $(LIBSQLITE3_DIR)/installbin/lib/libsqlite3.so* $(INSTALLDIR)/libsqlite3/usr/lib
-endif
-
-libsqlite3-clean:
-ifeq ($(CONFIG_VISUALIZATION),y)
-	+$(MAKE) -C $(LIBSQLITE3_DIR) clean
-endif
-
 libjsonc:
-	[ -f $(LIBJSONC_DIR)/Makefile ] || \
-        (cd $(LIBJSONC_DIR); \
-         CC=$(CC) ./configure \
-            --target=$(PLATFORM)-linux \
-            --host=$(PLATFORM)-linux \
-            --disable-oldname-compat \
-            --enable-static=no \
-            --prefix=$(LIBJSONC_DIR)/installbin)
+	cd $(LIBJSONC_DIR); \
+	chmod 777 ./autogen.sh && ./autogen.sh CC=${ARCH_TOOL}gcc -host=${HOST} -build=x86_64-pc-linux-gnu STRIP=${ARCH_TOOL}strip LD=${ARCH_TOOL}ld --prefix=`pwd`;
 	+$(MAKE) -C $(LIBJSONC_DIR)
 	+$(MAKE) -C $(LIBJSONC_DIR) install-strip
 
@@ -1953,93 +1965,6 @@ libjsonc-install:
 
 libjsonc-clean:
 	+$(MAKE) -C $(LIBJSONC_DIR) clean
-
-libxml2:
-ifeq ($(CONFIG_VISUALIZATION),y)
-	[ -f $(LIBXML2_DIR)/Makefile ] || \
-        (cd $(LIBXML2_DIR); \
-         CC=$(CC) ./configure \
-            --target=$(PLATFORM)-linux \
-            --host=$(PLATFORM)-linux \
-            --with-python=no \
-            --without-zlib \
-            --without-ftp \
-            --without-http \
-            --without-html \
-            --without-debug \
-            --without-docbook \
-            --without-catalog \
-            --without-schemas \
-            --enable-static=no \
-            --prefix=$(LIBXML2_DIR)/installbin)
-	+$(MAKE) -C $(LIBXML2_DIR)
-	+$(MAKE) -C $(LIBXML2_DIR) install-strip
-endif
-
-libxml2-install:
-ifeq ($(CONFIG_VISUALIZATION),y)
-	install -d $(INSTALLDIR)/libxml2/usr/lib
-	cp -rf $(LIBXML2_DIR)/installbin/lib/libxml2.so* $(INSTALLDIR)/libxml2/usr/lib
-endif
-
-libxml2-clean:
-ifeq ($(CONFIG_VISUALIZATION),y)
-	+$(MAKE) -C $(LIBXML2_DIR) clean
-endif
-
-visdcoll:
-ifeq ($(CONFIG_VISUALIZATION),y)
-ifneq ($(wildcard $(VISDCOLL_DIR)),)
-	[ -f $(VISDCOLL_DIR)/Makefile ] || \
-        (cd $(VISDCOLL_DIR); \
-         CC=$(CC) ./configure \
-            --target=$(PLATFORM)-linux \
-            --host=$(PLATFORM)-linux \
-            --prefix=$(VISSOURCE_BASE_DIR)/installbin)
-	+$(MAKE) -C $(VISDCOLL_DIR) EXTRA_LDFLAGS=$(EXTRA_LDFLAGS)
-	+$(MAKE) -C $(VISDCOLL_DIR) install-strip
-endif
-endif
-
-visdcoll-install:
-ifeq ($(CONFIG_VISUALIZATION),y)
-	install -d $(INSTALLDIR)/visdcoll/usr/sbin
-	cp -rf $(VISSOURCE_BASE_DIR)/installbin/bin/vis-datacollector $(INSTALLDIR)/visdcoll/usr/sbin
-endif
-
-visdcoll-clean:
-ifeq ($(CONFIG_VISUALIZATION),y)
-ifneq ($(wildcard $(VISDCOLL_DIR)),)
-	+$(MAKE) -C $(VISDCOLL_DIR) clean
-endif
-endif
-
-visdcon:
-ifeq ($(CONFIG_VISUALIZATION),y)
-ifneq ($(wildcard $(VISDCON_DIR)),)
-	[ -f $(VISDCON_DIR)/Makefile ] || \
-        (cd $(VISDCON_DIR); \
-         CC=$(CC) ./configure \
-            --target=$(PLATFORM)-linux \
-            --host=$(PLATFORM)-linux \
-            --prefix=$(VISSOURCE_BASE_DIR)/installbin)
-	+$(MAKE) -C $(VISDCON_DIR) EXTRA_LDFLAGS=$(EXTRA_LDFLAGS)
-	+$(MAKE) -C $(VISDCON_DIR) install-strip
-endif
-endif
-
-visdcon-install:
-ifeq ($(CONFIG_VISUALIZATION),y)
-	install -d $(INSTALLDIR)/visdcon/usr/sbin
-	cp -rf $(VISSOURCE_BASE_DIR)/installbin/bin/vis-dcon $(INSTALLDIR)/visdcon/usr/sbin
-endif
-
-visdcon-clean:
-ifeq ($(CONFIG_VISUALIZATION),y)
-ifneq ($(wildcard $(VISDCON_DIR)),)
-	+$(MAKE) -C $(VISDCON_DIR) clean
-endif
-endif
 
 bshared:
 ifeq ($(CONFIG_BSHARED), y)
@@ -2580,11 +2505,7 @@ endif # CONFIG_STBAP
 .PHONY: libnetfilter_conntrack libnetfilter_conntrack-install libnetfilter_conntrack-clean
 .PHONY: libnetfilter_queue libnetfilter_queue-install libnetfilter_queue-clean
 .PHONY: libflow libflow-install libflow-clean
-.PHONY: libsqlite3 libsqlite3-install libsqlite3-clean
 .PHONY: libjsonc libjsonc-install libjsonc-clean
-.PHONY: libxml2 libxml2-install libxml2-clean
-.PHONY: visdcoll visdcoll-install visdcoll-clean
-.PHONY: visdcon visdcon-install visdcon-clean
 .PHONY: wbd wbd-install wbd-clean
 .PHONY: ieee1905 ieee1905-install ieee1905-clean
 .PHONY: bshared bshared-install bshared-clean

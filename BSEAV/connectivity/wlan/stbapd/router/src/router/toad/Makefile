@@ -11,7 +11,9 @@
 #
 # $Id: Makefile 736682 2017-12-18 05:55:04Z $
 #
+ifneq ($(STBANDROID),1)
 CFLAGS	+= -s -Wall -Werror
+endif
 ifeq ($(CONFIG_RTR_OPTIMIZE_SIZE),y)
 CFLAGS  += -Os
 else
@@ -22,6 +24,9 @@ CFLAGS	+= -I. -I$(TOP)/shared -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBA
 CFLAGS	+= $(if $(WLAN_ComponentIncPath),$(WLAN_ComponentIncPath),$(addprefix -I,$(wildcard $(SRCBASE)/shared/bcmwifi/include)))
 LDFLAGS += -L$(TOP)/nvram -L$(INSTALLDIR)/nvram/usr/lib -lnvram
 LDFLAGS += -L$(TOP)/shared -L$(INSTALLDIR)/shared/usr/lib -lshared
+ifneq ($(STBANDROID),1)
+LDFLAGS += -lpthread
+endif
 LDFLAGS += $(EXTRA_LDFLAGS)
 
 

@@ -110,7 +110,7 @@ int bcm_gas_deinitialize(void);
 
 /* create GAS protocol instance to destination */
 bcm_gas_t *bcm_gas_create(struct bcm_gas_wl_drv_hdl *drv, int bsscfg_idx,
-	uint16 channel, struct ether_addr *dst);
+	void *wl_drv_if, uint16 channel, struct ether_addr *dst);
 
 /* destroy GAS protocol instance */
 int bcm_gas_destroy(bcm_gas_t *gas);
@@ -154,6 +154,9 @@ int bcm_gas_get_query_response(bcm_gas_t *gas, int dataLen, int *len, uint8 *dat
 
 /* set bsscfg index */
 int bcm_gas_set_bsscfg_index(bcm_gas_t *gas, int index);
+
+/* Get wlcif context pointer */
+void *bcm_gas_get_wl_drv_if(bcm_gas_t *gas);
 
 /* configure dot11GASPauseForServerResponse per interface */
 void bcm_gas_set_if_gas_pause(int isPause, struct bcm_gas_wl_drv_hdl *drv);

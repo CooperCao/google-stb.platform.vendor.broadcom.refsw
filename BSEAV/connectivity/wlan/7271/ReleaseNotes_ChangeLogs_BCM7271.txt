@@ -1,0 +1,186 @@
+﻿15_30_55
+resolved driver assert for 802.11k
+resolved issue with phy_rxiqest IOVAR
+resolved issue with Multi-AP cert MAP-4.3.2, MAP-4.8.5, MAP-4.10.3, MAP-4.10.4
+resolved TDLS issue
+enabled support for hidden SSID
+enabled STBAPD support for Android P
+resolved slave radar detection issue
+
+15_30_52 -
+15_30_54
+resolved STBAPD issue for Android O
+resolved issue when action frame IOVARs are issued back to back.
+resolved TDLS wider band related issue
+resolved per antenna rssi returned zero values
+
+15_30_48 -
+15_30_51
+resolved ucode issue during RXPER test
+added STBAPD support for Android
+enabled AP_KEEP_ALIVE for every 60 seconds as default
+resolved issue when using wpa_supplicant to set 7271 as AP
+resolved P2P issue when creating two GOs
+resolved issue for 2x2, 2.4G support
+resolved issue when driver receives a malformed chanspec
+resolved issue during PHY noise calculation
+resolved softAP issue when issuing CSA (channel switch announcement) command
+resolved P2P issue for 80Mhz channel bandwidth
+
+15_30_45 -
+15_30_47
+resolved ucode issue for PSM watchdog
+resolved Multi-AP issues for wbd_slave and rc daemons
+resolved PER issue when WPA2 is enabled
+added Bluetooth support in Atlas
+
+15_30_42 -
+15_30_44
+resolved issue with RRM (802.11k)
+added hostAPD ACS support
+added Fluoride support
+optimized tempsense for improved PER
+updated RxIQ calibration
+resolved PM issue on DFS channel
+updated Multi-AP feature for multi-agent and resolved issues
+resolved multicast UDP issue
+
+15_30_37 -
+15_30_41
+added sigma agent for Multi-AP, MBO and OCE support
+added proc entry for driver version and info
+resolved hanged message from wpa_supplicant for Android
+reset DFS state machine when driver is down
+default band to auto even if 2G and 5G chains are different
+added driver version to Multi-AP support
+resolved ACS issue with HostAPD
+resolved 802.11K issue with rrm_bcn_req command
+
+15_30_30 -
+15_30_36
+resolved BT disconnection caused by WiFi driver's short period grant time
+fixed correct channel idle time calculation
+added detecting bad Rx IQ calibration
+improved WiFi power consumption when WoWL feature is not enabled
+resolved scan behavior on DFS channel after radar detection
+enabled ESCAN_RESULT_PATCH to prevent empty scan result
+added an iovar, dump rxiqcal, to retrieve statistics on bad Rx IQ calibration
+improved Rx IQ Cal and TxAuxCal
+updated NVRAM file: bcm97271alt.txt
+enabled Multi-AP support
+enabled Multiband Operation (MBO) support
+enabled Optimized Connectivity Experience (OCE) support
+**** Note *****
+BSEAV/connectivity/wlan/core was renamed to BSEAV/connectivity/wlan/7271. Change your scripts/makefile accordingly.
+
+For Android, the change below is needed.
+
+The file “device/broadcom/common/settings.mk”
+
+diff --git a/settings.mk b/settings.mk
+
+index 0422153..e9b0ee1 100644
+
+--- a/settings.mk
+
++++ b/settings.mk
+
+@@ -141,7 +141,7 @@ export ANDROID_BUILD                         := y
+
+export ANDROID_SUPPORTS_DTVKIT               := n
+
+export BROADCOM_DHD_SOURCE_PATH              := ${ANDROID}/${BCM_VENDOR_STB_ROOT}/drivers/bcmdhd
+
+export BROADCOM_NIC_SCRIPT_PATH              := ${ANDROID}/${BCM_VENDOR_STB_ROOT}/drivers/bcmnic
+
+-export BROADCOM_NIC_SOURCE_PATH              := ${ANDROID}/${BCM_VENDOR_STB_ROOT}/refsw/BSEAV/connectivity/wlan/core
+
++export BROADCOM_NIC_SOURCE_PATH              := ${ANDROID}/${BCM_VENDOR_STB_ROOT}/refsw/BSEAV/connectivity/wlan/7271
+
+export BROADCOM_NIC_DUAL_SOURCE_PATH         := ${ANDROID}/${BCM_VENDOR_STB_ROOT}/drivers/bcmnic_dual
+
+export HLS_PROTOCOL_SUPPORT                  := y
+****
+
+15_30_21 -
+15_30_29
+added vendor commands for android support
+fixed issue to disallow chain manipulation while driver is up
+added new NVRAM files for bcm97271alt.txt and bcm97271lc4l_RTC5638HS.txt reference designs
+**engineering release** added support for STBAP AP package
+added support for ATM (percentage mode) support
+added softAP mode RX chain power save feature in mfgtest build target
+added RXDESENS_EN feature for mfgtest build target
+enabled BSSLOAD feature for QBSS (QoS enhanced basic service set)
+added support for HostAPD 802.11r
+resolved issue during unloading of WLAN driver
+resolved P2P group formation issue in 5G
+enabled UK radar type detection
+
+15_30_12 -
+15_30_20
+improved TX packet processing resulting in higher/more stable throughput
+added new NVRAMs for bcm97271db4l_v20 and bcm97271sdb_dr reference boards
+added new IOVAR drv_rx_prob_req for Cert. WPS-AP 4.2.9
+resolved issue during unloading of the wlan driver in normal and WOWL mode
+updated US/0 country code
+resolved build issue for WMF (Wireless Multicast Forwarding) feature
+enabled band steering daemon feature
+resolved issue in cfg80211 during CFG80211_DISCONNECTED
+resolved coverity issues
+resolved stack usage coverity issues
+enabled local constraint to 4-stream rates
+resolved Key Reinstallation Vulnerability Detection case 5.2.5 failure
+resolved CCA pool size and dynamically allocated/de-allocated CCA pool
+resolved scan timeout issue
+resolved issue for eMMC-based reference board
+added wlplat driver banner
+resolved issue when RSSI is low or out of band blocker is strong
+added support for SKY85809-11(Logarithmic PDET) and RFFM4558A (Diode PDET) FEMs
+resolved COEX throughput issue during BT COEX activities (clear enBtSignalsToFEMLut bit)
+improved transmit packet scheduling among multiple CPU cores in SMP system
+add support for CCA (clear channel assessment) disgnostics
+enabled 802.11v (WNM) support for cfg80211
+resolved issue for 3 wire COEX
+added new NVRAM boardflag options for new FEM PDOT feature
+improved VI throughput
+reduced 5G TIA gain table by 1dB
+added 802.11k support for hostapd
+
+15_30_8 -
+15_30_11
+added hostapd driver build config using wlconfig_lx_wl_stbhostapd config file
+enabled memory barrier for 64-bit builds to prevent race condition
+enabled qos_map_set support for cfg80211 target
+improved 20 and 40 Mhz throughput stability
+
+15_30_2 -
+15_30_7
+enabled WDS and DWDS support for cfg80211
+added support for board specific nvram
+improved WIFI power consumption while in MPC 1 mode
+resolved security vulnerability: Block case where eapd may be attacked by external UDP traffic. Change at application layer
+resolved memory corruption issue, that could result in the interface going down
+resolved issue with TDLS not working with AP operating in 20MHz or 40MHz DFS channel
+resolved issue which would cause STA to disconnect while in AP mode
+resolved security vulnerability: It was reported that as an authenticator, we do not check MIC of the MIC failure report frame and Rekey request frame received from STA
+resolved security vulnerability B2017071901). Issue with Fast BSS Transition exchange
+resolved KRACK vulnerability (B2017083101-B2017083105) - TCP connections to/from an Internet endpoint can be hijacked and data can be injected. Fix applies to client mode operation. PTK fix. Application layer change
+resolved KRACK vulnerability B2017083106, avoid re-installation of pairwise key when authentication request is retransmitted. Application layer change
+enabled 2G 2x2 chain lock feature (-2glock- target)
+resolved issue due to 4-way handshake timeout
+added new NVRAM file for BCM97271SDB board
+enabled Auto Channel Selection (ACS) support for HOSTAPD
+resolved assertion in AMPDU TX
+resolved coverity issues
+
+15_20_50 -
+15_30_1
+added split NIC driver feature.
+New wlplat.ko module must be loaded before wl.ko module
+resolved errorr with interpretation of nvram PPR
+resolved coverity issues
+improved RXPER and sensitivity
+improved 11b/CCK PER
+improved ACI performance for 40MHz, 80MHz bw and for far-ACI signals
+added support for STBAP package

@@ -80,6 +80,7 @@ extern "C" {
 #include "bchp_video_enc_decim_0.h"
 #include "bvdc_resource_priv.h"
 #include "bvdc_cfc_priv.h"
+#include "bvdc_adjrect_priv.h"
 
 #include "bchp_hdmi.h"
 #include "bchp_hdmi_rm.h"

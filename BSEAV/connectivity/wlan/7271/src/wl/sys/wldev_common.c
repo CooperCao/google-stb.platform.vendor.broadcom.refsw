@@ -88,6 +88,10 @@ s32 wldev_ioctl(
 	ioc.len = len;
 	ioc.set = set;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 31)
+	if (!dev->netdev_ops)
+		return -1;
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 31) */
 	strncpy(ifr.ifr_name, dev->name, sizeof(ifr.ifr_name));
 	ifr.ifr_name[sizeof(ifr.ifr_name) - 1] = '\0';
 	ifr.ifr_data = (caddr_t)&ioc;

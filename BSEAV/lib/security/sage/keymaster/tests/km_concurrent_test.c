@@ -159,6 +159,7 @@ static BERR_Code run_test(thread_state_t *state)
     KeymasterTl_DataBlock in_data;
     KeymasterTl_DataBlock intermediate_data;
     KeymasterTl_DataBlock final_data;
+    KeymasterTl_DataBlock finish_data;
     int mode;
     int block;
     uint32_t out_data_size;
@@ -185,6 +186,7 @@ static BERR_Code run_test(thread_state_t *state)
     TEST_ALLOCATE_BLOCK(in_data, TEST_BLOCK_SIZE);
     TEST_ALLOCATE_BLOCK(intermediate_data, TEST_BLOCK_SIZE + TEST_KEY_SIZE / 8);
     TEST_ALLOCATE_BLOCK(final_data, TEST_BLOCK_SIZE + TEST_KEY_SIZE / 8);
+    TEST_ALLOCATE_BLOCK(finish_data, TEST_BLOCK_SIZE);
     memset(in_data.buffer, 0x1c, in_data.size);
     memset(intermediate_data.buffer, 0xa2, intermediate_data.size);
     memset(final_data.buffer, 0x2d, final_data.size);
@@ -231,6 +233,8 @@ static BERR_Code run_test(thread_state_t *state)
         }
 
         KeymasterTl_GetDefaultCryptoFinishSettings(&finishSettings);
+        finishSettings.out_data.size = finish_data.size;
+        finishSettings.out_data.buffer = finish_data.buffer;
         EXPECT_SUCCESS(KeymasterTl_CryptoFinish(state->handle, op_handle, &finishSettings));
         TEST_DELETE_CONTEXT(finishSettings.out_params);
         out_data_size += finishSettings.out_data_size;
@@ -264,6 +268,7 @@ done:
     TEST_FREE_BLOCK(in_data);
     TEST_FREE_BLOCK(intermediate_data);
     TEST_FREE_BLOCK(final_data);
+    TEST_FREE_BLOCK(finish_data);
     TEST_FREE_BLOCK(key);
     TEST_DELETE_CONTEXT(key_params);
     TEST_DELETE_CONTEXT(begin_params);
@@ -287,6 +292,7 @@ int main(int argc, char *argv[])
     int rc = 0;
     int i;
     KM_Tag_ContextHandle params = NULL;
+    uint32_t vendor_patchlevel = 20190101U;
     pthread_mutex_t mutex;
     thread_state_t thread_state[NUM_CONCURRENT_OPS];
     pthread_t threads[NUM_CONCURRENT_OPS];
@@ -325,6 +331,7 @@ int main(int argc, char *argv[])
         memcpy(initSettings.drm_binfile_path, argv[1], strlen(argv[1]));
     }
 
+    initSettings.version = SKM_VERSION_3;
     berr = KeymasterTl_Init(&handle, &initSettings);
     if (berr != BERR_SUCCESS) {
         BDBG_ERR(("### Keymaster init failed (%x)\n", berr));
@@ -335,7 +342,7 @@ int main(int argc, char *argv[])
     EXPECT_SUCCESS(KM_Tag_NewContext(&params));
     TEST_TAG_ADD_INTEGER(params, SKM_TAG_OS_VERSION, USE_OS_VERSION);
     TEST_TAG_ADD_INTEGER(params, SKM_TAG_OS_PATCHLEVEL, USE_OS_PATCHLEVEL);
-    EXPECT_SUCCESS(KeymasterTl_Configure(handle, params));
+    EXPECT_SUCCESS(KeymasterTl_Configure(handle, vendor_patchlevel, params));
 
     memset(&thread_state, 0, sizeof(thread_state));
     for (i = 0; i < NUM_CONCURRENT_OPS; i++) {

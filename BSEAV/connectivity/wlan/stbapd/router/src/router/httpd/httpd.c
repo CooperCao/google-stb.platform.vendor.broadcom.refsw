@@ -55,7 +55,11 @@ extern int strncasecmp(const char *s1, const char *s2, size_t n);
 #define main			milli
 #define	MAX_BACKLOG		10
 #else
+#ifdef TARGETENV_android
+#include <linux/can/error.h>
+#else
 #include <error.h>
+#endif /* TARGETENV_android */
 #include <sys/signal.h>
 #define	MAX_BACKLOG		10
 #endif
@@ -806,10 +810,17 @@ int main(int argc, char **argv)
 		perror("daemon");
 		exit(errno);
 	}
+#ifdef TARGETENV_android
+	if (!(pid_fp = fopen("/data/var/run/httpd.pid", "w"))) {
+		perror("/data/var/run/httpd.pid");
+		return errno;
+	}
+#else
 	if (!(pid_fp = fopen("/var/run/httpd.pid", "w"))) {
 		perror("/var/run/httpd.pid");
 		return errno;
 	}
+#endif
 	fprintf(pid_fp, "%d", getpid());
 	fclose(pid_fp);
 	}

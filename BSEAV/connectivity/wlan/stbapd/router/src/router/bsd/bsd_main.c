@@ -8,6 +8,9 @@
 #include "bsd.h"
 #include <sys/stat.h>
 #include <fcntl.h>
+#ifdef MULTIAP
+#include <epivers.h>
+#endif
 
 /* policy extension flag usage */
 typedef struct bsd_flag_description_ {
@@ -110,6 +113,7 @@ static void bsd_usage(void)
 	printf("-S [MAC] poll bsd sta stats\n");
 	printf("-r poll bsd radio stats\n");
 	printf("-t change tty console\n");
+	printf("-v show bsd release version\n");
 	printf("-h\n");
 	printf("-H this help usage\n");
 	printf("\n");
@@ -479,9 +483,12 @@ int main(int argc, char *argv[])
 	char cmd[128];
 	struct stat buffer;
 	int wait_time = 0;
+#ifdef TARGETENV_android
+	char ttyname[128] = {0};
+#endif
 
 	if (argc > 1) {
-		while ((c = getopt(argc, argv, "chHfFilsSrt")) != -1) {
+		while ((c = getopt(argc, argv, "chHfFilsSrtv")) != -1) {
 			switch (c) {
 				case 'f':
 				case 'F':
@@ -517,7 +524,12 @@ int main(int argc, char *argv[])
 							BSD_ERROR("Failed to open tty file w+!\n");
 							return BSD_FAIL;
 						}
+#ifdef TARGETENV_android
+						ttyname_r(0, ttyname, sizeof(ttyname));
+                                                fprintf(ff, "%s", ttyname);
+#else
 						fprintf(ff, "%s", ttyname(0));
+#endif /* TARGETENV_android */
 						fclose(ff);
 						kill(pid, SIGPWR);
 						return BSD_OK;
@@ -588,7 +600,15 @@ int main(int argc, char *argv[])
 
 					kill(pid, sig);
 					return BSD_OK;
-
+				case 'v':
+#ifdef MULTIAP
+					printf("%s ver %d.%d.%d.%d\n", argv[0], EPI_MAJOR_VERSION, EPI_MINOR_VERSION,
+						EPI_RC_NUMBER, EPI_INCREMENTAL_NUMBER);
+					/* return, just print version */
+					return 0;
+#else
+					break;
+#endif
 				case 'h':
 				case 'H':
 					bsd_usage();

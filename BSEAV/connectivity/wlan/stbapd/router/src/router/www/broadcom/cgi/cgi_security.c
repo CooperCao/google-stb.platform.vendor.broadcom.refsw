@@ -68,7 +68,7 @@
 #include <wps_ui.h>
 #endif
 
-#include <cgi_common.h>
+#include "cgi_common.h"
 
 /* Write "1" for IBSS mode, "0" for Infrastructure based on wlX_infra NVRAM setting.
  * This will always write "0" for a virtual/secondary interface.  We don't currently support
@@ -190,7 +190,7 @@ ej_wl_corerev(int eid, webs_t wp, int argc, char_t **argv)
 	if (!make_wl_prefix(prefix,sizeof(prefix),0,NULL))
 		return websWrite(wp, "None");
 
-	return websWrite(wp, nvram_safe_get(strcat_r(prefix, "corerev", tmp)));
+	return websWrite(wp, "%s", nvram_safe_get(strcat_r(prefix, "corerev", tmp)));
 }
 REG_EJ_HANDLER(wl_corerev);
 

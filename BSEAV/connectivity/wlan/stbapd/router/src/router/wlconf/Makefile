@@ -14,7 +14,10 @@
 
 include $(SRCBASE)/router/.config
 
-CFLAGS	+= -I. -I$(TOP)/shared -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -Wall -Werror
+CFLAGS	+= -I. -I$(TOP)/shared -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include
+ifneq ($(STBANDROID),1)
+CFLAGS	+= -Wall -Werror
+endif
 CFLAGS	+= $(WLAN_ComponentIncPath)
 #CFLAGS	+= -g -DDEBUG
 CFLAGS	+= -s
@@ -24,6 +27,9 @@ else
 CFLAGS  += -O2
 endif
 LDFLAGS	+= -L$(TOP)/nvram -lnvram -L$(TOP)/shared -lshared
+ifneq ($(STBANDROID),1)
+LDFLAGS += -lpthread
+endif
 LDFLAGS += $(EXTRA_LDFLAGS)
 
 
@@ -40,4 +46,4 @@ install: all
 	$(STRIP) $(INSTALLDIR)/usr/sbin/wlconf
 
 wlconf: $(OBJS)
-	$(CC) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)

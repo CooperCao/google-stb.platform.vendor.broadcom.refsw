@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom.
+ *  Copyright (C) 2019 Broadcom.
  *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -312,6 +312,7 @@ Keymaster_ModuleInit(Keymaster_ModuleId_e module_id,
     }
 
     /* All modules will call SRAI_Module_Init */
+    container->basicIn[0] = pModuleSettings->version;
     BDBG_MSG(("%s - ************************* (platformHandle = 0x%09lx)", BSTD_FUNCTION, (long unsigned int)platformHandle));
     sage_rc = SRAI_Module_Init(platformHandle, module_id, container, &tmpModuleHandle);
     if(sage_rc != BERR_SUCCESS)

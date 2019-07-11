@@ -1,5 +1,6 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2019 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -726,6 +727,26 @@ BERR_Code BAPE_Mixer_P_DetermineOutputDataType(BAPE_MixerHandle handle, BAPE_Dat
         BDBG_MSG(("%s - explicitFormat %d, returning dataType %d", BSTD_FUNCTION, handle->explicitFormat, *pDataType));
     }
     return BERR_SUCCESS;
+}
+
+void BAPE_Mixer_GetInterruptHandlers(
+    BAPE_MixerHandle handle,
+    BAPE_MixerInterruptHandlers *pInterrupts     /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
+    BDBG_ASSERT(NULL != pInterrupts);
+    *pInterrupts = handle->interrupts;
+}
+
+void BAPE_Mixer_SetInterruptHandlers(
+    BAPE_MixerHandle handle,
+    const BAPE_MixerInterruptHandlers *pInterrupts
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
+    BDBG_ASSERT(NULL != pInterrupts);
+    handle->interrupts = *pInterrupts;
 }
 
 #if BDBG_DEBUG_BUILD

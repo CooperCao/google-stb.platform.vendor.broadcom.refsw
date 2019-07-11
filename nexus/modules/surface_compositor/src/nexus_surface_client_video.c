@@ -124,7 +124,7 @@ NEXUS_Error NEXUS_SurfaceCompositor_SwapWindows(NEXUS_SurfaceCompositorHandle ha
     }
     if (!child1) return BERR_TRACE(NEXUS_INVALID_PARAMETER);
 
-    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+    for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
         NEXUS_VideoWindowHandle temp;
         temp = client0->serverSettings.display[i].window[windowId0].window;
         client0->serverSettings.display[i].window[windowId0].window = client1->serverSettings.display[i].window[windowId1].window;
@@ -172,7 +172,7 @@ void nexus_surfaceclient_p_setwindows(NEXUS_SurfaceClientHandle client)
         unsigned i, display;
         NEXUS_OBJECT_ASSERT(NEXUS_SurfaceClient, client->parent);
         BKNI_Memset(client->window, 0, sizeof(client->window));
-        for (display=0;display<NEXUS_MAX_DISPLAYS;display++) {
+        for (display=0;display<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;display++) {
             for (i=0;i<NEXUS_SURFACE_COMPOSITOR_VIDEO_WINDOWS;i++) {
                 if (client->parent->serverSettings.display[display].window[i].window && i == client->client_id) {
                     client->window[display] = client->parent->serverSettings.display[display].window[i].window;
@@ -195,7 +195,7 @@ static void nexus_surfaceclient_p_resetvideo( NEXUS_SurfaceClientHandle client )
     NEXUS_Module_Lock(g_NEXUS_SurfaceCompositorModuleSettings.modules.display);
     NEXUS_DisplayModule_SetUpdateMode_priv(NEXUS_DisplayUpdateMode_eManual, &updateMode);
 
-    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+    for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
         NEXUS_VideoWindowSettings *pWindowSettings;
         NEXUS_VideoWindowHandle window;
         int rc;
@@ -254,12 +254,13 @@ static int nexus_surfaceclient_p_setvideo( NEXUS_SurfaceClientHandle client )
     /* if no video window, nothing to do */
     if (!client->window[0]) return 0;
 
-    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+    for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
         NEXUS_VideoWindowSettings *pWindowSettings;
         NEXUS_VideoWindowHandle window;
         bool visible = client->settings.composition.visible && client->parent->serverSettings.composition.visible && !client->server->settings.muteVideo[i];
         /* XXX also verify that parent is on the top */
         const struct NEXUS_SurfaceCompositorDisplay *cmpDisplay = client->server->display[i];
+        bool nsc_source_clipping = false;
 
         if(cmpDisplay==NULL) {
             continue;
@@ -285,7 +286,7 @@ static int nexus_surfaceclient_p_setvideo( NEXUS_SurfaceClientHandle client )
             NEXUS_SurfaceRegion displayScale;
             NEXUS_SurfaceRegion clientScale;
             NEXUS_Rect display;
-            NEXUS_Rect temp, temp2;
+            NEXUS_Rect temp;
             const NEXUS_SurfaceRegion *pInputCoord;
 
             /* set artificial source coordinates */
@@ -322,33 +323,58 @@ static int nexus_surfaceclient_p_setvideo( NEXUS_SurfaceClientHandle client )
             PRINT_RECT("video pos in video window coord", &pSettings->composition.position);
             PRINT_RECT("video pos in virtual display coord", &temp);
 
-            /* clip in client box */
-            nexus_surfacemp_p_clip_rect(&client->parent->serverSettings.composition.position, &temp, &pWindowSettings->position);
-            PRINT_RECT("clipped video pos in virtual display coord", &pWindowSettings->position);
+            /* clip in client box, if less than full screen */
+            if (client->parent->serverSettings.composition.position.x > 0 ||
+                client->parent->serverSettings.composition.position.y > 0 ||
+                client->parent->serverSettings.composition.position.x+client->parent->serverSettings.composition.position.width < client->parent->state.virtualDisplay.width ||
+                client->parent->serverSettings.composition.position.y+client->parent->serverSettings.composition.position.height < client->parent->state.virtualDisplay.height)
+            {
+                /* and, video must extend past top-level SurfaceClient */
+                if (temp.x < client->parent->serverSettings.composition.position.x ||
+                    temp.y < client->parent->serverSettings.composition.position.y ||
+                    temp.x + temp.width > client->parent->serverSettings.composition.position.x + client->parent->serverSettings.composition.position.width ||
+                    temp.y + temp.height > client->parent->serverSettings.composition.position.y + client->parent->serverSettings.composition.position.height)
+                {
+                    nexus_surfacemp_p_clip_rect(&client->parent->serverSettings.composition.position, &temp, &pWindowSettings->position);
+                    PRINT_RECT("clipped video pos in virtual display coord", &pWindowSettings->position);
+                    nsc_source_clipping = true;
+                }
+            }
 
             displayScale.width = display.width = cmpDisplay->formatInfo.canvas.width;
             displayScale.height = display.height = cmpDisplay->formatInfo.canvas.height;
             display.x = display.y = 0;
 
-            nexus_surfacemp_p_convert_coord(&client->parent->state.virtualDisplay, &displayScale, &temp, &windowScreenRect); /* unclipped window */
+            if (nsc_source_clipping) {
+                nexus_surfacemp_p_convert_coord(&client->parent->state.virtualDisplay, &displayScale, &temp, &windowScreenRect); /* unclipped window */
+            }
+            else {
+                nexus_surfacemp_p_convert_coord(&client->parent->state.virtualDisplay, &displayScale, &temp, &pWindowSettings->position);
+            }
             PRINT_REGION("virtual display coord", &client->parent->state.virtualDisplay);
             PRINT_REGION("actual display coord", &displayScale);
             PRINT_RECT("video pos in virtual display coord", &temp);
-            PRINT_RECT("video pos in actual display coord", &windowScreenRect);
-            nexus_surfacemp_p_convert_coord(&client->parent->state.virtualDisplay, &displayScale, &pWindowSettings->position, &temp); /* clipped window */
-            nexus_surfacemp_p_clip_rect(&display, &temp, &temp2); /* must clip because rounding could be different for the two scales */
-            /* clip into the screen box */
-            nexus_surfacemp_p_clip_rect(&display, &temp, &pWindowSettings->position);
+            if (nsc_source_clipping) {
+                NEXUS_Rect temp2;
+                PRINT_RECT("video pos in actual display coord", &windowScreenRect);
+                nexus_surfacemp_p_convert_coord(&client->parent->state.virtualDisplay, &displayScale, &pWindowSettings->position, &temp); /* clipped window */
+                nexus_surfacemp_p_clip_rect(&display, &temp, &temp2); /* must clip because rounding could be different for the two scales */
+                /* clip into the screen box */
+                nexus_surfacemp_p_clip_rect(&display, &temp, &pWindowSettings->position);
 
-            /* find clipped source */
-            if (temp2.width && temp2.height) {
-                NEXUS_Rect windowScreenClipRect;
-                nexus_surfacemp_p_clip_rect(&windowScreenRect, &temp2, &windowScreenClipRect);
-                nexus_surfacemp_scale_clipped_rect(&windowScreenRect, &windowScreenClipRect, &pWindowSettings->clipBase, &pWindowSettings->clipRect);
+                /* find clipped source */
+                if (temp2.width && temp2.height) {
+                    NEXUS_Rect windowScreenClipRect;
+                    nexus_surfacemp_p_clip_rect(&windowScreenRect, &temp2, &windowScreenClipRect);
+                    nexus_surfacemp_scale_clipped_rect(&windowScreenRect, &windowScreenClipRect, &pWindowSettings->clipBase, &pWindowSettings->clipRect);
+                }
+                else {
+                    /* no clip */
+                    pWindowSettings->clipRect = pWindowSettings->clipBase;
+                }
             }
             else {
-                /* no clip */
-                pWindowSettings->clipRect = pWindowSettings->clipBase;
+                PRINT_RECT("video pos in actual display coord", &pWindowSettings->position);
             }
 
             if (client->parent->serverSettings.backendMosaic) {
@@ -370,16 +396,23 @@ static int nexus_surfaceclient_p_setvideo( NEXUS_SurfaceClientHandle client )
                     if (rc) {BERR_TRACE(rc); goto done;}
                 }
 
-                if(pSettings->composition.clipRect.x || pSettings->composition.clipRect.y || pSettings->composition.clipRect.width || pSettings->composition.clipRect.height) {
-                    /* add user requested clipping, using either clipBase or virtualDisplay */
-                    NEXUS_SurfaceRegion clipBase = pSettings->composition.clipBase;
-                    if (!clipBase.width || !clipBase.height) {
-                        clipBase = pSettings->composition.virtualDisplay;
+                if (nsc_source_clipping) {
+                    if(pSettings->composition.clipRect.x || pSettings->composition.clipRect.y || pSettings->composition.clipRect.width || pSettings->composition.clipRect.height) {
+                        /* add user requested clipping, using either clipBase or virtualDisplay */
+                        NEXUS_SurfaceRegion clipBase = pSettings->composition.clipBase;
+                        if (!clipBase.width || !clipBase.height) {
+                            clipBase = *pInputCoord;
+                        }
+                        if (clipBase.width && clipBase.height) {
+                            nexus_surfaceclient_p_combine_clipping(&pWindowSettings->clipBase, &pWindowSettings->clipRect, &clipBase, &pSettings->composition.clipRect,  &temp);
+                            pWindowSettings->clipRect = temp;
+                        }
                     }
-                    if (clipBase.width && clipBase.height) {
-                        nexus_surfaceclient_p_combine_clipping(&pWindowSettings->clipBase, &pWindowSettings->clipRect, &clipBase, &pSettings->composition.clipRect,  &temp);
-                        pWindowSettings->clipRect = temp;
-                    }
+                }
+                else {
+                    pWindowSettings->clipRect = pSettings->composition.clipRect;
+                    pWindowSettings->clipBase.width = pSettings->composition.clipBase.width?pSettings->composition.clipBase.width:pInputCoord->width;
+                    pWindowSettings->clipBase.height = pSettings->composition.clipBase.height?pSettings->composition.clipBase.height:pInputCoord->height;
                 }
             }
 
@@ -412,7 +445,8 @@ static int nexus_surfaceclient_p_setvideo( NEXUS_SurfaceClientHandle client )
         }
 
         pWindowSettings->visible = visible;
-        if ((pWindowSettings->clipRect.width || pWindowSettings->clipRect.height) &&
+        if (nsc_source_clipping &&
+            (pWindowSettings->clipRect.width || pWindowSettings->clipRect.height) &&
             (pWindowSettings->clipRect.width < pWindowSettings->clipBase.width ||
             pWindowSettings->clipRect.height < pWindowSettings->clipBase.height))
         {
@@ -434,7 +468,7 @@ static int nexus_surfaceclient_p_setvideo( NEXUS_SurfaceClientHandle client )
     }
 
     /* set zorder */
-    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+    for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
         NEXUS_SurfaceClientHandle c, child;
         unsigned parentIndex = NEXUS_NUM_VIDEO_WINDOWS; /* wait to learn first parent, which could be 0 or 1 */
         unsigned parentZorder = 0; /* first parent is zorder 0 */

@@ -309,7 +309,7 @@ $(ATLAS_BIN_DIR):
 all: $(ATLAS_BIN_DIR) $(APP)
 	${Q_}$(CP) -f $(APP) $(ATLAS_BIN_DIR)
 
-clean: api-clean playback_ip_lib_clean lib-clean nxclient-clean $(LUA_CLEAN) clean-dvrlib clean-pod-driver clean-podlibs clean-dsgcclib clean-cdllib clean-estb-cfglibs clean-dcclib clean-snmp-agent clean-snmp-proxy clean-silib clean-atlas clean-perftools clean-bp3 clean-astra $(PMLIB_CLEAN)
+clean: api-clean playback_ip_lib_clean lib-clean nxclient-clean $(LUA_CLEAN) clean-dvrlib clean-pod-driver clean-podlibs clean-dsgcclib clean-cdllib clean-estb-cfglibs clean-dcclib clean-snmp-agent clean-snmp-proxy clean-silib clean-atlas clean-perftools clean-bp3 clean-astra clean-wlan $(PMLIB_CLEAN)
 
 dist-clean: clean dist-clean-netapp dist-clean-openssl
 	@echo [Clean..... libraries]
@@ -924,7 +924,8 @@ endif
 ## Include wlan driver
 ####
 
-ifeq ($(findstring $(NEXUS_PLATFORM), 97271), $(NEXUS_PLATFORM))
+#ifeq ($(findstring $(NEXUS_PLATFORM), 97271), $(NEXUS_PLATFORM))
+ifeq ($(filter $(NEXUS_PLATFORM), 97271 97216), $(NEXUS_PLATFORM))
 #only build wlan support for 97271, default on
 export WLAN_SUPPORT ?= y
 else
@@ -1580,6 +1581,11 @@ install-wlan-files:
 	@echo  [Install... wlan to $(STAGING_DIR)]
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/wl $(STAGING_DIR)
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/wlinstall $(STAGING_DIR)
+	${Q_}$(CP)  ../scripts/atlas_wlan_prep.sh $(STAGING_DIR)
+	${Q_}chmod 755 $(STAGING_DIR)/atlas_wlan_prep.sh
+	${Q_}$(CP)  ../scripts/udhcpc.script $(STAGING_DIR)
+	${Q_}chmod 755 $(STAGING_DIR)/udhcpc.script
+ifeq ($(findstring $(NEXUS_PLATFORM), 97271), $(NEXUS_PLATFORM))
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/wl.ko $(STAGING_DIR)
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/wlplat.ko $(STAGING_DIR)
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/nvram $(STAGING_DIR)
@@ -1595,6 +1601,16 @@ install-wlan-files:
 	${Q_}chmod 755 $(STAGING_DIR)/udhcpc.script
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/bcm97271*.txt $(STAGING_DIR)
 #	${Q_}$(CP) $(ATLAS_BIN_DIR)/wlan_plat.ko $(STAGING_DIR)
+else ifeq ($(findstring $(NEXUS_PLATFORM), 97216), $(NEXUS_PLATFORM))
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/dhd $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/dhd.ko $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/bcm97218*.txt $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/bcm97216*.txt $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/bcm97211*.txt $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/bcm972622*.txt $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/config_pcie_stb*.bin $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/*.clm_blob $(STAGING_DIR)
+endif
 else
 install-wlan-files:
 #intentionally left empty

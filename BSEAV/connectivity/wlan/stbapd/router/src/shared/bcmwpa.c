@@ -22,7 +22,7 @@
 #include <string.h>
 #include <bcm_osl.h>
 #else
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(TARGETENV_android)
 extern void bcopy(const void *src, void *dst, size_t len);
 extern int bcmp(const void *b1, const void *b2, size_t len);
 extern void bzero(void *b, size_t len);

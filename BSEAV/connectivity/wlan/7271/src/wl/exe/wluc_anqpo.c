@@ -72,8 +72,8 @@ static cmd_t wl_anqpo_cmds[] = {
 	},
 	{ "anqpo_start_query", wl_anqpo_start_query, -1, WLC_SET_VAR,
 	"start ANQP query to peer(s)\n"
-	"\tusage: anqpo_start_query <channel> <xx:xx:xx:xx:xx:xx>\n"
-	"\t\t[<channel> <xx:xx:xx:xx:xx:xx>]>"
+	"\tusage: anqpo_start_query <channel> <xx:xx:xx:xx:xx:xx> {-o <flags>}\n"
+	"\t\t[<channel> <xx:xx:xx:xx:xx:xx>]> {-o <flags>}"
 	},
 	{ "anqpo_auto_hotspot", wl_varint, WLC_GET_VAR, WLC_SET_VAR,
 	"automatic ANQP query to maximum number of hotspot APs, default 0 (disabled)\n"
@@ -236,46 +236,94 @@ wl_anqpo_start_query(void *wl, cmd_t *cmd, char **argv)
 {
 	int err = BCME_USAGE_ERROR, malloc_size;
 	char *buffer;
-	wl_anqpo_peer_list_t *list;
-	wl_anqpo_peer_t *peer;
 	int c;
 	int length;
+	wl_wlc_version_t *ver;
+	void *ptr;
+
+	/* first query wlc version. */
+	err = wlu_var_getbuf_sm(wl, "wlc_ver", NULL, 0, &ptr);
+	ver = ptr;
 
 	UNUSED_PARAMETER(cmd);
-
-	malloc_size = OFFSETOF(wl_anqpo_peer_list_t, peer) +
-		(ANQPO_MAX_PEER_LIST * sizeof(wl_anqpo_peer_t));
+	if (ver->wlc_ver_major >= 10u) {
+		malloc_size = OFFSETOF(wl_anqpo_peer_list_v2_t, peer) +
+			(ANQPO_MAX_PEER_LIST * sizeof(wl_anqpo_peer_v2_t));
+	} else {
+		malloc_size = OFFSETOF(wl_anqpo_peer_list_v1_t, peer) +
+			(ANQPO_MAX_PEER_LIST * sizeof(wl_anqpo_peer_v1_t));
+	}
 	buffer = malloc(malloc_size);
 	if (buffer == NULL) {
 		fprintf(stderr, "Not enough memory\n");
 		return BCME_NOMEM;
 	}
 	memset(buffer, 0, malloc_size);
-	list = (wl_anqpo_peer_list_t *)buffer;
-	peer = &list->peer[0];
+	if (ver->wlc_ver_major >= 10u) {
+		wl_anqpo_peer_v2_t *peer;
+		wl_anqpo_peer_list_v2_t *list;
+		list = (wl_anqpo_peer_list_v2_t *)buffer;
+		peer = &list->peer[0];
 
-	c = 1;
-	while (argv[c] && argv[c + 1]) {
-		if ((peer->channel = htod16(atoi(argv[c]))) == 0) {
-			fprintf(stderr, "Invalid channel\n");
-			err = BCME_USAGE_ERROR;
-			goto done;
+		c = 1;
+		while (argv[c] && argv[c + 1]) {
+			if ((peer->channel = htod16(atoi(argv[c]))) == 0) {
+				fprintf(stderr, "Invalid channel\n");
+				err = BCME_USAGE_ERROR;
+				goto done;
+			}
+			if (!wl_ether_atoe(argv[c + 1], &peer->addr)) {
+				fprintf(stderr, "Invalid address\n");
+				err = BCME_USAGE_ERROR;
+				goto done;
+			}
+			c += 2;
+			peer->flags = 0;
+			if (argv[c] && argv[c + 1]) {
+				if (!strcmp(argv[c], "-o")) {
+					peer->flags = htod16(atoi(argv[c + 1]));
+					c += 2;
+				}
+			}
+			list->count++;
+			peer++;
 		}
-		if (!wl_ether_atoe(argv[c + 1], &peer->addr)) {
-			fprintf(stderr, "Invalid address\n");
-			err = BCME_USAGE_ERROR;
-			goto done;
+
+		length = OFFSETOF(wl_anqpo_peer_list_v2_t, peer) +
+			(list->count * sizeof(wl_anqpo_peer_v2_t));
+		list->count = htod16(list->count);
+		list->version = WL_ANQPO_PEER_LIST_VERSION_2;
+		list->length = length - OFFSETOF(wl_anqpo_peer_list_v2_t, peer);
+		err = wlu_iovar_set(wl, cmd->name, list, length);
+	} else {
+		wl_anqpo_peer_list_v1_t *list;
+		wl_anqpo_peer_v1_t *peer;
+		list = (wl_anqpo_peer_list_v1_t *)buffer;
+		peer = &list->peer[0];
+
+		c = 1;
+		while (argv[c] && argv[c + 1]) {
+			if ((peer->channel = htod16(atoi(argv[c]))) == 0) {
+				fprintf(stderr, "Invalid channel\n");
+				err = BCME_USAGE_ERROR;
+				goto done;
+			}
+			if (!wl_ether_atoe(argv[c + 1], &peer->addr)) {
+				fprintf(stderr, "Invalid address\n");
+				err = BCME_USAGE_ERROR;
+				goto done;
+			}
+			c += 2;
+			list->count++;
+			peer++;
 		}
-		list->count++;
-		c += 2;
-		peer++;
+
+		length = OFFSETOF(wl_anqpo_peer_list_v1_t, peer) +
+			(list->count * sizeof(wl_anqpo_peer_v1_t));
+		list->count = htod16(list->count);
+		err = wlu_iovar_set(wl, cmd->name, list, length);
+
 	}
-
-	length = OFFSETOF(wl_anqpo_peer_list_t, peer) +
-		(list->count * sizeof(wl_anqpo_peer_t));
-	list->count = htod16(list->count);
-
-	err = wlu_iovar_set(wl, cmd->name, list, length);
 
 done:
 	free(buffer);

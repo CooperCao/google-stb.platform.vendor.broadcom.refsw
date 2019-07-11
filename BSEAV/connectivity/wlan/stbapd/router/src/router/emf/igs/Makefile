@@ -93,9 +93,12 @@ IFLAGS   += -I$(WLAN_SrcBaseA)/include/emf/igs
 IFLAGS   += -I$(WLAN_SrcBaseA)/router/emf/igs
 IFLAGS   += $(WLAN_StdIncPathA)
 
-WFLAGS := -Wall -Werror -Wstrict-prototypes -Wno-unused-local-typedefs -Wno-unused-variable \
+WFLAGS := -Wstrict-prototypes -Wno-unused-local-typedefs -Wno-unused-variable \
 	  -Wno-unused-function -Wno-unused-but-set-variable -Wno-implicit-function-declaration \
 	  -Wframe-larger-than=2048
+ifneq ($(STBANDROID),1)
+WFLAGS	+= -Wall -Werror
+endif
 
 LDFLAGS := -r
 MODULES := igs.o
@@ -121,11 +124,13 @@ CFILES := $(sort $(WLFILES))
 CROSS_COMPILE ?= arm-linux-
 
 # CROSS_COMPILE was decided by arch
+ifneq ($(STBANDROID),1)
 CC := $(CROSS_COMPILE)gcc
 LD := $(CROSS_COMPILE)ld
 NM := $(CROSS_COMPILE)nm
 OBJCOPY := $(CROSS_COMPILE)objcopy
 STRIP   := $(CROSS_COMPILE)strip
+endif
 
 OFILES := $(CFILES:.c=.o)
 

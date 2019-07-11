@@ -814,6 +814,11 @@ reg_msg_es_new(int es_type)
 	case ES_TYPE_M8STA:
 		size = sizeof(EsM8Sta);
 		break;
+#if defined(MULTIAP)
+	case ES_TYPE_M8BHSTA:
+		size = sizeof(EsM8Sta);
+		break;
+#endif	/* MULTIAP */
 	default:
 		TUTRACE((TUTRACE_ERR, "Unknown ES type %d\n", es_type));
 		return NULL;
@@ -852,6 +857,11 @@ reg_msg_es_del(void *es, bool content_only)
 	case ES_TYPE_M8STA:
 		reg_msg_m8sta_del((EsM8Sta *)es, content_only);
 		break;
+#if defined(MULTIAP)
+	case ES_TYPE_M8BHSTA:
+		reg_msg_m8sta_del((EsM8Sta *)es, content_only);
+		break;
+#endif	/* MULTIAP */
 	default:
 		TUTRACE((TUTRACE_ERR, "Unknown ES type %d\n", *es_type));
 		break;

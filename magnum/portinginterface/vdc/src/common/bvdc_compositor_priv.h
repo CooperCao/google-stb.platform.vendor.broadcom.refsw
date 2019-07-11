@@ -333,6 +333,7 @@ typedef struct BVDC_P_CompositorContext
     bool                              bBypassDviCsc;
     bool                              bUnknownHdrMetadata;
     BAVC_StaticHdrMetadata            stStaticHdrMetadata;
+    bool                              bStaticMetadataOverridden;
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2)
     bool                              bBlendMatrixOn;
     uint8_t                           ucBlendMatrixOnRulBuildCntr;

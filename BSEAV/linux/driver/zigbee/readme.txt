@@ -1,1 +1,0 @@
-To build, enter "make BCHP_CHIP=7366 BCHP_VER=B0", using the same toolchain used to build the host software

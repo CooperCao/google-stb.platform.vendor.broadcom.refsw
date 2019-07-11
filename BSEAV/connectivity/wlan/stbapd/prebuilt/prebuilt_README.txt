@@ -20,3 +20,16 @@ prebuilt_xxx
         |-- wbd_master
         `-- wbd_slave
 
+2) Band Steering Daemon
+
+prebuilt_xxx
+|-- usr
+    `-- sbin
+        |-- bsd
+
+3) Steering and stamon library
+
+prebuilt_xxx
+|-- lib
+|   |-- libbshared.so
+

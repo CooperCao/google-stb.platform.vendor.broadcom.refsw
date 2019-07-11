@@ -336,6 +336,10 @@ wlc_pspretend_dotxstatus(wlc_pps_info_t *pps, wlc_bsscfg_t *cfg, struct scb *scb
 
 	pps_scb = SCB_PPSINFO(pps, scb);
 
+	/* cubbies could have freed (by deinit seq asynchronously) by now, don't proceed further */
+	if (!pps_scb) {
+		return;
+	}
 	if (!SCB_PS_PRETEND(scb)) {
 		if (pps_recvd_ack) {
 			/* the following piece of code is the case of normal successful

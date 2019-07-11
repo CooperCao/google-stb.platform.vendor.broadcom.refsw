@@ -26,7 +26,10 @@ CFLAGS += -DLINUX26 -DLINUX_2_6_36 -DAUTOFW_PORT_DEPRECATED
 else
 CFLAGS += -DLINUX26
 endif
-CFLAGS += -I. -I$(TOP)/shared -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -Wall -Werror
+CFLAGS += -I. -I$(TOP)/shared -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include
+ifneq ($(STBANDROID),1)
+CFLAGS	+= -Wall -Werror
+endif
 ifneq ($(strip $(BCA_HNDROUTER)),)
 BB_BASE_PATH = $(BUILD_DIR)/userspace/gpl/apps/busybox
 BB_HEADER_PATH = $(firstword $(dir $(shell find $(BB_BASE_PATH) -name  Config.h)))
@@ -53,7 +56,9 @@ CFLAGS += $(if $(WLAN_ComponentIncPath),$(WLAN_ComponentIncPath),$(addprefix -I,
 CFLAGS += -I$(TOP)/dpsta
 
 #CFLAGS	+= -g -DDEBUG
+ifneq ($(STBANDROID),1)
 CFLAGS	+= -s
+endif
 ifeq ($(CONFIG_RTR_OPTIMIZE_SIZE),y)
 CFLAGS  += -Os
 else
@@ -61,6 +66,9 @@ CFLAGS  += -O2
 endif
 LDFLAGS	+= -L$(TOP)/nvram -L$(PLATFORMDIR)/install/nvram/usr/lib -lnvram -L$(TOP)/shared -L$(PLATFORMDIR)/install/shared/usr/lib -lshared \
 	-L$(TOP)/libbcmcrypto -L$(INSTALLDIR)/libbcmcrypto/usr/lib -lbcmcrypto
+ifneq ($(STBANDROID),1)
+LDFLAGS += -lpthread
+endif
 LDFLAGS += -L$(TOP)/libbcm -L$(INSTALLDIR)/libbcm/usr/lib -lbcm
 LDFLAGS += $(EXTRA_LDFLAGS)
 
@@ -86,6 +94,10 @@ endif
 ifeq ($(CONFIG_NAT),y)
 OBJS += ppp.o
 endif
+
+#ifeq ($(BUILD_BRCM_HOSTAPD),y)
+OBJS += hostapd_config.o
+#endif
 
 ifeq ($(RWL),1)
 CFLAGS += -DRWL_SOCKET
@@ -119,7 +131,7 @@ endif
 	cd $(INSTALLDIR)/sbin && ln -sf rc erase
 
 rc: $(OBJS)
-	$(CC) -o $@ $(OBJS) $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
 
 %.o: .%.depend
 .%.depend: %.c

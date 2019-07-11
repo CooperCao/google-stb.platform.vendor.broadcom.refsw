@@ -132,8 +132,6 @@ extern int osl_wificc_logDebugIf(uint64_t flags, const char *fmt, ...);
 #define WL_PFN_ERROR(args)	do {if (wl_msg_level & WL_ERROR_VAL) WL_PRINT(args); \
 					else WIFICC_LOGDEBUG(args); } while (0)
 
-#define WL_MBO_ERR(args)	do {if (wl_msg_level & WL_ERROR_VAL) WL_PRINT(args);} while (0)
-
 #ifndef LINUX_POSTMOGRIFY_REMOVAL
 #define	WL_PRHDRS_MSG(args)	do {if (wl_msg_level & WL_PRHDRS_VAL) WL_PRINT(args);} while (0)
 #define WL_PRHDRS(i, p, f, t, r, l)		do { \
@@ -211,6 +209,8 @@ extern int osl_wificc_logDebugIf(uint64_t flags, const char *fmt, ...);
 #define WL_MESH(args)	do {if (wl_msg_level2 & WL_MESH_VAL) WL_PRINT(args);} while (0)
 #define WL_SWDIV(args)	do {if (wl_msg_level2 & WL_SWDIV_VAL) WL_PRINT(args);} while (0)
 #define WL_MBO_DBG(args) do {if (wl_msg_level2 & WL_MBO_VAL) WL_PRINT(args);} while (0)
+#define WL_MBO_INFO(args) do {if (wl_msg_level2 & WL_MBO_VAL) WL_PRINT(args);} while (0)
+#define WL_MBO_ERR(args) do {if (wl_msg_level2 & WL_MBO_VAL) WL_PRINT(args);} while (0)
 #define WL_OCE_DBG(args) do {if (wl_msg_level2 & WL_OCE_VAL) WL_PRINT(args);} while (0)
 #define WL_OCE_ERR(args) do {if (wl_msg_level2 & WL_OCE_VAL) WL_PRINT(args);} while (0)
 #define WL_OCE_INFO(args) do {if (wl_msg_level2 & WL_OCE_VAL) WL_PRINT(args);} while (0)
@@ -456,6 +456,8 @@ extern uint32 wl_mesh_dbg;
 #define WL_TSLOG(w, s, i, j)
 #define WL_FBT(args)
 #define WL_MBO_DBG(args)
+#define WL_MBO_ERR(args)
+#define WL_MBO_INFO(args)
 #define WL_OCE_DBG(args)
 #define WL_OCE_ERR(args)
 #define WL_OCE_INFO(args)
@@ -561,8 +563,6 @@ extern uint32 wl_mesh_dbg;
 #else
 #define	WL_AMPDU_ERR(args)
 #endif /* BCMDBG_ERR */
-
-#define WL_MBO_ERR(args)
 
 #define	WL_TRACE(args)
 #ifndef LINUX_POSTMOGRIFY_REMOVAL
@@ -947,6 +947,26 @@ extern uint32 wl_mesh_dbg;
 #define WL_WSEC_DUMP(args)
 #endif /* WLMSG_WSEC */
 
+#ifdef WLMSG_MBO
+#if defined(EVENT_LOG_COMPILE) && defined(EVENT_LOG_COMPILE)
+#if defined(USE_EVENT_LOG_RA)
+#define   WL_MBO_DBG(args)		EVENT_LOG_RA(EVENT_LOG_TAG_MBO_DBG, args)
+#define   WL_MBO_INFO(args)	EVENT_LOG_RA(EVENT_LOG_TAG_MBO_INFO, args)
+#else
+#define   WL_MBO_DBG(args)	 \
+			EVENT_LOG_COMPACT_CAST_PAREN_ARGS(EVENT_LOG_TAG_MBO_DBG, args)
+#define   WL_MBO_INFO(args)	 \
+			EVENT_LOG_COMPACT_CAST_PAREN_ARGS(EVENT_LOG_TAG_MBO_INFO, args)
+#endif /* USE_EVENT_LOG_RA */
+#else
+#define   WL_MBO_DBG(args)		   WL_PRINT(args)
+#define   WL_MBO_INFO(args)		WL_PRINT(args)
+#endif /* EVENT_LOG_COMPILE */
+#else
+#define	  WL_MBO_DBG(args)
+#define	  WL_MBO_INFO(args)
+#endif /* WLMSG_MBO */
+
 #ifdef WLMSG_OCE
 #if defined(EVENT_LOG_COMPILE)
 #if defined(USE_EVENT_LOG_RA)
@@ -971,15 +991,20 @@ extern uint32 wl_mesh_dbg;
 #if defined(ERR_USE_EVENT_LOG)
 #if defined(ERR_USE_EVENT_LOG_RA)
 #define   WL_OCE_ERR(args)		EVENT_LOG_RA(EVENT_LOG_TAG_OCE_ERR, args)
+#define   WL_MBO_ERR(args)		EVENT_LOG_RA(EVENT_LOG_TAG_OCE_ERR, args)
 #else
 #define   WL_OCE_ERR(args)	 \
 			EVENT_LOG_COMPACT_CAST_PAREN_ARGS(EVENT_LOG_TAG_OCE_ERR, args)
+#define   WL_MBO_ERR(args)	 \
+			EVENT_LOG_COMPACT_CAST_PAREN_ARGS(EVENT_LOG_TAG_MBO_ERR, args)
 #endif /* ERR_USE_EVENT_LOG_RA */
 #else
 #define   WL_OCE_ERR(args)		WL_PRINT(args)
+#define   WL_MBO_ERR(args)		WL_PRINT(args)
 #endif /* ERR_USE_EVENT_LOG */
 #else
 #define   WL_OCE_ERR(args)		WL_PRINT(args)
+#define   WL_MBO_ERR(args)		WL_PRINT(args)
 #endif /* ERR_USE_EVENT_LOG */
 
 #define WL_PCIE(args)		do {if (wl_msg_level2 & WL_PCIE_VAL) WL_PRINT(args);} while (0)

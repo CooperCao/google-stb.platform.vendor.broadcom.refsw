@@ -149,9 +149,7 @@
 #ifdef WLRSDB
 #include <wlc_rsdb.h>
 #endif
-#ifdef WLAUTHRESP_MAC_FILTER
 #include <wlc_macfltr.h>
-#endif /* WLAUTHRESP_MAC_FILTER */
 #ifdef PROP_TXSTATUS
 #include <wlc_ampdu.h>
 #include <wlc_apps.h>
@@ -1519,6 +1517,7 @@ wlc_ap_authresp(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg,
 	wlc_iem_ft_pparm_t ftpparm;
 	wlc_iem_pparm_t pparm;
 	wlc_key_t *key;
+	bool mac_mode_deny_client = FALSE;
 
 #if defined(BCMDBG) || defined(BCMDBG_ERR) || defined(WLMSG_ASSOC) || \
 	defined(WLMSG_BTA)
@@ -1717,12 +1716,25 @@ wlc_ap_authresp(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg,
 
 		/* allocate an scb */
 		if (!(scb = wlc_scblookup(wlc, bsscfg, (struct ether_addr *) &hdr->sa))) {
-			WL_ERROR(("wl%d: %s: out of scbs for %s\n",
-			          wlc->pub->unit, __FUNCTION__, sa));
-			status = SMFS_CODE_MALFORMED;
-			goto smf_stats;
-		}
+			/* To address new requirement i.e. Send Auth and Assoc response
+			 * with reject status for client if client is in Mac deny list
+			 * of AP.
+			 * Send auth response with status "insufficient bandwidth"
+			 */
+			int addr_match = wlc_macfltr_addr_match(wlc->macfltr, bsscfg,
+				(struct ether_addr*)&hdr->sa);
 
+			if ((addr_match == WLC_MACFLTR_ADDR_DENY) ||
+				(addr_match == WLC_MACFLTR_ADDR_NOT_ALLOW)) {
+				mac_mode_deny_client = TRUE;
+				break;
+			} else {
+				WL_ERROR(("wl%d: %s: out of scbs for %s\n",  wlc->pub->unit,
+					__FUNCTION__, sa));
+				status = SMFS_CODE_MALFORMED;
+				goto smf_stats;
+			}
+		}
 		if (scb->flags & SCB_MYAP) {
 			if (APSTA_ENAB(wlc->pub)) {
 				WL_APSTA(("wl%d: Reject AUTH request from AP %s\n",
@@ -1842,9 +1854,17 @@ send_result:
 		goto smf_stats;
 	}
 #endif /* AP */
-	if (scb != NULL)
+	if (scb != NULL) {
 		wlc_ap_sendauth(wlc->ap, bsscfg, scb, auth_alg, auth_seq + 1, status, NULL,
 			short_preamble, TRUE);
+	} else {
+		if (mac_mode_deny_client && !scb) {
+			scb = wlc->band->hwrs_scb;
+			status = DOT11_SC_INSUFFICIENT_BANDWIDTH;
+			wlc_sendauth(bsscfg, &hdr->sa, &bsscfg->BSSID, scb, auth_alg, auth_seq +1,
+				status, NULL, short_preamble);
+		}
+	}
 
 smf_stats:
 	if (BSS_SMFS_ENAB(wlc, bsscfg)) {
@@ -3380,7 +3400,7 @@ wlc_ap_sta_onradar_upd(wlc_bsscfg_t *cfg)
 				 */
 				if ((ap_ctlchan == sta_ctlchan) &&
 #ifdef CLIENT_CSA
-						!(sta_cfg->_dwds) &&
+					!(DWDS_ENAB(sta_cfg) || MAP_ENAB(sta_cfg)) &&
 #endif	/* CLIENT_CSA */
 						TRUE) {
 					dfs_slave_present = TRUE;

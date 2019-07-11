@@ -1552,7 +1552,7 @@ wlc_recv_scan_parse(wlc_info_t *wlc, wlc_d11rxhdr_t *wrxh, uint8 *plcp,
 			if (bi.flags & WLC_BSS_RSSI_ON_CHANNEL) {
 				ASSERT(cfg);
 				wl_anqpo_process_scan_result(wlc->anqpo, &bi,
-					body + DOT11_BCN_PRB_LEN, body_len - DOT11_BCN_PRB_LEN);
+					body + DOT11_BCN_PRB_LEN, body_len - DOT11_BCN_PRB_LEN, cfg->_idx);
 			}
 		}
 #endif	/* ANQPO */

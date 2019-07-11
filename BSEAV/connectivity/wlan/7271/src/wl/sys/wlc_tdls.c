@@ -4094,7 +4094,6 @@ wlc_tdls_link_add_ht_op_ie(tdls_info_t *tdls, scb_t	*scb)
 {
 	wlc_bsscfg_t *cfg = scb->bsscfg;
 	wlc_info_t *wlc = tdls->wlc;
-	chanspec_t cspec;
 	scb_t *parent_scb;
 
 	parent_scb = wlc_tdls_scbfindband_all(wlc, &cfg->BSSID,
@@ -4106,23 +4105,10 @@ wlc_tdls_link_add_ht_op_ie(tdls_info_t *tdls, scb_t	*scb)
 		return FALSE;
 	}
 
-	/* Check if we need to add HT and VHT OP IE's */
-	/* 1. STA_HT_ENAB, PEER_HT_CAP and BSS not HT
-	 * 2. STA_HT_ENAB and 80Mhz , PEER_HT_ENAB and 80Mhz BW
-	 * and BSS < 80Mhz
-	 * 3. add HT OP IE when VHT OP IE is required
-	 */
 	if (BSS_N_ENAB(wlc, cfg) && SCB_HT_CAP(scb)) {
 		if (TDLS_WB_CAP(wlc->tdls) && TDLS_SCB_WB_CAP(SCB_TDLS(tdls, scb)) &&
-			CHSPEC_IS20(cfg->current_bss->chanspec)) {
-			/* Convert the chanspec */
-			cspec = wf_chspec_ctlchan(cfg->current_bss->chanspec);
-			cspec = wf_channel2chspec(cspec, WL_CHANSPEC_BW_40);
-
-			if (cspec) {
-				wlc_bsscfg_set_current_bss_chan(cfg, cspec);
-				return TRUE;
-			}
+			CHSPEC_IS40(cfg->current_bss->chanspec)) {
+			return TRUE;
 		}
 		if (!SCB_HT_CAP(parent_scb)) {
 			return TRUE;
@@ -4154,7 +4140,7 @@ wlc_tdls_link_add_vht_op_ie(tdls_info_t *tdls, scb_t	*scb)
 	if (BSS_VHT_ENAB(wlc, cfg) && SCB_VHT_CAP(scb)) {
 		if (TDLS_WB_CAP(wlc->tdls) &&
 			TDLS_SCB_WB_CAP(SCB_TDLS(tdls, scb)) &&
-			CHSPEC_IS80(cfg->current_bss->chanspec)) {
+			(CHSPEC_IS80(cfg->current_bss->chanspec))) {
 			return TRUE;
 		}
 		if (!SCB_VHT_CAP(parent_scb)) {
@@ -7956,7 +7942,8 @@ wlc_tdls_process_setup_resp(tdls_info_t *tdls, struct scb *scb, struct wlc_frmin
 		}
 	}
 #endif
-	if (TDLS_WB_CAP(tdls)) {
+	/*Support a wider bandwidth than the current BSS only if wider band is capable on both peers */
+	if (TDLS_WB_CAP(tdls) && BSS_VHT_ENAB(tdls->wlc,scb->bsscfg) && TDLS_WB_CAP(bi)) {
 		bw = opermode_bw_chspec_map[DOT11_OPER_MODE_CHANNEL_WIDTH(scb_peer->bsscfg->oper_mode)];
 		bw_peer = opermode_bw_chspec_map[DOT11_OPER_MODE_CHANNEL_WIDTH(bi->oper_mode)];
 		common_bw = MIN(bw, bw_peer);

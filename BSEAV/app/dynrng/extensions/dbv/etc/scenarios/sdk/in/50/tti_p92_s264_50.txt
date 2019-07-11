@@ -1,4 +1,0 @@
-stream=/mnt/hd/Test_Vectors/Dolby_Vision/Transition_Tests/implicit/dvav.ser/FHD/50/DOVI_to_SDR/Transition_Test_dvavser_to_SDR_FHD_50_st.ts
-forceRestart=on
-stcTrick=off
-commit

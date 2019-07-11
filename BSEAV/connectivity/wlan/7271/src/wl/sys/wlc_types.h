@@ -407,4 +407,10 @@ typedef wlc_btcx_profile_v1_t wlc_btcx_profile_t;
 typedef struct wlc_bcmcq_info wlc_bcmcq_info_t;
 typedef struct bcmc_cubby bcmc_cubby_t;
 
+#ifdef WL_ANQPO_PEER_LIST_TYPEDEF_HAS_ALIAS
+#define WL_ANQPO_PEER_LIST_VERSION WL_ANQPO_PEER_LIST_VERSION_2
+typedef wl_anqpo_peer_list_v2_t wl_anqpo_peer_list_t;
+typedef wl_anqpo_peer_v2_t wl_anqpo_peer_t;
+#endif /* WL_ANQPO_PEER_LIST_VERSION */
+
 #endif	/* _wlc_types_h_ */

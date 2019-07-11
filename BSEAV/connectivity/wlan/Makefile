@@ -133,7 +133,6 @@ endif
 
 WLAN_DEFAULT_BUILDCFG?=debug-apdef-stadef-extnvm-p2p-mchan-tdls-mfp-cfg80211-wowl-stbsoc
 
-
 # Handle 32-bit ARM (B_REFSW_ARCH==arm*)
 ifneq ($(filter arm%,${B_REFSW_ARCH}),)
     ifeq (${NEXUS_ENDIAN},BSTD_ENDIAN_LITTLE)
@@ -205,6 +204,9 @@ export SHORTER_PATH?=0
 # B_WLAN_STBAPD=1; Build STBAP Apps
 ###################################################################
 export B_WLAN_STBAPD?=0
+ifneq (,$(findstring -stbapd-,$(WLAN_DEFAULT_BUILDCFG)))
+B_WLAN_STBAPD=1
+endif
 ###################################################################
 #  Default rule:
 ###################################################################
@@ -238,6 +240,9 @@ endif
 ifneq (${B_WLAN_VER},7271)
 B_WLAN_EXTRA_INSTALL += ${B_WLAN_VER}_install
 B_WLAN_EXTRA_CLEAN += ${B_WLAN_VER}_clean
+#used for 4375
+a:=$(shell ${MKDIR} -p ${B_WLAN_OOSRC_VER_DIR} )
+a:=$(shell $(CP) -a -u  ${B_WLAN_INSRC_DIR}/utils  ${B_WLAN_OOSRC_DIR} )
 else
 # Copy any updated files from the in-source tree to the out-of-source tree.
 $(info  Syncing WLAN Out-of-source tree  to ${B_WLAN_OOSRC_VER_DIR}...)
@@ -249,17 +254,24 @@ endif
 
 #STBAPD variables
 ifeq ($(B_WLAN_STBAPD),1)
+#jsonc paths
+include $(BSEAV_TOP)/opensource/jsonc/jsonc.inc
+$(info  Syncing WLAN Stbapd Out-of-source tree  to ${B_WLAN_OOSRC_VER_DIR}...)
 a:=$(shell $(CP) -a -u  ${B_WLAN_INSRC_DIR}/stbapd   ${B_WLAN_OOSRC_DIR} )
 $(info  copying open sources from ${B_WLAN_INSRC_DIR}/../../opensource to ${B_WLAN_OOSRC_DIR}/../../ )
 a:=$(shell $(CP) -a -u  ${B_WLAN_INSRC_DIR}/../../opensource  ${B_WLAN_OOSRC_DIR}/../../ )
-B_WLAN_EXTRA_INSTALL += stbapd_install
-B_WLAN_EXTRA_CLEAN += stbapd_clean
+B_WLAN_STBAPD_INSTALL = stbapd_install
+B_WLAN_STBAPD_CLEAN = stbapd_clean_all
 B_WLAN_STBAPD_OOSRC_DIR:=${B_WLAN_OOSRC_DIR}/stbapd/router
 
 # alot of apps here should we list all the apps.
 export INSTALLDIR=${B_WLAN_OOSRC_DIR}/stbapd/router/src/router/${ARCH}-glibc/target
 B_WLAN_STBAPD_RESULT_OOSRC_DIR:=${B_WLAN_OOSRC_DIR}/stbapd/router/src/router/${ARCH}-glibc/target
-B_WLAN_STBAPD_INSTALL_PATH:=${BSEAV_BIN_DIR}/stbapd
+ifeq ($(BUILD_BRCM_HOSTAPD),y)
+B_WLAN_STBAPD_INSTALL_PATH:=${BSEAV_BIN_DIR}/stbapd/ext_auth
+else
+B_WLAN_STBAPD_INSTALL_PATH:=${BSEAV_BIN_DIR}/stbapd/int_auth
+endif
 #export for driver
 export CONFIG_STBAP=y
 export EMF_EXTRA_SYMBOLS=${B_WLAN_STBAPD_OOSRC_DIR}/src/router/emf/igs/obj-igs-${LINUXVER}/Module.symvers
@@ -269,6 +281,11 @@ export KBUILD_EXTRA_SYMBOLS=${B_WLAN_STBAPD_OOSRC_DIR}/Module.symvers
 else
 # Revisit what to do here  thought we didn't need wlplat or other stuff for this?
 export KBUILD_EXTRA_SYMBOLS=${B_WLAN_OOSRC_VER_DIR}/src/wlplat/Module.symvers
+endif
+else
+# B_WLAN_STBAPD=0
+ifneq (,$(findstring -stbapd-,$(WLAN_DEFAULT_BUILDCFG)))
+$(error B_WLAN_STABAPD == 0 but WLAN_DEFAULT_BUILDCFG($(WLAN_DEFAULT_BUILDCFG)) has -stbapd-)
 endif
 endif
 
@@ -358,7 +375,12 @@ endif
 ###################################################################
 #  Submake the epiver.
 .PHONY: build_epiver
+# STBAPD_INSTALL aka stbapd_install needs to be done before wlan driver can build. Needed for multiap.
+ifeq ($(B_WLAN_STBAPD),1)
+build_epiver: ${B_WLAN_EPIVER_OOSRC_FILE} stbapd_drv_build
+else
 build_epiver: ${B_WLAN_EPIVER_OOSRC_FILE}
+endif
 
 ${B_WLAN_EPIVER_OOSRC_FILE}:
 	@echo "[Submake... WLAN Driver (WLAN) Generate epiver.h]"
@@ -388,56 +410,81 @@ build_components_router: build_epiver
 	${Q_}${MAKE} -C ${B_WLAN_ROUTER_OOSRC_DIR} TARGETARCH=${TARGETARCH_FOR_WL} CC=$(B_REFSW_CROSS_COMPILE)gcc LD=$(B_REFSW_CROSS_COMPILE)ld STRIP=${B_REFSW_CROSS_COMPILE}strip ${B_WLAN_DRIVER_MAKE_REDIR}
 	$(B_TRACE_RECIPE_END)
 
-# Submake for stbapd
-.PHONY: stbapd_apps_build stbapd_drv_build
-stbapd_apps_build:
+#  Submake the hostapd, wpa_supplicant, iw and their dependencies
+.PHONY: build_hostapd_wpasupp_iw build_hostapd_wpasupp_iw_clean
+build_hostapd_wpasupp_iw:
 	$(B_TRACE_RECIPE_BEGIN)
-	@if [ $(B_WLAN_STBAPD) = "0" ]; then \
-		echo "Error:B_WLAN_STBAPD=$(B_WLAN_STBAPD), must export to 1 if building for stbapd"; \
-		exit 1; \
-	fi
-	make -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/include
-	make -C ${B_WLAN_OOSRC_DIR}/../../opensource/ebtables
-	if [ -e "${B_WLAN_STBAPD_OOSRC_DIR}/components/opensource/jsonc" ]; then \
-		echo "================ autogen jsonc =========================="; \
-		echo "========= (cd ${B_WLAN_STBAPD_OOSRC_DIR}/components/opensource/jsonc && chmod 777 ./autogen.sh && ./autogen.sh CC=${ARCHTOOL}-gcc -host=${ARCH}-unknown-linux -build=x86_64-pc-linux-gnu STRIP=${ARCHTOOL}-strip LD=${ARCHTOOL}-ld --prefix=`pwd` ) ========="; \
-		(cd ${B_WLAN_STBAPD_OOSRC_DIR}/components/opensource/jsonc && chmod 777 ./autogen.sh && ./autogen.sh CC=${ARCHTOOL}-gcc -host=${ARCH}-unknown-linux -build=x86_64-pc-linux-gnu STRIP=${ARCHTOOL}-strip LD=${ARCHTOOL}-ld --prefix=`pwd` ) ; \
-		echo "================ autogen jsonc complete ================="; \
-	fi
-	echo "================ router clean:  make -i CROSS_COMPILE=${ARCHTOOL}- EXTRA_LDFLAGS=-lgcc_s LINUX_VERSION=${LINUXVER} PLT=${ARCH} STBLINUX=1 -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router clean apps_clean  =================";
-	make -i CROSS_COMPILE=${ARCHTOOL}- EXTRA_LDFLAGS=-lgcc_s LINUX_VERSION=${LINUXVER} PLT=${ARCH} STBLINUX=1 -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router clean apps_clean
-	echo "================  cp ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/config/defconfig-stbap-dhd ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/.config =================";
-	cp ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/config/defconfig-stbap-dhd ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/.config
-	echo "================  yes "" | make CROSS_COMPILE=${ARCHTOOL}- EXTRA_LDFLAGS=-lgcc_s LINUX_VERSION=${LINUXVER} PLT=${ARCH} STBLINUX=1 -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router oldconfig  =================";
-	yes "" | make CROSS_COMPILE=${ARCHTOOL}- EXTRA_LDFLAGS=-lgcc_s LINUX_VERSION=${LINUXVER} PLT=${ARCH} STBLINUX=1 -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router oldconfig
-	echo "================  make CROSS_COMPILE=${ARCHTOOL}- EXTRA_LDFLAGS=-lgcc_s LINUX_VERSION=${LINUXVER} PLT=${ARCH} STBLINUX=1 -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router apps apps_install  =================";
-	make CROSS_COMPILE=${ARCHTOOL}- EXTRA_LDFLAGS=-lgcc_s LINUX_VERSION=${LINUXVER} PLT=${ARCH} STBLINUX=1 -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router apps apps_install
+	@echo "[Submake... hostapd & wpa_supplicant (WLAN)]"
+	${Q_}${MAKE} -C ${B_WLAN_OOSRC_DIR}/../../../../BSEAV/opensource/libnl install
+	${Q_}${MAKE} -C ${B_WLAN_OOSRC_DIR}/../../../../BSEAV/opensource/openssl install
+	${Q_}${MAKE} -C ${B_WLAN_OOSRC_DIR}/../../../../BSEAV/opensource/hostapd install
+	${Q_}${MAKE} -C ${B_WLAN_OOSRC_DIR}/../../../../BSEAV/opensource/wpa_supplicant install
+	${Q_}${MAKE} -C ${B_WLAN_OOSRC_DIR}/../../../../BSEAV/opensource/iw install
 	$(B_TRACE_RECIPE_END)
 
-stbapd_drv_build: stbapd_apps_build
+build_hostapd_wpasupp_iw_clean:
+	$(B_TRACE_RECIPE_BEGIN)
+	@echo "[Submake... hostapd & wpa_supplicant (WLAN)]"
+	${Q_}${MAKE} -C ${B_WLAN_OOSRC_DIR}/../../../../BSEAV/opensource/libnl clean
+	${Q_}${MAKE} -C ${B_WLAN_OOSRC_DIR}/../../../../BSEAV/opensource/openssl clean
+	${Q_}${MAKE} -C ${B_WLAN_OOSRC_DIR}/../../../../BSEAV/opensource/hostapd clean
+	${Q_}${MAKE} -C ${B_WLAN_OOSRC_DIR}/../../../../BSEAV/opensource/wpa_supplicant clean
+	${Q_}${MAKE} -C ${B_WLAN_OOSRC_DIR}/../../../../BSEAV/opensource/iw clean
+	$(B_TRACE_RECIPE_END)
+
+# Submake for stbapd
+.PHONY: stbapd_apps_build stbapd_drv_build
+ifeq ($(BUILD_BRCM_HOSTAPD),y)
+stbapd_apps_build: build_hostapd_wpasupp_iw
+else
+stbapd_apps_build:
+endif
+	$(B_TRACE_RECIPE_BEGIN)
+	@echo "hostapd = $(BUILD_BRCM_HOSTAPD)"
+	@if [ $(B_WLAN_STBAPD) = "0" ]; then \
+		echo "Error:B_WLAN_STBAPD=$(B_WLAN_STBAPD), must export to 1 if building for stbapd"; \
+		exit 1; \
+	fi
+	@echo "[Submake... stbapd version (WLAN)]"
+	${Q_}${MAKE} -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/include
+	@echo "[Submake... ebtables (WLAN)]"
+	${Q_}${MAKE} -C ${B_WLAN_OOSRC_DIR}/../../../../BSEAV/opensource/ebtables
+	@echo "[Fetching... jsonc (WLAN)]"
+	${Q_}${MAKE} -C ${B_WLAN_OOSRC_DIR}/../../../../BSEAV/opensource/jsonc
+	@echo "[Submake... stbpad oldconfig (WLAN)]"
+	cp ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/config/defconfig-stbap-dhd ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/.config
+	yes "" | ${MAKE}  CROSS_COMPILE=${ARCHTOOL}- EXTRA_LDFLAGS=-lgcc_s LINUX_VERSION=${LINUXVER} PLT=${ARCH} STBLINUX=1 B_REFSW_OBJ_ROOT=${B_REFSW_OBJ_ROOT} BUILD_BRCM_HOSTAPD=${BUILD_BRCM_HOSTAPD} -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router oldconfig
+	@echo "[Submake... stbpad apps apps_install (WLAN)]"
+	# Must have a -j1 so prevent parallel build on stbapd router Makefile.
+	${Q_}${MAKE} -j1 CROSS_COMPILE=${ARCHTOOL}- EXTRA_LDFLAGS=-lgcc_s LINUX_VERSION=${LINUXVER} PLT=${ARCH} STBLINUX=1 B_REFSW_OBJ_ROOT=${B_REFSW_OBJ_ROOT} BUILD_BRCM_HOSTAPD=${BUILD_BRCM_HOSTAPD} -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router apps apps_install
+	$(B_TRACE_RECIPE_END)
+
+stbapd_drv_build:
 	$(B_TRACE_RECIPE_BEGIN)
 	@if [ $(B_WLAN_STBAPD) = "0" ]; then \
 		echo "Error:B_WLAN_STBAPD=$(B_WLAN_STBAPD), must export to 1 if building for stbapd"; \
 		exit 1; \
 	fi
-	make -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/emf/emf SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}- clean
-	make -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/emf/emf SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}-
+	@echo "[Submake... Stbapd Driver (WLAN)]"
+	${Q_}${MAKE} -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/emf/emf SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}-
 
-	make -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/emf/igs SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}- clean
-	make -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/emf/igs SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}-
+	${Q_}${MAKE} -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/emf/igs SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}-
 
-	make -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/dpsta SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}- clean
-	make -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/dpsta SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}-
+	${Q_}${MAKE} -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/dpsta SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}-
 
 	cat ${EMF_EXTRA_SYMBOLS} ${DPSTA_EXTRA_SYMBOLS} > ${KBUILD_EXTRA_SYMBOLS}
 	$(B_TRACE_RECIPE_END)
 
+stbapd_build_all: stbapd_drv_build stbapd_apps_build
+	$(B_TRACE_RECIPE_BEGIN)
+	$(B_TRACE_RECIPE_END)
+
 #Submake for  BCA driver
 .PHONY: ${B_WLAN_VER}_build
-${B_WLAN_VER}_build:
+${B_WLAN_VER}_build: ${B_WLAN_STBAPD_INSTALL}
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "[Submake... Unpackaging for ${(B_WLAN_VER} ]"
-	make -C ${WORKING_DIR}/${B_WLAN_VER}
+	${Q_}${MAKE} -C ${WORKING_DIR}/${B_WLAN_VER}
 	$(B_TRACE_RECIPE_END)
 
 #  After submaking the driver and wl executable (via prerequisites), create a marker file.
@@ -514,6 +561,7 @@ ${B_WLAN_WLEXE_INSTALL_PATH_LIST}:  ${B_WLAN_WLEXE_RESULT_OOSRC_PATH}
 #  WLAN nvram executable
 ###################################################################
 #  Each installed binary is copied from its post-build location in the out-of-source tree.
+	# add additional nvram files here
 ${B_WLAN_NVRAMEXE_INSTALL_PATH_LIST}: build_components_router
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "[Install... $(notdir ${@}) to $(dir $@) (WLAN)]"
@@ -590,14 +638,61 @@ ${B_WLAN_EMF_INSTALL_PATH_LIST}: ${B_WLAN_DRIVER_RESULT_EMF_OOSRC_PATH}
 
 # Install for stbapd
 .PHONY: stbapd_install
-stbapd_install: stbapd_drv_build
+stbapd_tarball:
+	$(B_TRACE_RECIPE_BEGIN)
+	echo "[Tarball... Stbapd (WLAN)]";
+	if [ -d ${B_WLAN_STBAPD_RESULT_OOSRC_DIR} ]; then \
+		if [ $(B_REFSW_ARCH) = "aarch64-linux" ]; then \
+			cd ${B_WLAN_STBAPD_INSTALL_PATH} && tar -jcvf target_bin.tar.bz2 etc root sbin usr www bin lib lib64; \
+		else \
+			cd ${B_WLAN_STBAPD_INSTALL_PATH} && tar -jcvf target_bin.tar.bz2 etc root sbin usr www bin lib; \
+		fi \
+	else \
+		if [ $(B_REFSW_ARCH) = "aarch64-linux" ]; then \
+			cd ${B_WLAN_STBAPD_INSTALL_PATH} && tar -jcvf target_bin.tar.bz2 lib lib64; \
+		else \
+			cd ${B_WLAN_STBAPD_INSTALL_PATH} && tar -jcvf target_bin.tar.bz2 lib; \
+		fi \
+	fi
+	$(B_TRACE_RECIPE_END)
+
+stbapd_install:
 	$(B_TRACE_RECIPE_BEGIN)
 	@if [ $(B_WLAN_STBAPD) = "0" ]; then \
 		echo "Error:B_WLAN_STBAPD=$(B_WLAN_STBAPD), must export to 1 if building for stbapd"; \
 		exit 1; \
 	fi
+	# Driver install
+	$(MKDIR) -p ${B_WLAN_STBAPD_INSTALL_PATH}/lib/modules/
+	if [ -f ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/emf/emf/obj-emf-${LINUXVER}/emf.ko ]; then \
+		echo "[Install... emf.ko  (WLAN)]";\
+		$(CP) ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/emf/emf/obj-emf-${LINUXVER}/emf.ko  ${B_WLAN_STBAPD_INSTALL_PATH}/lib/modules/; \
+	fi
+	if [ -f ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/emf/igs/obj-igs-${LINUXVER}/igs.ko ]; then \
+		echo "[Install... igs.ko  (WLAN)]";\
+		$(CP) ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/emf/igs/obj-igs-${LINUXVER}/igs.ko  ${B_WLAN_STBAPD_INSTALL_PATH}/lib/modules/; \
+	fi
+	if [ -f ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/dpsta/obj-dpsta-${LINUXVER}/dpsta.ko ]; then \
+		echo "[Install... dpsta.ko  (WLAN)]";\
+		$(CP) ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/dpsta/obj-dpsta-${LINUXVER}/dpsta.ko  ${B_WLAN_STBAPD_INSTALL_PATH}/lib/modules/; \
+	fi
+	if [ -f ${B_WLAN_DRIVER_RESULT_OOSRC_PATH} ]; then \
+		echo "[Install... wl.ko  (WLAN)]";\
+		$(CP) ${B_WLAN_DRIVER_RESULT_OOSRC_PATH} ${B_WLAN_STBAPD_INSTALL_PATH}/lib/modules/; \
+	fi
+	if [ -f ${B_WLAN_DRIVER_RESULT_WLPLAT_OOSRC_PATH} ]; then \
+		echo "[Install... wlplat.ko  (WLAN)]";\
+		$(CP) ${B_WLAN_DRIVER_RESULT_WLPLAT_OOSRC_PATH} ${B_WLAN_STBAPD_INSTALL_PATH}/lib/modules/; \
+	fi
+	# add additional nvram files here
+	$(CP) ${B_WLAN_NVRAM_INSRC_DIR}/bcm97271wlan.txt ${B_WLAN_STBAPD_INSTALL_PATH}/lib/modules/
+	$(CP) ${B_WLAN_NVRAM_INSRC_DIR}/bcm97271wlan.txt ${B_WLAN_STBAPD_INSTALL_PATH}/lib/modules/nvram.txt
+	$(CP) ${B_WLAN_NVRAM_INSRC_DIR}/bcm97271sdb_dr.txt ${B_WLAN_STBAPD_INSTALL_PATH}/lib/modules/
+
+
+	#Apps install
 	if [ -d ${B_WLAN_STBAPD_RESULT_OOSRC_DIR} ]; then \
-		echo "[Install... ${B_WLAN_STBAPD_RESULT_OOSRC_DIR} (WLAN)]";\
+		echo "[Install... Stbapd  (WLAN)]";\
 		$(MKDIR) -p ${B_WLAN_STBAPD_INSTALL_PATH}/etc;\
 		$(MKDIR) -p ${B_WLAN_STBAPD_INSTALL_PATH}/root;\
 		$(MKDIR) -p ${B_WLAN_STBAPD_INSTALL_PATH}/etc/init.d;\
@@ -622,14 +717,18 @@ stbapd_install: stbapd_drv_build
 		$(CP) ${B_WLAN_STBAPD_RESULT_OOSRC_DIR}/usr/sbin/* ${B_WLAN_STBAPD_INSTALL_PATH}/usr/sbin;\
 		$(CP) ${B_WLAN_STBAPD_RESULT_OOSRC_DIR}/usr/lib/* ${B_WLAN_STBAPD_INSTALL_PATH}/lib;\
 		if [[ "${NEXUS_PLATFORM}" != *7271* ]]; then \
-			cp ${B_WLAN_STBAPD_OOSRC_DIR}/apps/* ${B_WLAN_STBAPD_INSTALL_PATH}/usr/sbin;\
-			cp ${B_WLAN_STBAPD_OOSRC_DIR}/lib/* ${B_WLAN_STBAPD_INSTALL_PATH}/lib;\
+			$(CP) ${B_WLAN_STBAPD_OOSRC_DIR}/apps/* ${B_WLAN_STBAPD_INSTALL_PATH}/usr/sbin;\
+			$(CP) ${B_WLAN_STBAPD_OOSRC_DIR}/lib/* ${B_WLAN_STBAPD_INSTALL_PATH}/lib;\
 		fi; \
 		$(CP) -r ${B_WLAN_STBAPD_RESULT_OOSRC_DIR}/www ${B_WLAN_STBAPD_INSTALL_PATH}/;\
-		cp ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/emf/emf/obj-emf-${LINUXVER}/emf.ko  ${B_WLAN_STBAPD_INSTALL_PATH}/lib/modules/; \
-		cp ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/emf/igs/obj-igs-${LINUXVER}/igs.ko  ${B_WLAN_STBAPD_INSTALL_PATH}/lib/modules/; \
-		cp ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/dpsta/obj-dpsta-${LINUXVER}/dpsta.ko  ${B_WLAN_STBAPD_INSTALL_PATH}/lib/modules/; \
-		$(CP) -r ${B_WLAN_STBAPD_INSTALL_PATH}/lib/* ${B_WLAN_STBAPD_INSTALL_PATH}/lib64;\
+		if [[ "${BUILD_BRCM_HOSTAPD}" == y ]]; then \
+			find ${B_REFSW_OBJ_ROOT}/target/usr/local/bin -perm /a+x -name hostapd\* -exec cp -v -t ${B_WLAN_STBAPD_INSTALL_PATH}/bin {} +;\
+			find ${B_REFSW_OBJ_ROOT}/target/usr/local/bin -perm /a+x -name wpa\* -exec cp -v -t ${B_WLAN_STBAPD_INSTALL_PATH}/bin {} +;\
+			$(CP) ${B_REFSW_OBJ_ROOT}/target/usr/local/bin/*.conf ${B_WLAN_STBAPD_INSTALL_PATH}/etc;\
+			$(CP) ${B_REFSW_OBJ_ROOT}/target/usr/local/bin/iw ${B_WLAN_STBAPD_INSTALL_PATH}/bin;\
+			cd ${B_REFSW_OBJ_ROOT}/target/usr/local/lib && find . -name \*.so\* -exec cp -v -f --parents \{\} ${B_WLAN_STBAPD_INSTALL_PATH}/lib \; && cd -;\
+		fi; \
+		$(CP) ${B_WLAN_WLEXE_RESULT_OOSRC_PATH} ${B_WLAN_STBAPD_INSTALL_PATH}/usr/sbin/wl; \
 		$(MKDIR) -p ${B_WLAN_STBAPD_INSTALL_PATH}/prebuilt;\
 		if [ -d ${B_WLAN_STBAPD_OOSRC_DIR}/components/apps/ieee1905/prebuilt ]; then \
 			$(CP) ${B_WLAN_STBAPD_OOSRC_DIR}/components/apps/ieee1905/prebuilt/* ${B_WLAN_STBAPD_INSTALL_PATH}/prebuilt; \
@@ -637,10 +736,22 @@ stbapd_install: stbapd_drv_build
 		if [ -d ${B_WLAN_STBAPD_OOSRC_DIR}/components/apps/wbd/prebuilt ]; then \
 			$(CP) ${B_WLAN_STBAPD_OOSRC_DIR}/components/apps/wbd/prebuilt/* ${B_WLAN_STBAPD_INSTALL_PATH}/prebuilt; \
 		fi; \
+		if [ -d ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/bsd/prebuilt ]; then \
+			$(CP) ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/bsd/prebuilt/* ${B_WLAN_STBAPD_INSTALL_PATH}/prebuilt; \
+		fi; \
+		if [ -d ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/bshared/prebuilt ]; then \
+			$(CP) ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/bshared/prebuilt/* ${B_WLAN_STBAPD_INSTALL_PATH}/prebuilt; \
+		fi; \
 	fi
 
-	$(B_TRACE_RECIPE_END)
+	@if [ $(B_REFSW_ARCH) = "aarch64-linux" ]; then \
+		$(MKDIR) -p ${B_WLAN_STBAPD_INSTALL_PATH}/lib64/; \
+		$(CP) -r ${B_WLAN_STBAPD_INSTALL_PATH}/lib/* ${B_WLAN_STBAPD_INSTALL_PATH}/lib64; \
+	fi
 
+	${Q_}${MAKE} -f $(WORKING_DIR)/Makefile stbapd_tarball BUILD_BRCM_HOSTAPD=$(BUILD_BRCM_HOSTAPD)
+
+	$(B_TRACE_RECIPE_END)
 
 .PHONY: ${B_WLAN_VER}_install
 ${B_WLAN_VER}_install: ${B_WLAN_VER}_build
@@ -654,13 +765,19 @@ ${B_WLAN_VER}_install: ${B_WLAN_VER}_build
 .PHONY: install
 ifeq (${B_WLAN_VER},)
 install:
-	$(info *** Warning, NO wifi chip designated for "${NEXUS_PLATFORM}". Check BSEAV/connectivity/wlan/wlan.inc for NEXUS_PLATFORM->B_WLAN_VER. Exit.)
+	$(info *** Message, NO wifi chip designated for "${NEXUS_PLATFORM}". Check BSEAV/connectivity/wlan/wlan.inc for NEXUS_PLATFORM->B_WLAN_VER. Exit.)
 else ifneq (${B_WLAN_VER},7271)
-install: ${B_WLAN_EXTRA_INSTALL}
-else
-install: ${B_WLAN_EXTRA_INSTALL} ${B_WLAN_DRIVER_INSTALL_PATH_LIST} ${B_WLAN_WLPLAT_INSTALL_PATH_LIST} ${B_WLAN_WLEXE_INSTALL_PATH_LIST} ${B_WLAN_NVRAMEXE_INSTALL_PATH_LIST} ${B_WLAN_ENVRAM_INSTALL_PATH_LIST} ${B_WLAN_NVRAM_INSTALL_PATH_LIST} ${B_WLAN_UTILS_INSTALL_PATH_LIST} ${B_WLAN_IGS_INSTALL_PATH_LIST} ${B_WLAN_EMF_INSTALL_PATH_LIST}
+install: ${B_WLAN_EXTRA_INSTALL} ${B_WLAN_UTILS_INSTALL_PATH_LIST}
 	$(B_TRACE_RECIPE_BEGIN)
-	@echo "Done."
+	@echo "Done. Non 7271"
+	$(B_TRACE_RECIPE_END)
+else
+install: ${B_WLAN_DRIVER_INSTALL_PATH_LIST} ${B_WLAN_WLPLAT_INSTALL_PATH_LIST} ${B_WLAN_WLEXE_INSTALL_PATH_LIST} ${B_WLAN_NVRAMEXE_INSTALL_PATH_LIST} ${B_WLAN_ENVRAM_INSTALL_PATH_LIST} ${B_WLAN_NVRAM_INSTALL_PATH_LIST} ${B_WLAN_UTILS_INSTALL_PATH_LIST} ${B_WLAN_IGS_INSTALL_PATH_LIST} ${B_WLAN_EMF_INSTALL_PATH_LIST}
+	$(B_TRACE_RECIPE_BEGIN)
+	@if [ $(B_WLAN_STBAPD) = "1" ]; then \
+		${MAKE} -f $(WORKING_DIR)/Makefile stbapd_install BUILD_BRCM_HOSTAPD=$(BUILD_BRCM_HOSTAPD); \
+        fi
+	@echo "Done. 7271"
 	$(B_TRACE_RECIPE_END)
 endif
 # The "driver" intended for Coverity just builds driver related files
@@ -677,15 +794,38 @@ utils:  build_wlexe  ${B_WLAN_UTILS_INSTALL_PATH_LIST}
 ###################################################################
 #  clean target
 ###################################################################
-stbapd_clean:
+stbapd_apps_clean:
+	$(B_TRACE_RECIPE_BEGIN)
+	${Q_}${MAKE} -i CROSS_COMPILE=${ARCHTOOL}- EXTRA_LDFLAGS=-lgcc_s LINUX_VERSION=${LINUXVER} PLT=${ARCH} STBLINUX=1 B_REFSW_OBJ_ROOT=${B_REFSW_OBJ_ROOT} BUILD_BRCM_HOSTAPD=${BUILD_BRCM_HOSTAPD} -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router clean apps_clean
+	#force clean all stbapd output files
+	$(Q_)$(RM) -rf ${B_WLAN_STBAPD_INSTALL_PATH}
+	$(B_TRACE_RECIPE_END)
+
+stbapd_drv_clean:
+	$(B_TRACE_RECIPE_BEGIN)
+	${Q_}${MAKE} -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/emf/emf SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}- clean
+	${Q_}${MAKE} -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/emf/igs SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}- clean
+	${Q_}${MAKE} -C ${B_WLAN_STBAPD_OOSRC_DIR}/src/router/dpsta SHOWWLCONF=1 LINUXVER=${LINUXVER} LINUXDIR=${LINUX} CROSS_COMPILE=${ARCHTOOL}- clean
+	#force clean all stbapd output files
+	$(Q_)$(RM) -rf ${B_WLAN_STBAPD_INSTALL_PATH}
+	$(B_TRACE_RECIPE_END)
+
+ifeq ($(BUILD_BRCM_HOSTAPD),y)
+stbapd_clean_all: build_hostapd_wpasupp_iw_clean stbapd_drv_clean stbapd_apps_clean
+else
+stbapd_clean_all: stbapd_drv_clean stbapd_apps_clean
+endif
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "Cleaning stbapd..."
+	@echo "hostapd = $(BUILD_BRCM_HOSTAPD)"
 	@if [ $(B_WLAN_STBAPD) = "0" ]; then \
 		echo "Error:B_WLAN_STBAPD=$(B_WLAN_STBAPD), must export to 1 if building for stbapd"; \
 		exit 1; \
 	fi
+	$(Q_)$(MAKE) -C ${B_WLAN_OOSRC_DIR}/../../opensource/ebtables clean
+	$(Q_)$(MAKE) -C ${B_JSONC_SOURCE_DEST} clean
 	$(Q_)$(RM) -rf ${B_WLAN_OOSRC_DIR}/stbapd
-	$(Q_)$(RM) -rf ${B_WLAN_STBAPD_INSTALL_PATH}
+	$(Q_)$(RM) -rf ${BSEAV_BIN_DIR}/stbapd/*
 	$(B_TRACE_RECIPE_END)
 
 ${B_WLAN_VER}_clean:
@@ -697,9 +837,9 @@ ${B_WLAN_VER}_clean:
 .PHONY: clean
 ifeq (${B_WLAN_VER},)
 clean:
-	$(info *** Warning, NO wifi chip designated for "${NEXUS_PLATFORM}". Check BSEAV/connectivity/wlan/wlan.inc for NEXUS_PLATFORM->B_WLAN_VER. Exit.)
+	$(info *** Message, NO wifi chip designated for "${NEXUS_PLATFORM}". Check BSEAV/connectivity/wlan/wlan.inc for NEXUS_PLATFORM->B_WLAN_VER. Exit.)
 else
-clean: ${B_WLAN_EXTRA_CLEAN}
+clean: ${B_WLAN_EXTRA_CLEAN} ${B_WLAN_STBAPD_CLEAN}
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "Cleaning..."
 	$(Q_)$(RM) -rf ${B_WLAN_OOSRC_VER_DIR}

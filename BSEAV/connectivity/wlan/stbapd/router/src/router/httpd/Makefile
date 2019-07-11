@@ -28,7 +28,7 @@ CFLAGS += -DAUTOFW_PORT_DEPRECATED
 endif
 endif
 
-CFLAGS	+= -I. -I$(TOP)/shared -I$(TOP)/www/broadcom/cgi -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -Wall -Werror
+CFLAGS	+= -I. -I$(TOP)/shared -I$(TOP)/www/broadcom/cgi -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include
 CFLAGS	+= $(if $(WLAN_ComponentIncPath),$(WLAN_ComponentIncPath),$(addprefix -I,$(wildcard $(SRCBASE)/shared/bcmwifi/include)))
 # For customer backwords compatibility, for now we keep CONFIG_WSCCMD here and can be removed when
 # all customers migrate to new SDK (no CONFIG_WSCCMD in configration files).
@@ -43,8 +43,13 @@ endif
 #CFLAGS	+= -g -DDEBUG
 CFLAGS	+= -s
 LDFLAGS	+= -L$(TOP)/nvram -L$(INSTALLDIR)/nvram/usr/lib -lnvram -L$(TOP)/libbcmcrypto -L$(INSTALLDIR)/libbcmcrypto/usr/lib -lbcmcrypto -L$(TOP)/shared -L$(INSTALLDIR)/shared/usr/lib -lshared
+ifneq ($(STBANDROID),1)
+CCFLAGS	+= -Wall -Werror
+LDFLAGS += -lpthread
+else
+LDFLAGS += $(ANDROID_LDFLAGS)
+endif
 LDFLAGS += $(EXTRA_LDFLAGS)
-
 
 OBJS := cgi.o ej.o httpd.o cgi_common.o cgi_radio.o cgi_index.o cgi_lan.o cgi_wan.o cgi_status.o cgi_filter.o cgi_forward.o cgi_media.o cgi_storage.o cgi_ssid.o cgi_security.o cgi_wps.o cgi_firmware.o cgi_internal.o
 
@@ -62,8 +67,8 @@ PRE_LINK_TARGETS += $(IQOS_DIR)/lib/libiqos_interface.a
 PRE_CLEAN_TARGETS += iqos_interface_clean
 IQOS_SRCS := $(IQOS_DIR)/src/interface
 CFLAGS += -I$(IQOS_SRCS)
-CFLAGS += -I$(SRCBASE)/../components/opensource/jsonc/installbin/include/json-c
-LDFLAGS += -L$(TOP)/../../components/opensource/jsonc/installbin/lib
+CFLAGS += -I$(SRCBASE)/../../../../../opensource/jsonc/installbin/include/json-c
+LDFLAGS += -L$(TOP)/../../../../../../opensource/jsonc/installbin/lib
 LDFLAGS += -L$(INSTALLDIR)/libjsonc/usr/lib -ljson-c
 ifneq ($(wildcard $(TOP)/shared/iqos_gui.c),)
 	OBJS += iqos_gui.o
@@ -113,7 +118,7 @@ install: all
 	$(STRIP) $(INSTALLDIR)/usr/sbin/httpd
 
 httpd: $(OBJS) $(PREBUILLT_OBJS) $(PRE_LINK_TARGETS)
-	$(CC) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(IQOS_DIR)/lib/libiqos_interface.a:
 ifneq ($(wildcard $(IQOS_DIR)/src),)

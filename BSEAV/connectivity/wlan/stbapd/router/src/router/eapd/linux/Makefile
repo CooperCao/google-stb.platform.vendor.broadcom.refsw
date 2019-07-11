@@ -8,7 +8,10 @@ CFLAGS += $(INCLUDE)
 CFLAGS += $(WLAN_ComponentIncPath)
 CFLAGS += -DEAPD_WKSP_AUTO_CONFIG
 #CFLAGS += -DNAS_GTK_PER_STA
-CFLAGS += -Wall -Werror -DEAPDDUMP
+CFLAGS += -DEAPDDUMP
+ifneq ($(STBANDROID),1)
+CFLAGS	+= -Wall -Werror
+endif
 
 CFLAGS  += -s
 
@@ -19,6 +22,9 @@ endif
 
 LDFLAGS += -L$(TOP)/nvram -L$(INSTALLDIR)/nvram/usr/lib -lnvram
 LDFLAGS += -L$(TOP)/shared -L$(INSTALLDIR)/shared/usr/lib -lshared
+ifneq ($(STBANDROID),1)
+LDFLAGS += -lpthread
+endif
 LDFLAGS += $(EXTRA_LDFLAGS)
 
 vpath %.c $(SRCBASE)/router/eapd $(SRCBASE)/shared
@@ -91,7 +97,7 @@ endif
 all: eapd
 
 eapd: $(OBJS)
-	$(CC) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 install: all
 	install -d $(INSTALLDIR)/bin

@@ -3669,9 +3669,12 @@ wlc_recv_mgmt_ctl(wlc_info_t *wlc, osl_t *osh, wlc_d11rxhdr_t *wrxh, void *p)
 		wlc_update_perf_stats(wlc, WLC_PERF_STATS_PRB_REQ);
 #endif
 
-		if (wlc_eventq_test_ind(wlc->eventq, WLC_E_PROBREQ_MSG))
-			wlc_bss_mac_event(wlc, wlc->cfg, WLC_E_PROBREQ_MSG, &hdr->sa,
-				0, 0, 0, (char *)hdr, body_len + DOT11_MGMT_HDR_LEN);
+		if (wlc_eventq_test_ind(wlc->eventq, WLC_E_PROBREQ_MSG)) {
+			wl_event_rx_frame_data_t rxframe_data;
+			wlc_recv_prep_event_rx_frame_data(wlc, wrxh, plcp, &rxframe_data);
+			wlc_bss_mac_rxframe_event(wlc, wlc->cfg, WLC_E_PROBREQ_MSG_RX, &hdr->sa,
+				0, 0, 0, (char *)hdr, body_len + DOT11_MGMT_HDR_LEN, &rxframe_data);
+		}
 
 		if (wlc_eventq_test_ind(wlc->eventq, WLC_E_PROBREQ_MSG_RX)) {
 			wl_event_rx_frame_data_t rxframe_data;
@@ -4143,11 +4146,15 @@ wlc_monitor(wlc_info_t *wlc, wlc_d11rxhdr_t *wrxh, void *p, struct wlc_if *wlcif
 #endif
 	sts.signal = sample.rssi;
 
-	sts.chanspec = D11RXHDR_ACCESS_VAL(&wrxh->rxhdr, wlc->pub->corerev, RxChan);
+	sts.chanspec = wlc->chanspec;
+	if (D11RXHDR_ACCESS_VAL(&wrxh->rxhdr, wlc->pub->corerev, RxChan) != wlc->chanspec) {
+		WL_ERROR(("wl%d: %s: Detected malformed chanspec "
+					"rxhdr->chanspec = %02x, wlc->chanspec = %02x \n", wlc->pub->unit, __FUNCTION__,
+					D11RXHDR_ACCESS_VAL(&wrxh->rxhdr, wlc->pub->corerev, RxChan), wlc->chanspec));
+	}
 	chan_num = wf_chspec_ctlchan(sts.chanspec);
 
-	sts.noise = phy_noise_avg((wlc_phy_t *)
-		WLC_PI_BANDUNIT(wlc, CHSPEC_WLCBANDUNIT(sts.chanspec)));
+	sts.noise = phy_noise_avg(wlc->hw->band->pi);
 
 	plcp = PKTDATA(wlc->osh, p);
 	rspec = wlc_recv_compute_rspec(wlc->d11_info, wrxh, plcp);

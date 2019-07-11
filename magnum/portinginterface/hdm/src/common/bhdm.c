@@ -3633,6 +3633,7 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 
 		hHDMI->RxDeviceAttached = 0;
 		hHDMI->hotplugInterruptFired = true;
+		hHDMI->ulPixelClockRate = 0 ;
 
 #if BHDM_HAS_HDMI_20_SUPPORT
 		BKNI_Memset(&hHDMI->stStatusControlData, 0, sizeof(BHDM_SCDC_StatusControlData)) ;
@@ -3729,6 +3730,7 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 
 		/* always disable AvMute after a hot plug */
 		hHDMI->AvMuteState = false ;
+		hHDMI->ulPixelClockRate = 0 ;
 #if BHDM_HAS_HDMI_20_SUPPORT
 		BKNI_Memset(&hHDMI->stStatusControlData, 0, sizeof(BHDM_SCDC_StatusControlData)) ;
 #endif

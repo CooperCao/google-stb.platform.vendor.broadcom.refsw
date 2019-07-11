@@ -93,6 +93,9 @@
 #ifdef AP
 #include <wlc_ap.h>
 #endif /* AP */
+#ifdef WLBSSLOAD
+#include <wlc_bssload.h>
+#endif
 
 #ifndef USE_DEF_P2P_IE
 #define USE_DEF_P2P_IE 0
@@ -6836,6 +6839,10 @@ wlc_p2p_bss_upd_cb(void *ctx, wlc_mcnx_bss_upd_data_t *notif_data)
 		/* disable ucode ProbeResp */
 		wlc_disable_probe_resp(wlc, PROBE_RESP_P2P_MASK,
 			PROBE_RESP_P2P_MASK);
+
+#ifdef WLBSSLOAD
+		wlc_bssload_reset_go_tbtt_cnt(wlc);
+#endif
 	}
 	else {
 		/* enable ucode ProbeResp */

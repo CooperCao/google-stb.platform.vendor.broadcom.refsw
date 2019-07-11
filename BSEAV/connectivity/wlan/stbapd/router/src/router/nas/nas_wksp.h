@@ -48,6 +48,9 @@ extern int debug_nwksp;
 #define NASMSG(fmt, arg...)	printf(fmt , ##arg)
 
 #include <sys/types.h>
+#ifdef TARGETENV_android
+#include <sys/select.h>
+#endif /* TARGETENV_android */
 #include <net/if.h>
 #include "bcmtimer.h"
 #include "nas.h"

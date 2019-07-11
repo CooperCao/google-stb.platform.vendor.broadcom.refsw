@@ -1,4 +1,0 @@
-stream=/mnt/hd/Test_Vectors/SDR/Adaptive_Streaming_Tests/AVC/23976/mp4/Combined/combined_ves_graffiti_23976_avc___st.mp4
-forceRestart=on
-stcTrick=off
-commit

@@ -3566,6 +3566,7 @@ nxserver_t nxserverlib_init(const struct nxserver_settings *settings)
     unsigned i;
     unsigned sd_count = 0;
 
+    BDBG_CASSERT(NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS == NXCLIENT_MAX_DISPLAYS);
     server = BKNI_Malloc(sizeof(*server));
     if (!server) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); return NULL;}
 
@@ -4331,41 +4332,11 @@ NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_
                 rc = NEXUS_HdmiOutput_GetStatus(session->hdmiOutput, &status);
                 if (rc) return BERR_TRACE(rc);
                 if (status.connected) {
-                    NEXUS_HdmiOutputEdidVideoFormatSupport support;
-
                     /* NTSC/PAL is our baseline, so don't allow EDID to deny */
                     status.videoFormatSupported[nxserver_p_default_sd_format(session)] = true;
                     if (!status.videoFormatSupported[pSettings->format]) {
                         BDBG_WRN(("HDMI Rx does not support %s", lookup_name(g_videoFormatStrs, pSettings->format)));
                         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-                    }
-
-                    rc = NEXUS_HdmiOutput_GetVideoFormatSupport(session->hdmiOutput, pSettings->format, &support);
-                    if (rc) {
-                        /* If this fails, it's because HDMI can't validate, not because it's invalid. So allow the setting through. */
-                        BERR_TRACE(rc);
-                    }
-                    else {
-                        switch (pSettings->hdmiPreferences.colorSpace) {
-                        case NEXUS_ColorSpace_eYCbCr420:
-                            if (!support.yCbCr420) {
-                                BDBG_WRN(("HDMI Rx does not support %s 420", lookup_name(g_videoFormatStrs, pSettings->format)));
-                                return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-                            }
-                            break;
-                        case NEXUS_ColorSpace_eYCbCr444:
-                        case NEXUS_ColorSpace_eYCbCr422:
-                        case NEXUS_ColorSpace_eRgb:
-                            if (!support.yCbCr444rgb444) {
-                                BDBG_WRN(("HDMI Rx does not support %s 444/422", lookup_name(g_videoFormatStrs, pSettings->format)));
-                                return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-                            }
-                            break;
-                        case NEXUS_ColorSpace_eAuto:
-                            break;
-                        default:
-                            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-                        }
                     }
                 }
             }

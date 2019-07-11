@@ -84,6 +84,7 @@ static void BAPE_DspMixer_P_SetInputSRC_isr(BAPE_MixerHandle mixer, BAPE_Connect
 static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsigned index);
 static void BAPE_DspMixer_P_EncoderOverflow_isr(void *pParam1, int param2);
 static void BAPE_DspMixer_P_SampleRateChange_isr(void *pParam1, int param2, unsigned streamSampleRate, unsigned baseSampleRate);
+static void BAPE_DspMixer_P_UnlicensedAlgo_isr(void *pParam1, int param2);
 static void BAPE_DspMixer_P_Destroy(BAPE_MixerHandle handle);
 static BAPE_MultichannelFormat BAPE_DspMixer_P_GetDdreMultichannelFormat(BAPE_MixerHandle handle);
 
@@ -982,6 +983,9 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
         interrupts.encoderOutputOverflow.pParam1 = handle;
         interrupts.sampleRateChange.pCallback_isr = BAPE_DspMixer_P_SampleRateChange_isr;
         interrupts.sampleRateChange.pParam1 = handle;
+        interrupts.unlicensedAlgo.pCallback_isr = BAPE_DspMixer_P_UnlicensedAlgo_isr;
+        interrupts.unlicensedAlgo.pParam1 = handle;
+        handle->unlicensedAlgo = false;
         BDSP_AudioTask_SetInterruptHandlers_isr(handle->hTask, &interrupts);
         BKNI_LeaveCriticalSection();
     }
@@ -993,6 +997,9 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
         BDSP_AudioTask_GetInterruptHandlers_isr(handle->hTask, &interrupts);
         interrupts.sampleRateChange.pCallback_isr = BAPE_DspMixer_P_SampleRateChange_isr;
         interrupts.sampleRateChange.pParam1 = handle;
+        interrupts.unlicensedAlgo.pCallback_isr = BAPE_DspMixer_P_UnlicensedAlgo_isr;
+        interrupts.unlicensedAlgo.pParam1 = handle;
+        handle->unlicensedAlgo = false;
         BDSP_AudioTask_SetInterruptHandlers_isr(handle->hTask, &interrupts);
         BKNI_LeaveCriticalSection();
     }
@@ -2948,9 +2955,11 @@ static BERR_Code BAPE_DspMixer_P_GetStatus(
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
 
+    pStatus->unlicensedAlgo = handle->unlicensedAlgo;
     if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
     {
         BDSP_Raaga_MixerDapv2PPStatus dspStatus;
+        BKNI_Snprintf(pStatus->mixerName, sizeof(pStatus->mixerName), "FW Mixer Dapv2");
         if (handle->taskState == BAPE_TaskState_eStopped)
         {
             BDSP_Stage_SetAlgorithm(handle->hMixerStage, BDSP_Algorithm_eMixerDapv2);
@@ -2970,6 +2979,10 @@ static BERR_Code BAPE_DspMixer_P_GetStatus(
         }
         return BERR_NOT_AVAILABLE;
     }
+    else
+    {
+        BKNI_Snprintf(pStatus->mixerName, sizeof(pStatus->mixerName), "FW Mixer");
+    }
 
     return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
@@ -2986,6 +2999,23 @@ static void BAPE_DspMixer_P_EncoderOverflow_isr(void *pParam1, int param2)
     if ( handle->hMuxOutput )
     {
         BAPE_MuxOutput_P_Overflow_isr(handle->hMuxOutput);
+    }
+}
+
+static void BAPE_DspMixer_P_UnlicensedAlgo_isr(void *pParam1, int param2)
+{
+    BAPE_MixerHandle handle = pParam1;
+    BDSP_AudioInterruptHandlers interrupts;
+    BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
+    BSTD_UNUSED(param2);
+    BDSP_AudioTask_GetInterruptHandlers_isr(handle->hTask, &interrupts);
+    interrupts.unlicensedAlgo.pCallback_isr = NULL;
+    interrupts.unlicensedAlgo.pParam1 = handle;
+    (void)BDSP_AudioTask_SetInterruptHandlers_isr(handle->hTask, &interrupts);
+    handle->unlicensedAlgo = true;
+    if (handle->interrupts.unlicensedAlgo.pCallback_isr) {
+        handle->interrupts.unlicensedAlgo.pCallback_isr(handle->interrupts.unlicensedAlgo.pParam1,
+                                                        handle->interrupts.unlicensedAlgo.param2);
     }
 }
 

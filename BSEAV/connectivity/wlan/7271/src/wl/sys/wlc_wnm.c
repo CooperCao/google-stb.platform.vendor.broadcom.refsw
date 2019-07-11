@@ -877,8 +877,6 @@ wlc_wnm_dms_term(wlc_bsscfg_t *bsscfg, wnm_bsscfg_cubby_t *wnm_cfg, wl_dms_term_
 static int
 wlc_wnm_dms_set(wlc_bsscfg_t *bsscfg, wnm_bsscfg_cubby_t *wnm_cfg, wl_dms_set_t *iov_set);
 static void wlc_wnm_bsstrans_query_scancb(void *arg, int status, wlc_bsscfg_t *bsscfg);
-static int
-wlc_wnm_bsstrans_query_send(wlc_wnm_info_t *wnm, wlc_bsscfg_t *bsscfg, wlc_bss_list_t *list);
 static void wlc_wnm_bsstrans_resp_timeout(void *context);
 static bool
 wlc_wnm_rateset_contain_rate(wlc_rateset_t *rateset, uint8 rate, bool is_ht, uint32 nss);
@@ -1300,8 +1298,9 @@ wlc_wnm_wlc_down(void *ctx)
 }
 
 #ifdef STA
-static int
-wlc_wnm_bsstrans_query_send(wlc_wnm_info_t *wnm, wlc_bsscfg_t *bsscfg, wlc_bss_list_t *list)
+int
+wlc_wnm_bsstrans_query_send(wlc_wnm_info_t *wnm, wlc_bsscfg_t *bsscfg, wlc_bss_list_t *list,
+	uint8 reason)
 {
 	wlc_info_t *wlc = wnm->wlc;
 	int i, plen;
@@ -1312,6 +1311,7 @@ wlc_wnm_bsstrans_query_send(wlc_wnm_info_t *wnm, wlc_bsscfg_t *bsscfg, wlc_bss_l
 	uint8 *bufptr;
 	uint32 max_score;
 	uint32 temp_rssi;
+	struct scb *scb;
 
 	/* Allocate BSSTRANS Query frame */
 	plen = DOT11_BSSTRANS_QUERY_LEN + bss_cnt * (TLV_HDR_LEN + DOT11_NEIGHBOR_REP_IE_FIXED_LEN);
@@ -1334,7 +1334,23 @@ wlc_wnm_bsstrans_query_send(wlc_wnm_info_t *wnm, wlc_bsscfg_t *bsscfg, wlc_bss_l
 	query->category = DOT11_ACTION_CAT_WNM;
 	query->action = DOT11_WNM_ACTION_BSSTRANS_QUERY;
 	query->token = WLC_WNM_UPDATE_TOKEN(wnm->req_token);
-	query->reason = 0;  /* unspecified */
+
+#ifdef WNM_BSSTRANS_EXT
+	if (WBTEXT_ACTIVE(wlc->pub)) {
+		query->reason = DOT11_BSSTRANS_REASON_BETTER_AP_FOUND;
+		/* cache dialog token for BTMreq frame processing */
+		wlc_wbtext_update_btq_token(wlc->wbtext_info, bsscfg, query->token);
+	} else
+#endif /* WNM_BSSTRANS_EXT	 */
+	{
+		query->reason = reason;
+	}
+#ifdef WL_MBO
+	if (MBO_ENAB(wlc->pub)) {
+		wlc_mbo_update_btq_info(wlc->mbo, bsscfg,
+			query->token, query->reason);
+	}
+#endif /* WL_MBO */
 
 	if (bss_cnt) {
 		/* Fill candidate list from BSS scan list */
@@ -1349,7 +1365,8 @@ wlc_wnm_bsstrans_query_send(wlc_wnm_info_t *wnm, wlc_bsscfg_t *bsscfg, wlc_bss_l
 			}
 		}
 	}
-	wlc_sendmgmt(wlc, p, bsscfg->wlcif->qi, NULL);
+	scb = wlc_scbfind(wlc, bsscfg, &bsscfg->BSSID);
+	wlc_sendmgmt(wlc, p, bsscfg->wlcif->qi, scb);
 	return BCME_OK;
 }
 
@@ -1382,7 +1399,7 @@ wlc_wnm_bsstrans_query_scancb(void *arg, int status, wlc_bsscfg_t *bsscfg)
 			break;
 		}
 	}
-	wlc_wnm_bsstrans_query_send(wnm, bsscfg, wlc->scan_results);
+	wlc_wnm_bsstrans_query_send(wnm, bsscfg, wlc->scan_results, 0);
 }
 
 static int
@@ -4034,11 +4051,22 @@ wlc_wnm_doiovar(void *hdl, uint32 actionid,
 		break;
 	}
 	case IOV_SVAL(IOV_WNM_BSSTRANS_QUERY):	{
+		int ver;
+		wl_bsstrans_query_t *btm_query = arg;
+
 		if (!WNM_BSSTRANS_ENABLED(wnm_cfg->cap))
 			return BCME_UNSUPPORTED;
 
 		if (!bsscfg->associated)
 			return BCME_NOTASSOCIATED;
+
+		ver = btm_query->version;
+		if (ver != WL_BSSTRANS_QUERY_VERSION_1) {
+			WL_ERROR(("wl%d: wlc_wnm_doiovar: IOVAR structure ver mismatch, ver = %d"
+					"expected version = %d\n", wlc->pub->unit,
+					btm_query->version, WL_BSSTRANS_QUERY_VERSION_1));
+			return BCME_ERROR;
+		}
 
 		if (len == sizeof(wlc_ssid_t)) {
 			wlc_ssid_t ssid;
@@ -4049,7 +4077,7 @@ wlc_wnm_doiovar(void *hdl, uint32 actionid,
 				wlc_wnm_bsstrans_query_scancb, wnm);
 		}
 		else if (len == 0)
-			wlc_wnm_bsstrans_query_send(wnm, bsscfg, NULL);
+			wlc_wnm_bsstrans_query_send(wnm, bsscfg, NULL, btm_query->reason);
 		else
 			return BCME_BADLEN;
 		break;

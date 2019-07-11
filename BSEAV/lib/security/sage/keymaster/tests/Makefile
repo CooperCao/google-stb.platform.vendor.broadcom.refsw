@@ -66,7 +66,7 @@ ifeq ($(NXCLIENT_SUPPORT),y)
 include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
 endif
 
-APPS = keymaster_test gatekeeper_test km_concurrent_test
+APPS = keymaster_test gatekeeper_test km_concurrent_test keymaster_4_test
 
 keymaster_test_SRCS := keymaster_crypto_aes.c \
                        keymaster_crypto_auth_tests.c \
@@ -88,6 +88,11 @@ km_concurrent_test_SRCS := km_concurrent_test.c \
                            keymaster_key_params.c
 
 km_concurrent_test_OBJS := ${km_concurrent_test_SRCS:.c=.o}
+
+keymaster_4_test_SRCS := keymaster_4_test.c \
+                         keymaster_key_params.c
+
+keymaster_4_test_OBJS := ${keymaster_4_test_SRCS:.c=.o}
 
 # Host/Sage shared headers
 APP_INCLUDES  = ${BSAGELIB_INCLUDES} \
@@ -158,6 +163,10 @@ km_concurrent_test: openssl ${km_concurrent_test_OBJS}
 	@echo [Link... $@]
 	$(Q_)${CC} $(addprefix ${KEYMASTER_OBJDIR}/,${km_concurrent_test_OBJS}) -o ${KEYMASTER_OBJDIR}/$@ ${LDFLAGS}
 
+keymaster_4_test: openssl ${keymaster_4_test_OBJS}
+	@echo [Link... $@]
+	$(Q_)${CC} $(addprefix ${KEYMASTER_OBJDIR}/,${keymaster_4_test_OBJS}) -o ${KEYMASTER_OBJDIR}/$@ ${LDFLAGS}
+
 .PHONY:  openssl
 openssl:
 	@echo [Build..... OpenSSL]
@@ -179,6 +188,7 @@ clean:
 	${Q_} rm -f $(addprefix ${KEYMASTER_OBJDIR}/,${keymaster_test_OBJS})
 	${Q_} rm -f $(addprefix ${KEYMASTER_OBJDIR}/,${gatekeeper_test_OBJS})
 	${Q_} rm -f $(addprefix ${KEYMASTER_OBJDIR}/,${km_concurrent_test_OBJS})
+	${Q_} rm -f $(addprefix ${KEYMASTER_OBJDIR}/,${keymaster_4_test_OBJS})
 	${Q_} rm -f $(addprefix ${KEYMASTER_OBJDIR}/,${APPS})
 
 srai:

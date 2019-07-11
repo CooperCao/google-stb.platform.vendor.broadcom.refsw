@@ -278,9 +278,11 @@ endif
 
 #################### HDCP ################################
 ifeq (${HDCP_SAGE},OFF)
-include drm/hdcp/hdcp.inc
-COMMON_DRM_SOURCES += ${HDCP_SOURCES}
-COMMON_DRM_DEFINES += ${HDCP_DEFINES}
+ifneq ("$(wildcard drm/hdcp/*.c)","")
+	include drm/hdcp/hdcp.inc
+	COMMON_DRM_SOURCES += ${HDCP_SOURCES}
+	COMMON_DRM_DEFINES += ${HDCP_DEFINES}
+endif
 else
 #$(warning Support for HDCP on SAGE does not exist)
 endif
@@ -474,7 +476,9 @@ endif
 endif
 
 ifeq (${HDCP_SAGE},OFF)
+ifneq ("$(wildcard drm/hdcp/*.c)","")
 	@ mkdir -p $(addprefix ${COMMON_DRM_OBJ_ROOT}/, $(dir ${HDCP_SOURCES}))
+endif
 endif
 
 ifeq (${OCAP_SAGE},OFF)

@@ -18,6 +18,9 @@
 #ifdef WLHOSTFBT
 #include <common.h>
 #endif
+#ifdef TARGETENV_android
+#include <osl.h>
+#endif /* TARGETENV_android */
 #define REPLAY_LEN		8
 #define NONCE_LEN		32
 #define PMK_LEN			32

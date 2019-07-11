@@ -15,7 +15,10 @@
 include $(TOP)/.config
 
 
-CFLAGS	+= -I. -I../include -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -I$(TOP)/shared -Wall -Werror
+CFLAGS	+= -I. -I../include -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -I$(TOP)/shared
+ifneq ($(STBANDROID),1)
+CFLAGS	+= -Wall -Werror
+endif
 CFLAGS  += $(if $(WLAN_ComponentIncPath),$(WLAN_ComponentIncPath),$(addprefix -I,$(wildcard $(SRCBASE)/shared/bcmwifi/include)))
 #CFLAGS	+= -g -DDEBUG
 CFLAGS	+= -s -fPIC
@@ -23,6 +26,9 @@ ifeq ($(CONFIG_RTR_OPTIMIZE_SIZE),y)
 CFLAGS  += -Os
 else
 CFLAGS  += -O2
+endif
+ifeq ($(STBANDROID),1)
+LDFLAGS = $(SHARED_LDFLAGS)
 endif
 LDFLAGS += -L.
 
@@ -42,4 +48,4 @@ clean:
 	rm -f *.o *.so
 
 $(TARGET): $(OBJS)
-	$(LD) -shared -o $@ $^
+	$(LD) $(LDFLAGS) -shared -o $@ $^

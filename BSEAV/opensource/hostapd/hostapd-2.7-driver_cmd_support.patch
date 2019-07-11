@@ -1,0 +1,236 @@
+diff -Naur hostapd-2.7-orig/hostapd/ctrl_iface.c hostapd-2.7/hostapd/ctrl_iface.c
+--- hostapd-2.7-orig/hostapd/ctrl_iface.c	2018-12-02 11:34:59.000000000 -0800
++++ hostapd-2.7/hostapd/ctrl_iface.c	2019-01-31 16:37:15.451217374 -0800
+@@ -2751,6 +2751,27 @@
+ 	return pos - buf;
+ }
+ 
++static inline int hostapd_driver_cmd(struct hostapd_data *hapd,
++				     char *cmd, char *buf, size_t buf_len)
++{
++	if (!hapd->driver->driver_cmd)
++		return -1;
++	return hapd->driver->driver_cmd(hapd->drv_priv, cmd, buf, buf_len);
++}
++
++static int hostapd_ctrl_driver_cmd(struct hostapd_data *hapd, char *cmd,
++				     char *buf, size_t buflen)
++{
++	int ret;
++
++	ret = hostapd_driver_cmd(hapd, cmd, buf, buflen);
++	if (ret == 0) {
++		ret = os_snprintf(buf, buflen, "%s\n", "OK");
++		if (os_snprintf_error(buflen, ret))
++			ret = -1;
++	}
++	return ret;
++}
+ 
+ static int hostapd_ctrl_iface_acl_del_mac(struct mac_acl_entry **acl, int *num,
+ 					  const char *txtaddr)
+@@ -3253,7 +3274,10 @@
+ 		if (radius_server_dac_request(hapd->radius_srv, buf + 12) < 0)
+ 			reply_len = -1;
+ #endif /* RADIUS_SERVER */
+-	} else {
++	} else if (os_strncmp(buf, "DRIVER ", 7) == 0) {
++ 		reply_len = hostapd_ctrl_driver_cmd(hapd, buf + 7, reply,
++ 						      reply_size);
++ 	} else {
+ 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
+ 		reply_len = 16;
+ 	}
+diff -Naur hostapd-2.7-orig/hostapd/hostapd_cli.c hostapd-2.7/hostapd/hostapd_cli.c
+--- hostapd-2.7-orig/hostapd/hostapd_cli.c	2018-12-02 11:34:59.000000000 -0800
++++ hostapd-2.7/hostapd/hostapd_cli.c	2019-01-31 16:37:12.364728391 -0800
+@@ -1213,6 +1213,10 @@
+ 	return wpa_ctrl_command(ctrl, "DISABLE");
+ }
+ 
++static int hostapd_cli_cmd_driver(struct wpa_ctrl *ctrl, int argc, char *argv[])
++{
++	return hostapd_cli_cmd(ctrl, "DRIVER", 1, argc, argv);
++}
+ 
+ static int hostapd_cli_cmd_vendor(struct wpa_ctrl *ctrl, int argc, char *argv[])
+ {
+@@ -1587,6 +1591,8 @@
+ 	{ "hs20_deauth_req", hostapd_cli_cmd_hs20_deauth_req, NULL,
+ 	  "<addr> <code (0/1)> <Re-auth-Delay(sec)> [url]\n"
+ 	  "  = send WNM-Notification imminent deauthentication indication" },
++	{ "driver", hostapd_cli_cmd_driver, NULL,
++ 	  "<command> = driver private commands" },	  
+ 	{ "vendor", hostapd_cli_cmd_vendor, NULL,
+ 	  "<vendor id> <sub command id> [<hex formatted data>]\n"
+ 	  "  = send vendor driver command" },
+diff -Naur hostapd-2.7-orig/src/drivers/driver.h hostapd-2.7/src/drivers/driver.h
+--- hostapd-2.7-orig/src/drivers/driver.h	2018-12-02 11:34:59.000000000 -0800
++++ hostapd-2.7/src/drivers/driver.h	2019-01-31 16:36:32.276849263 -0800
+@@ -3391,7 +3391,7 @@
+ 	 */
+ 	int (*set_authmode)(void *priv, int authmode);
+ 
+-#ifdef ANDROID
++/*#ifdef ANDROID*/
+ 	/**
+ 	 * driver_cmd - Execute driver-specific command
+ 	 * @priv: Private driver interface data
+@@ -3401,7 +3401,7 @@
+ 	 * Returns: 0 on success, -1 on failure
+ 	 */
+ 	int (*driver_cmd)(void *priv, char *cmd, char *buf, size_t buf_len);
+-#endif /* ANDROID */
++/*#endif*/ /* ANDROID */
+ 
+ 	/**
+ 	 * vendor_cmd - Execute vendor specific command
+diff -Naur hostapd-2.7-orig/src/drivers/driver_nl80211.c hostapd-2.7/src/drivers/driver_nl80211.c
+--- hostapd-2.7-orig/src/drivers/driver_nl80211.c	2018-12-02 11:34:59.000000000 -0800
++++ hostapd-2.7/src/drivers/driver_nl80211.c	2019-01-31 16:36:32.010794512 -0800
+@@ -9003,8 +9003,131 @@
+ 
+ 	return NL_SKIP;
+ }
++/*#include "../../wpa_supplicant/wpa_supplicant_i.h"*/
++#include "android_drv.h"
+ 
+ 
++#include "includes.h"
++#include <sys/ioctl.h>
++
++#include "linux_wext.h"
++#include "common.h"
++#include "driver.h"
++#include "driver_wext.h"
++#include "eloop.h"
++
++
++#include <net/if_arp.h>
++#include <netpacket/packet.h>
++
++
++#include "netlink.h"
++#include "linux_ioctl.h"
++#include "common/ieee802_11_defs.h"
++#include "common/ieee802_11_common.h"
++
++
++typedef struct android_wifi_priv_cmd {
++#ifdef BCMDHD_64_BIT_IPC
++	u64 bufaddr;
++#else
++	char *bufaddr;
++#endif
++	int used_len;
++	int total_len;
++} android_wifi_priv_cmd;
++
++static int drv_errors = 0;
++
++static void wpa_driver_send_hang_msg(struct wpa_driver_nl80211_data *drv)
++{
++	drv_errors++;
++	if (drv_errors > DRV_NUMBER_SEQUENTIAL_ERRORS) {
++		drv_errors = 0;
++		wpa_msg(drv->ctx, MSG_INFO, WPA_EVENT_DRIVER_STATE "HANGED");
++	}
++}
++
++static int wpa_driver_nl80211_driver_cmd(void *priv, char *cmd, char *buf,
++				  size_t buf_len )
++{
++	struct i802_bss *bss = priv;
++	struct wpa_driver_nl80211_data *drv = bss->drv;
++	struct ifreq ifr;
++	android_wifi_priv_cmd priv_cmd;
++	int ret = 0;
++	char p2pname[IFNAMSIZ + 1] = "p2p0";
++
++	if (bss->ifindex <= 0 && bss->wdev_id > 0) {
++		/* DRIVER CMD received on the DEDICATED P2P Interface which doesn't
++		 * have an NETDEVICE associated with it. So we have to re-route the
++		 * command to the parent NETDEVICE
++		 */
++		 /*struct hostapd_data *hapd = ctx; */
++		
++		wpa_printf(MSG_ERROR, "Don't know the parent iface for Re-routing DRIVER cmd. Revisit here");
++#if 0
++		struct wpa_supplicant *wpa_s = (struct wpa_supplicant *)(drv->ctx);
++
++		wpa_printf(MSG_DEBUG, "Re-routing DRIVER cmd to parent iface");
++		if (wpa_s && wpa_s->parent) {
++			/* Update the nl80211 pointers corresponding to parent iface */
++			bss = wpa_s->parent->drv_priv;
++			drv = bss->drv;
++			
++			wpa_printf(MSG_DEBUG, "Re-routing command to iface: %s"
++					      " cmd (%s)", bss->ifname, cmd);
++		}
++#endif
++	}
++
++	if (os_strcasecmp(cmd, "STOP") == 0) {
++		linux_set_iface_flags(drv->global->ioctl_sock, bss->ifname, 0);
++		wpa_msg(drv->ctx, MSG_INFO, WPA_EVENT_DRIVER_STATE "STOPPED");
++	} else if (os_strcasecmp(cmd, "START") == 0) {
++		linux_set_iface_flags(drv->global->ioctl_sock, bss->ifname, 1);
++		wpa_msg(drv->ctx, MSG_INFO, WPA_EVENT_DRIVER_STATE "STARTED");
++	} else if (os_strcasecmp(cmd, "MACADDR") == 0) {
++		u8 macaddr[ETH_ALEN] = {};
++
++		ret = linux_get_ifhwaddr(drv->global->ioctl_sock, p2pname, macaddr);
++		if (!ret)
++			ret = os_snprintf(buf, buf_len,
++					  "Macaddr = " MACSTR "\n", MAC2STR(macaddr));
++	} else { /* Use private command */
++		os_memcpy(buf, cmd, strlen(cmd) + 1);
++		memset(&ifr, 0, sizeof(ifr));
++		memset(&priv_cmd, 0, sizeof(priv_cmd));
++		os_strlcpy(ifr.ifr_name, p2pname, IFNAMSIZ);
++
++#ifdef BCMDHD_64_BIT_IPC
++		priv_cmd.bufaddr = (u64)(uintptr_t)buf;
++#else
++		priv_cmd.bufaddr = buf;
++#endif
++		priv_cmd.used_len = buf_len;
++		priv_cmd.total_len = buf_len;
++		ifr.ifr_data = (void *)&priv_cmd;
++
++		if ((ret = ioctl(drv->global->ioctl_sock, SIOCDEVPRIVATE + 1, &ifr)) < 0) {
++			wpa_printf(MSG_ERROR, "%s: failed to issue private command: %s", __func__, cmd);
++		
++			wpa_driver_send_hang_msg(drv);
++		} else {
++			drv_errors = 0;
++			ret = 0;
++			if ((os_strcasecmp(cmd, "LINKSPEED") == 0) ||
++			    (os_strcasecmp(cmd, "RSSI") == 0) ||
++			    (os_strcasecmp(cmd, "GETBAND") == 0) ||
++			    (os_strncasecmp(cmd, "WLS_BATCHING", 12) == 0))
++				ret = strlen(buf);
++			
++			wpa_msg(drv->ctx, MSG_INFO," %s %s", __func__, buf);
++		}
++	}
++	return ret;
++}
++
+ static int nl80211_vendor_cmd(void *priv, unsigned int vendor_id,
+ 			      unsigned int subcmd, const u8 *data,
+ 			      size_t data_len, struct wpabuf *buf)
+@@ -10755,11 +10878,11 @@
+ 	.get_noa = wpa_driver_get_p2p_noa,
+ 	.set_ap_wps_ie = wpa_driver_set_ap_wps_p2p_ie,
+ #endif /* ANDROID_P2P */
+-#ifdef ANDROID
++/*#ifdef ANDROID */
+ #ifndef ANDROID_LIB_STUB
+ 	.driver_cmd = wpa_driver_nl80211_driver_cmd,
+ #endif /* !ANDROID_LIB_STUB */
+-#endif /* ANDROID */
++/* #endif */ /* ANDROID */
+ 	.vendor_cmd = nl80211_vendor_cmd,
+ 	.set_qos_map = nl80211_set_qos_map,
+ 	.set_wowlan = nl80211_set_wowlan,

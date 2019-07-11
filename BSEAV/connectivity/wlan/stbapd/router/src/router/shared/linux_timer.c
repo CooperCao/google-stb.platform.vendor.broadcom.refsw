@@ -136,22 +136,22 @@ struct event {
 void timer_cancel(timer_t timerid);
 
 static void alarm_handler(int i);
-static void check_event_queue();
-static void print_event_queue();
-static void check_timer();
+static void check_event_queue(void);
+static void print_event_queue(void);
+static void check_timer(void);
 #if THIS_FINDS_USE
 static int count_queue(struct event *);
 #endif
 static int timer_change_settime(timer_t timer_id, const struct itimerspec *timer_spec);
-void block_timer();
-void unblock_timer();
+void block_timer(void);
+void unblock_timer(void);
 
 static struct event *event_queue = NULL;
 static struct event *event_freelist;
 static uint g_granularity;
 static int g_maxevents = 0;
 
-uclock_t uclock()
+uclock_t uclock(void)
 {
 	struct timeval tv;
 

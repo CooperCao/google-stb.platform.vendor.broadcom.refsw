@@ -33,6 +33,9 @@ typedef struct wl_mbo_sub_cmd wl_mbo_sub_cmd_t;
 typedef int (subcmd_handler_t)(void *wl, const wl_mbo_sub_cmd_t *cmd,
 	char **argv);
 typedef void (help_handler_t) (void);
+typedef struct wl_event_mbo wl_event_mbo_t;
+typedef struct wl_event_mbo_cell_nw_switch wl_event_mbo_cell_nw_switch_t;
+
 struct wl_mbo_sub_cmd {
 	char *name;
 	uint8 version;
@@ -57,8 +60,13 @@ static subcmd_handler_t wl_mbo_sub_cmd_list_chan_pref;
 static subcmd_handler_t wl_mbo_sub_cmd_cell_data_cap;
 static subcmd_handler_t wl_mbo_sub_cmd_dump_counters;
 static subcmd_handler_t wl_mbo_sub_cmd_clear_counters;
+#ifdef WL_MBO_TB
 static subcmd_handler_t wl_mbo_sub_cmd_force_assoc;
 static subcmd_handler_t wl_mbo_sub_cmd_bsstrans_reject;
+#endif /* WL_MBO_TB */
+static subcmd_handler_t wl_mbo_sub_cmd_send_notif;
+static subcmd_handler_t wl_mbo_sub_cmd_nbr_info_cache;
+static subcmd_handler_t wl_mbo_sub_cmd_anqpo_support;
 static subcmd_handler_t wl_mbo_sub_cmd_ap_attr;
 static subcmd_handler_t wl_mbo_sub_cmd_ap_assoc_disallowed;
 
@@ -69,8 +77,13 @@ static help_handler_t wl_mbo_list_chan_pref_help_fn;
 static help_handler_t wl_mbo_cell_data_cap_help_fn;
 static help_handler_t wl_mbo_counters_help_fn;
 static help_handler_t wl_mbo_clear_counters_help_fn;
+#ifdef WL_MBO_TB
 static help_handler_t wl_mbo_force_assoc_help_fn;
 static help_handler_t wl_mbo_bsstrans_reject_help_fn;
+#endif /* WL_MBO_TB */
+static help_handler_t wl_mbo_send_notif_help_fn;
+static help_handler_t wl_mbo_nbr_info_cache_help_fn;
+static help_handler_t wl_mbo_anqpo_support_help_fn;
 static help_handler_t wl_mbo_ap_attr_help_fn;
 static help_handler_t wl_mbo_ap_assoc_disallowed_help_fn;
 
@@ -100,7 +113,7 @@ static const wl_mbo_sub_cmd_t mbo_subcmd_lists[] = {
 	IOVT_BUFFER, wl_mbo_sub_cmd_clear_counters,
 	wl_mbo_clear_counters_help_fn
 	},
-#ifdef WL_MBO_WFA_CERT
+#ifdef WL_MBO_TB
 	{ "force_assoc", 0x1, WL_MBO_CMD_FORCE_ASSOC,
 	IOVT_BUFFER, wl_mbo_sub_cmd_force_assoc,
 	wl_mbo_force_assoc_help_fn
@@ -109,7 +122,19 @@ static const wl_mbo_sub_cmd_t mbo_subcmd_lists[] = {
 	IOVT_BUFFER, wl_mbo_sub_cmd_bsstrans_reject,
 	wl_mbo_bsstrans_reject_help_fn
 	},
-#endif /* WL_MBO_WFA_CERT */
+#endif /* WL_MBO_TB */
+	{ "send_notif", 0x1, WL_MBO_CMD_SEND_NOTIF,
+	IOVT_BUFFER, wl_mbo_sub_cmd_send_notif,
+	wl_mbo_send_notif_help_fn
+	},
+	{ "nbr_info_cache", 0x1, WL_MBO_CMD_NBR_INFO_CACHE,
+	IOVT_BUFFER, wl_mbo_sub_cmd_nbr_info_cache,
+	wl_mbo_nbr_info_cache_help_fn
+	},
+	{ "anqpo_support", 0x1, WL_MBO_CMD_ANQPO_SUPPORT,
+	IOVT_BUFFER, wl_mbo_sub_cmd_anqpo_support,
+	wl_mbo_anqpo_support_help_fn
+	},
 	{ "ap_attr", 0x1, WL_MBO_CMD_AP_ATTRIBUTE,
 	IOVT_BUFFER, wl_mbo_sub_cmd_ap_attr,
 	wl_mbo_ap_attr_help_fn
@@ -301,22 +326,18 @@ wl_mbo_sub_cmd_del_chan_pref(void *wl, const wl_mbo_sub_cmd_t *cmd, char **argv)
 	uint16 iovlen = 0;
 	bool opclass_set = FALSE, chan_set = FALSE;
 
-	/* only set */
-	if (*argv == NULL) {
-		wl_mbo_usage(WL_MBO_CMD_DEL_CHAN_PREF);
-		return BCME_USAGE_ERROR;
-	} else {
-		iov_buf = (bcm_iov_buf_t *)calloc(1, WLC_IOCTL_MEDLEN);
-		if (iov_buf == NULL) {
-			return BCME_NOMEM;
-		}
-		/* fill header */
-		iov_buf->version = WL_MBO_IOV_VERSION;
-		iov_buf->id = cmd->cmd_id;
+	iov_buf = (bcm_iov_buf_t *)calloc(1, WLC_IOCTL_MEDLEN);
+	if (iov_buf == NULL) {
+		return BCME_NOMEM;
+	}
+	/* fill header */
+	iov_buf->version = WL_MBO_IOV_VERSION;
+	iov_buf->id = cmd->cmd_id;
 
-		pxtlv = (uint8 *)&iov_buf->data[0];
-		buflen = buflen_start = WLC_IOCTL_MEDLEN - sizeof(bcm_iov_buf_t);
+	pxtlv = (uint8 *)&iov_buf->data[0];
+	buflen = buflen_start = WLC_IOCTL_MEDLEN - sizeof(bcm_iov_buf_t);
 
+	if (*argv != NULL) {
 		/* parse and pack config parameters */
 		while ((param = *argv++)) {
 			val_p = *argv++;
@@ -330,7 +351,7 @@ wl_mbo_sub_cmd_del_chan_pref(void *wl, const wl_mbo_sub_cmd_t *cmd, char **argv)
 				uint8 opclass = strtoul(val_p, NULL, 0);
 				opclass_set = TRUE;
 				ret = bcm_pack_xtlv_entry(&pxtlv, &buflen, WL_MBO_XTLV_OPCLASS,
-						sizeof(opclass), &opclass, BCM_XTLV_OPTION_ALIGN32);
+					sizeof(opclass), &opclass, BCM_XTLV_OPTION_ALIGN32);
 				if (ret != BCME_OK) {
 					goto fail;
 				}
@@ -338,7 +359,7 @@ wl_mbo_sub_cmd_del_chan_pref(void *wl, const wl_mbo_sub_cmd_t *cmd, char **argv)
 				uint8 chan = strtoul(val_p, NULL, 0);
 				chan_set = TRUE;
 				ret = bcm_pack_xtlv_entry(&pxtlv, &buflen, WL_MBO_XTLV_CHAN,
-						sizeof(chan), &chan, BCM_XTLV_OPTION_ALIGN32);
+					sizeof(chan), &chan, BCM_XTLV_OPTION_ALIGN32);
 				if (ret != BCME_OK) {
 					goto fail;
 				}
@@ -346,15 +367,14 @@ wl_mbo_sub_cmd_del_chan_pref(void *wl, const wl_mbo_sub_cmd_t *cmd, char **argv)
 				fprintf(stderr, "Unknown param %s\n", param);
 			}
 		}
-		if (opclass_set && chan_set) {
-			iov_buf->len = buflen_start - buflen;
-			iovlen = sizeof(bcm_iov_buf_t) + iov_buf->len;
-			ret = wlu_var_setbuf(wl, "mbo", (void *)iov_buf, iovlen);
-		} else {
+		if (!opclass_set && !chan_set) {
 			wl_mbo_usage(WL_MBO_CMD_DEL_CHAN_PREF);
 			ret = BCME_USAGE_ERROR;
 		}
 	}
+	iov_buf->len = buflen_start - buflen;
+	iovlen = sizeof(bcm_iov_buf_t) + iov_buf->len;
+	ret = wlu_var_setbuf(wl, "mbo", (void *)iov_buf, iovlen);
 fail:
 	if (iov_buf) {
 		free(iov_buf);
@@ -845,7 +865,7 @@ wl_mbo_clear_counters_help_fn(void)
 	printf("wl mbo clear_counters\n");
 }
 
-#ifdef WL_MBO_WFA_CERT
+#ifdef WL_MBO_TB
 static int
 wl_mbo_force_assoc_cbfn(void *ctx, const uint8 *data, uint16 type, uint16 len)
 {
@@ -1057,4 +1077,305 @@ wl_mbo_bsstrans_reject_help_fn(void)
 	printf("\t\t 5 = High interference observed on suggested BSS\n");
 	printf("\t\t 6 = Service unavailability on suggested BSS\n");
 }
-#endif /* WL_MBO_WFA_CERT */
+#endif /* WL_MBO_TB */
+
+static int
+wl_mbo_sub_cmd_send_notif(void *wl, const wl_mbo_sub_cmd_t *cmd, char **argv)
+{
+	int ret = BCME_OK;
+	bcm_iov_buf_t *iov_buf = NULL;
+	uint8 *pxtlv = NULL;
+	uint16 buflen = 0, buflen_start = 0;
+	char *param = NULL, *val_p = NULL;
+	uint16 iovlen = 0;
+
+	/* no get, only set */
+	if (*argv == NULL) {
+		wl_mbo_usage(WL_MBO_CMD_SEND_NOTIF);
+		return BCME_USAGE_ERROR;
+	} else {
+		iov_buf = (bcm_iov_buf_t *)calloc(1, WLC_IOCTL_MEDLEN);
+		if (iov_buf == NULL) {
+			ret = BCME_NOMEM;
+			goto fail;
+		}
+		/* fill header */
+		iov_buf->version = WL_MBO_IOV_VERSION;
+		iov_buf->id = cmd->cmd_id;
+
+		pxtlv = (uint8 *)&iov_buf->data[0];
+		param = *argv++;
+		if (strcmp(param, "-t") == 0) {
+			val_p = *argv;
+			if (val_p == NULL || *val_p == '-') {
+				wl_mbo_usage(WL_MBO_CMD_SEND_NOTIF);
+				ret = BCME_USAGE_ERROR;
+				goto fail;
+			}
+			uint8 sub_elem_type = strtoul(val_p, NULL, 0);
+			if (sub_elem_type != MBO_ATTR_CELL_DATA_CAP &&
+				sub_elem_type != MBO_ATTR_NON_PREF_CHAN_REPORT) {
+				fprintf(stderr, "wrong value %u\n", sub_elem_type);
+				ret = BCME_BADARG;
+				goto fail;
+			}
+			buflen = buflen_start = WLC_IOCTL_MEDLEN - sizeof(bcm_iov_buf_t);
+			ret = bcm_pack_xtlv_entry(&pxtlv, &buflen, WL_MBO_XTLV_SUB_ELEM_TYPE,
+				sizeof(sub_elem_type), &sub_elem_type, BCM_XTLV_OPTION_ALIGN32);
+			if (ret != BCME_OK) {
+				goto fail;
+			}
+		} else {
+			fprintf(stderr, "wrong parameter %s\n", param);
+			wl_mbo_usage(WL_MBO_CMD_SEND_NOTIF);
+			ret = BCME_USAGE_ERROR;
+			goto fail;
+		}
+		iov_buf->len = buflen_start - buflen;
+		iovlen = sizeof(bcm_iov_buf_t) + iov_buf->len;
+		ret = wlu_var_setbuf(wl, "mbo", (void *)iov_buf, iovlen);
+	}
+fail:
+	if (iov_buf) {
+		free(iov_buf);
+	}
+	return ret;
+}
+
+static void
+wl_mbo_send_notif_help_fn(void)
+{
+	printf("wl mbo send_notif -t <type>\n");
+	printf("\ttype: WNM Notification req sub-element type <2/3>\n");
+	printf("\t\t 2 = Non-preferred chan report\n");
+	printf("\t\t 3 = Cellular data capability\n");
+}
+
+static int
+wl_mbo_nbr_info_cbfn(void *ctx, const uint8 *data, uint16 type, uint16 len)
+{
+	UNUSED_PARAMETER(ctx);
+	UNUSED_PARAMETER(len);
+	if (data == NULL) {
+		printf("%s: Bad argument !!\n", __FUNCTION__);
+		return BCME_BADARG;
+	}
+	switch (type) {
+		case WL_MBO_XTLV_ENABLE:
+			printf("Bss Transition Reject: %s\n",
+				(*data == 0) ? "disabled" : "enabled");
+			break;
+		case WL_MBO_XTLV_BTQ_TRIG_START_OFFSET:
+			printf("First BTQ trigger offset: %u\n", *data);
+			break;
+		case WL_MBO_XTLV_BTQ_TRIG_RSSI_DELTA:
+			printf("BTQ trigger RSSI delta: %u\n", *data);
+			break;
+		default:
+			printf("%s: Unknown tlv %u\n", __FUNCTION__, type);
+	}
+	return BCME_OK;
+}
+
+static int
+wl_mbo_sub_cmd_nbr_info_cache(void *wl, const wl_mbo_sub_cmd_t *cmd, char **argv)
+{
+	int ret = BCME_OK;
+	bcm_iov_buf_t *iov_buf = NULL;
+	uint8 *pxtlv = NULL;
+	uint16 buflen = 0, buflen_start = 0;
+	char *param = NULL, *val_p = NULL;
+	uint16 iovlen = 0;
+	uint8 enable = 0;
+
+	/* get */
+	if (*argv == NULL) {
+		ret = wl_mbo_get_iov_resp(wl, cmd, wl_mbo_nbr_info_cbfn);
+	} else {
+		iov_buf = (bcm_iov_buf_t *)calloc(1, WLC_IOCTL_MEDLEN);
+		if (iov_buf == NULL) {
+			return BCME_NOMEM;
+		}
+		/* fill header */
+		iov_buf->version = WL_MBO_IOV_VERSION;
+		iov_buf->id = cmd->cmd_id;
+
+		pxtlv = (uint8 *)&iov_buf->data[0];
+		buflen = buflen_start = WLC_IOCTL_MEDLEN - sizeof(bcm_iov_buf_t);
+
+		/* parse and pack config parameters */
+		while ((param = *argv++)) {
+			val_p = *argv++;
+			if (!val_p || *val_p == '-') {
+				fprintf(stderr, "%s: wrong usage %s\n", __FUNCTION__, param);
+				wl_mbo_usage(WL_MBO_CMD_NBR_INFO_CACHE);
+				ret = BCME_USAGE_ERROR;
+				goto fail;
+			}
+			if (strcmp(param, "-e") == 0) {
+				enable = strtoul(val_p, NULL, 0);
+				if ((enable != 0) && (enable != 1)) {
+					fprintf(stderr, "wrong value %u\n", enable);
+					ret = BCME_BADARG;
+					goto fail;
+				}
+				ret = bcm_pack_xtlv_entry(&pxtlv, &buflen, WL_MBO_XTLV_ENABLE,
+						sizeof(enable), &enable, BCM_XTLV_OPTION_ALIGN32);
+				if (ret != BCME_OK) {
+					goto fail;
+				}
+			} else if (strcmp(param, "-o") == 0) {
+				uint8 offset = strtoul(val_p, NULL, 0);
+
+				ret = bcm_pack_xtlv_entry(&pxtlv, &buflen,
+					WL_MBO_XTLV_BTQ_TRIG_START_OFFSET,
+					sizeof(offset), (uint8 *)&offset, BCM_XTLV_OPTION_ALIGN32);
+				if (ret != BCME_OK) {
+					goto fail;
+				}
+			} else if (strcmp(param, "-d") == 0) {
+				uint8 rssi_delta = strtoul(val_p, NULL, 0);
+
+				ret = bcm_pack_xtlv_entry(&pxtlv, &buflen,
+					WL_MBO_XTLV_BTQ_TRIG_RSSI_DELTA,
+					sizeof(rssi_delta), (uint8 *)&rssi_delta,
+					BCM_XTLV_OPTION_ALIGN32);
+				if (ret != BCME_OK) {
+					goto fail;
+				}
+			} else {
+				fprintf(stderr, "Unknown param %s\n", param);
+			}
+		}
+		iov_buf->len = buflen_start - buflen;
+		iovlen = sizeof(bcm_iov_buf_t) + iov_buf->len;
+		ret = wlu_var_setbuf(wl, "mbo", (void *)iov_buf, iovlen);
+	}
+fail:
+	if (iov_buf) {
+		free(iov_buf);
+	}
+	return ret;
+}
+
+static void
+wl_mbo_nbr_info_cache_help_fn(void)
+{
+	printf("wl mbo nbr_info_cache -e <value> -o <time offset> -d <rssi trigger delta>\n");
+	printf("\tvalue: Enable/Disable neighbor info cache <1/0>\n");
+	printf("\t\t 1 = Enable neighbor info cache\n");
+	printf("\t\t 0 = Disable neighbor info cache\n");
+	printf("\ttime offset: Post join time offset in seconds, BTM query to send <5-60>\n");
+	printf("\ttrigger delta: delta from roam trigger to send subsequent BTM query <5-10>\n");
+}
+
+static int
+wl_mbo_anqpo_support_cbfn(void *ctx, const uint8 *data, uint16 type, uint16 len)
+{
+	UNUSED_PARAMETER(ctx);
+	UNUSED_PARAMETER(len);
+	if (data == NULL) {
+		printf("%s: Bad argument !!\n", __FUNCTION__);
+		return BCME_BADARG;
+	}
+	switch (type) {
+		case WL_MBO_XTLV_ENABLE:
+			printf("ANQPO Support: %s\n",
+				(*data == 0) ? "disabled" : "enabled");
+			break;
+		case WL_MBO_XTLV_ANQP_CELL_SUPP:
+			printf("cellular pref: %s\n",
+				(*data == 0) ? "disabled" : "enabled");
+			break;
+		default:
+			printf("%s: Unknown tlv %u\n", __FUNCTION__, type);
+	}
+	return BCME_OK;
+}
+
+static int
+wl_mbo_sub_cmd_anqpo_support(void *wl, const wl_mbo_sub_cmd_t *cmd, char **argv)
+{
+	int ret = BCME_OK;
+	bcm_iov_buf_t *iov_buf = NULL;
+	uint8 *pxtlv = NULL;
+	uint16 buflen = 0, buflen_start = 0;
+	char *param = NULL, *val_p = NULL;
+	uint16 iovlen = 0;
+	uint8 enable = 0, cellular = 0;
+
+	/* get */
+	if (*argv == NULL) {
+		ret = wl_mbo_get_iov_resp(wl, cmd, wl_mbo_anqpo_support_cbfn);
+	} else {
+		iov_buf = (bcm_iov_buf_t *)calloc(1, WLC_IOCTL_MEDLEN);
+		if (iov_buf == NULL) {
+			return BCME_NOMEM;
+		}
+		/* fill header */
+		iov_buf->version = WL_MBO_IOV_VERSION;
+		iov_buf->id = cmd->cmd_id;
+
+		pxtlv = (uint8 *)&iov_buf->data[0];
+		buflen = buflen_start = WLC_IOCTL_MEDLEN - sizeof(bcm_iov_buf_t);
+
+		/* parse and pack config parameters */
+		while ((param = *argv++)) {
+			val_p = *argv++;
+			if (!val_p || *val_p == '-') {
+				fprintf(stderr, "%s: wrong usage %s\n", __FUNCTION__, param);
+				wl_mbo_usage(WL_MBO_CMD_ANQPO_SUPPORT);
+				ret = BCME_USAGE_ERROR;
+				goto fail;
+			}
+			if (strcmp(param, "-e") == 0) {
+				enable = strtoul(val_p, NULL, 0);
+				if ((enable != 0) && (enable != 1)) {
+					fprintf(stderr, "wrong value %u\n", enable);
+					ret = BCME_BADARG;
+					goto fail;
+				}
+				ret = bcm_pack_xtlv_entry(&pxtlv, &buflen, WL_MBO_XTLV_ENABLE,
+						sizeof(enable), &enable, BCM_XTLV_OPTION_ALIGN32);
+				if (ret != BCME_OK) {
+					goto fail;
+				}
+			} else if (strcmp(param, "-c") == 0) {
+				cellular = strtoul(val_p, NULL, 0);
+				if ((cellular != 0) && (cellular != 1)) {
+					fprintf(stderr, "wrong value %u\n", cellular);
+					ret = BCME_BADARG;
+					goto fail;
+				}
+				ret = bcm_pack_xtlv_entry(&pxtlv, &buflen,
+						WL_MBO_XTLV_ANQP_CELL_SUPP, sizeof(cellular),
+						&cellular, BCM_XTLV_OPTION_ALIGN32);
+				if (ret != BCME_OK) {
+					goto fail;
+				}
+			} else {
+				fprintf(stderr, "Unknown param %s\n", param);
+			}
+		}
+		iov_buf->len = buflen_start - buflen;
+		iovlen = sizeof(bcm_iov_buf_t) + iov_buf->len;
+		ret = wlu_var_setbuf(wl, "mbo", (void *)iov_buf, iovlen);
+	}
+fail:
+	if (iov_buf) {
+		free(iov_buf);
+	}
+	return ret;
+}
+
+static void
+wl_mbo_anqpo_support_help_fn(void)
+{
+	printf("wl mbo anqpo_support -e <value> -c <value>\n");
+	printf("\tvalue: Enable/Disable anqpo support <1/0>\n");
+	printf("\t\t 1 = Enable anqpo support\n");
+	printf("\t\t 0 = Disable anqpo support\n");
+	printf("\tvalue: Enable/Disable (-c)cellular pref <1/0>\n");
+	printf("\t\t 1 = Enable cellular pref\n");
+	printf("\t\t 0 = Disable cellular pref\n");
+}

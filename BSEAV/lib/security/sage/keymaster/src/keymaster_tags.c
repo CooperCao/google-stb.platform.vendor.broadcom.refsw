@@ -54,8 +54,8 @@
 BDBG_MODULE(keymaster_tags);
 
 
-static BDBG_OBJECT_ID(KM_Tag_Context);
-static BDBG_OBJECT_ID(KM_Tag_Item);
+BDBG_OBJECT_ID(KM_Tag_Context);
+BDBG_OBJECT_ID(KM_Tag_Item);
 
 typedef struct KM_Tag_Item {
     BLST_D_ENTRY(KM_Tag_Item) link;
@@ -110,6 +110,9 @@ static inline bool km_tag_is_valid(km_tag_value_t *param)
     case SKM_TAG_AUTH_TIMEOUT :
     case SKM_TAG_ALLOW_WHILE_ON_BODY :
     case SKM_TAG_UNLOCKED_DEVICE_REQUIRED :
+    case SKM_TAG_TRUSTED_USER_PRESENCE_REQUIRED:
+    case SKM_TAG_TRUSTED_CONFIRMATION_REQUIRED:
+    case SKM_TAG_CONFIRMATION_TOKEN:
     case SKM_TAG_ALL_APPLICATIONS :
     case SKM_TAG_APPLICATION_ID :
     case SKM_TAG_EXPORTABLE :
@@ -120,6 +123,8 @@ static inline bool km_tag_is_valid(km_tag_value_t *param)
     case SKM_TAG_ROOT_OF_TRUST :
     case SKM_TAG_OS_VERSION :
     case SKM_TAG_OS_PATCHLEVEL :
+    case SKM_TAG_VENDOR_PATCHLEVEL :
+    case SKM_TAG_BOOT_PATCHLEVEL :
     case SKM_TAG_UNIQUE_ID :
     case SKM_TAG_ATTESTATION_CHALLENGE :
     case SKM_TAG_ATTESTATION_APPLICATION_ID :

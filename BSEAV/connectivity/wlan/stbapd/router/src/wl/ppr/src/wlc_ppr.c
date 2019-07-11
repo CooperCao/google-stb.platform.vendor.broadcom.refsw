@@ -33,7 +33,9 @@
 #ifndef bcopy
 #include <string.h>
 #include <stdlib.h>
+#ifndef TARGETENV_android
 #define	bcopy(src, dst, len)	memcpy((dst), (src), (len))
+#endif /* TARGETENV_android */
 #endif
 
 #ifndef ASSERT

@@ -275,8 +275,9 @@ typedef union bcm_event_msg_u {
 #define WLC_E_UNEXPECTED_4ADDR_FRAME	167	/* 4ADDR event */
 #define WLC_E_FBT_ASSOC_REQ_IND		168	/* FBT Re-Association Request Indication */
 #define WLC_E_FBT_REASSOC_REQ_IND	169	/* FBT Re-Association Request Indication */
-#define WLC_E_LAST			170	/* highest val + 1 for range checking */
-#if (WLC_E_LAST > 170)
+#define WLC_E_MBO			170    /* MBO event */
+#define WLC_E_LAST			171	/* highest val + 1 for range checking */
+#if (WLC_E_LAST > 171)
 #error "WLC_E_LAST: Invalid value for last event; must be <= 166."
 #endif /* WLC_E_LAST */
 
@@ -877,5 +878,40 @@ typedef enum ie_error_code {
 } ie_error_code_t;
 /* This marks the end of a packed structure section. */
 #include <packed_section_end.h>
+
+typedef enum wl_mbo_event_type {
+	WL_MBO_E_CELLULAR_NW_SWITCH = 1,
+	/* ADD before this */
+	WL_MBO_E_LAST = 2,  /* highest val + 1 for range checking */
+} wl_mbo_event_type_t;
+
+/* WLC_E_MBO event structure version */
+#define WL_MBO_EVT_VER 1
+
+struct wl_event_mbo {
+	uint16 version;	/* structure version */
+	uint16 length;		/* length of the rest of the structure from type */
+	wl_mbo_event_type_t  type;		/* Event type */
+	uint8  data[];    /* Variable length data */
+};
+
+/* WLC_E_MBO_CELLULAR_NW_SWITCH event structure version */
+#define WL_MBO_CELLULAR_NW_SWITCH_VER 1
+
+/* WLC_E_MBO_CELLULAR_NW_SWITCH event data */
+struct wl_event_mbo_cell_nw_switch {
+	uint16 version;		/* structure version */
+	uint16 length;		/* length of the rest of the structure from reason */
+	/* Reason of switch as per MBO Tech spec */
+	uint8 reason;
+	/* pad */
+	uint8 pad;
+	/* delay after which re-association can be tried to current BSS (seconds) */
+	uint16 reassoc_delay;
+	/* How long current association will be there (milli seconds).
+	* This is zero if not known or value is overflowing.
+	*/
+	uint32 assoc_time_remain;
+};
 
 #endif /* _BCMEVENT_H_ */

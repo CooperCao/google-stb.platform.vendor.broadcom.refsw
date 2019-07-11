@@ -132,6 +132,9 @@ extern void wlc_wnm_set_cu_avg_calc_dur(wlc_info_t *wlc, wlc_bsscfg_t *cfg, uint
 extern bool wlc_wnm_bsstrans_roam_required(wlc_info_t *wlc, wlc_bsscfg_t *cfg, int *reason);
 extern bool wlc_wnm_bsstrans_check_for_roamthrash(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
 bool wlc_wnm_get_trigger_rssi_cu_roam(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
+extern int
+wlc_wnm_bsstrans_query_send(wlc_wnm_info_t *wnm, wlc_bsscfg_t *bsscfg, wlc_bss_list_t *list,
+	uint8 reason);
 extern void wlc_wnm_bsstrans_print_score(wlc_wnm_info_t *wnm, wlc_bsscfg_t *cfg,
 	wlc_bss_info_t *bi, int16 rssi, uint32 weight);
 extern void wlc_wnm_update_nonnbr_bestscore(wlc_wnm_info_t *wnm, wlc_bsscfg_t *cfg,

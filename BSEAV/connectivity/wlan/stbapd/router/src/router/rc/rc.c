@@ -44,7 +44,9 @@
 
 #include <epivers.h>
 #include <router_version.h>
+#ifndef TARGETENV_android
 #include <mtd.h>
+#endif /* TARGETENV_android */
 #include <shutils.h>
 #include <rc.h>
 #include <netconf.h>
@@ -2062,10 +2064,12 @@ nand_fs_mtd_mount()
 #endif
 
 erase_and_mount:
+#ifndef TARGETENV_android
 	if ((ret = mtd_erase("brcmnand"))) {
 		fprintf(stderr, "Erase nflash MTD partition %s failed %d\n", dpath, ret);
 		return ret;
 	}
+#endif /* TARGETENV_android */
 
 	ret = -1;
 #if defined(LINUX_2_6_36) && defined(__CONFIG_NAND_YAFFS2__)
@@ -2949,6 +2953,11 @@ proc_stb(char *cmd)
 		signal(SIGINT, rc_stop_handler);
 		/* Loop forever */
 		for (;;) { sleep(1000); }
+#ifdef CONFIG_HOSTAPD
+	} else if (!strcmp(cmd,"hapd_wps_pbc")) {
+		hapd_wps_pbc_hdlr();
+		printf("%s: hapd_wps_pbc completed!\n", __FUNCTION__);
+#endif	/* CONFIG_HOSTAPD */
 	} else {
 		fprintf(stderr, "Unknown command %s.  Usage: rc [init|start|stop|restart]\n", cmd);
 		return EINVAL;
@@ -3290,8 +3299,12 @@ main(int argc, char **argv)
 		 (!strcmp(argv[1], "brcmnand")) ||
 		 (!strcmp(argv[1], "confmtd")) ||
 		 (!strcmp(argv[1], "nvram")))) {
-
+#ifndef TARGETENV_android
 			return mtd_erase(argv[1]);
+#else
+			fprintf(stderr, "not supported on android.\n");
+			return EINVAL;
+#endif /* TARGETENV_android */
 #endif /* BCA_HNDROUTER */
 	} else {
 			fprintf(stderr, "usage: erase [device]\n");
@@ -3310,9 +3323,14 @@ main(int argc, char **argv)
 			return EINVAL;
 		}
 #else /* !BCA_HNDROUTER */
-		if (argc >= 3)
+		if (argc >= 3) {
+#ifndef TARGETENV_android
 			return mtd_write(argv[1], argv[2]);
-		else {
+#else
+			fprintf(stderr, "not supported on android.\n");
+			return EINVAL;
+#endif /* TARGETENV_android */
+		} else {
 			fprintf(stderr, "usage: write [path] [device]\n");
 			return EINVAL;
 		}

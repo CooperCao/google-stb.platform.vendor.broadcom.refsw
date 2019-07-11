@@ -8470,7 +8470,7 @@ BVCE_Channel_Picture_Enqueue_isr(
                   /* Seed the next target PTS to equal the current STC */
                   BDBG_MSG(("Reset TargetPTS %#x --> %#x", uiTargetPTSin45Khz, uiCurrentSTCin45Khz));
                   uiTargetPTSin45Khz = uiCurrentSTCin45Khz;
-                  hVceCh->picture.stState.uiNextTargetPTSin360Khz = uiCurrentSTCin45Khz*8;
+                  hVceCh->picture.stState.uiNextTargetPTSin360Khz = (uint64_t)uiCurrentSTCin45Khz*8;
                   hVceCh->picture.stState.bNextTargetPTSin360KhzValid = true;
                }
 

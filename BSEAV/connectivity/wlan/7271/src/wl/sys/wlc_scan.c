@@ -4332,6 +4332,17 @@ wlc_scan_doiovar(void *hdl, uint32 actionid,
 
 	case IOV_SVAL(IOV_SCANCACHE):
 		if (SCANCACHE_SUPPORT(wlc)) {
+#ifdef WL_MBO
+			/* Avoiding Scancache disable for MBO */
+			if (MBO_ENAB(wlc->pub)) {
+				if (!bool_val) {
+					WL_ERROR(("wl%d: Cannot disable scancache while"
+							" MBO is enabled\n", wlc->pub->unit));
+					err = BCME_UNSUPPORTED;
+					break;
+				}
+			}
+#endif /* WL_MBO */
 			scan_info->scan_pub->wlc_scan_cmn->_scancache = bool_val;
 #ifdef WL11K
 			/* Enable Table mode beacon report in RRM cap if scancache enabled */
@@ -5620,6 +5631,52 @@ wlc_scanmac_update(wlc_scan_info_t *scan)
 	scanmac_update_mac(scan_info);
 
 	return BCME_OK;
+}
+
+/* return true if macreq enabled, else return false */
+bool
+wlc_scan_is_randmac_needed(wlc_scan_info_t *scan, int macreq,
+	wlc_bsscfg_t *cfg)
+{
+#ifdef WL_RANDMAC
+	scan_info_t *scan_info = scan->scan_priv;
+	if (scan_info->scan_cmn->scanmac_enab.enable) {
+		wlc_bsscfg_t *bsscfg = SCAN_USER(scan_info, cfg);
+		uint16 sbmap = scan_info->scan_cmn->scanmac_config.scan_bitmap;
+		bool is_associated = IS_BSS_ASSOCIATED(bsscfg);
+		bool is_host_scan = (macreq == WLC_ACTION_SCAN) ||
+			(macreq == WLC_ACTION_ISCAN) ||
+			(macreq == WLC_ACTION_ESCAN);
+
+		if (cfg == NULL) {
+			if (macreq == WLC_ACTION_PNOSCAN) {
+				wlc_info_t *wlc = SCAN_WLC(scan_info);
+				wlc_bsscfg_t *cfg_iter;
+				int idx;
+				FOREACH_ALL_WLC_BSS(wlc, idx, cfg_iter) {
+					if (BSSCFG_INFRA_STA(cfg_iter) &&
+						WLC_BSS_CONNECTED(cfg_iter)) {
+						bsscfg = cfg_iter;
+						is_associated = IS_BSS_ASSOCIATED(bsscfg);
+						break;
+					}
+				}
+			}
+		}
+
+		/* return true if bitmap for macreq is enabled */
+		if ((!is_associated && (is_host_scan ||
+			macreq == WLC_ACTION_PNOSCAN || macreq == WLC_ACTION_ACTFRAME) &&
+			(sbmap & WL_SCANMAC_SCAN_UNASSOC)) ||
+			(is_associated &&
+			(((macreq == WLC_ACTION_ROAM) && (sbmap & WL_SCANMAC_SCAN_ASSOC_ROAM)) ||
+			((macreq == WLC_ACTION_PNOSCAN) && (sbmap & WL_SCANMAC_SCAN_ASSOC_PNO)) ||
+			(is_host_scan && (sbmap & WL_SCANMAC_SCAN_ASSOC_HOST))))) {
+			return TRUE;
+		}
+	}
+#endif /* WL_RANDMAC */
+	return FALSE;
 }
 
 static void

@@ -78,6 +78,8 @@ static const size_t WVCDM_MAC_KEY_SIZE = 32;
 /* Widevine OEMCrypto TL configuration flags */
 #define DRM_WVOEMCRYPTO_INIT_OPTION_CAS 0x1
 
+#define MAX_SG_DMA_BLOCKS DRM_COMMON_TL_MAX_DMA_BLOCKS
+
 typedef struct Drm_WVOemCryptoParamSettings_t
 {
     BDBG_OBJECT(oemcrypto_brcm)
@@ -243,6 +245,28 @@ typedef struct Drm_WVoemCryptoKeySlot_t
     uint8_t *btp_sage_buffer;
 } Drm_WVoemCryptoKeySlot_t;
 
+/*  nexus bounce buffer.
+ *
+ *  copy source data into a nexus bounce buffer if the source address
+ *  is allocated in linux memory.
+ *  this is a feature|limitation of the xpt|dma firmware which requires
+ *  nexus buffers to operate.
+ */
+typedef struct Drm_WVOemCryptoBounceBuffer
+{
+   uint8_t *buffer;
+   size_t  size;
+
+} Drm_WVOemCryptoBounceBuffer;
+
+typedef struct Drm_WVOemCryptoEncDmaList
+{
+    DmaBlockInfo_t *dma_block_info;
+    uint8_t **non_sec_src;
+    uint8_t **non_sec_dst;
+    uint32_t *non_sec_len;
+} Drm_WVOemCryptoEncDmaList;
+
 typedef struct Drm_WVOemCryptoHostSessionCtx_t
 {
     uint32_t session_id;
@@ -258,6 +282,11 @@ typedef struct Drm_WVOemCryptoHostSessionCtx_t
     bool force_decrypt_verify;
     bool key_slot_error_notification;
     time_t decrypt_verify_time;
+    Drm_WVOemCryptoBounceBuffer src_decrypt_bounce_buffer[MAX_SG_DMA_BLOCKS];
+    uint32_t src_decrypt_bounce_buffer_index;
+    uint8_t *decrypt_buffer_native_handle;
+    uint8_t *decrypt_buffer_secure_ptr;
+    Drm_WVOemCryptoEncDmaList encDmaBlockInfoList;
 }Drm_WVOemCryptoHostSessionCtx_t;
 
 typedef struct Drm_WVOemCryptoEncryptPattern_t {
@@ -345,19 +374,19 @@ void DRM_WVOemCrypto_SetParamSettings(Drm_WVOemCryptoParamSettings_t *pWvOemCryp
 DrmRC DRM_WVOemCrypto_UnInit(int *wvRc);
 DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoParamSettings,int *wvRc);
 DrmRC DRM_WVOemCrypto_OpenSession(uint32_t* session,int *wvRc);
-DrmRC drm_WVOemCrypto_CloseSession(uint32_t session,int *wvRc);
-DrmRC drm_WVOemCrypto_GenerateNonce(uint32_t session,
+DrmRC DRM_WVOemCrypto_CloseSession(uint32_t session,int *wvRc);
+DrmRC DRM_WVOemCrypto_GenerateNonce(uint32_t session,
                                     uint32_t* nonce,
                                     int *wvRc);
 
-DrmRC drm_WVOemCrypto_GenerateDerivedKeys(uint32_t session,
+DrmRC DRM_WVOemCrypto_GenerateDerivedKeys(uint32_t session,
                                             const uint8_t* mac_key_context,
                                             uint32_t mac_key_context_length,
                                             const uint8_t* enc_key_context,
                                             uint32_t enc_key_context_length,
                                             int *wvRc);
 
-DrmRC drm_WVOemCrypto_GenerateSignature(
+DrmRC DRM_WVOemCrypto_GenerateSignature(
                             uint32_t session,
                             const uint8_t* message,
                             size_t message_length,
@@ -365,7 +394,7 @@ DrmRC drm_WVOemCrypto_GenerateSignature(
                             size_t* signature_length,
                             int *wvRc);
 
-DrmRC drm_WVOemCrypto_LoadKeys_V13(uint32_t session,
+DrmRC DRM_WVOemCrypto_LoadKeys_V13(uint32_t session,
                                    const uint8_t* message,
                                    uint32_t message_length,
                                    const uint8_t* signature,
@@ -379,7 +408,7 @@ DrmRC drm_WVOemCrypto_LoadKeys_V13(uint32_t session,
                                    const uint8_t* srm_requirement,
                                    int * wVRc);
 
-DrmRC drm_WVOemCrypto_LoadKeys_V11_or_V12(uint32_t session,
+DrmRC DRM_WVOemCrypto_LoadKeys_V11_or_V12(uint32_t session,
                                           const uint8_t* message,
                                           uint32_t message_length,
                                           const uint8_t* signature,
@@ -392,7 +421,7 @@ DrmRC drm_WVOemCrypto_LoadKeys_V11_or_V12(uint32_t session,
                                           uint32_t pst_length,
                                           int * wVRc);
 
-DrmRC drm_WVOemCrypto_LoadKeys_V9_or_V10(uint32_t session,
+DrmRC DRM_WVOemCrypto_LoadKeys_V9_or_V10(uint32_t session,
                                    const uint8_t* message,
                                    uint32_t message_length,
                                    const uint8_t* signature,
@@ -405,7 +434,7 @@ DrmRC drm_WVOemCrypto_LoadKeys_V9_or_V10(uint32_t session,
                                    uint32_t pst_length,
                                    int * wVRc);
 
-DrmRC drm_WVOemCrypto_RefreshKeys(uint32_t session,
+DrmRC DRM_WVOemCrypto_RefreshKeys(uint32_t session,
                                       const uint8_t* message,
                                       uint32_t message_length,
                                       const uint8_t* signature,
@@ -414,32 +443,32 @@ DrmRC drm_WVOemCrypto_RefreshKeys(uint32_t session,
                                       void* key_array,
                                       int * wVRc);
 
-DrmRC drm_WVOemCrypto_SelectKey_V13(const uint32_t session,
+DrmRC DRM_WVOemCrypto_SelectKey_V13(const uint32_t session,
                                     const uint8_t* key_id,
                                     uint32_t key_id_length,
                                     int *wVRc);
 
-DrmRC drm_WVOemCrypto_InstallKeybox(const uint8_t* keybox,
+DrmRC DRM_WVOemCrypto_InstallKeybox(const uint8_t* keybox,
                                     uint32_t keyBoxLength);
 
-DrmRC drm_WVOemCrypto_IsKeyboxValid(int *wvRc);
+DrmRC DRM_WVOemCrypto_IsKeyboxValid(int *wvRc);
 
-DrmRC drm_WVOemCrypto_GetDeviceID(uint8_t* deviceID,
+DrmRC DRM_WVOemCrypto_GetDeviceID(uint8_t* deviceID,
                                   size_t* idLength,int*wvRc);
 
-DrmRC drm_WVOemCrypto_GetKeyData(uint8_t* keyData,
+DrmRC DRM_WVOemCrypto_GetKeyData(uint8_t* keyData,
                                  size_t* keyDataLength,int *wvRc);
 
-DrmRC drm_WVOemCrypto_GetRandom(uint8_t* randomData, uint32_t dataLength);
+DrmRC DRM_WVOemCrypto_GetRandom(uint8_t* randomData, uint32_t dataLength);
 
-DrmRC drm_WVOemCrypto_WrapKeybox(const uint8_t* keybox,
+DrmRC DRM_WVOemCrypto_WrapKeybox(const uint8_t* keybox,
                                      uint32_t keyBoxLength,
                                      uint8_t* wrappedKeybox,
                                      uint32_t* wrappedKeyBoxLength,
                                      const uint8_t* transportKey,
                                      uint32_t transportKeyLength);
 
-DrmRC drm_WVOemCrypto_RewrapDeviceRSAKey(uint32_t session,
+DrmRC DRM_WVOemCrypto_RewrapDeviceRSAKey(uint32_t session,
                                              const uint8_t* message,
                                              uint32_t message_length,
                                              const uint8_t* signature,
@@ -452,12 +481,12 @@ DrmRC drm_WVOemCrypto_RewrapDeviceRSAKey(uint32_t session,
                                              size_t*  wrapped_rsa_key_length,
                                              int *wvRc);
 
-DrmRC drm_WVOemCrypto_LoadDeviceRSAKey(uint32_t session,
+DrmRC DRM_WVOemCrypto_LoadDeviceRSAKey(uint32_t session,
                                            const uint8_t* wrapped_rsa_key,
                                            uint32_t wrapped_rsa_key_length,int *wvRc);
 
 typedef uint8_t WvOemCryptoRSA_Padding_Scheme;
-DrmRC drm_WVOemCrypto_GenerateRSASignature(uint32_t session,
+DrmRC DRM_WVOemCrypto_GenerateRSASignature(uint32_t session,
                                                const uint8_t* message,
                                                uint32_t message_length,
                                                uint8_t* signature,
@@ -465,7 +494,7 @@ DrmRC drm_WVOemCrypto_GenerateRSASignature(uint32_t session,
                                                WvOemCryptoRSA_Padding_Scheme padding_scheme,
                                                int *wvRc);
 
-DrmRC drm_WVOemCrypto_DeriveKeysFromSessionKey(
+DrmRC DRM_WVOemCrypto_DeriveKeysFromSessionKey(
                                     uint32_t session,
                                     const uint8_t* enc_session_key,
                                     uint32_t enc_session_key_length,
@@ -476,9 +505,9 @@ DrmRC drm_WVOemCrypto_DeriveKeysFromSessionKey(
                                     int *wvRc);
 
 
-DrmRC drm_WVOemCrypto_GetHDCPCapability(uint32_t *current, uint32_t *maximum, int *wvRc);
+DrmRC DRM_WVOemCrypto_GetHDCPCapability(uint32_t *current, uint32_t *maximum, int *wvRc);
 
-DrmRC drm_WVOemCrypto_Generic_Encrypt(uint32_t session,
+DrmRC DRM_WVOemCrypto_Generic_Encrypt(uint32_t session,
                                           const uint8_t* in_buffer,
                                           uint32_t buffer_length,
                                           const uint8_t* iv,
@@ -486,7 +515,7 @@ DrmRC drm_WVOemCrypto_Generic_Encrypt(uint32_t session,
                                           uint8_t* out_buffer,
                                           int *wvRc);
 
-DrmRC drm_WVOemCrypto_Generic_Decrypt(uint32_t session,
+DrmRC DRM_WVOemCrypto_Generic_Decrypt(uint32_t session,
                                           const uint8_t* in_buffer,
                                           uint32_t buffer_length,
                                           const uint8_t* iv,
@@ -494,7 +523,7 @@ DrmRC drm_WVOemCrypto_Generic_Decrypt(uint32_t session,
                                           uint8_t* out_buffer,
                                           int *wvRc);
 
-DrmRC drm_WVOemCrypto_Generic_Sign(uint32_t session,
+DrmRC DRM_WVOemCrypto_Generic_Sign(uint32_t session,
                                        const uint8_t* in_buffer,
                                        uint32_t buffer_length,
                                        int algorithm,
@@ -502,7 +531,7 @@ DrmRC drm_WVOemCrypto_Generic_Sign(uint32_t session,
                                        size_t* signature_length,
                                        int *wvRc);
 
-DrmRC drm_WVOemCrypto_Generic_Verify(uint32_t session,
+DrmRC DRM_WVOemCrypto_Generic_Verify(uint32_t session,
                                          const uint8_t* in_buffer,
                                          uint32_t buffer_length,
                                          int algorithm,
@@ -595,7 +624,7 @@ typedef struct WvOEMCryptoPstReport
  * Increment Usage Table's generation number, sign, encrypt, and save the Usage Table.
  *
  * PARAMETERS:
- * [in] sessionContext: handle for the session to be used.
+ * [in] session: handle for the session to be used.
  * [in] pst: pointer to memory containing Provider Session Token.
  * [in] pst_length: length of the pst, in bytes.
  * [out] buffer: pointer to buffer in which usage report should be stored.
@@ -613,7 +642,7 @@ typedef struct WvOEMCryptoPstReport
  *
  *
  ********************************************************************/
-DrmRC DRM_WVOemCrypto_ReportUsage(uint32_t sessionContext,
+DrmRC DRM_WVOemCrypto_ReportUsage(uint32_t session,
                                   const uint8_t *pst,
                                   uint32_t pst_length,
                                   WvOEMCryptoPstReport *buffer,
@@ -632,7 +661,7 @@ DrmRC DRM_WVOemCrypto_ReportUsage(uint32_t sessionContext,
  * the Usage Table generation number is incrememented, then signed, encrypted, and saved.
  *
  * PARAMETERS:
- * [in] sessionContext: handle for the session to be used.
+ * [in] session: handle for the session to be used.
  * [in] pst: pointer to memory containing Provider Session Token.
  * [in] pst_length: length of the pst, in bytes.
  * [in] message: pointer to memory containing message to be verified.
@@ -648,7 +677,7 @@ DrmRC DRM_WVOemCrypto_ReportUsage(uint32_t sessionContext,
  * SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE
  *
  ******************************************************************************************/
-DrmRC DRM_WVOemCrypto_DeleteUsageEntry(uint32_t sessionContext,
+DrmRC DRM_WVOemCrypto_DeleteUsageEntry(uint32_t session,
                                         const uint8_t* pst,
                                         uint32_t pst_length,
                                         const uint8_t *message,
@@ -732,11 +761,12 @@ DrmRC DRM_WVOemCrypto_GetMaxNumberOfSessions(uint32_t* noOfMaxSessions,int *wvRc
  *
  ****************************************************************************************/
 DrmRC Drm_WVOemCrypto_CopyBuffer(uint8_t* destination,
-                           const uint8_t* data_addr,
-                           uint32_t data_length,
-                           Drm_WVOemCryptoBufferType_t buffer_type,
-                           uint32_t subsample_flags
-                           );
+                                 uint32_t offset,
+                                 const uint8_t* data_addr,
+                                 uint32_t data_length,
+                                 Drm_WVOemCryptoBufferType_t buffer_type,
+                                 uint32_t subsample_flags
+                                 );
 
 /*****************************************************************************************
  * Drm_WVOemCrypto_QueryKeyControl
@@ -837,7 +867,7 @@ This function may be called simultaneously with functions on other sessions, but
 functions on this session.
 ******************************************************************************************************/
 
-DrmRC drm_WVOemCrypto_DecryptCTR_V10(uint32_t session,
+DrmRC DRM_WVOemCrypto_DecryptCTR_V10(uint32_t session,
                                      const uint8_t* data_addr,
                                      uint32_t data_length,
                                      bool is_encrypted,
@@ -885,18 +915,19 @@ Threading:
 This function may be called simultaneously with functions on other sessions, but not with other
 functions on this session.
 ******************************************************************************************************/
-DrmRC drm_WVOemCrypto_DecryptCENC(uint32_t session,
-                                     const uint8_t* data_addr,
-                                     uint32_t data_length,
-                                     bool is_encrypted,
-                                     Drm_WVOemCryptoBufferType_t buffer_type,
-                                     const uint8_t* iv,
-                                     uint32_t block_offset,
-                                     void* out_buffer,
-                                     uint32_t *out_sz,
-                                     void *pattern,
-                                     uint8_t subsample_flags,
-                                     int *wvRc);
+DrmRC DRM_WVOemCrypto_DecryptCENC(uint32_t session,
+                                  const uint8_t* data_addr,
+                                  uint32_t data_length,
+                                  bool is_encrypted,
+                                  Drm_WVOemCryptoBufferType_t buffer_type,
+                                  const uint8_t* iv,
+                                  uint32_t block_offset,
+                                  void* out_buffer,
+                                  uint32_t out_buffer_offset,
+                                  uint32_t *out_sz,
+                                  void *pattern,
+                                  uint8_t subsample_flags,
+                                  int *wvRc);
 
 DrmRC DRM_WVOemCrypto_Create_Usage_Table_Header(uint8_t *header_buffer,
                                                 uint32_t *header_buffer_length,
@@ -961,13 +992,13 @@ DrmRC DRM_WVOemCrypto_LoadEntitledContentKeys(uint32_t session,
                                               void* key_array,
                                               int *wvRc);
 
-DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
+DrmRC DRM_WVOemCrypto_SelectKey(const uint32_t session,
                                 const uint8_t* key_id,
                                 uint32_t key_id_length,
                                 uint32_t cipher_mode,
                                 int *wvRc);
 
-DrmRC drm_WVOemCrypto_LoadKeys(uint32_t session,
+DrmRC DRM_WVOemCrypto_LoadKeys(uint32_t session,
                                const uint8_t* message,
                                uint32_t       message_length,
                                const uint8_t* signature,
@@ -982,7 +1013,7 @@ DrmRC drm_WVOemCrypto_LoadKeys(uint32_t session,
                                uint32_t       license_type,
                                int *wvRc);
 
-DrmRC drm_WVOemCrypto_LoadTestKeybox(uint8_t *keybox,
+DrmRC DRM_WVOemCrypto_LoadTestKeybox(uint8_t *keybox,
                                      uint32_t keyBoxLength,
                                      int *wvRc);
 

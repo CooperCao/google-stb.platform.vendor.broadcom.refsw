@@ -4507,7 +4507,7 @@ wlc_prep_sdu(wlc_info_t *wlc, struct scb *scb, void **pkts, int *npkts, uint *fi
 	/* calculate how many frags in device memory needed
 	 *  ETHER_HDR - (CKIP_LLC_MIC) - LLC/SNAP-ETHER_TYPE - payload - TKIP_MIC
 	 */
-	if (!WLPKTFLAG_AMSDU(pkttag) && !WLPKTFLAG_AMPDU(pkttag) && !BSSCFG_SAFEMODE(bsscfg))
+	if (!WLPKTFLAG_AMSDU(pkttag) && !WLPKTFLAG_AMPDU(pkttag) && !BSSCFG_SAFEMODE(bsscfg) && !is_8021x)
 		nfrags = wlc_frag(wlc, scb, WME_PRIO2AC(prio), pkt_length, &frag_length);
 	else {
 		frag_length = pkt_length - ETHER_HDR_LEN;
@@ -6125,6 +6125,12 @@ skip_realloc:
 			WLPKTTAG(sdu)->flags |= WLF_8021X;
 			WLPKTTAG(sdu)->flags |= WLF_BYPASS_TXC;
 			WLPKTTAG(sdu)->flags3 |= WLF3_BYPASS_AMPDU;
+			/*
+			 * send 8021x packets at higher priority than best efforts.
+			 * use _VI, as _VO prioroty creates "txop exceeded" error
+			 */
+			prio = PRIO_8021D_VI;
+			PKTSETPRIO(sdu, prio);
 		}
 #ifdef BCMWAPI_WAI
 		else if (ether_type == ETHER_TYPE_WAI) {

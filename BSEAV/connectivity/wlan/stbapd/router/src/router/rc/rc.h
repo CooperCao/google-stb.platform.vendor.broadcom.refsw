@@ -26,6 +26,9 @@
 #ifdef __CONFIG_BUSYBOX__
 #include <Config.h>
 #endif
+#ifdef TARGETENV_android
+#include <osl.h>
+#endif /* TARGETENV_android */
 
 
 #define IFUP (IFF_UP | IFF_RUNNING | IFF_BROADCAST | IFF_MULTICAST)
@@ -151,5 +154,13 @@ extern int stop_airplay(void);
 /* Darwin DNS */
 extern int start_mdns(void);
 extern int stop_mdns(void);
+
+/* hostapd */
+#ifdef CONFIG_HOSTAPD
+extern void hapd_wps_main_loop();
+extern int start_hapd_wpasupp();
+extern void stop_hapd_wpasupp();
+extern int hapd_wps_pbc_hdlr();
+#endif	/* CONFIG_HOSTAPD */
 
 #endif /* _rc_h_ */

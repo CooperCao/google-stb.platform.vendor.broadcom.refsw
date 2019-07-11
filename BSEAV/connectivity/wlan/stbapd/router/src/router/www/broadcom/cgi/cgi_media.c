@@ -68,7 +68,7 @@
 #include <wps_ui.h>
 #endif
 
-#include <cgi_common.h>
+#include "cgi_common.h"
 #include <common_utils.h>
 
 static int
@@ -375,7 +375,7 @@ ej_dfs_reentry_display(int eid, webs_t wp, int argc, char_t **argv)
 		strncpy_n(prefix, "wl_", sizeof(prefix));
 	}
 
-	websWrite(wp, table_start);
+	websWrite(wp, "%s", table_start);
 
 	for (i = 0; i < NWINS; ++i) {
 		if (sscanf(nvram_safe_get(strcat_r(prefix, wins[i].keyword, tmp)), "%u %u",
@@ -387,7 +387,7 @@ ej_dfs_reentry_display(int eid, webs_t wp, int argc, char_t **argv)
 			wins[i].keyword, sec,
 			wins[i].keyword, thr );
 	}
-	websWrite(wp, table_end);
+	websWrite(wp, "%s", table_end);
 	return 0;
 }
 REG_EJ_HANDLER(dfs_reentry_display);

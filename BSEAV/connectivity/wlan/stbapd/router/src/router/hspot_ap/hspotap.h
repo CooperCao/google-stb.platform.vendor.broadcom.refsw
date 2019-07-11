@@ -11,6 +11,9 @@
  */
 
 #include <stdio.h>
+#ifdef TARGETENV_android
+#include <osl.h>
+#endif /* TARGETENV_android */
 
 #define HSPOT_DEBUG_ERROR	0x0001
 #define HSPOT_DEBUG_WARNING	0x0002

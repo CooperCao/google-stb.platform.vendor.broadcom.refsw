@@ -1,6 +1,0 @@
-stream=/mnt/hd/Test_Vectors/Dolby_Vision/Graphics_Blending_Tests/dvhe.stn/UHD/23976/Ves_GraphicBlending_23976_3840x2160_10000kbps_hevc_dvhe_stn___st.mp4
-image=/mnt/hd/Test_Vectors/Dolby_Vision/Graphics_Blending_Tests/rgba/interleaved/03_colorSquare_FHD_Rec709_Gamma2.2.intl.bmp
-priority=graphics
-forceRestart=on
-stcTrick=off
-commit

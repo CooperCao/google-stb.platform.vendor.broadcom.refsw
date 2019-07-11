@@ -68,7 +68,7 @@
 #include <wps_ui.h>
 #endif
 
-#include <cgi_common.h>
+#include "cgi_common.h"
 
 #include <fcntl.h>
 #include <signal.h>

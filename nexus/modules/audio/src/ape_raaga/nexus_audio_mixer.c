@@ -69,6 +69,8 @@ typedef struct NEXUS_AudioMixer
     BAPE_MixerHandle dspMixer, imMixer;
     char name[13];   /* INT HW MIXER */
     BLST_Q_HEAD(InputList, NEXUS_AudioMixerInputNode) inputList;
+    BKNI_EventHandle unlicensedAlgoEvent;
+    NEXUS_EventCallbackHandle unlicensedAlgoEventHandler;
 } NEXUS_AudioMixer;
 
 #if NEXUS_NUM_AUDIO_MIXERS
@@ -83,6 +85,8 @@ static NEXUS_AudioMixer g_mixers[1];
 #define min(A,B) ((A)<(B)?(A):(B))
 
 static NEXUS_Error NEXUS_AudioMixer_P_ApplyMixerVolume(NEXUS_AudioMixerHandle handle, NEXUS_AudioInputHandle input, const BAPE_MixerInputVolume *pInputVolume, const NEXUS_AudioMixerInputNode *pInputNode);
+static void NEXUS_AudioMixer_P_UnlicensedAlgo_isr(void *pParam1, int param2);
+static void NEXUS_AudioMixer_P_UnlicensedAlgo(void *pParam);
 
 /***************************************************************************
 Summary:
@@ -172,6 +176,7 @@ NEXUS_AudioMixerHandle NEXUS_AudioMixer_Open(
     if ( pSettings->mixUsingDsp )
     {
         BAPE_Connector connector;
+        BAPE_MixerInterruptHandlers interrupts;
 
         pMixerSettings = BKNI_Malloc(sizeof(BAPE_MixerSettings));
         if ( !pMixerSettings )
@@ -223,6 +228,26 @@ NEXUS_AudioMixerHandle NEXUS_AudioMixer_Open(
         pMixer->connector.port = (size_t)connector;
         pMixer->connector.format = NEXUS_AudioInputFormat_eNone; /* Determined by inputs */
         BLST_Q_INIT(&pMixer->inputList);
+
+        rc = BKNI_CreateEvent(&pMixer->unlicensedAlgoEvent);
+        if ( rc )
+        {
+            rc=BERR_TRACE(rc);
+            goto err_event;
+        }
+
+        pMixer->unlicensedAlgoEventHandler = NEXUS_RegisterEvent(pMixer->unlicensedAlgoEvent, NEXUS_AudioMixer_P_UnlicensedAlgo, pMixer);
+        if ( NULL == pMixer->unlicensedAlgoEventHandler )
+        {
+            rc=BERR_TRACE(BERR_OS_ERROR);
+            goto err_event;
+        }
+
+        BAPE_Mixer_GetInterruptHandlers(pMixer->dspMixer, &interrupts);
+        interrupts.unlicensedAlgo.pCallback_isr = NEXUS_AudioMixer_P_UnlicensedAlgo_isr;
+        interrupts.unlicensedAlgo.pParam1 = pMixer;
+        BAPE_Mixer_SetInterruptHandlers(pMixer->dspMixer, &interrupts);
+
     }
     else if ( pSettings->intermediate ) /* Fixed "intermediate" HW mixer */
     {
@@ -353,7 +378,15 @@ NEXUS_AudioMixerHandle NEXUS_AudioMixer_Open(
 
     /* Success */
     return pMixer;
-
+err_event:
+    if (pMixer->unlicensedAlgoEventHandler)
+    {
+        NEXUS_UnregisterEvent(pMixer->unlicensedAlgoEventHandler);
+    }
+    if (pMixer->unlicensedAlgoEvent)
+    {
+        BKNI_DestroyEvent(pMixer->unlicensedAlgoEvent);
+    }
 mixer_create_fail:
     if ( defaults )
     {
@@ -382,6 +415,16 @@ static void NEXUS_AudioMixer_P_Finalizer(
     NEXUS_OBJECT_ASSERT(NEXUS_AudioMixer, handle);
 
     NEXUS_AudioInput_Shutdown(&handle->connector);
+
+    if (handle->unlicensedAlgoEventHandler)
+    {
+        NEXUS_UnregisterEvent(handle->unlicensedAlgoEventHandler);
+    }
+
+    if (handle->unlicensedAlgoEvent)
+    {
+        BKNI_DestroyEvent(handle->unlicensedAlgoEvent);
+    }
 
     if ( handle->dspMixer )
     {
@@ -1282,4 +1325,25 @@ NEXUS_AudioMixer_P_GetMixerByIndex(
 {
     BDBG_ASSERT(index < g_NEXUS_audioModuleData.capabilities.numMixers);
     return g_mixers[index].opened?&g_mixers[index]:NULL;
+}
+
+static void NEXUS_AudioMixer_P_UnlicensedAlgo_isr(void *pParam1, int param2)
+{
+    NEXUS_AudioMixer *pMixer = (NEXUS_AudioMixer *)pParam1;
+    BSTD_UNUSED(param2);
+    BKNI_SetEvent_isr(pMixer->unlicensedAlgoEvent);
+}
+
+static void NEXUS_AudioMixer_P_UnlicensedAlgo(void *pParam)
+{
+    NEXUS_AudioMixer *pMixer = (NEXUS_AudioMixer *)pParam;
+    if (pMixer->dspMixer)
+    {
+        BAPE_MixerStatus mixerStatus;
+        BAPE_Mixer_GetStatus(pMixer->dspMixer, &mixerStatus);
+        BDBG_ERR(("*********************************************************************"));
+        BDBG_ERR(("Unlicensed Algo detected for %s(%s).  Audio will be muted.",
+                  pMixer->name, mixerStatus.mixerName));
+        BDBG_ERR(("*********************************************************************"));
+    }
 }

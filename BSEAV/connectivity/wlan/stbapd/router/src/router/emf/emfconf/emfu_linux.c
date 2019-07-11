@@ -13,7 +13,11 @@
  */
 
 #include <stdio.h>
+#ifdef TARGETENV_android
+#include <linux/sysctl.h>
+#else
 #include <sys/sysctl.h>
+#endif /* TARGETENV_android */
 #include <net/if.h>
 #include <netinet/in.h>
 #include <string.h>

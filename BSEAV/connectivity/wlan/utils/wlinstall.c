@@ -41,7 +41,7 @@
  *
  *Usage:
  *wlinstall <name of the driver binary(optional)> <name of the interface(Optional)>
- *Examples:
+ *Examples NIC chips:
  *1. #wlinstall --- Just turn on the wifi radio power . After this step user can do insmod to install the driver
  *2. #wlinstall wl.ko --- Turn on the radio power,copy the nvram file,remove existing wl.ko from kernel
  * and reinstall wl.ko. After this just run the wl commands as usual. Utlity expects nvram file in the current
@@ -49,6 +49,11 @@
  *3. #wlinstall wl.ko wlan0  --- Turn on the radio power,copy the nvram file,remove existing wl.ko from kernel
  * and reinstall wl.ko, changes the ame of the network interface to wlan0 . After this just run the wl commands
  * as usual. Utlity expects nvram file in the current directory and to be in the format boardname.txt e.g bcm97271wlan.txt,bcm97271ip.txt
+ *Examples Full Dongle chips:
+ *1. #wlinstall --- Installs default dhd.ko,firmware, nvram, clm_blob. see Usage
+ *2. #wlinstall -d path/dhd.ko - --- Turn on the radio power, use  the nvram file that matches boardname.txt,remove existing dhd.ko from kernel
+ * and reinstall dhd.ko. After this just run the wl commands as usual. Utlity expects defaults and  nvram file in the current
+ * directory and  nvram to be in the format boardname.txt e.g bcm97271wlan.txt,bcm97271ip.txt
  *
  *How to build:
  * arm-linux-gcc -o wlinstall wlinstall.c
@@ -56,13 +61,14 @@
  *
  *What does "wlinstall" do:
  *1. Reads the board information and turns on the wifi radio
- *2. Copies the board specific nvram file to standard nvram.txt e.g bcm97271wlan.txt -> nvram.txt 
- *3. Update the wifi mac address to eth0 mac address + 1 
+ *2. Copies the board specific nvram file to standard nvram.txt e.g bcm97271wlan.txt -> nvram.txt
+ *  a. For Full dongle based designs. it will look for nvram file based on board name detected. ie bcm972181stk.txt
+ *3. Update the wifi mac address to eth0 mac address + 1
  *4. If the name of the driver binary specified then
  *	 a) Tries to remove the existing driver
  *	 b) install the driver using insmod command
- *5. If the interface name is specifed, is changes the interfcace name otherwise driver picked interface 
- *   name is used whic is usually ethX 
+ *5. If the interface name is specifed, is changes the interfcace name otherwise driver picked interface
+ *   name is used whic is usually ethX
  *
  *****************************************************************************/
 
@@ -78,6 +84,7 @@
 #define BOARD_NAME "/proc/device-tree/bolt/board"
 #define SYSFS_GPIO "/sys/class/gpio"
 #define AON_GPIO_OFFSET 128
+#define AON_GPIO_OFFSET_72161 64
 
 static struct
 {
@@ -95,6 +102,13 @@ static struct
                     {"BCM97271D",(AON_GPIO_OFFSET+21)},
                     {"BCM97271IPC",(AON_GPIO_OFFSET+15)},
                     {"BCM97271HB",(AON_GPIO_OFFSET+15)},
+                    {"BCM972180DV",-1},
+                    {"BCM972180HB",-1},
+                    {"BCM972180SV",-1},
+                    {"BCM972180VC",-1},
+                    {"BCM972181SKT",-1},
+                    {"BCM972181STK",-1},
+                    {"BCM972181SV",-1},
                     {NULL,0},
                 };
 
@@ -190,6 +204,19 @@ static int wlan_radio_on(int gpio)
         goto error;
     }
     close(fd);
+
+    /*Done with GPIO unexport... */
+    snprintf(buf, sizeof(buf), "%s/unexport", SYSFS_GPIO);
+    fd = open(buf, O_WRONLY);
+    if (fd == 0)
+    {
+        printf("%s(): Unable to open %s\n", __FUNCTION__, buf);
+        goto error;
+    }
+    snprintf(buf, sizeof(buf),"%d",gpio);
+    write(fd, buf, strlen(buf));
+    close(fd);
+
     return 0;
 
 error:
@@ -243,14 +270,181 @@ int update_mac_addr(void)
 
 static void usage(void)
 {
-    printf( "Usage: wlinstall <driver name(wl.ko will be used )> <intefacename(wlan0 will be used ) <name of nvram file (or else local path will be tried)>\n" );
+	printf( "Usage: wlinstall <driver name(wl.ko will be used )> <intefacename(wlan0 will be used ) <name of nvram file (or else local path will be tried)>\n" );
+	printf( "\n\n \t******************************\t \n\n");
+	printf( "Usage for dhd: wlinstall  [-d <dhd module(defaults: dhd.ko)>]\n" );
+	printf( "\t[-m <dhd_msg_level(default: 1)>]\n");
+	printf( "\t[-i <intefacename(default: wlan0)>]\n");
+	printf( "\t[-f  <firmware file(default: config_pcie_stb_release.bin)>]\n");
+	printf( "\t[-n <nvram file(default: <boardname>.txt)>]\n");
+	printf( "\t[-c <clm_blob(default: 4375b1.clm_blob)>]\n");
+	printf( "Examples: wlinstall /*No options will load all defaults*/ \n" );
+	printf( "Examples: wlinstall -d dhd-msgbuf-pciefd-cfg80211-stb-armv8-debug-4.9.135.1.11.ko -f config_pcie_stb_cert.bin /* specified dhd.ko and firmware,rest DEFAULTS \n" );
+
 } /* usage */
+
 
 #define BUF_SIZE 1024
 #define COMMAND_BUF_SIZE 2048
 #define DEFAULT_IFACE_NAME "wlan0"
 #define DEFAULT_NVRAM_PATH "nvram.txt"
 #define PATH_SIZE 256
+#define BCM972181 "972181"
+#define BCM972180 "972180"
+#define BCM972161 "972161"
+
+/* Call this function when board detects 4375 based MCM */
+int dhd_install(int argc, char **argv, char* boardname)
+{
+	int opt;
+	int size=0, i=0;
+	char *buf=NULL;
+	FILE *fd=NULL;
+	char *command_buf=NULL;
+	char *nvram_name=NULL;
+	char dhd_file[PATH_SIZE]="dhd.ko";  /*  -d */
+	char dhd_path[PATH_SIZE];
+	char nvram_file[PATH_SIZE]="bcm972181.txt";  /*  -n */
+	char nvram_path[PATH_SIZE];
+	char firmware_file[PATH_SIZE]="config_pcie_stb_release.bin"; /* -f */
+	char firmware_path[PATH_SIZE];
+	char clm_file[PATH_SIZE]="4375b1.clm_blob";  /* -c */
+	char clm_path[PATH_SIZE];
+	char iface_name[PATH_SIZE]="iface_name=wlan0";  /* -i: default iface_name=wlan0 */
+	char dhd_msg_level[PATH_SIZE]="dhd_msg_level=1";  /* -m: default 1*/
+
+	printf( "dhd_install: Inside dhd install: boardname: %s\n", boardname );
+	/*Get board specific nvram file */
+	{
+		size = strlen(boardname);
+
+		if(size)
+		{
+			nvram_name = (char *)malloc(PATH_SIZE);
+			memset((void*)nvram_name,0,PATH_SIZE);
+			for(i=0;i<size;i++)
+				nvram_name[i] = (char)tolower(boardname[i]);
+			snprintf(nvram_file, sizeof(nvram_file),"%s.txt",nvram_name);
+			printf("*** nvram file name is	%s ***\n", nvram_file);
+		}
+	}
+
+	while((opt = getopt(argc, argv, "n:f:c:i:m:d:")) != -1)
+	{
+		switch(opt)
+		{
+			case 'n':
+				snprintf(nvram_file, sizeof(nvram_file),"%s",optarg);
+				printf("nvram_file: %s\n",nvram_file);
+				break;
+			case 'c':
+				snprintf(clm_file, sizeof(clm_file),"%s",optarg);
+				printf("clm_file: %s\n",clm_file);
+				break;
+			case 'i':
+				snprintf(iface_name, sizeof(iface_name),"iface_name=%s",optarg);
+				printf("if_name: %s\n",iface_name);
+				break;
+			case 'f':
+				snprintf(firmware_file, sizeof(firmware_file),"%s",optarg);
+				printf("firmware_file: %s\n",firmware_file);
+				break;
+			case 'm':
+				snprintf(dhd_msg_level, sizeof(dhd_msg_level),"dhd_msg_level=%s",optarg);
+				printf("dhd_msg_level: %s\n",dhd_msg_level);
+				break;
+			case 'd':
+				snprintf(dhd_file, sizeof(dhd_file),"%s",optarg);
+				printf("dhd_file: %s\n",dhd_file);
+				break;
+			case ':':
+				printf("option needs a value\n");
+				break;
+			case '?':
+				printf("unknown option: %c\n", optopt);
+				break;
+		}
+	}
+
+	/* Check if file exist */
+	if( access(firmware_file, F_OK) == -1 ) {
+		printf("\n -------Error: Can't find firmware file (%s)-----------\n",firmware_file);
+		return -1;
+	}
+	if( access(dhd_file, F_OK) == -1 ) {
+		printf("\n -------Error: Can't find dhd.ko (%s)-----------\n",dhd_file);
+		return -1;
+	}
+	if( access(nvram_file, F_OK) == -1 ) {
+		printf("\n -------Error: Can't find nvram file(%s)-----------\n",nvram_file);
+		return -1;
+	}
+	if( access(clm_file, F_OK) == -1 ) {
+		printf("\n -------Error: Can't find clm_blob file(%s)-----------\n",clm_file);
+		return -1;
+	}
+
+
+    /* Construct parameters */
+	snprintf(nvram_path, sizeof(nvram_path),"nvram_path=%s",nvram_file);
+	snprintf(clm_path, sizeof(clm_path),"clm_path=%s",clm_file);
+	snprintf(firmware_path, sizeof(firmware_path),"firmware_path=%s",firmware_file);
+	snprintf(dhd_path, sizeof(dhd_path),"%s",dhd_file);
+
+	printf("\n -------Parameter values-----------\n");
+	printf("dhd_path: %s\n",dhd_path);
+	printf("dhd_msg_level: %s\n",dhd_msg_level);
+	printf("firmware_path: %s\n",firmware_path);
+	printf("if_name: %s\n",iface_name);
+	printf("nvram_path: %s\n",nvram_path);
+	printf("clm_path: %s\n",clm_path);
+
+
+	command_buf = (char *)malloc(COMMAND_BUF_SIZE);
+	buf = (char *)malloc(BUF_SIZE);
+	if (buf == NULL)
+	{
+	   printf("***Failed to allocate memory %d***\n",BUF_SIZE);
+	   goto error;
+	}
+
+	 /* Clean up any prior installed kernel drivers */
+    memset((void*)buf,0,BUF_SIZE);
+    fd = popen("lsmod | grep -w dhd", "r");
+    if(fread(buf, 1, sizeof(buf), fd) > 0) {
+        memset((void*)command_buf, 0, COMMAND_BUF_SIZE);
+        snprintf(command_buf, COMMAND_BUF_SIZE, "rmmod %s", "dhd");
+        printf("*** Uninstall driver: %s ***\n", command_buf);
+        sleep(1);
+        system(command_buf);
+    }
+    else {
+        printf("*** Module dhd is not loaded\n");
+    }
+
+	/* Install dhd driver*/
+    {
+        memset((void*)command_buf,0,COMMAND_BUF_SIZE);
+        snprintf(command_buf, COMMAND_BUF_SIZE,"insmod %s %s %s %s %s %s",dhd_path,dhd_msg_level,iface_name,firmware_path,nvram_path,clm_path);
+        printf("*** Installing driver: %s\n",command_buf);
+        sleep(1);
+        system(command_buf);
+    }
+    /* Install wl driver*/
+
+    free(buf);
+    free(command_buf);
+
+    return 0;
+error:
+    if (buf)
+        free(buf);
+    if (command_buf)
+        free(command_buf);
+
+    return 1;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -285,6 +479,22 @@ int main(int argc, char **argv)
     /* check the board and turn on wifi radio */
     memset((void*)buf,0,BUF_SIZE);
     get_board_name(buf, BUF_SIZE);
+
+	/* replace BCX with BCM, BCX972181(LPDDR4x) should be renamed to BCM972181 for nvram purposes*/
+	if(buf[0] == 'B' && buf[1] == 'C' && buf[2] == 'X')
+	{
+		printf("***Board name %s board ***\n", buf);
+		buf[2] = 'M';
+		printf("***Treat as %s board for nvram purposes ***\n", buf);
+	}
+	/* replace  BCX97219XXX(LPDDR4x) should be renamed to BCM97218XXX for nvram purposes*/
+	if(buf[3] == '9' && buf[4] == '7' && buf[5] == '2' && buf[6] == '1' && buf[7] == '9')
+	{
+		printf("***Board name %s board ***\n", buf);
+		buf[7] = '8';
+		printf("***Treat as %s board for nvram purposes ***\n", buf);
+	}
+
     board_index=0;
     while(board_info[board_index].board_name)
     {
@@ -299,11 +509,23 @@ int main(int argc, char **argv)
         }
         board_index++;
     }
+
     if(board_info[board_index].board_name == NULL)
     {
         printf("*** Add support for %s if PA is controlled through GPIO ***\n",buf);
     }
     /* check the board and turn on wifi radio */
+
+	/**************************************************/
+	/* If board is dhd based board.  972181 or 972161 */
+	/**************************************************/
+    if(strstr(buf,BCM972181) != NULL || strstr(buf,BCM972180) != NULL || strstr(buf,BCM972161) != NULL)
+    {
+		printf("%s board treated as an MCM(has 4375 full dongle wifi)\n",buf);
+		dhd_install(argc, argv, buf);
+		printf("Finished wlinstall for 4375 based wifi\n");
+		goto done;
+    }
 
     /*Get board specific nvram file */
     {
@@ -421,7 +643,7 @@ int main(int argc, char **argv)
         system(command_buf);
     }
     /* Install wl driver*/
-
+done:
     free(buf);
     free(command_buf);
     free(nvram_name);

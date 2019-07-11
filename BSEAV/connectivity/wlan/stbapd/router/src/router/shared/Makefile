@@ -20,7 +20,10 @@
 
 include $(SRCBASE)/router/.config
 
-CFLAGS	+= -I. -I../httpd -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -Wall -Werror -fPIC
+CFLAGS	+= -I. -I../httpd -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -fPIC
+ifneq ($(STBANDROID),1)
+CFLAGS	+= -Wall -Werror
+endif
 CFLAGS	+= $(WLAN_ComponentIncPath)
 ifneq (2_4,$(LINUX_VERSION))
 CFLAGS += -DLINUX26
@@ -34,6 +37,9 @@ ifeq ($(CONFIG_RTR_OPTIMIZE_SIZE),y)
 CFLAGS  += -Os
 else
 CFLAGS  += -O2
+endif
+ifeq ($(STBANDROID),1)
+LDFLAGS = $(SHARED_LDFLAGS)
 endif
 LDFLAGS += -L.
 
@@ -64,4 +70,4 @@ clean:
 	rm -f *.o *.so
 
 libshared.so: $(OBJS)
-	$(LD) -shared -o $@ $^
+	$(LD) $(LDFLAGS) -shared -o $@ $^

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom.
+ *  Copyright (C) 2019 Broadcom.
  *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -442,10 +442,10 @@ BERR_Code BHDM_SetAVIInfoFramePacket(
 		*/
 		newAviInfoFrame.eRGBQuantizationRange = BAVC_HDMI_AviInfoFrame_RGBQuantizationRange_eDefault ;
 		newAviInfoFrame.eYccQuantizationRange = BAVC_HDMI_AviInfoFrame_YccQuantizationRange_eLimited ;
-		eColorRange = hHDMI->DeviceSettings.stVideoSettings.eColorRange ;
 
 		if (yCbCrColorspace)
 		{
+			eColorRange = hHDMI->DeviceSettings.stVideoSettings.eColorRange ;
 			switch (eColorRange)
 			{
 			default :
@@ -471,6 +471,13 @@ BERR_Code BHDM_SetAVIInfoFramePacket(
 		}
 		else
 		{
+			if (BFMT_IS_VESA_MODE(hHDMI->DeviceSettings.eInputVideoFmt))
+				eColorRange = BAVC_ColorRange_eFull ;
+			else
+				eColorRange = BAVC_ColorRange_eLimited ;
+
+			hHDMI->DeviceSettings.stVideoSettings.eColorRange = eColorRange ;
+
 			switch (eColorRange)
 			{
 			default :

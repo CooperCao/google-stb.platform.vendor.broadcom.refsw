@@ -64,6 +64,12 @@
 #define BDSP_Raaga_FlacStatus               BDSP_Raaga_Audio_FlacDecStreamInfo
 #define BDSP_Raaga_TsmCorrectionPPStatus    BDSP_Raaga_Audio_TsmCorrectionPPStatusInfo
 #define BDSP_Raaga_AC4Status                BDSP_Raaga_Audio_AC4StreamInfo
+typedef enum BDSP_AudioMuteStatus
+{
+   BDSP_AudioUnMute = 0,
+   BDSP_AudioMuteLicenseFailed = 1,
+   BDSP_AudioMuteStatusInvalid = 0x7FFFFFFF
+}BDSP_AudioMuteStatus;
 /*********************************************************************
 Summary:
     This structure defines all the stream information parameters of
@@ -568,6 +574,8 @@ represents the time in 8 seconds increments.
 */
     uint32_t    ui32StatusValid;
 
+    /* This enum informs the top layer why the audio is in mute */
+    BDSP_AudioMuteStatus eAudioMute;
 }BDSP_Raaga_Audio_DdpStreamInfo;
 
 
@@ -1419,6 +1427,8 @@ represents the time in 8 seconds increments.
  */
     uint32_t   ui32BitRate;
 
+    /* This enum informs the top layer why the audio is in mute */
+    BDSP_AudioMuteStatus eAudioMute;
 }BDSP_Raaga_Audio_UdcStreamInfo;
 
 
@@ -1614,6 +1624,9 @@ typedef struct BDSP_Raaga_Audio_AC4StreamInfo
     /* Number of presentations in the stream */
     uint32_t    ui32NumPresentations;
 
+    /* This enum informs the top layer why the audio is in mute */
+    BDSP_AudioMuteStatus eAudioMute;
+
     /*  Presentations Infos in the stream */
     BDSP_Raaga_Audio_AC4PresentationInfo                AC4DECPresentationInfo;
 
@@ -1804,6 +1817,9 @@ typedef struct BDSP_Raaga_Audio_DolbyAacheStreamInfo
     This field tells whether the stream info fields are valid or not.
     */
             uint32_t    ui32StatusValid;
+
+    /* This enum informs the top layer why the audio is in mute */
+    BDSP_AudioMuteStatus eAudioMute;
 
 } BDSP_Raaga_Audio_DolbyAacheStreamInfo;
 /*********************************************************************
@@ -2788,6 +2804,8 @@ typedef struct BDSP_Raaga_Audio_DolbyPulseStreamInfo
     */
             uint32_t    ui32StatusValid;
 
+    /* This enum informs the top layer why the audio is in mute */
+    BDSP_AudioMuteStatus eAudioMute;
 } BDSP_Raaga_Audio_DolbyPulseStreamInfo;
 
 /*********************************************************************
@@ -3008,6 +3026,8 @@ typedef struct BDSP_Raaga_Audio_MixerDapv2StatusInfo
 {
 
     BDSP_Raaga_Audio_Mixing_FadeCtrl_Info FadeCtrl_Info[MAX_NUM_FADE_NODES];
+    /* This enum informs the top layer why the audio is in mute */
+    BDSP_AudioMuteStatus eAudioMute;
 
 } BDSP_Raaga_Audio_MixerDapv2StatusInfo;
 
@@ -3318,6 +3338,8 @@ represents the time in 8 seconds increments.
 */
     uint32_t   ui32BitRate;
 
+    /* This enum informs the top layer why the audio is in mute */
+    BDSP_AudioMuteStatus eAudioMute;
 }BDSP_Raaga_Audio_MultiStreamDDPStreamInfo;
 
 typedef struct BDSP_Raaga_VideoH264EncoderInfo

@@ -81,6 +81,10 @@ else
     if [ -e wl.ko ]; then
         wlinstall wl.ko wlan0
     fi
+    if [ -e dhd.ko ]; then
+        wlinstall
+    fi
+
 
     TEST=`ps aux|grep wpa_supplicant|grep -v grep >/dev/NULL && echo 1`
     if [ "$TEST" != "1" ] || [ "${FORCE}" == "true" ]; then

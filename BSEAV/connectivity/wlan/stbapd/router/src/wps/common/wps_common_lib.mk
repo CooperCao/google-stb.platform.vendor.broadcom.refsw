@@ -22,8 +22,12 @@ ifeq ($(BLDTYPE),debug)
 export CFLAGS = -Wall -Werror -Wnested-externs -g -D_TUDEBUGTRACE
 export CXXFLAGS = -Wall -Wnested-externs -g -D_TUDEBUGTRACE
 else
-export CFLAGS = -Wall -Werror -Wnested-externs
-export CXXFLAGS = -Wall -Werror -Wnested-externs
+export CFLAGS = -Wnested-externs
+export CXXFLAGS = -Wnested-externs
+endif
+
+ifneq ($(STBANDROID),1)
+CFLAGS	+= -Wall -Werror
 endif
 
 ifdef WCN_NET_SUPPORT

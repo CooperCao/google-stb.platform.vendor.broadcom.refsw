@@ -17,6 +17,7 @@
  *
  * $Id: mtd.c 437682 2013-11-19 19:25:16Z $
  */
+#ifndef TARGETENV_android
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -251,3 +252,5 @@ fail:
 		fclose(fp);
 	return ret;
 }
+
+#endif /* TARGETENV_android */

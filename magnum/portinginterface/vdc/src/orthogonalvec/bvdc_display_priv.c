@@ -343,7 +343,7 @@ void BVDC_P_Display_Init
     /* Init display aspect ratio */
     hDisplay->stNewInfo.eAspectRatio = hDisplay->stNewInfo.pFmtInfo->eAspectRatio;
     BKNI_EnterCriticalSection();
-    BVDC_P_CalcuPixelAspectRatio_isr(
+    BVDC_P_CalcuPixelAspectRatio_isrsafe(
         hDisplay->stNewInfo.eAspectRatio,
         hDisplay->stNewInfo.uiSampleAspectRatioX,
         hDisplay->stNewInfo.uiSampleAspectRatioY,
@@ -2892,6 +2892,25 @@ BERR_Code BVDC_P_GetVfFilterSumOfTapsBits_isr
     return BERR_SUCCESS;
 }
 
+static bool BVDC_P_Display_ComputeStaticHdrMetadata_isr(
+        BVDC_Compositor_Handle hCompositor,
+        BAVC_StaticHdrMetadata  *pStaticMetadata)
+{
+    bool changed = false;
+#if BVDC_P_DBV_SUPPORT && (BVDC_DBV_MODE_BVN_CONFORM)
+    /* copy SMD from source */
+    changed = BKNI_Memcmp_isr(pStaticMetadata, &hCompositor->stStaticHdrMetadata, sizeof(*pStaticMetadata));
+    hCompositor->bStaticMetadataOverridden = false;
+    BKNI_Memcpy_isr(pStaticMetadata, &hCompositor->stStaticHdrMetadata, sizeof(*pStaticMetadata));
+#else
+    /* override SMD to all zeroes */
+    changed = !hCompositor->bStaticMetadataOverridden;
+    hCompositor->bStaticMetadataOverridden = true;
+    BKNI_Memset_isr(pStaticMetadata, 0, sizeof(*pStaticMetadata));
+#endif
+    return changed;
+}
+
 /* get output hdr10 static metadata
  */
 bool BVDC_P_Display_GetStaticHdrMetadata_isr(
@@ -2900,39 +2919,21 @@ bool BVDC_P_Display_GetStaticHdrMetadata_isr(
 {
     BVDC_Compositor_Handle hCompositor = hDisplay->hCompositor;
     BDBG_ASSERT(pStaticMetadata);
-    if(!hDisplay->stCurInfo.stHdmiSettings.stSettings.bDolbyVisionEnabled &&
-       hDisplay->stCurInfo.stHdmiSettings.stSettings.eEotf == BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084)
-    {
-        if(hCompositor->bUnknownHdrMetadata)
-        {
-            if(BKNI_Memcmp_isr(pStaticMetadata, &hCompositor->stStaticHdrMetadata, sizeof(*pStaticMetadata)))
-            {
-                BKNI_Memset_isr(pStaticMetadata, 0, sizeof(*pStaticMetadata));
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
 #if BVDC_P_DBV_SUPPORT
-        else if(hCompositor->pstDbv && hCompositor->pstDbv->pstCtrlResults && hCompositor->pstDbv->metadataPresent)
-        {
-            return BVDC_P_Display_DbvGetStaticHdrMetadata_isr(hDisplay, pStaticMetadata);
-        }
-#endif
-        else /* hdr10 in -> hdr10 out pass through */
-        {
-            if(BKNI_Memcmp_isr(pStaticMetadata, &hCompositor->stStaticHdrMetadata, sizeof(*pStaticMetadata)))
-            {
-                BKNI_Memcpy_isr(pStaticMetadata, &hCompositor->stStaticHdrMetadata, sizeof(*pStaticMetadata));
-                return true;
-            }
-        }
+    if(!hDisplay->stCurInfo.stHdmiSettings.stSettings.bDolbyVisionEnabled
+       &&
+       hDisplay->stCurInfo.stHdmiSettings.stSettings.eEotf == BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084
+       &&
+       hCompositor->pstDbv && hCompositor->pstDbv->pstCtrlResults && hCompositor->pstDbv->metadataPresent
+       )
+    {
+        /* if dolby in -> hdr10 out */
+        hCompositor->bStaticMetadataOverridden = false;
+        return BVDC_P_Display_DbvGetStaticHdrMetadata_isr(hDisplay, pStaticMetadata);
     }
     else
+#endif
     {
-        BKNI_Memset_isr(pStaticMetadata, 0, sizeof(*pStaticMetadata));
+        return BVDC_P_Display_ComputeStaticHdrMetadata_isr(hCompositor, pStaticMetadata);
     }
-    return false;
 }

@@ -629,7 +629,7 @@ acs_adjust_ctrl_chan(acs_chaninfo_t *c_info, chanspec_t chspec)
 bool
 acs_get_txduration(acs_chaninfo_t * c_info)
 {
-	int ret = 0;
+	int i, ret = 0;
 	char *data_buf;
 	wl_chanim_stats_t *list;
 	wl_chanim_stats_t param;
@@ -654,6 +654,21 @@ acs_get_txduration(acs_chaninfo_t * c_info)
 	list->buflen = dtoh32(list->buflen);
 	list->version = dtoh32(list->version);
 	list->count = dtoh32(list->count);
+
+	if (list->version != WL_CHANIM_STATS_VERSION &&
+		list->version == 2) {
+		chanim_stats_v2_t *stats = (chanim_stats_v2_t *)
+			acsd_malloc(sizeof(chanim_stats_v2_t)*list->count);
+		/* Driver uses v2 chanim_stats but the current is v3.
+		 * Convert it to v3 struct.
+		 */
+		memcpy((char *)stats, (char *)list->stats,
+			list->buflen - WL_CHANIM_STATS_FIXED_LEN);
+		for (i = 0; i < list->count; i++) {
+			ACS_CHANIM_COPY_V2_TO_V3(&list->stats[i], &stats[i]);
+		}
+		ACS_FREE(stats);
+	}
 
 	stats = list->stats;
 	stats->chanspec = htod16(stats->chanspec);

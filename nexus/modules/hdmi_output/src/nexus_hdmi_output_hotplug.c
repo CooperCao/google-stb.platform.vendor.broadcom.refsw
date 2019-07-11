@@ -234,6 +234,7 @@ static void NEXUS_HdmiOutput_P_SetConnectedState(NEXUS_HdmiOutputHandle hdmiOutp
             /* Rx detected to be ON...
                 make sure all TMDS data lines are ENABLED if under nexus control */
             NEXUS_HdmiOutput_P_SetTmdsSignalData(hdmiOutput, true);
+            NEXUS_HdmiOutput_P_SetRxState(hdmiOutput, NEXUS_HdmiOutputState_ePoweredOn);
             /* notify Nexus Display of the cable insertion to re-enable HDMI Output */
             hdmiOutput->formatChangeUpdate = true ;
             NEXUS_TaskCallback_Fire(hdmiOutput->notifyDisplay);
@@ -256,7 +257,6 @@ static void NEXUS_HdmiOutput_P_SetConnectedState(NEXUS_HdmiOutputHandle hdmiOutp
             }
 #endif
 #endif
-            NEXUS_HdmiOutput_P_SetRxState(hdmiOutput, NEXUS_HdmiOutputState_ePoweredOn);
             NEXUS_HdmiOutput_P_FireHotplugCallbacks(hdmiOutput);
         }
         else if (!rxSense && hdmiOutput->rxState != NEXUS_HdmiOutputState_ePoweredDown) {

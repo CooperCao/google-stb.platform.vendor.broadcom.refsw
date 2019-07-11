@@ -25,6 +25,23 @@
 
 #include <wlc_types.h>
 
+#define WL_MBO_CNT_INR(_m, _ctr) (++((_m)->cntrs->_ctr))
+#define MBO_MAX_CHAN_PREF_ENTRIES 16
+
+/* flags to mark MBO ap capability */
+#define MBO_FLAG_AP_CELLULAR_AWARE  0x1
+/* flag to association attempt even AP is not accepting connection */
+#define MBO_FLAG_FORCE_ASSOC_TO_AP  0x2
+/* flag to forcefully reject bss transition request from AP */
+#define MBO_FLAG_FORCE_BSSTRANS_REJECT  0x4
+/* flag to enable/disble nbr info caching */
+#define MBO_FLAG_NBR_INFO_CACHE  0x8
+
+/* flag to anqpo support request from host */
+#define MBO_FLAG_ANQPO_SUPPORT  0x8
+/* flag to cellular pref to support anqpo */
+#define MBO_FLAG_ANQP_CELL_PREF 0x10
+
 /* Forward declarations */
 typedef uint16 bcm_iov_cmd_id_t;
 typedef uint16 bcm_iov_cmd_flags_t;
@@ -159,4 +176,40 @@ bool wlc_mbo_reject_assoc_req(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg);
 bool wlc_mbo_is_channel_non_preferred(wlc_info_t* wlc, struct scb* scb, uint8 channel,
 	uint8 opclass);
 int32 wlc_mbo_get_gas_support(wlc_info_t* wlc);
+int
+wlc_mbo_add_chan_pref(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
+	wlc_mbo_chan_pref_t *ch_pref);
+int
+wlc_mbo_del_chan_pref(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
+	wlc_mbo_chan_pref_t *ch_pref);
+int
+wlc_mbo_set_cellular_data_cap(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
+	uint8 cell_data_cap);
+int
+wlc_mbo_get_cellular_data_cap(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
+	uint8 *cell_data_cap);
+uint8
+wlc_is_mbo_association(wlc_bsscfg_t *cfg);
+int
+wlc_mbo_handle_rssi_variation(wlc_bsscfg_t *cfg, int prev_rssi, int rssi);
+void
+wlc_mbo_update_btq_info(wlc_mbo_info_t *mbo, wlc_bsscfg_t *cfg,
+	uint8 token, uint8 reason);
+#ifdef WL_MBO_TB
+int
+wlc_mbo_set_bsstrans_reject(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
+	uint8 enable, uint8 reason);
+int
+wlc_mbo_get_bsstrans_reject(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
+	uint8 *enable, uint8 *reason);
+#endif /* WL_MBO_TB */
+
+#ifdef ANQPO
+uint
+wlc_mbo_calc_anqp_elem_len(wlc_bsscfg_t *cfg, uint8 *query, uint16 query_len,
+	uint8 cellular_aware);
+int
+wlc_mbo_build_anqp_elem(wlc_bsscfg_t *cfg, uint8 *query, uint16 *query_len,
+	uint8 cellular_aware, uint16 total_len);
+#endif /* ANQPO */
 #endif	/* _wlc_mbo_h_ */

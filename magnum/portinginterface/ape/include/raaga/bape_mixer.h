@@ -1,5 +1,6 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2019 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -471,7 +472,10 @@ Mixer Status
 ***************************************************************************/
 typedef struct BAPE_MixerStatus
 {
-    BAPE_FadeStatus mainDecodeFade; /* Available for MS12 DSP mixers only */
+    /* Available for MS12 DSP mixers only */
+    BAPE_FadeStatus mainDecodeFade;
+    bool unlicensedAlgo; /* If true unlicensed algo detected for mixer */
+    char mixerName[32];
 } BAPE_MixerStatus;
 
 /***************************************************************************
@@ -665,6 +669,31 @@ BERR_Code BAPE_SetSampleRateConverterRampStep(
     uint32_t rampStep                   /* All sample rate converters volume is changed by this amount
                                            every Fs while ramping.  Specified in 4.23 format.
                                            Ignored for compressed data. */
+    );
+
+/***************************************************************************
+Summary:
+Decoder Interrupt Handlers
+***************************************************************************/
+typedef struct BAPE_MixerInterruptHandlers
+{
+    /* This interrupt fires when starting a task with an unlienced algorithm */
+    struct
+    {
+        void (*pCallback_isr)(void *pParam1, int param2);
+        void *pParam1;
+        int param2;
+    } unlicensedAlgo;
+} BAPE_MixerInterruptHandlers;
+
+void BAPE_Mixer_GetInterruptHandlers(
+    BAPE_MixerHandle handle,
+    BAPE_MixerInterruptHandlers *pInterrupts     /* [out] */
+    );
+
+void BAPE_Mixer_SetInterruptHandlers(
+    BAPE_MixerHandle handle,
+    const BAPE_MixerInterruptHandlers *pInterrupts
     );
 
 #endif /* #ifndef BAPE_MIXER_H_ */

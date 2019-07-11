@@ -1732,14 +1732,6 @@ wlc_ps_allowed(wlc_bsscfg_t *cfg)
 
 	/* disallow PS when one of the following bsscfg specific conditions meets */
 	if (/*!cfg->BSS || */
-            #ifdef WOWL
-            /* In some test cases, after waking up with magic packet, system is still in wowl mode
-             * which makes SW PS state different from MAC PM state so when wlc_watchdog handler kicks in,
-             * it causes an assert. This will avoid that assert and user level application will have enough
-             * time to set the WLAN device to non-wowl mode
-             */
-	    WOWL_ACTIVE(wlc->pub) ||
-            #endif
 	    !cfg->associated ||
 	    !pm->PMenabled ||
 	    pm->PM_override ||
@@ -9911,6 +9903,10 @@ wlc_bandlock(wlc_info_t *wlc, int val)
 			* corresponding to the new band
 			*/
 			move = 1;
+		} else if (wlc->chains_2g) {
+			if ((CHSPEC_IS2G(wlc->chanspec) && (wlc->stf->txchain_subval[WLC_TXCHAIN_ID_2G2X2LOCK] != wlc->chains_2g)) ||
+				(CHSPEC_IS5G(wlc->chanspec && wlc->stf->txchain_subval[WLC_TXCHAIN_ID_2G2X2LOCK] != wlc->stf->hw_txchain)))
+				move = 1;
 		}
 	}
 
@@ -16955,6 +16951,10 @@ wlc_bss_tbtt(wlc_bsscfg_t *cfg)
 		    FALSE) {
 			wlc_11h_tbtt(wlc->m11h, cfg);
 		}
+#ifdef WLBSSLOAD
+		if (WLBSSLOAD_ENAB(wlc->pub))
+			wlc_bssload_tbtt(wlc->mbssload, cfg);
+#endif
 #ifdef WLWNM_AP
 		if (WLWNM_ENAB(wlc->pub))
 			wlc_wnm_tbtt(wlc, cfg);
@@ -18636,9 +18636,10 @@ wlc_do_chanswitch(wlc_bsscfg_t *cfg, chanspec_t newchspec)
 #endif /* defined(STA) && defined(SLAVE_RADAR) */
 
 	if (WL11H_ENAB(wlc)) {
-		/* restore the current channel's quiet bit */
-		if (wlc_radar_chanspec(wlc->cmi, wlc->home_chanspec) ||
-		    wlc_restricted_chanspec(wlc->cmi, wlc->home_chanspec)) {
+		/* restore the current channel's quiet bit unless in EU */
+		if ((wlc_radar_chanspec(wlc->cmi, wlc->home_chanspec) ||
+		    wlc_restricted_chanspec(wlc->cmi, wlc->home_chanspec)) &&
+				wlc_is_edcrs_eu(wlc) == FALSE) {
 			wlc_set_quiet_chanspec_exclude(wlc->cmi, wlc->home_chanspec, newchspec);
 			WL_REGULATORY(("%s: Setting quiet bit for chanspec %s\n",
 				__FUNCTION__, wf_chspec_ntoa_ex(newchspec, chanbuf)));
@@ -23098,7 +23099,11 @@ wlc_sta_info(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, const struct ether_addr *ea,
 	if (SCB_DWDS(scb))
 		sta.flags |= WL_STA_DWDS;
 #endif
-
+#ifdef WL_GLOBAL_RCLASS
+	if (scb->support_gbl_rclass) {
+		sta.flags |= WL_STA_GBL_RCLASS;
+	}
+#endif /* WL_GLOBAL_RCLASS */
 	/* update per antenna rssi and noise floor */
 	/* to be done */
 

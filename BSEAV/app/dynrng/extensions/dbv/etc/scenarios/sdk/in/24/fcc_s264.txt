@@ -1,4 +1,0 @@
-stream=/mnt/hd/Test_Vectors/SDR/Conversion_Tests/AVC/FHD/23976/Graffiti_SDR_1920x1080_23976fps__avc3_st.mp4
-forceRestart=on
-stcTrick=off
-commit

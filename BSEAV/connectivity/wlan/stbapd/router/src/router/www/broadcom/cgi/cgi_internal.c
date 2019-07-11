@@ -68,7 +68,7 @@
 #include <wps_ui.h>
 #endif
 
-#include <cgi_common.h>
+#include "cgi_common.h"
 
 #if defined(linux)
 #include <fcntl.h>
@@ -120,7 +120,7 @@ ej_syslog(int eid, webs_t wp, int argc, char_t **argv)
 
 	ret = 0;
 	while(fgets(buf, sizeof(buf), fp))
-		ret += websWrite(wp, buf);
+		ret += websWrite(wp, "%s", buf);
 
 	ret += websWrite(wp, "</pre>");
 

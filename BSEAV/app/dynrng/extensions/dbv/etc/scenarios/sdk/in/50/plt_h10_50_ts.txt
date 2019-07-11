@@ -1,4 +1,0 @@
-stream=/mnt/hd/Test_Vectors/HDR10/Adaptive_Streaming_Tests/50/TS/Combined/combined_ves_graffiti_50_hdr10__st.ts
-forceRestart=on
-stcTrick=off
-commit

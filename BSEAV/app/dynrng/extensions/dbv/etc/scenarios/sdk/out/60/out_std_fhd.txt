@@ -1,5 +1,0 @@
-format=1080p60
-sampling=422
-depth=12
-dynrng=dovi
-commit

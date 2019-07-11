@@ -47,7 +47,7 @@ NEXUS_TOP := $(B_REFSW_TOP)/nexus
 # Prebuilt binary tag.
 VERSION_FILE := ${BSEAV_TOP}/connectivity/wlan/7271/src/include/epivers.sh
 CUR_TAG := $(shell grep EXTERNAL_TAG= ${VERSION_FILE} | cut -d'"' -f2)
-
+ifneq ($(NEXUS_PLATFORM),)
 include ${NEXUS_TOP}/platforms/common/build/platform_app.inc
 include ${NEXUS_TOP}/platforms/common/build/nexus_platforms.inc
 
@@ -65,7 +65,7 @@ else ifeq ($(B_REFSW_ARCH),arm-linux)
 else
 	$(warning B_REFSW_ARCH not set)
 endif
-
+endif
 STBAPD_PREBUILT_LOCATION=${BSEAV_TOP}/../${THIS_DIR}/${STBAPD_PREBUILT_ARCH_TAR_NAME}
 
 STBAPD_FETCH_MAYBE := ${STBAPD_PREBUILT_LOCATION}
@@ -82,9 +82,17 @@ release:
 	wget http://git-irv-03.irv.broadcom.com:88/files/connectivity/wlan/stbapd_prebuilt/prebuilt_aarch64_${CUR_TAG}.tgz
 	wget http://git-irv-03.irv.broadcom.com:88/files/connectivity/wlan/stbapd_prebuilt/prebuilt_armv7l_${CUR_TAG}.tgz
 
-${STBAPD_FETCH_MAYBE}: release
+${STBAPD_FETCH_MAYBE}: 
+	echo "fetching tarball: CUR_TAG=${CUR_TAG} VERSION_FILE=${VERSION_FILE} "
+#	@bash ${B_REFSW_TOP}/BSEAV/tools/build/binaries/verify_binaries.sh stbapd_prebuilt.txt stbapd_prebuilt.tar.gz ${BSEAV_TOP}/../${THIS_DIR}
+	wget http://git-irv-03.irv.broadcom.com:88/files/connectivity/wlan/stbapd_prebuilt/prebuilt_aarch64_${CUR_TAG}.tgz
+	wget http://git-irv-03.irv.broadcom.com:88/files/connectivity/wlan/stbapd_prebuilt/prebuilt_armv7l_${CUR_TAG}.tgz
 
 install: ${STBAPD_FETCH_MAYBE}
+	@if [ "$(NEXUS_PLATFORM)" = "" ]; then \
+		echo "Error:NEXUS_PLATFORM is not defined!"; \
+		exit 1; \
+	fi
 	${Q_}mkdir -p ${BSEAV_BIN_DIR}/stbapd
 	@echo "================ Untar ARCH based STBAPD prebuilt tarball =========================================="
 	tar -C ${BSEAV_BIN_DIR}/stbapd -xvzf ${STBAPD_PREBUILT_LOCATION}

@@ -36,6 +36,7 @@
 # ANY LIMITED REMEDY.
 #############################################################################
 
+# Used for 4375 dhd targets
 B_REFSW_DEBUG ?= y
 ifeq ($(B_REFSW_DEBUG),y)
 DEBUG_SUFFIX=debug
@@ -66,6 +67,7 @@ B_WLAN_INSRC_DIR := $(abspath $(NEXUS_TOP)/../BSEAV/connectivity/wlan)
 B_WLAN_INSRC_VER_DIR:=${B_WLAN_INSRC_DIR}/${B_WLAN_VER}
 
 B_WLAN_OOSRC_DIR:=$(abspath $(B_REFSW_OBJ_ROOT)/BSEAV/connectivity/wlan)
+B_OPENSRC_OOSRC_DIR:=$(abspath $(B_REFSW_OBJ_ROOT)/BSEAV/opensource)
 B_WLAN_OOSRC_VER_DIR:=${B_WLAN_OOSRC_DIR}/${B_WLAN_VER}
 B_WLAN_TOP_INSTALL_DIR ?= $(abspath ${B_WLAN_OOSRC_VER_DIR})
 

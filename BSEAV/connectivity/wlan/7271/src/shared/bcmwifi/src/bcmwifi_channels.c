@@ -908,8 +908,27 @@ wf_channel2chspec(uint ctl_ch, uint bw)
 	chspec |= bw;
 
 	if (bw == WL_CHANSPEC_BW_40) {
-		center_ch = wf_5g_40m_chans;
-		num_ch = WF_NUM_5G_40M_CHANS;
+		/* 2G 40MHz is a special case; channel_to_sb() works for 5G only */
+		if (ctl_ch <= CH_MAX_2G_CHANNEL) {
+			/* In 2.4GHz, ctl_ch 5, 6 & 7 can be used as both lower and upper sb.
+			 * For such ambiguous cases, lower is chosen by default here.
+			 * Japan center channels 10 and 11 are used in upper SB context only.
+			 */
+			const uint8 ctl2cent[] = {3, 4, 5, 6, 7, 8, 9, 6, 7, 8, 9, 10, 11};
+			const uint8 len_c2c = sizeof(ctl2cent) / sizeof(ctl2cent[0]);
+			uint8 cent;
+			if (ctl_ch < 1 || ctl_ch > len_c2c) {
+				return 0;
+			}
+			cent = ctl2cent[ctl_ch - 1];
+			chspec |= cent;
+			chspec |= (ctl_ch < cent ?
+					WL_CHANSPEC_CTL_SB_LOWER : WL_CHANSPEC_CTL_SB_UPPER);
+			return chspec;
+		} else {
+			center_ch = wf_5g_40m_chans;
+			num_ch = WF_NUM_5G_40M_CHANS;
+		}
 		bw = 40;
 	} else if (bw == WL_CHANSPEC_BW_80) {
 		center_ch = wf_5g_80m_chans;

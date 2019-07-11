@@ -622,6 +622,16 @@ setup_lan(char *name, char *lan_ifname, char *hwaddr, int *dpsta, int ifidx)
 				goto gmac3_no_swbr;
 #endif /* __CONFIG_STBAP__ */
 
+#ifdef CONFIG_HOSTAPD
+			if (!nvram_match("hapd_enable", "0")) {
+				if (nvram_match(mode, "sta")) {
+					if (wl_iovar_setint(name, "intf_enable_bridge", 1)) {
+						dprintf("%s set intf_enable_bridge failed\n", name);
+						return;
+					}
+				}
+			}
+#endif /* CONFIG_HOSTAPD */
 			eval("brctl", "addif", lan_ifname, name);
 #ifndef __CONFIG_STBAP__
 gmac3_no_swbr:

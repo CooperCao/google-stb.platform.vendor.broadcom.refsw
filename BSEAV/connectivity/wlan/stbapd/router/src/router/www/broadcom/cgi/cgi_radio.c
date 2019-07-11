@@ -65,7 +65,7 @@
 #include <proto/802.1d.h>
 #include <security_ipc.h>
 
-#include <cgi_common.h>
+#include "cgi_common.h"
 #include <common_utils.h>
 
 /* From wlc_rate.[ch] */
@@ -222,7 +222,7 @@ ej_wl_radioid(int eid, webs_t wp, int argc, char_t **argv)
 	which = strcspn(nvram_safe_get(strcat_r(prefix, "phytypes", tmp)), phytype);
 	foreach(var, nvram_safe_get(strcat_r(prefix, "radioids", tmp)), next) {
 		if (which == 0)
-			return websWrite(wp, var);
+			return websWrite(wp, "%s", var);
 		which--;
 	}
 
@@ -233,7 +233,8 @@ REG_EJ_HANDLER(wl_radioid);
 static int
 ej_wl_country_list(int eid, webs_t wp, int argc, char_t **argv)
 {
-	int i =0, status = 0;
+	uint32 i = 0;
+	int status = 0;
 	char *name =NULL;
 	char tmp[NVRAM_BUFSIZE], prefix[] = "wlXXXXXXXXXX_";
 	char *phytype = NULL;
@@ -1364,7 +1365,8 @@ static int
 ej_wl_country_rev_list(int eid, webs_t wp, int argc, char_t **argv)
 {
 	/* country_rev from 0 to 99 */
-	int i =0, status = 0;
+	uint32 i = 0;
+	int status = 0;
 	char *name =NULL;
 	char tmp[NVRAM_BUFSIZE], prefix[] = "wlXXXXXXXXXX_";
 	char *phytype = NULL;

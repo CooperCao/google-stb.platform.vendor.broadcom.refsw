@@ -606,7 +606,8 @@ wlc_wpa_gtk_eapol(supplicant_t *sup_bss, eapol_header_t *eapol, bool encrypted)
 		/* extract GTK */
 		data_len = ntoh16_ua(&body->data_len);
 		data_encap = wpa_find_gtk_encap(body->data, data_len);
-		if (!data_encap) {
+		if (!data_encap || ((uint)(data_encap->length - EAPOL_WPA2_GTK_ENCAP_MIN_LEN)
+				> sizeof(wpa->gtk))) {
 			WL_WSEC(("wl%d: %s: encapsulated GTK missing from"
 				" group message 1\n", UNIT(sup_bss), __FUNCTION__));
 			wlc_wpa_send_gtk_status(sup_info, sup_bss->cfg,

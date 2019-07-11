@@ -2531,7 +2531,8 @@ void BVDC_P_Window_BuildCfcRul_isr
             *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
             *pList->pulCurrent++ = BRDC_REGISTER(ulStartReg);
             *pList->pulCurrent++ = ulNLCfg;
-            BDBG_MODULE_MSG(BVDC_CFC_2,("Cmp%d_V%d-Rect%d OUT HDR_V0_CTRL 0x%08x", hCompositor->eId, eWinInCmp, ulRectIdx, ulNLCfg));
+            BDBG_MODULE_MSG(BVDC_CFC_2,("Cmp%d_V%d-Rect%d OUT HDR_V0_CTRL 0x%08x, bBypassCmpCsc?%d, bBypassCfc?%d",
+                hCompositor->eId, eWinInCmp, ulRectIdx, ulNLCfg, hWindow->bBypassCmpCsc, pCfc->bBypassCfc));
         }
 
         ulNLCfg = (bBypassCfc)?

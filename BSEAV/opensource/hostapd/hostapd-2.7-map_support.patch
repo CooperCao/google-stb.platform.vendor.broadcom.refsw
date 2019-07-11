@@ -1,0 +1,842 @@
+diff -Naur hostapd-2.7-orig/hostapd/Makefile hostapd-2.7/hostapd/Makefile
+--- hostapd-2.7-orig/hostapd/Makefile	2019-02-08 14:59:16.574157941 -0800
++++ hostapd-2.7/hostapd/Makefile	2019-02-08 15:02:11.897341654 -0800
+@@ -288,6 +288,10 @@
+ ifdef CONFIG_IEEE80211R
+ CFLAGS += -DCONFIG_IEEE80211R -DCONFIG_IEEE80211R_AP
+ OBJS += ../src/ap/wpa_auth_ft.o
++ifdef CONFIG_DRIVER_BRCM
++CFLAGS += -DCONFIG_DRIVER_BRCM
++OBJS += ../src/ap/wpa_auth_brcm.o
++endif
+ NEED_SHA256=y
+ NEED_AES_OMAC1=y
+ NEED_AES_UNWRAP=y
+diff -Naur hostapd-2.7-orig/hostapd/config_file.c hostapd-2.7/hostapd/config_file.c
+--- hostapd-2.7-orig/hostapd/config_file.c	2019-02-08 14:56:33.585706198 -0800
++++ hostapd-2.7/hostapd/config_file.c	2019-02-08 15:01:02.101836726 -0800
+@@ -4111,6 +4111,32 @@
+ 	} else if (os_strcmp(buf, "coloc_intf_reporting") == 0) {
+ 		bss->coloc_intf_reporting = atoi(pos);
+ #endif /* CONFIG_OWE */
++#ifdef MULTIAP
++	} else if (os_strcmp(buf, "map") == 0) {
++		bss->map = atoi(pos);
++	} else if (os_strcmp(buf, "map_bh_ssid") == 0) {
++		size_t bh_ssid_len = os_strlen(pos);
++		if (bh_ssid_len < 1 || bh_ssid_len > SSID_MAX_LEN) {
++			wpa_printf(MSG_ERROR,
++				"Line %d: Invalid invalid map backhaul ssid '%s'", line, pos);
++			return 1;
++		}
++		bss->map_bh_ssid_len = bh_ssid_len;
++		os_memcpy(bss->map_bh_ssid, pos, bh_ssid_len);
++	} else if (os_strcmp(buf, "map_bh_auth") == 0) {
++		bss->map_bh_auth = atoi(pos);
++	} else if (os_strcmp(buf, "map_bh_encr") == 0) {
++		bss->map_bh_encr = atoi(pos);
++	} else if (os_strcmp(buf, "map_bh_psk") == 0) {
++		size_t bh_psk_len = os_strlen(pos);
++		if (bh_psk_len < 8 || bh_psk_len > PMK_LEN_MAX) {
++			wpa_printf(MSG_ERROR,
++				"Line %d: Invalid invalid map backhaul psk '%s'", line, pos);
++			return 1;
++		}
++		bss->map_bh_psk_len = bh_psk_len;
++		os_memcpy(bss->map_bh_psk, pos, bh_psk_len);
++#endif	/* MULTIAP */
+ 	} else {
+ 		wpa_printf(MSG_ERROR,
+ 			   "Line %d: unknown configuration item '%s'",
+diff -Naur hostapd-2.7-orig/src/ap/ap_config.h hostapd-2.7/src/ap/ap_config.h
+--- hostapd-2.7-orig/src/ap/ap_config.h	2019-02-08 14:56:32.650567819 -0800
++++ hostapd-2.7/src/ap/ap_config.h	2019-02-08 15:02:44.754501996 -0800
+@@ -686,6 +686,15 @@
+ #endif /* CONFIG_OWE */
+ 
+ 	int coloc_intf_reporting;
++#ifdef MULTIAP
++	u8 map;
++	u8 map_bh_ssid[SSID_MAX_LEN];
++	size_t map_bh_ssid_len;
++	u16 map_bh_auth;
++	u16 map_bh_encr;
++	u8 map_bh_psk[PMK_LEN_MAX];
++	size_t map_bh_psk_len;
++#endif	/* MULTIAP */
+ };
+ 
+ /**
+diff -Naur hostapd-2.7-orig/src/ap/brcm_nl80211.h hostapd-2.7/src/ap/brcm_nl80211.h
+--- hostapd-2.7-orig/src/ap/brcm_nl80211.h	1969-12-31 16:00:00.000000000 -0800
++++ hostapd-2.7/src/ap/brcm_nl80211.h	2019-02-08 12:30:52.985475900 -0800
+@@ -0,0 +1,52 @@
++/*
++ * Definitions for nl80211 vendor command/event access to host driver
++ *
++ * $ Copyright Open Broadcom Corporation $
++ *
++ *
++ * <<Broadcom-WL-IPTag/Open:>>
++ *
++ * $Id: brcm_nl80211.h 601873 2015-11-24 11:04:28Z ajayda $
++ *
++ */
++
++#ifndef _brcm_nl80211_h_
++#define _brcm_nl80211_h_
++
++#define OUI_BRCM  0x001018
++#define OUI_GOOGLE  0x001A11
++#define DHD_IOCTL_MAGIC 0x00444944
++
++enum wl_vendor_subcmd {
++	BRCM_VENDOR_SCMD_UNSPEC,
++	BRCM_VENDOR_SCMD_PRIV_STR,
++	BRCM_VENDOR_SCMD_BCM_STR
++};
++
++
++struct bcm_nlmsg_hdr {
++	uint cmd;	/* common ioctl definition */
++	int len;	/* expected return buffer length */
++	uint offset;	/* user buffer offset */
++	uint set;	/* get or set request optional */
++	uint magic;	/* magic number for verification */
++};
++
++enum bcmnl_attrs {
++	BCM_NLATTR_UNSPEC,
++
++	BCM_NLATTR_LEN,
++	BCM_NLATTR_DATA,
++
++	__BCM_NLATTR_AFTER_LAST,
++	BCM_NLATTR_MAX = __BCM_NLATTR_AFTER_LAST - 1
++};
++
++struct nl_prv_data {
++	int err;			/* return result */
++	void *data;			/* ioctl return buffer pointer */
++	uint len;			/* ioctl return buffer length */
++	struct bcm_nlmsg_hdr *nlioc;	/* bcm_nlmsg_hdr header pointer */
++};
++
++#endif /* _brcm_nl80211_h_ */
+diff -Naur hostapd-2.7-orig/src/ap/drv_callbacks.c hostapd-2.7/src/ap/drv_callbacks.c
+--- hostapd-2.7-orig/src/ap/drv_callbacks.c	2019-02-13 14:14:46.923490360 -0800
++++ hostapd-2.7/src/ap/drv_callbacks.c	2019-02-13 14:13:57.378324969 -0800
+@@ -38,6 +38,9 @@
+ #include "mbo_ap.h"
+ #include "dpp_hostapd.h"
+ #include "fils_hlp.h"
++#ifdef CONFIG_DRIVER_BRCM
++#include "wpa_auth_brcm.h"
++#endif
+ 
+ 
+ #ifdef CONFIG_FILS
+@@ -979,7 +982,11 @@
+ 		       HOSTAPD_LEVEL_DEBUG, "authentication OK (FT)");
+ 	sta->flags |= WLAN_STA_AUTH;
+ 
++#ifdef CONFIG_DRIVER_BRCM
++	brcm_build_ft_auth_resp_send(ctx, dst, status, ies, ies_len);
++#else
+ 	hostapd_sta_auth(hapd, dst, auth_transaction, status, ies, ies_len);
++#endif
+ }
+ #endif /* CONFIG_IEEE80211R_AP */
+ 
+diff -Naur hostapd-2.7-orig/src/ap/wpa_auth_brcm.c hostapd-2.7/src/ap/wpa_auth_brcm.c
+--- hostapd-2.7-orig/src/ap/wpa_auth_brcm.c	1969-12-31 16:00:00.000000000 -0800
++++ hostapd-2.7/src/ap/wpa_auth_brcm.c	2019-02-08 12:30:53.403235100 -0800
+@@ -0,0 +1,172 @@
++#include "includes.h"
++#include "common.h"
++#include "hostapd.h"
++#include "brcm_nl80211.h"
++#include "sta_info.h"
++#include "wpa_auth.h"
++#include "wpa_auth_i.h"
++#include "common/ieee802_11_defs.h"
++#include "ap_drv_ops.h"
++#include "wpa_auth_brcm.h"
++
++#define WLC_GET_VAR		262 /* get value of named variable */
++#define WLC_SET_VAR		263 /* set named variable to value */
++#define WLC_IOCTL_MAXLEN	8192 /* Max iovar  length */
++
++static int  brcm_send_vendor_cmd(struct hostapd_data *hapd, u32 cmd,
++		char *cmd_str, const u8 *data, size_t data_len)
++{
++	s32 err = 0;
++	struct wpabuf *buf;
++	u32 buflen = 0;
++	u32 subcmd = BRCM_VENDOR_SCMD_PRIV_STR;
++	struct bcm_nlmsg_hdr nlmsg_hdr;
++
++	memset(&nlmsg_hdr, 0, sizeof(struct bcm_nlmsg_hdr));
++	nlmsg_hdr.cmd = cmd;
++	nlmsg_hdr.magic = 0;
++	nlmsg_hdr.offset = sizeof(struct bcm_nlmsg_hdr);
++
++	if (cmd == WLC_SET_VAR)
++		nlmsg_hdr.set = 1;
++
++	buflen = data_len +  sizeof(struct bcm_nlmsg_hdr) + strlen(cmd_str) + 1;
++	buf = wpabuf_alloc(buflen);
++	if (buf == NULL) {
++		return -ENOBUFS;
++	}
++
++	nlmsg_hdr.len = buflen;
++
++	wpabuf_put_data(buf, &nlmsg_hdr, sizeof(nlmsg_hdr));
++
++	wpabuf_put_data(buf, cmd_str, strlen(cmd_str) + 1);
++
++	wpabuf_put_data(buf, data, data_len);
++
++	wpa_printf(MSG_DEBUG, "Sending vendor command %s", hapd->conf->iface);
++	err = hostapd_drv_vendor_cmd(hapd, OUI_BRCM, subcmd, wpabuf_head(buf),
++			wpabuf_len(buf), buf);
++	wpabuf_free(buf);
++
++	return err;
++
++}
++
++void
++brcm_build_ft_auth_resp_send(void *ctx, const u8 *addr,
++		u16 status_code, const u8 *ies, size_t ies_len)
++{
++	struct sta_info *sta;
++	wlc_fbt_auth_resp_t *ft_authresp;
++	struct wpa_state_machine *sm;
++	struct wpa_group *gsm;
++	int len;
++	struct hostapd_data *hapd = ctx;
++	u8 *resp_ies = NULL;
++
++	sta = ap_get_sta(hapd, addr);
++	if (sta == NULL) {
++		wpa_printf(MSG_DEBUG, "BRCM: Failed to get station info " MACSTR "\n",
++				MAC2STR(addr));
++		return;
++	}
++	sm = sta->wpa_sm;
++
++	len = sizeof(wlc_fbt_auth_resp_t) - sizeof(ft_authresp->ies) + ies_len;
++
++	resp_ies = os_zalloc(len);
++
++	if (resp_ies == NULL) {
++		wpa_printf(MSG_DEBUG, "BRCM: Failed to allocate memory "
++				"for response ies for ft auth resp\n");
++		return;
++	}
++
++	ft_authresp = (wlc_fbt_auth_resp_t *) (resp_ies);
++	memcpy(ft_authresp->macaddr, addr, ETHER_ADDR_LEN);
++	memcpy(ft_authresp->pmk_r1_name, sm->pmk_r1_name, WPA_PMK_NAME_LEN);
++	ft_authresp->ie_len = ies_len;
++	memcpy(ft_authresp->ies, ies, ies_len);
++
++	memcpy(ft_authresp->ptk.kck, sm->PTK.kck, sm->PTK.kck_len);
++	memcpy(ft_authresp->ptk.kek, sm->PTK.kek, sm->PTK.kek_len);
++	memcpy(ft_authresp->ptk.tk1, sm->PTK.tk, sizeof(ft_authresp->ptk.tk1));
++	memcpy(ft_authresp->ptk.tk2, sm->PTK.tk + sizeof(ft_authresp->ptk.tk1),
++		sizeof(ft_authresp->ptk.tk2));
++
++	gsm = sm->group;
++	if (gsm == NULL) {
++		wpa_printf(MSG_DEBUG, "BRCM: Failed to find GTK "
++				"state machine for ft auth resp\n");
++		free(resp_ies);
++		return;
++	}
++	ft_authresp->gtk.idx = gsm->GN;
++	ft_authresp->gtk.key_len = gsm->GTK_len;
++	memcpy(ft_authresp->gtk.key, gsm->GTK[gsm->GN - 1], gsm->GTK_len);
++
++	ft_authresp->status = status_code;
++	brcm_send_vendor_cmd(hapd, WLC_SET_VAR, "fbt_auth_resp", resp_ies, len);
++	free(resp_ies);
++	return;
++}
++
++void brcm_add_ft_ds_sta(struct wpa_state_machine *sm,
++		const u8 *addr, u16 status, u8 *ies, size_t ies_len)
++{
++	struct sta_info *sta;
++	wlc_fbt_auth_resp_t *ft_authresp;
++	struct wpa_group *gsm;
++	int len = 0;
++	struct hostapd_data *hapd = sm->wpa_auth->cb_ctx;
++	u8 *resp_ies = NULL;
++
++	sta = ap_get_sta(hapd, addr);
++	if (sta == NULL) {
++		wpa_printf(MSG_DEBUG, "BRCM: Failed to get station info " MACSTR "\n",
++				MAC2STR(addr));
++		return;
++	}
++
++	wpa_printf(MSG_DEBUG, "BRCM: Set ds ft add station " MACSTR "\n",
++			MAC2STR(addr));
++	len = sizeof(wlc_fbt_auth_resp_t) - sizeof(ft_authresp->ies) + ies_len;
++
++	resp_ies = os_zalloc(len);
++
++	if (resp_ies == NULL) {
++		wpa_printf(MSG_DEBUG, "BRCM: Failed to allocate memory "
++			"for response ies \n");
++		return;
++	}
++
++	ft_authresp = (wlc_fbt_auth_resp_t *) (resp_ies);
++	memcpy(ft_authresp->macaddr, addr, ETHER_ADDR_LEN);
++	memcpy(ft_authresp->pmk_r1_name, sm->pmk_r1_name, WPA_PMK_NAME_LEN);
++
++	ft_authresp->ie_len = ies_len;
++	memcpy(ft_authresp->ies, ies, ies_len);
++
++	memcpy(ft_authresp->ptk.kck, sm->PTK.kck, sm->PTK.kck_len);
++	memcpy(ft_authresp->ptk.kek, sm->PTK.kek, sm->PTK.kek_len);
++	memcpy(ft_authresp->ptk.tk1, sm->PTK.tk, sizeof(ft_authresp->ptk.tk1));
++	memcpy(ft_authresp->ptk.tk2, sm->PTK.tk + sizeof(ft_authresp->ptk.tk1),
++		sizeof(ft_authresp->ptk.tk2));
++
++	gsm = sm->group;
++	if (gsm == NULL) {
++		wpa_printf(MSG_DEBUG, "BRCM: Failed to find GTK "
++			"state machine \n");
++		free(resp_ies);
++		return;
++	}
++	ft_authresp->gtk.idx = gsm->GN;
++	ft_authresp->gtk.key_len = gsm->GTK_len;
++	memcpy(ft_authresp->gtk.key, gsm->GTK[gsm->GN - 1], gsm->GTK_len);
++
++	ft_authresp->status = status;
++	brcm_send_vendor_cmd(hapd, WLC_SET_VAR, "fbt_ds_add_sta", resp_ies, len);
++	free(resp_ies);
++	return;
++}
+diff -Naur hostapd-2.7-orig/src/ap/wpa_auth_brcm.h hostapd-2.7/src/ap/wpa_auth_brcm.h
+--- hostapd-2.7-orig/src/ap/wpa_auth_brcm.h	1969-12-31 16:00:00.000000000 -0800
++++ hostapd-2.7/src/ap/wpa_auth_brcm.h	2019-02-08 12:30:53.410851500 -0800
+@@ -0,0 +1,53 @@
++#ifndef _wpa_auth_brcm_h_
++#define _wpa_auth_brcm_h_
++
++#include "includes.h"
++#include "common.h"
++
++#define DOT11_MAX_KEY_SIZE 32
++
++/** PTK key maintained per SCB */
++#define RSN_TEMP_ENCR_KEY_LEN 16
++#define RSN_KCK_LENGTH	16
++#define RSN_KEK_LENGTH	16
++#define ETHER_ADDR_LEN	6
++#define DHD_IOCTL_MAGIC 0x00444944
++
++typedef struct wpa_ptk_fbt {
++	u8 kck[RSN_KCK_LENGTH]; /**< EAPOL-Key Key Confirmation Key (KCK) */
++	u8 kek[RSN_KEK_LENGTH]; /**< EAPOL-Key Key Encryption Key (KEK) */
++	u8 tk1[RSN_TEMP_ENCR_KEY_LEN]; /**< Temporal Key 1 (TK1) */
++	u8 tk2[RSN_TEMP_ENCR_KEY_LEN]; /**< Temporal Key 2 (TK2) */
++} wpa_ptk_fbt_t;
++
++/** GTK key maintained per SCB */
++typedef struct wpa_bcm_gtk {
++	u32 idx;
++	u32 key_len;
++	u8  key[DOT11_MAX_KEY_SIZE];
++} wpa_bcm_gtk_t;
++
++#define WPA2_PMKID_LEN 16
++
++/** FBT Auth Response Data structure */
++typedef struct wlc_fbt_auth_resp {
++	u8 macaddr[ETHER_ADDR_LEN]; /**< station mac address */
++	u8 pad[2];
++	u8 pmk_r1_name[WPA2_PMKID_LEN];
++	wpa_ptk_fbt_t ptk; /**< pairwise key */
++	wpa_bcm_gtk_t gtk; /**< group key */
++	u32 ie_len;
++	u8 status;  /**< Status of parsing FBT authentication
++					Request in application
++					*/
++	u8 ies[1]; /**< IEs contains MDIE, RSNIE,
++					FBTIE (ANonce, SNonce,R0KH-ID, R1KH-ID)
++					*/
++} wlc_fbt_auth_resp_t;
++
++void
++brcm_build_ft_auth_resp_send(void *ctx, const u8 *addr,
++	u16 status_code, const u8 *resp_ies, size_t resp_ie_len);
++void brcm_add_ft_ds_sta(struct wpa_state_machine *sm,  const u8 *addr,
++		u16 status, u8 *resp_ies, size_t resp_ies_len);
++#endif /* _wpa_auth_brcm_h_ */
+diff -Naur hostapd-2.7-orig/src/ap/wpa_auth_ft.c hostapd-2.7/src/ap/wpa_auth_ft.c
+--- hostapd-2.7-orig/src/ap/wpa_auth_ft.c	2019-02-13 14:14:44.926967542 -0800
++++ hostapd-2.7/src/ap/wpa_auth_ft.c	2019-02-13 14:13:43.111863527 -0800
+@@ -23,6 +23,9 @@
+ #include "wmm.h"
+ #include "wpa_auth.h"
+ #include "wpa_auth_i.h"
++#ifdef CONFIG_DRIVER_BRCM
++#include "wpa_auth_brcm.h"
++#endif
+ 
+ 
+ #ifdef CONFIG_IEEE80211R_AP
+@@ -2531,8 +2534,8 @@
+ 		/* Must avoid TK reconfiguration to prevent clearing of TX/RX
+ 		 * PN in the driver */
+ 		wpa_printf(MSG_DEBUG,
+-			   "FT: Do not re-install same PTK to the driver");
+-		return;
++			   "FT: re-install same PTK to the driver");
++		//return; BRCM change reinstall same key since driver clears the key
+ 	}
+ 
+ 	/* FIX: add STA entry to kernel/driver here? The set_key will fail
+@@ -3303,6 +3306,9 @@
+ 
+ 	res = wpa_ft_send_rrb_auth_resp(sm, current_ap, sta_addr, status,
+ 					resp_ies, resp_ies_len);
++#ifdef CONFIG_DRIVER_BRCM
++	brcm_add_ft_ds_sta(sm, sta_addr, status, resp_ies, resp_ies_len);
++#endif
+ 	os_free(resp_ies);
+ 	return res;
+ }
+diff -Naur hostapd-2.7-orig/src/ap/wpa_auth_ie.c hostapd-2.7/src/ap/wpa_auth_ie.c
+--- hostapd-2.7-orig/src/ap/wpa_auth_ie.c	2019-02-08 14:56:32.693150985 -0800
++++ hostapd-2.7/src/ap/wpa_auth_ie.c	2019-02-08 15:03:28.884828353 -0800
+@@ -425,8 +425,15 @@
+ 
+ int wpa_auth_gen_wpa_ie(struct wpa_authenticator *wpa_auth)
+ {
++#ifdef CONFIG_DRIVER_BRCM
++	u8 *pos, buf[256];
++#else
+ 	u8 *pos, buf[128];
++#endif /* CONFIG_DRIVER_BRCM */
+ 	int res;
++#ifdef CONFIG_DRIVER_BRCM
++	int use_sha384;
++#endif
+ 
+ #ifdef CONFIG_TESTING_OPTIONS
+ 	if (wpa_auth->conf.own_ie_override_len) {
+@@ -464,6 +471,23 @@
+ 		if (res < 0)
+ 			return res;
+ 		pos += res;
++#ifdef CONFIG_DRIVER_BRCM
++		if (wpa_auth->conf.r0_key_holder_len == 0) {
++			os_free(wpa_auth->wpa_ie);
++			wpa_auth->wpa_ie = NULL;
++			return -1;
++		}
++
++		wpa_printf(MSG_DEBUG, "Writing FT IE r0kh_id_len %d\n",  wpa_auth->conf.r0_key_holder_len);
++		use_sha384 = wpa_key_mgmt_sha384(wpa_auth->conf.wpa_key_mgmt);
++		res = wpa_write_ftie(&wpa_auth->conf, use_sha384, wpa_auth->conf.r0_key_holder,
++		   wpa_auth->conf.r0_key_holder_len, NULL, NULL,
++		   pos, buf + sizeof(buf) - pos, NULL, 0);
++
++		if (res < 0)
++			return res;
++		pos += res;
++#endif /* CONFIG_DRIVER_BRCM */
+ 	}
+ #endif /* CONFIG_IEEE80211R_AP */
+ 	if (wpa_auth->conf.wpa & WPA_PROTO_WPA) {
+diff -Naur hostapd-2.7-orig/src/ap/wps_hostapd.c hostapd-2.7/src/ap/wps_hostapd.c
+--- hostapd-2.7-orig/src/ap/wps_hostapd.c	2019-02-08 14:56:32.439659452 -0800
++++ hostapd-2.7/src/ap/wps_hostapd.c	2019-02-08 15:03:39.525024713 -0800
+@@ -1135,7 +1135,16 @@
+ 
+ 	wps->ap_settings = conf->ap_settings;
+ 	wps->ap_settings_len = conf->ap_settings_len;
+-
++#ifdef MULTIAP
++	wps->map = conf->map;
++	os_memset(&wps->bh_creds, 0, sizeof(wps->bh_creds));
++	wps->bh_creds.ssid_len = conf->map_bh_ssid_len;
++	os_memcpy(wps->bh_creds.ssid, conf->map_bh_ssid, wps->bh_creds.ssid_len);
++	wps->bh_creds.auth_type = conf->map_bh_auth;
++	wps->bh_creds.encr_type = conf->map_bh_encr;
++	wps->bh_creds.key_len = conf->map_bh_psk_len;
++	os_memcpy(wps->bh_creds.key, conf->map_bh_psk, wps->bh_creds.key_len);
++#endif	/* MULTIAP */
+ 	cfg.new_psk_cb = hostapd_wps_new_psk_cb;
+ 	cfg.set_ie_cb = hostapd_wps_set_ie_cb;
+ 	cfg.pin_needed_cb = hostapd_wps_pin_needed_cb;
+diff -Naur hostapd-2.7-orig/src/crypto/random.c hostapd-2.7/src/crypto/random.c
+--- hostapd-2.7-orig/src/crypto/random.c	2019-02-08 14:56:31.355918484 -0800
++++ hostapd-2.7/src/crypto/random.c	2019-02-08 15:04:21.708708508 -0800
+@@ -229,13 +229,13 @@
+ 
+ 	/*
+ 	 * Try to fetch some more data from the kernel high quality
+-	 * /dev/random. There may not be enough data available at this point,
++	 * /dev/urandom. There may not be enough data available at this point,
+ 	 * so use non-blocking read to avoid blocking the application
+ 	 * completely.
+ 	 */
+-	fd = open("/dev/random", O_RDONLY | O_NONBLOCK);
++	fd = open("/dev/urandom", O_RDONLY | O_NONBLOCK);
+ 	if (fd < 0) {
+-		wpa_printf(MSG_ERROR, "random: Cannot open /dev/random: %s",
++		wpa_printf(MSG_ERROR, "random: Cannot open /dev/urandom: %s",
+ 			   strerror(errno));
+ 		return -1;
+ 	}
+@@ -243,12 +243,12 @@
+ 	res = read(fd, dummy_key + dummy_key_avail,
+ 		   sizeof(dummy_key) - dummy_key_avail);
+ 	if (res < 0) {
+-		wpa_printf(MSG_ERROR, "random: Cannot read from /dev/random: "
++		wpa_printf(MSG_ERROR, "random: Cannot read from /dev/urandom: "
+ 			   "%s", strerror(errno));
+ 		res = 0;
+ 	}
+ 	wpa_printf(MSG_DEBUG, "random: Got %u/%u bytes from "
+-		   "/dev/random", (unsigned) res,
++		   "/dev/urandom", (unsigned) res,
+ 		   (unsigned) (sizeof(dummy_key) - dummy_key_avail));
+ 	dummy_key_avail += res;
+ 	close(fd);
+@@ -261,7 +261,7 @@
+ 	}
+ 
+ 	wpa_printf(MSG_INFO, "random: Only %u/%u bytes of strong "
+-		   "random data available from /dev/random",
++		   "random data available from /dev/urandom",
+ 		   (unsigned) dummy_key_avail, (unsigned) sizeof(dummy_key));
+ 
+ 	if (own_pool_ready >= MIN_READY_MARK ||
+@@ -314,12 +314,12 @@
+ 	res = read(sock, dummy_key + dummy_key_avail,
+ 		   sizeof(dummy_key) - dummy_key_avail);
+ 	if (res < 0) {
+-		wpa_printf(MSG_ERROR, "random: Cannot read from /dev/random: "
++		wpa_printf(MSG_ERROR, "random: Cannot read from /dev/urandom: "
+ 			   "%s", strerror(errno));
+ 		return;
+ 	}
+ 
+-	wpa_printf(MSG_DEBUG, "random: Got %u/%u bytes from /dev/random",
++	wpa_printf(MSG_DEBUG, "random: Got %u/%u bytes from /dev/urandom",
+ 		   (unsigned) res,
+ 		   (unsigned) (sizeof(dummy_key) - dummy_key_avail));
+ 	dummy_key_avail += res;
+@@ -413,14 +413,14 @@
+ 	if (random_fd >= 0)
+ 		return;
+ 
+-	random_fd = open("/dev/random", O_RDONLY | O_NONBLOCK);
++	random_fd = open("/dev/urandom", O_RDONLY | O_NONBLOCK);
+ 	if (random_fd < 0) {
+-		wpa_printf(MSG_ERROR, "random: Cannot open /dev/random: %s",
++		wpa_printf(MSG_ERROR, "random: Cannot open /dev/urandom: %s",
+ 			   strerror(errno));
+ 		return;
+ 	}
+ 	wpa_printf(MSG_DEBUG, "random: Trying to read entropy from "
+-		   "/dev/random");
++		   "/dev/urandom");
+ 
+ 	eloop_register_read_sock(random_fd, random_read_fd, NULL, NULL);
+ #endif /* __linux__ */
+diff -Naur hostapd-2.7-orig/src/drivers/driver_nl80211_event.c hostapd-2.7/src/drivers/driver_nl80211_event.c
+--- hostapd-2.7-orig/src/drivers/driver_nl80211_event.c	2019-02-08 14:56:31.657572467 -0800
++++ hostapd-2.7/src/drivers/driver_nl80211_event.c	2019-02-08 15:05:11.269787293 -0800
+@@ -148,6 +148,10 @@
+ {
+ 	const struct ieee80211_mgmt *mgmt;
+ 	union wpa_event_data event;
++#ifdef CONFIG_SAE
++	u16 auth_type;
++	u16 fc, stype;
++#endif /* CONFIG_SAE */
+ 
+ 	if (!(drv->capa.flags & WPA_DRIVER_FLAGS_SME) &&
+ 	    drv->force_connect_cmd) {
+@@ -171,17 +175,32 @@
+ 	os_memcpy(drv->auth_bssid, mgmt->sa, ETH_ALEN);
+ 	os_memset(drv->auth_attempt_bssid, 0, ETH_ALEN);
+ 	os_memset(&event, 0, sizeof(event));
+-	os_memcpy(event.auth.peer, mgmt->sa, ETH_ALEN);
+-	event.auth.auth_type = le_to_host16(mgmt->u.auth.auth_alg);
+-	event.auth.auth_transaction =
+-		le_to_host16(mgmt->u.auth.auth_transaction);
+-	event.auth.status_code = le_to_host16(mgmt->u.auth.status_code);
+-	if (len > 24 + sizeof(mgmt->u.auth)) {
+-		event.auth.ies = mgmt->u.auth.variable;
+-		event.auth.ies_len = len - 24 - sizeof(mgmt->u.auth);
+-	}
++#ifdef CONFIG_SAE
++	auth_type = le_to_host16(mgmt->u.auth.auth_alg);
++	fc = le_to_host16(mgmt->frame_control);
++	stype = WLAN_FC_GET_STYPE(fc);
+ 
+-	wpa_supplicant_event(drv->ctx, EVENT_AUTH, &event);
++	if ((stype == WLAN_FC_STYPE_AUTH) &&
++		(auth_type == WLAN_AUTH_SAE)) {
++		wpa_printf(MSG_DEBUG, "nl80211: SAE Authenticate event");
++		event.rx_mgmt.frame = frame;
++		event.rx_mgmt.frame_len = len;
++		wpa_supplicant_event(drv->ctx, EVENT_RX_MGMT, &event);
++	} else
++#endif /* CONFIG_SAE */
++	{
++		os_memcpy(event.auth.peer, mgmt->sa, ETH_ALEN);
++		event.auth.auth_type = le_to_host16(mgmt->u.auth.auth_alg);
++		event.auth.auth_transaction =
++			le_to_host16(mgmt->u.auth.auth_transaction);
++		event.auth.status_code = le_to_host16(mgmt->u.auth.status_code);
++		if (len > 24 + sizeof(mgmt->u.auth)) {
++			event.auth.ies = mgmt->u.auth.variable;
++			event.auth.ies_len = len - 24 - sizeof(mgmt->u.auth);
++		}
++
++		wpa_supplicant_event(drv->ctx, EVENT_AUTH, &event);
++	}
+ }
+ 
+ 
+@@ -1307,10 +1326,42 @@
+ 	if (is_ap_interface(drv->nlmode) && drv->device_ap_sme) {
+ 		u8 *ies = NULL;
+ 		size_t ies_len = 0;
++#ifdef CONFIG_DRIVER_BRCM
++		struct nl80211_sta_flag_update *sta_flags;
++		static struct nla_policy stats_policy[NL80211_STA_INFO_MAX + 1] = {
++			[NL80211_STA_INFO_STA_FLAGS] =
++				{ .minlen = sizeof(struct nl80211_sta_flag_update) },
++		};
++		struct nlattr *sinfo[NL80211_STA_INFO_MAX + 1];
++#endif
+ 		if (tb[NL80211_ATTR_IE]) {
+ 			ies = nla_data(tb[NL80211_ATTR_IE]);
+ 			ies_len = nla_len(tb[NL80211_ATTR_IE]);
+ 		}
++#ifdef CONFIG_DRIVER_BRCM
++		if (tb[NL80211_ATTR_STA_INFO]) {
++			if (nla_parse_nested(sinfo, NL80211_STA_INFO_MAX,
++				tb[NL80211_ATTR_STA_INFO], stats_policy)) {
++				wpa_printf(MSG_DEBUG, "nl80211: Failed to parse Station info attribute ");
++				return ;
++			}
++			if (sinfo[NL80211_STA_INFO_STA_FLAGS]) {
++				sta_flags = (struct nl80211_sta_flag_update *)
++					    nla_data(sinfo[NL80211_STA_INFO_STA_FLAGS]);
++
++				wpa_printf(MSG_DEBUG, "nl80211: sinfo sta_flags mask %d set %d ",
++							sta_flags->mask, sta_flags->set);
++				if ((sta_flags->mask & BIT(NL80211_STA_FLAG_ASSOCIATED)) &&
++				    (sta_flags->mask & BIT(NL80211_STA_FLAG_AUTHENTICATED))) {
++					if ((sta_flags->set & BIT(NL80211_STA_FLAG_ASSOCIATED)) &&
++					   (sta_flags->set & BIT(NL80211_STA_FLAG_AUTHENTICATED))) {
++						drv_event_assoc(bss->ctx, addr, ies, ies_len, 1);
++						return;
++					}
++				}
++			}
++		}
++#endif
+ 		wpa_hexdump(MSG_DEBUG, "nl80211: Assoc Req IEs", ies, ies_len);
+ 		drv_event_assoc(bss->ctx, addr, ies, ies_len, 0);
+ 		return;
+diff -Naur hostapd-2.7-orig/src/wps/wps.h hostapd-2.7/src/wps/wps.h
+--- hostapd-2.7-orig/src/wps/wps.h	2019-02-08 14:56:32.825910034 -0800
++++ hostapd-2.7/src/wps/wps.h	2019-02-08 15:05:24.939269418 -0800
+@@ -799,6 +799,10 @@
+ 	struct wpabuf *ap_nfc_dh_pubkey;
+ 	struct wpabuf *ap_nfc_dh_privkey;
+ 	struct wpabuf *ap_nfc_dev_pw;
++#ifdef MULTIAP
++	u8 map;
++	struct wps_credential bh_creds;	/* Multiap backhaul credentials */
++#endif	/* MULTIAP */
+ };
+ 
+ struct wps_registrar *
+diff -Naur hostapd-2.7-orig/src/wps/wps_attr_parse.c hostapd-2.7/src/wps/wps_attr_parse.c
+--- hostapd-2.7-orig/src/wps/wps_attr_parse.c	2019-02-08 14:56:32.901591447 -0800
++++ hostapd-2.7/src/wps/wps_attr_parse.c	2019-02-08 15:05:40.693788522 -0800
+@@ -67,6 +67,15 @@
+ 		}
+ 		attr->registrar_configuration_methods = pos;
+ 		break;
++#ifdef MULTIAP
++	case WFA_ELEM_MAP_EXTENSION_ATTR:
++		if (len < 1) {
++			wpa_printf(MSG_DEBUG, "WPS: Invalid multiap extension attr %u", len);
++			return -1;
++		}
++		attr->map_ext_attr = pos;
++		break;
++#endif	/* MULTIAP */
+ 	default:
+ 		wpa_printf(MSG_MSGDUMP, "WPS: Skipped unknown WFA Vendor "
+ 			   "Extension subelement %u", id);
+diff -Naur hostapd-2.7-orig/src/wps/wps_attr_parse.h hostapd-2.7/src/wps/wps_attr_parse.h
+--- hostapd-2.7-orig/src/wps/wps_attr_parse.h	2019-02-08 14:56:32.977108310 -0800
++++ hostapd-2.7/src/wps/wps_attr_parse.h	2019-02-08 15:05:55.698578467 -0800
+@@ -56,6 +56,9 @@
+ 	const u8 *request_to_enroll; /* 1 octet (Bool) */
+ 	const u8 *ap_channel; /* 2 octets */
+ 	const u8 *registrar_configuration_methods; /* 2 octets */
++#ifdef MULTIAP
++	const u8 *map_ext_attr;	/* 1 octet */
++#endif	/* MULTIAP */
+ 
+ 	/* variable length fields */
+ 	const u8 *manufacturer;
+diff -Naur hostapd-2.7-orig/src/wps/wps_defs.h hostapd-2.7/src/wps/wps_defs.h
+--- hostapd-2.7-orig/src/wps/wps_defs.h	2019-02-08 14:56:32.981825495 -0800
++++ hostapd-2.7/src/wps/wps_defs.h	2019-02-08 15:06:14.131332423 -0800
+@@ -152,7 +152,10 @@
+ 	WFA_ELEM_NETWORK_KEY_SHAREABLE = 0x02,
+ 	WFA_ELEM_REQUEST_TO_ENROLL = 0x03,
+ 	WFA_ELEM_SETTINGS_DELAY_TIME = 0x04,
+-	WFA_ELEM_REGISTRAR_CONFIGURATION_METHODS = 0x05
++	WFA_ELEM_REGISTRAR_CONFIGURATION_METHODS = 0x05,
++#ifdef MULTIAP
++	WFA_ELEM_MAP_EXTENSION_ATTR = 0x06,
++#endif	/* MULTIAP */
+ };
+ 
+ /* Device Password ID */
+@@ -380,4 +383,9 @@
+ 
+ #define WPS_MAX_AUTHORIZED_MACS 5
+ 
++#ifdef MULTIAP
++#define WPS_MAP_BH_STA		0x80
++#define WPS_MAP_FH_BSS		0x20
++#endif	/* MULTIAP */
++
+ #endif /* WPS_DEFS_H */
+diff -Naur hostapd-2.7-orig/src/wps/wps_i.h hostapd-2.7/src/wps/wps_i.h
+--- hostapd-2.7-orig/src/wps/wps_i.h	2019-02-08 14:56:32.953884480 -0800
++++ hostapd-2.7/src/wps/wps_i.h	2019-02-08 15:06:29.031309193 -0800
+@@ -125,6 +125,9 @@
+ 	int pbc_in_m1;
+ 
+ 	struct wps_nfc_pw_token *nfc_pw_token;
++#ifdef MULTIAP
++	u8 map_ext_attr_e;		/* Enrolee multiap extension attribute */
++#endif	/* MULTIAP */
+ };
+ 
+ 
+diff -Naur hostapd-2.7-orig/src/wps/wps_registrar.c hostapd-2.7/src/wps/wps_registrar.c
+--- hostapd-2.7-orig/src/wps/wps_registrar.c	2019-02-08 14:56:33.005086447 -0800
++++ hostapd-2.7/src/wps/wps_registrar.c	2019-02-08 15:06:56.740093220 -0800
+@@ -1603,6 +1603,20 @@
+ 	}
+ 	os_memset(&wps->cred, 0, sizeof(wps->cred));
+ 
++#ifdef MULTIAP
++	/* For multiap backhaul sta use the backhaul ssid and password */
++	if ((wps->map_ext_attr_e == WPS_MAP_BH_STA) && (wps->wps->map & WPS_MAP_FH_BSS) &&
++			wps->wps->bh_creds.ssid_len > 0) {
++		os_memcpy(wps->cred.ssid, wps->wps->bh_creds.ssid, wps->wps->bh_creds.ssid_len);
++		wps->cred.ssid_len = wps->wps->bh_creds.ssid_len;
++		wps->cred.auth_type = wps->wps->bh_creds.auth_type;
++		wps->cred.encr_type = wps->wps->bh_creds.encr_type;
++		os_memcpy(wps->cred.mac_addr, wps->mac_addr_e, ETH_ALEN);
++		os_memcpy(wps->cred.key, wps->wps->bh_creds.key, wps->wps->bh_creds.key_len);
++		wps->cred.key_len = wps->wps->bh_creds.key_len;
++		goto use_provided;
++	}
++#endif	/* MULTIAP */
+ 	os_memcpy(wps->cred.ssid, wps->wps->ssid, wps->wps->ssid_len);
+ 	wps->cred.ssid_len = wps->wps->ssid_len;
+ 
+@@ -2538,6 +2552,21 @@
+ 	return 0;
+ }
+ 
++#ifdef MULTIAP
++static int wps_process_map_ext_attr(struct wps_data *wps, const u8 *map)
++{
++	if (map == NULL) {
++		wpa_printf(MSG_DEBUG, "WPS: No multiap extension attribute received");
++		wps->map_ext_attr_e = 0;
++		return 0;
++	}
++
++	wps->map_ext_attr_e = *map;
++	wpa_printf(MSG_DEBUG, "WPS: Enrollee Multiap Extension Attr %d", wps->map_ext_attr_e);
++
++	return 0;
++}
++#endif
+ 
+ static int wps_registrar_p2p_dev_addr_match(struct wps_data *wps)
+ {
+@@ -2603,7 +2632,11 @@
+ 	    wps_process_assoc_state(wps, attr->assoc_state) ||
+ 	    wps_process_dev_password_id(wps, attr->dev_password_id) ||
+ 	    wps_process_config_error(wps, attr->config_error) ||
+-	    wps_process_os_version(&wps->peer_dev, attr->os_version))
++	    wps_process_os_version(&wps->peer_dev, attr->os_version) ||
++#ifdef MULTIAP
++	    wps_process_map_ext_attr(wps, attr->map_ext_attr) ||
++#endif	/* MULTIAP */
++	    0 )
+ 		return WPS_FAILURE;
+ 
+ 	if (wps->dev_pw_id < 0x10 &&
+diff -Naur hostapd-2.7-orig/src/wps/wps_validate.c hostapd-2.7/src/wps/wps_validate.c
+--- hostapd-2.7-orig/src/wps/wps_validate.c	2019-02-08 14:56:32.861700542 -0800
++++ hostapd-2.7/src/wps/wps_validate.c	2019-02-08 15:07:16.751709113 -0800
+@@ -421,6 +421,24 @@
+ 	return 0;
+ }
+ 
++#ifdef MULTIAP
++static int wps_validate_map_ext_attr(const u8 *map_ext_attr, int mandatory)
++{
++	if (map_ext_attr == NULL) {
++		if (mandatory) {
++			wpa_printf(MSG_INFO, "WPS-STRICT: multiap extension attribute missing");
++			return -1;
++		}
++		return 0;
++	}
++	if (*map_ext_attr != WPS_MAP_BH_STA) {
++		wpa_printf(MSG_INFO, "WPS-STRICT: Invalid multiap extension "
++			   "attribute value 0x%x", *map_ext_attr);
++		return -1;
++	}
++	return 0;
++}
++#endif	/* MULTIAP */
+ 
+ static int wps_validate_req_dev_type(const u8 *req_dev_type[], size_t num,
+ 				     int mandatory)
+@@ -1324,7 +1342,11 @@
+ 	    wps_validate_config_error(attr.config_error, 1) ||
+ 	    wps_validate_os_version(attr.os_version, 1) ||
+ 	    wps_validate_version2(attr.version2, wps2) ||
+-	    wps_validate_request_to_enroll(attr.request_to_enroll, 0)) {
++	    wps_validate_request_to_enroll(attr.request_to_enroll, 0) ||
++#ifdef MULTIAP
++	    wps_validate_map_ext_attr(attr.map_ext_attr, 0) ||
++#endif	/* MULTIAP */
++	    0) {
+ 		wpa_printf(MSG_INFO, "WPS-STRICT: Invalid M1");
+ #ifdef WPS_STRICT_WPS2
+ 		if (wps2)

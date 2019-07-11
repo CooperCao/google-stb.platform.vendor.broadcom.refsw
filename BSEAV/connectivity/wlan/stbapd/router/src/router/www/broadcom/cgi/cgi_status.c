@@ -43,7 +43,7 @@
 #include <httpd.h>
 #endif /* WEBS */
 
-#include <cgi_common.h>
+#include "cgi_common.h"
 
 #if defined(linux)
 #include <fcntl.h>
@@ -73,7 +73,7 @@ ej_sysuptime(int eid, webs_t wp, int argc, char_t **argv)
 	if (str) {
 		unsigned int up = atoi(str);
 		free(str);
-		return websWrite(wp, reltime(up));
+		return websWrite(wp, "%s", reltime(up));
 	}
 	return websWrite(wp, "N/A");
 }

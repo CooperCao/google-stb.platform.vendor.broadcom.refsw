@@ -1,0 +1,51 @@
+diff -Naur hostapd-2.7-orig/hostapd/Makefile hostapd-2.7/hostapd/Makefile
+--- hostapd-2.7-orig/hostapd/Makefile	2018-12-02 11:34:59.000000000 -0800
++++ hostapd-2.7/hostapd/Makefile	2019-01-31 16:48:19.840055462 -0800
+@@ -26,6 +26,7 @@
+ CFLAGS += -I$(abspath ../src/utils)
+ 
+ export BINDIR ?= /usr/local/bin/
++export LIBDIR ?= /usr/local/lib/
+ 
+ -include .config
+ 
+@@ -1228,8 +1229,9 @@
+ endif
+ 
+ ALL=hostapd hostapd_cli
++LIBALL=libhostapd_client.so
+ 
+-all: verify_config $(ALL)
++all: verify_config $(ALL) $(LIBALL)
+ 
+ Q=@
+ E=echo
+@@ -1264,7 +1266,10 @@
+ $(DESTDIR)$(BINDIR)/%: %
+ 	install -D $(<) $(@)
+ 
+-install: $(addprefix $(DESTDIR)$(BINDIR)/,$(ALL))
++$(DESTDIR)$(LIBDIR)/%: %
++	install -D $(<) $(@)
++
++install: $(addprefix $(DESTDIR)$(BINDIR)/,$(ALL)) $(addprefix $(DESTDIR)$(LIBDIR)/,$(LIBALL))
+ 
+ ../src/drivers/build.hostapd:
+ 	@if [ -f ../src/drivers/build.wpa_supplicant ]; then \
+@@ -1328,11 +1333,16 @@
+ 	lcov -c -d .. > lcov.info
+ 	genhtml lcov.info --output-directory lcov-html
+ 
++libhostapd_client.so: ../src/common/wpa_ctrl.c
++	@$(E) "  CC  $@ ($^)"
++	$(Q)$(CC) $(LDFLAGS) -o $@ $(CFLAGS) -shared -fPIC $^
++
+ clean:
+ 	$(MAKE) -C ../src clean
+ 	rm -f core *~ *.o hostapd hostapd_cli nt_password_hash hlr_auc_gw
+ 	rm -f *.d *.gcno *.gcda *.gcov
+ 	rm -f lcov.info
+ 	rm -rf lcov-html
++	rm -f libhostapd_client.so
+ 
+ -include $(OBJS:%.o=%.d)

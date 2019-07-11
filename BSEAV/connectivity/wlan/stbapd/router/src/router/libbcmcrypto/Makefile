@@ -14,9 +14,15 @@
 
 include $(TOP)/.config
 
-CFLAGS	+= -Wsign-compare -I. -I../httpd -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -Wall -Werror -fPIC
+CFLAGS	+= -Wsign-compare -I. -I../httpd -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -fPIC
+ifneq ($(STBANDROID),1)
+CCFLAGS	+= -Wall -Werror
+endif
 #CFLAGS	+= -g -DDEBUG
 CFLAGS	+= -s
+ifeq ($(STBANDROID),1)
+LDFLAGS = $(SHARED_LDFLAGS)
+endif
 LDFLAGS += -L.
 
 ifeq ($(ARCH),arm64)
@@ -50,7 +56,7 @@ clean:
 	rm -f *.o *.so *.a $(MAP) $(UNR) $(SYM)
 
 libbcmcrypto.so: $(OBJS)
-	$(LD) -shared -o $@ $^
+	$(LD) $(LDFLAGS) -shared -o $@ $^
 
 # rule for removing unneeded symbols in the shared library
 optimize: libbcmcrypto.so

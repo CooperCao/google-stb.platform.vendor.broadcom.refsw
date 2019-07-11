@@ -25,6 +25,10 @@
 
 typedef struct wl_anqpo_info wl_anqpo_info_t;
 
+/* Bit definitions to figure out which addr has been programmed to amt */
+#define	MAC_ADDR_RANDOM		(1 << 0)
+#define MAC_ADDR_DEFAULT	(1 << 1)
+
 /*
  * Initialize anqpo private context.
  * Returns a pointer to the anqpo private context, NULL on failure.
@@ -42,6 +46,20 @@ extern void wl_anqpo_scan_stop(wl_anqpo_info_t *anqpo);
 
 /* process scan result */
 extern void wl_anqpo_process_scan_result(wl_anqpo_info_t *anqpo,
-	wlc_bss_info_t *bi, uint8 *ie, uint32 ie_len);
+	wlc_bss_info_t *bi, uint8 *ie, uint32 ie_len, int8 cfg_idx);
 
+extern struct ether_addr * wl_anqpo_get_mac(wl_anqpo_info_t *anqpo);
+
+bool wl_anqpo_is_anqp_active(wl_anqpo_info_t *anqpo);
+
+void wl_anqpo_update_mac_addr_mask(wl_anqpo_info_t *anqpo,
+	uint8 mac_addr_mask, bool set);
+
+void wl_anqpo_update_src_mac(wl_anqpo_info_t *anqpo, struct ether_addr *src_mac);
+
+bool
+wl_anqpo_auto_hotspot_enabled(wl_anqpo_info_t *anqpo);
+
+extern bool wl_anqpo_bssid_wildcard_isset(wl_anqpo_info_t *anqpo,
+	struct ether_addr *peer_addr);
 #endif /* _wl_anqpo_h_ */

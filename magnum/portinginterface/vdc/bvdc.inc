@@ -92,6 +92,7 @@ BVDC_SOURCES = \
     $(MAGNUM)/portinginterface/vdc/src/common/bvdc_test.c \
     $(MAGNUM)/portinginterface/vdc/src/common/bvdc_window.c \
     $(MAGNUM)/portinginterface/vdc/src/common/bvdc_window_priv.c \
+    $(MAGNUM)/portinginterface/vdc/src/common/bvdc_adjrect_priv.c \
     $(MAGNUM)/portinginterface/vdc/src/$(BVDC_VEC_DIR)/bvdc_display.c \
     $(MAGNUM)/portinginterface/vdc/src/$(BVDC_VEC_DIR)/bvdc_display_priv.c \
     $(MAGNUM)/portinginterface/vdc/src/common/bvdc_bootupdater.c
@@ -144,6 +145,7 @@ BVDC_SOURCES = \
     $(MAGNUM)/portinginterface/vdc/src/common/bvdc_vnet_priv.c \
     $(MAGNUM)/portinginterface/vdc/src/common/bvdc_window.c \
     $(MAGNUM)/portinginterface/vdc/src/common/bvdc_window_priv.c \
+    $(MAGNUM)/portinginterface/vdc/src/common/bvdc_adjrect_priv.c \
     $(MAGNUM)/portinginterface/vdc/src/common/bvdc_xsrc_priv.c \
     $(MAGNUM)/portinginterface/vdc/src/common/bvdc_vfc_priv.c \
     $(MAGNUM)/portinginterface/vdc/src/common/bvdc_tntd_priv.c \
@@ -195,7 +197,7 @@ BVDC_DEFINES += BVDC_DBV_SUPPORT=1
 # 1 - BVN filters are all disabled to conform with DBV
 # 2 - BVN filters are mostly disabled to conform with DBV
 #
-BVDC_DBV_MODE_BVN_CONFORM?=y
+BVDC_DBV_MODE_BVN_CONFORM?=n
 ifeq ($(BVDC_DBV_MODE_BVN_CONFORM),y)
 BVDC_DEFINES += BVDC_DBV_MODE_BVN_CONFORM=1
 else

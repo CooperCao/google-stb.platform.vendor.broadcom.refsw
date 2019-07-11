@@ -33,7 +33,12 @@
 #include <bcmendian.h>
 #include <bcmtimer.h>
 
+#ifdef TARGETENV_android
+#define NVRAM_FILE		"/data/tmp/NVRAM.db"
+
+#else
 #define NVRAM_FILE		"/tmp/NVRAM.db"
+#endif /* TARGETENV_android */
 
 /*Macro Definitions*/
 #define _MALLOC_(x)	calloc(x, sizeof(char))
@@ -726,6 +731,7 @@ static void nvram_free(void)
  */
 static int nvramd_started(int state)
 {
+#ifndef TARGETENV_android
 	int shm_fd;
 	void *attach;
 	int value;
@@ -742,6 +748,9 @@ static int nvramd_started(int state)
 		DBG_ERROR("munmap()\n");
 	close(shm_fd);
 	return value;
+#else
+	return 0;
+#endif /* TARGETENV_android */
 }
 
 static void nvramd_sigterm_handler(int signum)
@@ -786,7 +795,11 @@ daemonize(unsigned int console_log)
 	/* child (daemon) continues */
 	setsid(); /* obtain a new process group */
 	if (!console_log) {
+#ifdef TARGETENV_android
+		for (i = sysconf(_SC_OPEN_MAX); i >= 0; --i)
+#else
 		for (i = getdtablesize(); i >= 0; --i)
+#endif /* TARGETENV_android */
 			close(i);  /* close all descriptors */
 		nvramd_info.cons.devname = "/dev/null";
 		nvramd_info.cons.cns_fd = open(nvramd_info.cons.devname, O_RDWR);
@@ -1035,8 +1048,10 @@ int main(int argc, char **argv)
 	if (ofile[0] == '\0')
 		strncpy(ofile, NVRAM_FILE, sizeof(ofile) - 1);
 	/* Extract nvram data info from file */
-	if (nvramd_load_file(ifile, ofile))
+	if (nvramd_load_file(ifile, ofile)) {
+		printf("nvramd: load file failed!\n");
 		return -1;
+	}
 
 	printf("nvramd: listening on port: %d\n", port);
 	printf("nvram size: 0x%x\n"

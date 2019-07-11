@@ -10449,6 +10449,8 @@ BCMUCODEFN(wlc_ucode_download)(wlc_hw_info_t *wlc_hw)
 			nbytes = d11ucode_p2p50sz;
 		} else if (D11REV_IS(wlc_hw->corerev, 66)) {
 			ucode32 = d11ucode_p2p66;
+			WL_ERROR(("%s: wl%d: d11ucode_p2p66\n",
+			          __FUNCTION__, wlc_hw->unit));
 			nbytes = d11ucode_p2p66sz;
 #if defined(WL_PSMX)
 			ucodex32 = d11ucodex66;
@@ -10572,6 +10574,8 @@ BCMUCODEFN(wlc_ucode_download)(wlc_hw_info_t *wlc_hw)
 		}
 
 		if (ucode32 != NULL) {
+			WL_ERROR(("%s: wl%d: Loading P2P ucode\n",
+			          __FUNCTION__, wlc_hw->unit));
 			wlc_ucode_write(wlc_hw, ucode32, nbytes);
 #if defined(WL_PSMX)
 			if (PSMX_HWCAP(wlc_hw->wlc->pub) &&	(ucodex32 != NULL)) {

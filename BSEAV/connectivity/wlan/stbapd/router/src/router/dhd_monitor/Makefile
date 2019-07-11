@@ -26,7 +26,13 @@ endif
 
 LDFLAGS += -L$(TOP)/nvram -L$(PLATFORMDIR)/install/nvram/usr/lib -lnvram
 LDFLAGS += -L$(TOP)/shared -L$(PLATFORMDIR)/install/shared/usr/lib -lshared
+ifneq ($(STBANDROID),1)
+LDFLAGS += -lpthread
+endif
 LDFLAGS += $(EXTRA_LDFLAGS)
+ifeq ($(STBANDROID),1)
+LDFLAGS += $(ANDROID_LDFLAGS)
+endif
 
 OBJS := dhd_monitor.o
 
@@ -41,7 +47,7 @@ install: all
 	$(STRIP) $(INSTALLDIR)/usr/sbin/dhd_monitor
 
 dhd_monitor: $(OBJS)
-	$(CC) -o $@ $(OBJS) $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
 
 %.o: .%.depend
 .%.depend: %.c

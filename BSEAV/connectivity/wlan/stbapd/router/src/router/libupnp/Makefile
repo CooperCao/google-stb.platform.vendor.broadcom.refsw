@@ -17,10 +17,15 @@ SRCPATH = $(UPNPLIB)/upnp
 INCLUDES += -I$(UPNPLIB)/include -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -I$(SRCBASE)/include/bcmcrypto -I$(SRCBASE)/router/shared
 CFLAGS += ${INCLUDES}
 
-CFLAGS += -Wall -Wunused -g -s -Werror -fPIC
+CFLAGS += -g -fPIC
+ifneq ($(STBANDROID),1)
+CFLAGS += -s -Werror -Wall -Wunused
+endif
 
-
-LDFLAGS = -L$(TOP)/libbcmcrypto -lbcmcrypto
+ifeq ($(STBANDROID),1)
+LDFLAGS = $(SHARED_LDFLAGS)
+endif
+LDFLAGS += -L$(TOP)/libbcmcrypto -lbcmcrypto
 
 vpath %.c $(SRCPATH) $(UPNPLIB)/linux
 vpath %.o $(UPNPLIB)/prebuilt
@@ -32,7 +37,7 @@ SRCFILES = upnp.c upnp_ssdp.c upnp_http.c upnp_gena.c upnp_soap.c \
 OBJFILES = ${SRCFILES:.c=.o}
 
 all: $(OBJFILES)
-	$(LD) -shared -o $(UPNPLIB_NAME) $^
+	$(LD) $(LDFLAGS) -shared -o $(UPNPLIB_NAME) $^
 
 install: all
 	install -d $(INSTALLDIR)/usr/lib

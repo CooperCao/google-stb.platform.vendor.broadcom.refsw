@@ -2,19 +2,8 @@ Run below commands/script on STB to configure it as SoftAP with WOWL capabilitie
 
 	wlInstall wl.ko wlan0 nvram.txt
 	wl down
-	wl clk 1 
-	wl band a
-	wl chanspec 100/80
-	wl 5g_rate auto
-	wl frameburst 1
-	wl ap_isolate 0
-	wl mpc 0
-	wl phy_watchdog 0
 	wl infra 1
 	wl ap 1
-	wl up
-	wl ver
-	wl down
 	wl chanspec 100/80
 	wl up
 	wl ssid 5g
@@ -26,13 +15,7 @@ Run below commands/script on STB to configure it as STA with WOWL capabilities. 
 	insmod wowl-plat.ko
 	wlinstall wl.ko wlan0 nvram.txt
 	wl down
-	wl clk 1 
-	wl mpc 0
-	wl band a
-	wl frameburst 1
-	wl phy_watchdog 0
 	wl infra 1
-	wl ver
 	wl up
 	wl scan 5g
 	wl scanresults

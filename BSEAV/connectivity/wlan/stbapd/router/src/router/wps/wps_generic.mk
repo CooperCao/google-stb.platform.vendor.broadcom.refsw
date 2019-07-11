@@ -22,6 +22,9 @@ endif
 include $(WPSSRC)/common/config/wps.mk
 EXTRA_CFLAGS = ${WPS_INCS} ${WPS_FLAGS} ${WLAN_ComponentIncPath}
 
+ifneq ($(STBANDROID),1)
+CFLAGS	+= -Wall -Werror
+endif
 
 WPS_SOURCE := $(WPS_FILES)
 

@@ -44,6 +44,71 @@
 #define assert(a)
 #endif
 
+#ifdef TARGETENV_android
+#define DHCP_CONF "/data/tmp/udhcpd%d.conf"
+#define DHCP_SETTING_PIDFILE "pidfile /data/var/run/udhcpd%d.pid\n"
+#define DHCP_SETTING_LEASEFILE "lease_file /data/tmp/udhcpd%d.leases\n"
+
+#define DNS_RESOLV_CONF "/data/tmp/resolv.conf"
+#define DNS_CMD "/vendor/bin/dnsmasq -h -n %s -r /data/tmp/resolv.conf %s&"
+
+#define HTTPD_WWW_PATH "/vendor/www"
+#define HTTPD_PATH "/vendor/bin/httpd /data/tmp/httpd.conf"
+
+#define WPS_MONITOR_PID "/data/tmp/wps_monitor.pid"
+#define WPS_MONITOR_PATH "/vendor/bin/wps_monitor"
+
+#define HSPOTAP_PATH "/vendor/bin/hspotap"
+
+#define EAPD_PATH "/vendor/bin/eapd"
+
+#define ACSD_PATH "/vendor/bin/acsd"
+
+#define TOAD_PATH "/vendor/bin/toad"
+
+#define BSD_PATH "/vendor/bin/bsd"
+
+#define APPEVENTD_PATH "/vendor/bin/appeventd"
+
+#define SSD_PATH "/vendor/bin/ssd"
+
+#define EVENTD_PATH "/vendor/bin/eventd"
+
+#define DHD_MONITOR_PATH "/vendor/bin/dhd_monitor"
+#else
+#define DHCP_CONF "/tmp/udhcpd%d.conf"
+#define DHCP_SETTING_PIDFILE "pidfile /var/run/udhcpd%d.pid\n"
+#define DHCP_SETTING_LEASEFILE "lease_file /tmp/udhcpd%d.leases\n"
+
+#define DNS_RESOLV_CONF "/tmp/resolv.conf"
+#define DNS_CMD "/usr/sbin/dnsmasq -h -n %s -r /tmp/resolv.conf %s&"
+
+#define HTTPD_WWW_PATH "/www"
+#define HTTPD_PATH "/usr/sbin/httpd /tmp/httpd.conf"
+
+#define WPS_MONITOR_PID "/tmp/wps_monitor.pid"
+#define WPS_MONITOR_PATH "/bin/wps_monitor"
+
+#define HSPOTAP_PATH "/bin/hspotap"
+
+#define EAPD_PATH "/bin/eapd"
+
+#define ACSD_PATH "/usr/sbin/acsd"
+
+#define TOAD_PATH "/usr/sbin/toad"
+
+#define BSD_PATH "/usr/sbin/bsd"
+
+#define APPEVENTD_PATH "/usr/sbin/appeventd"
+
+#define SSD_PATH "/usr/sbin/ssd"
+
+#define EVENTD_PATH "/usr/sbin/eventd"
+
+#define DHD_MONITOR_PATH "/usr/sbin/dhd_monitor"
+#endif
+
+
 static char
 *make_var(char *prefix, int index, char *name)
 {
@@ -120,17 +185,17 @@ start_dhcpd(void)
 		fclose(fp);
 
 		/* Write configuration file based on current information */
-		sprintf(dhcp_conf_file, "/tmp/udhcpd%d.conf", index);
+		sprintf(dhcp_conf_file, DHCP_CONF, index);
 		if (!(fp = fopen(dhcp_conf_file, "w"))) {
 			perror(dhcp_conf_file);
 			return errno;
 		}
-		fprintf(fp, "pidfile /var/run/udhcpd%d.pid\n", index);
+		fprintf(fp, DHCP_SETTING_PIDFILE, index);
 		fprintf(fp, "start %s\n", nvram_safe_get(make_var("dhcp", index, "_start")));
 		fprintf(fp, "end %s\n", nvram_safe_get(make_var("dhcp", index, "_end")));
 		fprintf(fp, "interface %s\n", word);
 		fprintf(fp, "remaining yes\n");
-		fprintf(fp, "lease_file /tmp/udhcpd%d.leases\n", index);
+		fprintf(fp, DHCP_SETTING_LEASEFILE, index);
 		fprintf(fp, "option subnet %s\n",
 			nvram_safe_get(make_var("lan", index, "_netmask")));
 #ifdef __CONFIG_STBAP__
@@ -203,8 +268,8 @@ start_dns(void)
 		return 0;
 
 	/* Create resolv.conf with empty nameserver list */
-	if (!(fp = fopen("/tmp/resolv.conf", "w"))) {
-		perror("/tmp/resolv.conf");
+	if (!(fp = fopen(DNS_RESOLV_CONF, "w"))) {
+		perror(DNS_RESOLV_CONF);
 		return errno;
 	}
 	fclose(fp);
@@ -226,7 +291,7 @@ start_dns(void)
 	}
 
 	/* Start the dns relay */
-	sprintf(dns_cmd, "/usr/sbin/dnsmasq -h -n %s -r /tmp/resolv.conf %s&",
+	sprintf(dns_cmd, DNS_CMD,
 		dns_ifnames, if_hostnames);
 	ret = system(dns_cmd);
 
@@ -240,7 +305,7 @@ stop_dns(void)
 	int ret = eval("killall", "dnsmasq");
 
 	/* Remove resolv.conf */
-	unlink("/tmp/resolv.conf");
+	unlink(DNS_RESOLV_CONF);
 
 	dprintf("done\n");
 	return ret;
@@ -313,8 +378,8 @@ start_httpd(void)
 {
 	int ret;
 
-	chdir("/www");
-	ret = system("/usr/sbin/httpd /tmp/httpd.conf");
+	chdir(HTTPD_WWW_PATH);
+	ret = system(HTTPD_PATH);
 	chdir("/");
 
 	dprintf("done\n");
@@ -653,7 +718,7 @@ stop_wps(void)
 	int i, wait_time = 3;
 	pid_t pid;
 
-	if (((fp = fopen("/tmp/wps_monitor.pid", "r")) != NULL) &&
+	if (((fp = fopen(WPS_MONITOR_PID, "r")) != NULL) &&
 	    (fgets(saved_pid, sizeof(saved_pid), fp) != NULL)) {
 		/* remove new line first */
 		for (i = 0; i < sizeof(saved_pid); i++) {
@@ -664,7 +729,7 @@ stop_wps(void)
 		eval("kill", saved_pid);
 
 		do {
-			if ((pid = get_pid_by_name("/bin/wps_monitor")) <= 0)
+			if ((pid = get_pid_by_name(WPS_MONITOR_PATH)) <= 0)
 				break;
 			wait_time--;
 			sleep(1);
@@ -685,7 +750,7 @@ start_wps(void)
 {
 	int ret = 0;
 #ifdef __CONFIG_WPS__
-	char *wps_argv[] = {"/bin/wps_monitor", NULL};
+	char *wps_argv[] = {WPS_MONITOR_PATH, NULL};
 	pid_t pid;
 
 	/* For PF#1 debug only + */
@@ -847,13 +912,13 @@ restart_mcpd_proxy(void)
 int
 start_hspotap(void)
 {
-	char *hs_argv[] = {"/bin/hspotap", NULL};
+	char *hs_argv[] = {HSPOTAP_PATH, NULL};
 	pid_t pid;
 	int wait_time = 3;
 
 	eval("killall", "hspotap");
 	do {
-		if ((pid = get_pid_by_name("/bin/hspotap")) <= 0)
+		if ((pid = get_pid_by_name(HSPOTAP_PATH)) <= 0)
 			break;
 		wait_time--;
 		sleep(1);
@@ -919,7 +984,7 @@ stop_aspmd(void)
 int
 start_eapd(void)
 {
-	int ret = system("/bin/eapd");
+	int ret = system(EAPD_PATH);
 
 	return ret;
 }
@@ -970,7 +1035,7 @@ stop_rpcapd(void)
 int
 start_acsd(void)
 {
-	int ret = system("/usr/sbin/acsd");
+	int ret = system(ACSD_PATH);
 
 	return ret;
 }
@@ -992,7 +1057,7 @@ start_toads(void)
 	char *next;
 
 	foreach(toad_ifname, nvram_safe_get("toad_ifnames"), next) {
-		eval("/usr/sbin/toad", "-i", toad_ifname);
+		eval(TOAD_PATH, "-i", toad_ifname);
 	}
 }
 
@@ -1006,7 +1071,7 @@ stop_toads(void)
 #if defined(BCM_BSD)
 int start_bsd(void)
 {
-	int ret = eval("/usr/sbin/bsd");
+	int ret = eval(BSD_PATH);
 
 	return ret;
 }
@@ -1023,7 +1088,7 @@ int stop_bsd(void)
 int start_appeventd(void)
 {
 	int ret = 0;
-	char *appeventd_argv[] = {"/usr/sbin/appeventd", NULL};
+	char *appeventd_argv[] = {APPEVENTD_PATH, NULL};
 	pid_t pid;
 
 	if (nvram_match("appeventd_enable", "1"))
@@ -1044,7 +1109,7 @@ int stop_appeventd(void)
 int start_ssd(void)
 {
 	int ret = 0;
-	char *ssd_argv[] = {"/usr/sbin/ssd", NULL};
+	char *ssd_argv[] = {SSD_PATH, NULL};
 	pid_t pid;
 
 	if (nvram_match("ssd_enable", "1"))
@@ -1065,7 +1130,7 @@ int stop_ssd(void)
 int start_eventd(void)
 {
 	int ret = 0;
-	char *ssd_argv[] = {"/usr/sbin/eventd", NULL};
+	char *ssd_argv[] = {EVENTD_PATH, NULL};
 	pid_t pid;
 
 	if (nvram_match("eventd_enable", "1"))
@@ -1088,7 +1153,7 @@ int start_dhd_monitor(void)
 {
 	int ret = system("killall dhd_monitor");
 	usleep(300000);
-	ret = system("/usr/sbin/dhd_monitor");
+	ret = system(DHD_MONITOR_PATH);
 
 	return ret;
 }
@@ -1692,14 +1757,27 @@ start_services(void)
 #endif
 #endif	/* __CONFIG_NAT__ */
 	start_eapd();
-	start_nas();
+#ifdef CONFIG_HOSTAPD
+	if (!nvram_match("hapd_enable", "0")) {
+		start_hapd_wpasupp();
+	} else
+#endif	/* CONFIG_HOSTAPD */
+	{
+		start_nas();
+	}
 #ifdef __CONFIG_WAPI_IAS__
 	start_ias();
 #endif /* __CONFIG_WAPI_IAS__ */
 #ifdef __CONFIG_WAPI__
 	start_wapid();
 #endif /* __CONFIG_WAPI__ */
-	start_wps();
+#ifdef CONFIG_HOSTAPD
+	if (!nvram_match("hapd_enable", "0")) {
+	} else
+#endif	/* CONFIG_HOSTAPD */
+	{
+		start_wps();
+	}
 #ifndef __CONFIG_STBAP__
 #if defined(WLTEST)
 	start_telnet();
@@ -1810,6 +1888,9 @@ stop_services(void)
 #ifdef __CONFIG_WAPI_IAS__
 	stop_ias();
 #endif /* __CONFIG_WAPI_IAS__ */
+#ifdef CONFIG_HOSTAPD
+	stop_hapd_wpasupp();
+#endif	/* CONFIG_HOSTAPD */
 	stop_nas();
 	stop_eapd();
 #if defined(__CONFIG_NAT__) || defined(__CONFIG_STBAP__)

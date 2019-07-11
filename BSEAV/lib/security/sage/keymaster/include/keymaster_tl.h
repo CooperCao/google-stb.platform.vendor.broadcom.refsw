@@ -61,6 +61,9 @@ extern "C"
 {
 #endif
 
+#define SKM_VERSION_3   0x300
+#define SKM_VERSION_4   0x400
+
 
 /* This handle is used to store the context of a KeymasterTl instance */
 typedef struct KeymasterTl_Instance *KeymasterTl_Handle;
@@ -114,12 +117,17 @@ void KeymasterTl_Uninit(KeymasterTl_Handle handle);
 /***************************************************************************
 Summary:
 Configure the Keymaster handle. Call KeymasterTl_Init first to create handle.
+keymaster_version is an in/out parameter. Set to 0xMMmm to set keymaster
+version (e.g. 0x400 for KM 4). The value will then be updated with the
+version supported by the TA. This allows the TL to run with an older SAGE
+that did not support KM4 API.
 
 See Also:
 KeymasterTl_Init()
 ***************************************************************************/
 BERR_Code KeymasterTl_Configure(
     KeymasterTl_Handle handle,
+    uint32_t vendor_patchlevel,
     KM_Tag_ContextHandle in_params);
 
 /***************************************************************************
@@ -308,6 +316,15 @@ BERR_Code KeymasterTl_DeleteAllKeys(KeymasterTl_Handle handle);
 
 /***************************************************************************
 Summary:
+Destroy attestation ID data.  Call KeymasterTl_Configure first.
+
+See Also:
+KeymasterTl_Configure()
+***************************************************************************/
+BERR_Code KeymasterTl_DestroyAttestationIds(KeymasterTl_Handle handle);
+
+/***************************************************************************
+Summary:
 KeymasterTl_CryptoBegin settings structure
 ***************************************************************************/
 typedef struct KeymasterTl_CryptoBeginSettings {
@@ -449,10 +466,161 @@ See Also:
 ***************************************************************************/
 BERR_Code KeymasterTl_GetConfiguration(
     KeymasterTl_Handle handle,
+    uint32_t *keymaster_version,
     bool *rpmbEnabled,
     bool *usingVms,
     uint32_t *hwKeysAvailable);
 
+/***************************************************************************
+Summary:
+Cache an RSA key. Returns BERR_OUT_OF_DEVICE_MEMORY if unable to complete.
+key_size is in bits (e.g. 2048, 4096).
+
+See Also:
+KeymasterTl_Configure()
+***************************************************************************/
+BERR_Code KeymasterTl_CacheKey(
+    KeymasterTl_Handle handle,
+    uint32_t key_size,
+    uint32_t exponent);
+
+/***************************************************************************
+Summary:
+KeymasterTl_ImportWrappedKey settings structure. Note that the wrapped key
+is in the following format:
+
+
+Note that all the [] items (e.g. transit_key[]) are variable length with
+no padding to align uint32_t items.
+***************************************************************************/
+typedef struct KeymasterTl_ImportWrappedKeySettings {
+    /* Wrapped key data */
+    uint32_t version;
+    KeymasterTl_DataBlock in_transit_key;
+    KeymasterTl_DataBlock in_iv;
+    km_key_format_t in_key_format;
+    KM_Tag_ContextHandle in_key_params;   /* was auth */
+    KeymasterTl_DataBlock in_secure_key;
+    KeymasterTl_DataBlock in_tag_data;
+    KeymasterTl_DataBlock in_description;
+    /* End of wrapped key data */
+    KeymasterTl_DataBlock in_wrapping_key;
+    KeymasterTl_DataBlock in_masking_key;
+    KM_Tag_ContextHandle in_params;
+    KeymasterTl_DataBlock out_key_blob;
+} KeymasterTl_ImportWrappedKeySettings;
+
+/***************************************************************************
+Summary:
+Fill in default settings
+***************************************************************************/
+void KeymasterTl_GetDefaultImportWrappedKeySettings(
+    KeymasterTl_ImportWrappedKeySettings *settings);
+
+/***************************************************************************
+Summary:
+Import wrapped key.  Call KeymasterTl_Configure first. The function allocates
+an out_key_blob which must be freed by the caller.
+
+Note the comment related to KeymasterTl_ImportWrappedKeySettings, it which
+it describes the layout of the in_wrapped_key. It is the responsibility of
+the caller to extract the data from the original DER endcoded data stream,
+as specified in the Android documentation.
+
+See Also:
+KeymasterTl_Configure()
+***************************************************************************/
+BERR_Code KeymasterTl_ImportWrappedKey(
+    KeymasterTl_Handle handle,
+    KeymasterTl_ImportWrappedKeySettings *settings);
+
+/***************************************************************************
+Summary:
+KeymasterTl_GetHmacSharingParams settings structure
+***************************************************************************/
+typedef struct KeymasterTl_GetHmacSharingParamsSettings {
+    KeymasterTl_DataBlock out_seed;
+    KeymasterTl_DataBlock out_nonce;
+} KeymasterTl_GetHmacSharingParamsSettings;
+
+/***************************************************************************
+Summary:
+Fill in default settings
+***************************************************************************/
+void KeymasterTl_GetDefaultHmacSharingParamsSettings(
+    KeymasterTl_GetHmacSharingParamsSettings *settings);
+
+/***************************************************************************
+Summary:
+Retrieve the Hmac sharing params. No need to call KeymasterTl_Configure()
+first. In keeping with the other API, space will be allocated for out_seed
+and out_nonce, which must be freed by the caller.
+
+See Also:
+***************************************************************************/
+BERR_Code KeymasterTl_GetHmacSharingParams(
+    KeymasterTl_Handle handle,
+    KeymasterTl_GetHmacSharingParamsSettings *settings);
+
+/***************************************************************************
+Summary:
+KeymasterTl_ComputeSharedHmac settings structure.
+***************************************************************************/
+typedef struct KeymasterTl_GetComputeSharedHmacSettings {
+    uint32_t in_num_params;
+    km_hmac_sharing_t in_sharing_params[SKM_MAX_SHARING_PARAMS];
+    KeymasterTl_DataBlock out_sharing_check;
+} KeymasterTl_GetComputeSharedHmacSettings;
+
+/***************************************************************************
+Summary:
+Fill in default settings
+***************************************************************************/
+void KeymasterTl_GetDefaultComputeSharedHmacSettings(
+    KeymasterTl_GetComputeSharedHmacSettings *settings);
+
+/***************************************************************************
+Summary:
+Compute the shared hmac based on the incoming sharing params. It returns a
+sharing check result back to the caller. In keeping with the other API, space
+is allocated for the out_sharing_check which must be freed by the caller.
+
+See Also:
+***************************************************************************/
+BERR_Code KeymasterTl_ComputeSharedHmac(
+    KeymasterTl_Handle handle,
+    KeymasterTl_GetComputeSharedHmacSettings *settings);
+
+/***************************************************************************
+Summary:
+KeymasterTl_VerifyAuthorization settings structure.
+***************************************************************************/
+typedef struct KeymasterTl_VerifyAuthorizationSettings {
+    uint64_t in_challenge;                            /* Challenge to embed in the verification token + mac */
+    KM_Tag_ContextHandle in_params;                   /* Params to authorize - currently not supported */
+    km_hw_auth_token_t *in_auth_token;                /* Auth token to auth key use */
+    km_verification_token_t *out_verification_token;  /* pass in pointer of this type, which will be filled in */
+} KeymasterTl_VerifyAuthorizationSettings;
+
+/***************************************************************************
+Summary:
+Fill in default settings
+***************************************************************************/
+void KeymasterTl_GetDefaultVerifyAuthorizationSettings(
+    KeymasterTl_VerifyAuthorizationSettings *settings);
+
+/***************************************************************************
+Summary:
+Compute the shared hmac based on the incoming sharing params. It returns a
+sharing check result back to the caller. The out_verification_token is not
+allocated, but should be a pointer passed in and will be filled in with the
+token.
+
+See Also:
+***************************************************************************/
+BERR_Code KeymasterTl_VerifyAuthorization(
+    KeymasterTl_Handle handle,
+    KeymasterTl_VerifyAuthorizationSettings *settings);
 
 #ifdef __cplusplus
 }

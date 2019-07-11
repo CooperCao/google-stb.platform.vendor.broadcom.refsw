@@ -1,0 +1,13 @@
+BCM4375_REL_1_12
+Android build error fix
+
+BCM4375_REL_1_11
+Enable WoWL feature
+Enable WPA3 (SAE) for using with wpa_supplicant (Requires kernel 4.9-1.12 or higher)
+
+BCM4375_REL_1_10
+DHD: Enable PCIe ASPM by default
+DHD: Improve TCP RX throughput with DHDTCPACK_SUPPRESS
+
+BCM4375_REL_1_9
+Initial WIFI (4375) drop for 7218 and 7219 MCMs

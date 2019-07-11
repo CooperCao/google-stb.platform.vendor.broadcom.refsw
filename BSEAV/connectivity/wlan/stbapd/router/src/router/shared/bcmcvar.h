@@ -29,7 +29,7 @@
 #define websBufferInit(wp) {webs_buf = malloc(WEBS_BUF_SIZE); webs_buf_offset = 0;}
 #define websBufferWrite(wp, fmt, args...) {webs_buf_offset += \
 	sprintf(webs_buf+webs_buf_offset, fmt , ## args);}
-#define websBufferFlush(wp) {webs_buf[webs_buf_offset] = '\0'; fprintf(wp, webs_buf); fflush(wp); \
+#define websBufferFlush(wp) {webs_buf[webs_buf_offset] = '\0'; fprintf(wp, "%s", webs_buf); fflush(wp); \
 	free(webs_buf); webs_buf = NULL;}
 
 #define ARGV(args...) ((char *[]) { args, NULL })

@@ -17,9 +17,13 @@ COMBINED_BINARY=1
 # Uncomment this to output messages to syslog, otherwise, messages go to stdout
 #CFLAGS += -DSYSLOG
 
+CFLAGS += -I$(SRCBASE)/include
+
+ifneq ($(STBANDROID),1)
 #CROSS_COMPILE=arm-uclibc-
 CC = $(CROSS_COMPILE)gcc
 LD = $(CROSS_COMPILE)gcc
+endif
 INSTALL = install
 
 VER := 0.9.8
@@ -52,7 +56,10 @@ ifdef SYSLOG
 CFLAGS += -DSYSLOG
 endif
 
-CFLAGS += -W -Wall -Werror -Wstrict-prototypes -DVERSION='"$(VER)"'
+CFLAGS += -Wstrict-prototypes -DVERSION='"$(VER)"'
+ifneq ($(STBANDROID),1)
+CFLAGS	+= -Wall -Werror
+endif
 
 ifdef DEBUG
 CFLAGS += -g -DDEBUG
@@ -73,13 +80,13 @@ $(EXEC1) $(EXEC2) $(EXEC3): Makefile
 	$(CC) -c $(CFLAGS) $<
 
 $(EXEC1): $(OBJS1)
-	$(LD) $(LDFLAGS) $(OBJS1) -o $(EXEC1)
+	$(LD) $(CFLAGS) $(LDFLAGS) $(OBJS1) -o $(EXEC1)
 
 $(EXEC2): $(OBJS2)
-	$(LD) $(LDFLAGS) $(OBJS2) -o $(EXEC2)
+	$(LD) $(CFLAGS) $(LDFLAGS) $(OBJS2) -o $(EXEC2)
 
 $(EXEC3): $(OBJS3)
-	$(LD) $(LDFLAGS) $(OBJS3) -o $(EXEC3)
+	$(LD) $(CFLAGS) $(LDFLAGS) $(OBJS3) -o $(EXEC3)
 
 
 install: all

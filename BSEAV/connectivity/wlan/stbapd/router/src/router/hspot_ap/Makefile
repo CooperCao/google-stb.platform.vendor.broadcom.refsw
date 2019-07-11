@@ -14,7 +14,10 @@ INCLUDE += -I. -I.. -I$(SRCBASE)/include -I$(SRCBASE)/common/include -I$(SRCBASE
 INCLUDE += -I$(SRCBASE)/security/secfrw/include -I$(SRCBASE)/supp/include $(WLAN_ComponentIncPathR)
 
 CFLAGS += $(INCLUDE)
-CFLAGS += -DWIFI_ACT_FRAME -DHOTSPOT_AP -DWNM_BSSTRANS_SUPPORT -DWLTDLS -Wall -Werror
+CFLAGS += -DWIFI_ACT_FRAME -DHOTSPOT_AP -DWNM_BSSTRANS_SUPPORT -DWLTDLS
+ifneq ($(STBANDROID),1)
+CFLAGS	+= -Wall -Werror
+endif
 
 CFLAGS  += -s
 
@@ -26,6 +29,9 @@ CFLAGS += -DPPR_API
 
 LDFLAGS += -L$(TOP)/nvram -L$(INSTALLDIR)/nvram/usr/lib -lnvram
 LDFLAGS += -L$(TOP)/shared -L$(INSTALLDIR)/shared/usr/lib -lshared
+ifneq ($(STBANDROID),1)
+LDFLAGS += -lpthread
+endif
 LDFLAGS += $(EXTRA_LDFLAGS)
 
 vpath %.c $(SRCBASE)/wl/exe
@@ -68,7 +74,7 @@ hspotap:
 	cp prebuilt/hspotap .
 else
 hspotap: $(OBJS)
-	$(CC) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 endif
 
 install: all

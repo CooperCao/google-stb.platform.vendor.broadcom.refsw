@@ -225,9 +225,11 @@ typedef struct NEXUS_AudioDecoder
     BKNI_EventHandle sampleRateEvent;
     BKNI_EventHandle channelChangeReportEvent;
     BKNI_EventHandle inputFormatChangeEvent;
+    BKNI_EventHandle unlicensedAlgoEvent;
     NEXUS_EventCallbackHandle sampleRateCallback;
     NEXUS_EventCallbackHandle channelChangeReportEventHandler;
     NEXUS_EventCallbackHandle inputFormatChangeEventHandler;
+    NEXUS_EventCallbackHandle unlicensedAlgoEventHandler;
     NEXUS_IsrCallbackHandle spliceCallback;
     NEXUS_IsrCallbackHandle lockCallback;
     NEXUS_IsrCallbackHandle firstPtsCallback;

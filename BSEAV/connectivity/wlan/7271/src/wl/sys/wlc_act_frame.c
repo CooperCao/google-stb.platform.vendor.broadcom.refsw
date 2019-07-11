@@ -43,6 +43,10 @@
 #endif /* WLMCNX */
 #endif /* WLRSDB */
 
+#ifdef ANQPO
+#include <wl_anqpo.h>
+#endif
+
 #ifdef WL_PROXDETECT
 #include <wlc_ftm.h>
 #endif
@@ -294,14 +298,19 @@ wlc_act_frame_doiovar(void *ctx, uint32 actionid,
 			}
 
 			if (!af_continue) {
-				if (ACTION_FRAME_IN_PROGRESS(actframe_cubby)) {
+				if (af->channel == 0) {
+					af->channel = wf_chspec_ctlchan(WLC_BAND_PI_RADIO_CHANSPEC);
+				}
+
+				/* Don`t process another action frame request
+				 * till previous one is completed
+				 */
+				if (wlc_af_inprogress(wlc, bsscfg)) {
+					WL_ERROR(("Action frame is in progress\n"));
 					err = BCME_BUSY;
 					break;
 				}
 
-				if (af->channel == 0) {
-					af->channel = wf_chspec_ctlchan(WLC_BAND_PI_RADIO_CHANSPEC);
-				}
 
 				err = wlc_send_action_frame_off_channel(wlc, bsscfg,
 					CH20MHZ_CHSPEC(af->channel), af->dwell_time,
@@ -519,63 +528,89 @@ fail:
 	return BCME_ERROR;
 }
 
+/* Function to filter the BSSID and use the broadcast BSSID */
+static bool
+wlc_actframe_use_bcast_bssid(wlc_bsscfg_t *cfg, uint8* body, struct ether_addr *da)
+{
+#ifdef ANQPO
+	wlc_info_t *wlc = cfg->wlc;
+	/*  Directed BSSID for ANQPO action frame if MBO is disabled.
+	     As per IEEE Spec(10.19) "A STA that is not a member of a BSS
+	     that transmits a Public Action frame shall set the BSSID field
+	     of the frame to the wildcard BSSID value"
+	     This BSSID override is done to handle older AP that does not respond
+	     to broadcast ANQP AF.
+	*/
+	if (!ANQPO_ENAB(wlc->pub) || (body[0] != DOT11_ACTION_CAT_PUBLIC) ||
+		(body[1] != GAS_REQUEST_ACTION_FRAME) ||
+		(wl_anqpo_bssid_wildcard_isset(wlc->anqpo, da))) {
+		return TRUE;
+	}
+#endif /* ANQPO */
+	return FALSE;
+}
+
 static void *
 wlc_prepare_action_frame(wlc_info_t *wlc, wlc_bsscfg_t *cfg,
                          const struct ether_addr *bssid, void *action_frame)
 {
-	void *pkt;
-	uint8* pbody;
+	void *pkt = NULL;
+	uint8* pbody, *body;
 	uint16 body_len;
 	struct ether_addr da;
+	struct ether_addr *sa = NULL;
 	uint32 packetId;
 	wlc_pkttag_t *pkttag;
-	uint8 mfp;
+	uint8 mfp = 0;
 	struct scb *scb;
+	wl_action_frame_t* af = (wl_action_frame_t *)action_frame;
 
-	memcpy(&packetId, (uint8*)action_frame +
-		OFFSETOF(wl_action_frame_t, packetId), sizeof(uint32));
+	packetId = af->packetId;
+	body_len = af->len;
 
-	memcpy(&body_len, (uint8*)action_frame + OFFSETOF(wl_action_frame_t, len),
-		sizeof(body_len));
+	if (body_len == 0) {
+		WL_ERROR(("wl%d: wlc_prepare_action_frame: body length is 0\n", wlc->pub->unit));
+		return pkt;
+	}
 
 	memcpy(&da, (uint8*)action_frame + OFFSETOF(wl_action_frame_t, da), ETHER_ADDR_LEN);
+	body = (uint8*)action_frame + OFFSETOF(wl_action_frame_t, data) + DOT11_ACTION_CAT_OFF;
 
 	/* set a3 to current bss if a2 in the same bss or
 	   wildcard bssid if not
 	*/
-
 	if (!ETHER_ISMULTI(&da) &&
 			((scb = wlc_scbfind(wlc, cfg, (const struct ether_addr *)&da)) != NULL) &&
 			(SCB_ASSOCIATED(scb) || BSSCFG_SLOTTED_BSS(cfg))) {
 		mfp = SCB_MFP(scb);
 		bssid = &cfg->BSSID;
-	} else {
-		mfp = 0;
+	} else if (bssid == NULL || wlc_actframe_use_bcast_bssid(cfg, body, &da)) {
 		bssid = &ether_bcast;
 	}
 
-	pkt = NULL;
-	if (body_len) {
-		uint8 *body;
-
-		body = (uint8*)action_frame + OFFSETOF(wl_action_frame_t, data) +
-		        DOT11_ACTION_CAT_OFF;
-
-		/* set as dual protected if appropriate */
-		wlc_set_protected_dual_publicaction(body, mfp, cfg);
-
-		/*  get action frame */
-		if ((pkt = wlc_frame_get_action(wlc, &da, &cfg->cur_etheraddr,
-		                                bssid, body_len, &pbody, body[0])) == NULL) {
-			return NULL;
-		}
-
-		pkttag = WLPKTTAG(pkt);
-		pkttag->shared.packetid = packetId;
-		WLPKTTAGBSSCFGSET(pkt, cfg->_idx);
-
-		memcpy(pbody, (uint8*)action_frame + OFFSETOF(wl_action_frame_t, data), body_len);
+#ifdef ANQPO
+	if (ANQPO_ENAB(wlc->pub) && wl_anqpo_is_anqp_active(wlc->anqpo)) {
+		sa = wl_anqpo_get_mac(wlc->anqpo);
+	} else
+#endif
+	{
+		sa = &cfg->cur_etheraddr;
 	}
+
+	/* set as dual protected if appropriate */
+	wlc_set_protected_dual_publicaction(body, mfp, cfg);
+
+	/*  get action frame */
+	if ((pkt = wlc_frame_get_action(wlc, &da, sa, bssid, body_len,
+		&pbody, body[0])) == NULL) {
+		return pkt;
+	}
+
+	pkttag = WLPKTTAG(pkt);
+	pkttag->shared.packetid = packetId;
+	WLPKTTAGBSSCFGSET(pkt, cfg->_idx);
+
+	memcpy(pbody, (uint8*)action_frame + OFFSETOF(wl_action_frame_t, data), body_len);
 
 	return pkt;
 }
@@ -947,9 +982,11 @@ wlc_is_publicaction(wlc_info_t * wlc, struct dot11_header *hdr, int len,
 }
 
 
-/* TODO: implement this function */
 bool
-wlc_act_frame_tx_inprog(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
+wlc_af_inprogress(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 {
-	return FALSE;
+	act_frame_cubby_t *act_frame_cubby = BSSCFG_ACT_FRAME_CUBBY(wlc->wlc_act_frame_info, cfg);
+	ASSERT(act_frame_cubby != NULL);
+	return (ACTION_FRAME_IN_PROGRESS(act_frame_cubby) ||
+		act_frame_cubby->req_msch_actframe_hdl);
 }

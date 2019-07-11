@@ -281,6 +281,10 @@ struct bcm_gas_struct
 	/* next in linked list */
 	struct bcm_gas_struct *next;
 	bool isNoResponse;
+	/* Store wlcif to derive interface index when scanmac is used
+	* while sending events to host.
+	*/
+	void  *wl_drv_if;
 };
 
 typedef struct bcm_gas_req bcm_gas_req_t;
@@ -757,7 +761,7 @@ int bcm_gas_deinitialize(void)
 /* ----------------------------------------------------------- */
 
 bcm_gas_t *bcm_gas_create(struct bcm_gas_wl_drv_hdl *drv, int bsscfg_idx,
-	uint16 channel, struct ether_addr *dst)
+	void *wl_drv_if, uint16 channel, struct ether_addr *dst)
 {
 	bcm_gas_t *gas;
 #ifdef BCMDBG
@@ -774,6 +778,7 @@ bcm_gas_t *bcm_gas_create(struct bcm_gas_wl_drv_hdl *drv, int bsscfg_idx,
 	gas->isIncoming = FALSE;
 	gas->drv = drv;
 	gas->bsscfgIndex = bsscfg_idx;
+	gas->wl_drv_if = wl_drv_if;
 	gas->channel = channel;
 	memcpy(&gas->peer, dst, sizeof(gas->peer));
 	gas->advertisementProtocol = ADVP_ANQP_PROTOCOL_ID;
@@ -1082,6 +1087,15 @@ int bcm_gas_set_bsscfg_index(bcm_gas_t *gas, int index)
 	return 1;
 }
 
+
+void *bcm_gas_get_wl_drv_if(bcm_gas_t *gas)
+{
+	ASSERT(gas != NULL);
+	WL_TRACE(("bcm_gas_get_wl_drv_if \n"));
+
+	return (gas->wl_drv_if);
+}
+
 /* ----------------------------------------------------------- */
 
 static int is_valid_advertisement_protocol(bcm_decode_ie_adv_proto_tuple_t *apie)
@@ -1235,7 +1249,7 @@ void bcm_gas_process_wlan_event(void *context, uint32 eventType,
 #endif /* BCMDRIVER */
 				WL_P2PO(("creating incoming instance\n"));
 				gas = bcm_gas_create(drv, wlEvent->bsscfgidx,
-					channel, src);
+					NULL, channel, src);
 				if (gas == 0) {
 					WL_ERROR(("failed to create instance\n"));
 					return;

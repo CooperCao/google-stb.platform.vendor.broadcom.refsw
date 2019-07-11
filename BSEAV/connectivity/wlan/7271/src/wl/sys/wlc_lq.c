@@ -2655,10 +2655,11 @@ wlc_lq_scb_init(void *ctx, struct scb *scb)
 	ASSERT(sizeof(*slqi) + extra == secsz);
 
 	/* move to wlc_assoc.c once modularized */
-	if (BSSCFG_STA(cfg) && cfg->BSS) {
+	if (cfg->BSS) {
 		wlc_lq_sample_req_enab(scb, RX_LQ_SAMP_REQ_BSS_STA, TRUE);
 	}
-	else if (BSSCFG_AP(cfg) || BSSCFG_IBSS(cfg)) {
+
+	if (BSSCFG_AP(cfg) || BSSCFG_IBSS(cfg)) {
 		wlc_lq_rssi_ma_reset(wlc, cfg, scb, WLC_RSSI_INVALID);
 	}
 

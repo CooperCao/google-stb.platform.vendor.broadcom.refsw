@@ -1565,7 +1565,7 @@ static BERR_Code km_delete_key_tests(KeymasterTl_Handle handle)
     bool usingVms = false;
     uint32_t numHwKeys = 0;
 
-    EXPECT_SUCCESS(KeymasterTl_GetConfiguration(handle, &rpmbEnabled, &usingVms, &numHwKeys));
+    EXPECT_SUCCESS(KeymasterTl_GetConfiguration(handle, NULL, &rpmbEnabled, &usingVms, &numHwKeys));
 
     BDBG_LOG(("----------------------- %s -----------------------", BSTD_FUNCTION));
 
@@ -1650,6 +1650,7 @@ int main(int argc, char *argv[])
     KM_Tag_ContextHandle params = NULL;
     bool shortTest = false;
     int arg = 1;
+    uint32_t vendor_patchlevel = 20190101U;
 
 #ifdef NXCLIENT_SUPPORT
     NxClient_JoinSettings joinSettings;
@@ -1687,6 +1688,8 @@ int main(int argc, char *argv[])
         memcpy(initSettings.drm_binfile_path, argv[arg], strlen(argv[arg]));
     }
 
+    /* Keep on V3 until new sage is rolled out into baseline */
+    initSettings.version = SKM_VERSION_3;
     berr = KeymasterTl_Init(&handle, &initSettings);
     if (berr != BERR_SUCCESS) {
         BDBG_ERR(("### Keymaster init failed (%x)\n", berr));
@@ -1699,7 +1702,7 @@ int main(int argc, char *argv[])
     EXPECT_SUCCESS(KM_Tag_NewContext(&params));
     TEST_TAG_ADD_INTEGER(params, SKM_TAG_OS_VERSION, USE_OS_VERSION);
     TEST_TAG_ADD_INTEGER(params, SKM_TAG_OS_PATCHLEVEL, USE_OS_PATCHLEVEL);
-    EXPECT_SUCCESS(KeymasterTl_Configure(handle, params));
+    EXPECT_SUCCESS(KeymasterTl_Configure(handle, vendor_patchlevel, params));
 
     /* Delete all keys when we start to be in a known state */
     EXPECT_SUCCESS(km_delete_all_keys(handle));

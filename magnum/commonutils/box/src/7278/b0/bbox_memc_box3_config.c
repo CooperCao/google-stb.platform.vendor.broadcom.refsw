@@ -36,6 +36,18 @@
  * ANY LIMITED REMEDY.
  ******************************************************************************
  *
+ * $brcm_Workfile: $
+ * $brcm_Revision: $
+ * $brcm_Date: $
+ *
+ * API Description:
+ *
+ * Revision History:
+ *
+ * $brcm_Log: $
+ *
+ ******************************************************************************
+ *
  *                            Do Not Edit Directly
  * Auto-Generated from RTS environment:
  *   at: Fri Jul 20 18:44:08 2018 GMT
@@ -122,8 +134,8 @@ static const uint32_t aulMemc0_20180720184408_7278B0_box3_box_mid_performance_sm
            0x3ffff059,  /*  49: VICE_IMD0 off */
            0x3ffff05a,  /*  50: VICE_IMD1 off */
            0x3ffff065,  /*  51: VICE_DBLK off */
-           0xbfffe02f,  /*  52: VICE_CABAC0 RR 800000ns */
-           0x81175023,  /*  53: VICE_CABAC1 RR 9200ns */
+           0x81175023,  /*  52: VICE_CABAC1 RR 9200ns */
+           0xbfffe02f,  /*  53: VICE_CABAC0 RR 800000ns */
            0x8067c039,  /*  54: VICE_ARCSS0 RR 3625ns */
            0x3ffff01f,  /*  55: VICE_VIP0_INST0 off */
            0x3ffff024,  /*  56: VICE_VIP1_INST0 off */
@@ -380,8 +392,8 @@ static const uint32_t aulMemc1_20180720184408_7278B0_box3_box_mid_performance_sm
            0x80d27059,  /*  49: VICE_IMD0 RR 7350ns */
            0x80d2705a,  /*  50: VICE_IMD1 RR 7350ns */
            0x800b0065,  /*  51: VICE_DBLK RR 0ns */
-           0x3ffff02f,  /*  52: VICE_CABAC0 off */
-           0x3ffff023,  /*  53: VICE_CABAC1 off */
+           0x3ffff023,  /*  52: VICE_CABAC1 off */
+           0x3ffff02f,  /*  53: VICE_CABAC0 off */
            0x3ffff039,  /*  54: VICE_ARCSS0 off */
            0x80e1401f,  /*  55: VICE_VIP0_INST0 RR 7420ns */
            0x812c4024,  /*  56: VICE_VIP1_INST0 RR 9890ns */

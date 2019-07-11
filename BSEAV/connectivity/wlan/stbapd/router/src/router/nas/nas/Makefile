@@ -14,7 +14,10 @@
 
 include $(SRCBASE_ROUTER)/.config
 
-CFLAGS	+= -I.. -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -I$(SRCBASE)/router/shared -Wall -Werror
+CFLAGS	+= -I.. -I$(SRCBASE)/include ${WLAN_StdIncPathA} -I$(SRCBASE)/common/include -I$(SRCBASE)/router/shared
+ifneq ($(STBANDROID),1)
+CFLAGS	+= -Wall -Werror
+endif
 CFLAGS	+= $(WLAN_ComponentIncPath)
 
 #CFLAGS	+= -g -DDEBUG
@@ -36,6 +39,9 @@ CFLAGS	+= -I$(SRCBASE_ROUTER)/nas/nas_fbt
 
 LDFLAGS += -L$(TOP)/nvram -L$(INSTALLDIR)/nvram/usr/lib -lnvram
 LDFLAGS += -L$(TOP)/shared -L$(INSTALLDIR)/shared/usr/lib -lshared
+ifneq ($(STBANDROID),1)
+LDFLAGS += -lpthread
+endif
 LDFLAGS += -L$(TOP)/libbcmcrypto -L$(INSTALLDIR)/libbcmcrypto/usr/lib -lbcmcrypto
 LDFLAGS += $(EXTRA_LDFLAGS)
 
@@ -52,7 +58,7 @@ UTLOBJS = bcmwpa.o bcmutils.o
 all: nas
 
 nas: $(NASOBJS) $(UTLOBJS)
-	$(CC) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # install to target
 install: all

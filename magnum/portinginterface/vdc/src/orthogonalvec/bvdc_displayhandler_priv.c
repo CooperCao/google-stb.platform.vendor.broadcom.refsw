@@ -6920,7 +6920,7 @@ static void BVDC_P_Display_Copy_AspRatio_Setting_isr
     hDisplay->stCurInfo.uiSampleAspectRatioY = hDisplay->stNewInfo.uiSampleAspectRatioY;
     hDisplay->stCurInfo.stAspRatRectClip = hDisplay->stNewInfo.stAspRatRectClip;
 
-    BVDC_P_CalcuPixelAspectRatio_isr(
+    BVDC_P_CalcuPixelAspectRatio_isrsafe(
         hDisplay->stCurInfo.eAspectRatio,
         hDisplay->stCurInfo.uiSampleAspectRatioX,
         hDisplay->stCurInfo.uiSampleAspectRatioY,

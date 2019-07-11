@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -469,6 +469,7 @@ typedef struct BAPE_DecoderStatus
     bool running;
     bool halted;
     bool valid;
+    bool unlicensedAlgo; /* if set to true, the decoder or dsp mixer detected unlicensed algo */
     union
     {
         BAPE_MpegStatus   mpeg;
@@ -484,6 +485,7 @@ typedef struct BAPE_DecoderStatus
         BAPE_CookStatus   cook;
         BAPE_AlsStatus    als;
     } codecStatus;
+    char codecName[64];
 } BAPE_DecoderStatus;
 
 typedef struct BAPE_DecoderAc4PresentationInfo
@@ -709,6 +711,13 @@ typedef struct BAPE_DecoderInterruptHandlers
         void *pParam1;
         int param2;
     } hostBufferReady;
+    /* This interrupt fires when starting a task with an unlienced algorithm */
+    struct
+    {
+        void (*pCallback_isr)(void *pParam1, int param2);
+        void *pParam1;
+        int param2;
+    } unlicensedAlgo;
 } BAPE_DecoderInterruptHandlers;
 
 /***************************************************************************

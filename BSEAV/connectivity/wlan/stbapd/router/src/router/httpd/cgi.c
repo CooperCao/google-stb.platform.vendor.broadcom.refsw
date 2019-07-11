@@ -38,9 +38,42 @@
 #define table htable
 #endif
 
+#ifdef DISABLE_HSEARCH
+typedef struct ts_entry
+{
+    char *key;
+    void *data;
+}
+TS_ENTRY;
+#endif
+
 /* CGI hash table */
+#ifndef DISABLE_HSEARCH
 static struct hsearch_data htab;
+#else
+static void *troot = NULL;
+#endif
 static int htab_count;
+
+#ifdef DISABLE_HSEARCH
+static int
+compare(const void *pa, const void *pb)
+{
+	TS_ENTRY *ts1, *ts2;
+
+	ts1 = (TS_ENTRY *)pa;
+	ts2 = (TS_ENTRY *)pb;
+
+	return strcmp(ts1->key, ts2->key);
+}
+
+static void ts_free(void *p)
+{
+	if (p) {
+		free(p);
+	}
+}
+#endif
 
 static void
 unescape(char *s)
@@ -63,6 +96,7 @@ unescape(char *s)
 char *
 get_cgi(char *name)
 {
+#ifndef DISABLE_HSEARCH
 	ENTRY e, *ep;
 
 	if (!htab.table)
@@ -72,11 +106,27 @@ get_cgi(char *name)
 	hsearch_r(e, FIND, &ep, &htab);
 
 	return ep ? ep->data : NULL;
+#else
+	TS_ENTRY e, *ep;
+	void *result;
+
+	e.key = name;
+	result = tfind((void*)&e, &troot, compare);
+
+	if (result == NULL) {
+		ep = NULL;
+	} else {
+		ep = *(TS_ENTRY **)result;
+	}
+
+	return ep ? ep->data : NULL;
+#endif
 }
 
 void
 set_cgi(char *name, char *value)
 {
+#ifndef DISABLE_HSEARCH
 	ENTRY e, *ep;
 
 	if (!htab.table)
@@ -92,6 +142,23 @@ set_cgi(char *name, char *value)
 		htab_count++;
 	}
 	assert(ep);
+#else
+	TS_ENTRY e, *ep;
+	void *result;
+
+	e.key = name;
+	result = tfind((void*)&e, &troot, compare);
+	if (result == NULL) {
+		ep = (TS_ENTRY *)malloc(sizeof(TS_ENTRY));
+		ep->key = name;
+		ep->data = value;
+		tsearch((void*)ep, &troot, compare);
+		htab_count++;
+	} else {
+		ep = *(TS_ENTRY **)result;
+		ep->data = value;
+	}
+#endif
 }
 
 void
@@ -104,7 +171,11 @@ init_cgi(char *query)
 
 	/* Clear variables */
 	if (!query) {
+#ifndef DISABLE_HSEARCH
 		hdestroy_r(&htab);
+#else
+		tdestroy(troot, ts_free);
+#endif
 		return;
 	}
 
@@ -114,7 +185,9 @@ init_cgi(char *query)
 	nel = 1;
 	while (strsep(&q, "&;"))
 		nel++;
+#ifndef DISABLE_HSEARCH
 	hcreate_r(nel, &htab);
+#endif
 
 	for (q = query; q < (query + len);) {
 		/* Unescape each assignment */
@@ -125,8 +198,9 @@ init_cgi(char *query)
 
 		/* Assign variable */
 		name = strsep(&value, "=");
-		if (value)
+		if (value) {
 			set_cgi(name, value);
+		}
 	}
 }
 

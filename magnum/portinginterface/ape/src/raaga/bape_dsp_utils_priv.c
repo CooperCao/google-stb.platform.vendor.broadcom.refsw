@@ -1411,3 +1411,60 @@ BDSP_Algorithm BAPE_P_GetCodecMixer_isrsafe(void)
     return BDSP_Algorithm_eMixer;
 }
 #endif /* #if BAPE_CHIP_MAX_DSP_MIXERS */
+
+const char * BAPE_P_GetAlgoSpecificName(
+    BAPE_DecoderHandle handle
+    )
+{
+    if ((BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 || BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS11Plus)) {
+        switch (handle->startSettings.codec) {
+        case BAVC_AudioCompressionStd_eAacAdts:
+        case BAVC_AudioCompressionStd_eAacLoas:
+        case BAVC_AudioCompressionStd_eAacPlusAdts:
+        case BAVC_AudioCompressionStd_eAacPlusLoas:
+            return " [Dolby AACHE]";
+            break;
+        case BAVC_AudioCompressionStd_eAc3:
+        case BAVC_AudioCompressionStd_eAc3Plus:
+            return " [UDC]";
+            break;
+        default:
+            return "";
+            break;
+        }
+    }
+    else if ((BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS11 || BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS10)) {
+        switch (handle->startSettings.codec) {
+        case BAVC_AudioCompressionStd_eAacAdts:
+        case BAVC_AudioCompressionStd_eAacLoas:
+        case BAVC_AudioCompressionStd_eAacPlusAdts:
+        case BAVC_AudioCompressionStd_eAacPlusLoas:
+            return " [Dolby Pulse]";
+            break;
+        case BAVC_AudioCompressionStd_eAc3:
+        case BAVC_AudioCompressionStd_eAc3Plus:
+            return " [Dolby MS10]";
+            break;
+        default:
+            return "";
+            break;
+        }
+    }
+    else {
+        switch (handle->startSettings.codec) {
+        case BAVC_AudioCompressionStd_eAacAdts:
+        case BAVC_AudioCompressionStd_eAacLoas:
+        case BAVC_AudioCompressionStd_eAacPlusAdts:
+        case BAVC_AudioCompressionStd_eAacPlusLoas:
+            return " [Dolby Pulse]";
+            break;
+        case BAVC_AudioCompressionStd_eAc3:
+        case BAVC_AudioCompressionStd_eAc3Plus:
+            return " [UDC]";
+            break;
+        default:
+            return "";
+            break;
+        }
+    }
+}

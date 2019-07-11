@@ -196,8 +196,8 @@ CFLAGS += -DWLRCC
 #ifdef WL_MBO
 CFLAGS += -DWL_MBO
 #endif
-#ifdef WL_MBO_WFA_CERT
-CFLAGS += -DWL_MBO_WFA_CERT
+#ifdef WL_MBO_TB
+CFLAGS += -DWL_MBO_TB
 #endif
 
 #ifdef WL_OCE

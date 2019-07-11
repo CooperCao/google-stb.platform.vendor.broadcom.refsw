@@ -188,6 +188,7 @@ extern int nvram_set(const char *name, const char *value);
  * @return	0 on success and errno on failure
  */
 extern int nvram_set_bitflag(const char *name, const int bit, const int value);
+
 /*
  * Unset an NVRAM variable. Pointers to previously set values
  * remain valid until a set.

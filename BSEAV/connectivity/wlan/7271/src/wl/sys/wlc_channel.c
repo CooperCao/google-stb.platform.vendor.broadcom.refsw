@@ -6024,14 +6024,20 @@ wlc_get_valid_chanspecs(wlc_cm_info_t *wlc_cmi, wl_uint32_list_t *list, uint bw,
 	    (BAND_5G(wlc->band->bandtype) == band2G))
 		return;
 
-	/* For RSDB chips we will always use common bw cap of all cores to evaluate and
-	 * sanitize chanspec
-	 * In non RSDB case, wlc->bandstate[BAND_XX_INDEX]->bw_cap is always updated from
-	 * pub->phy_bwXX_capable. We will initialize common BW cap to bandstate->bw_cap
-	 * in this scenario for any sanitization of chanspec
-	 */
-	cmn_bwcap = wlc_get_cmn_bwcap(wlc,
-			(band2G ? WLC_BAND_2G: WLC_BAND_5G));
+	if (RSDB_ENAB(wlc->pub)) {
+		/* For RSDB chips we will always use common bw cap of all cores to evaluate and
+		 * sanitize chanspec
+		 * In non RSDB case, wlc->bandstate[BAND_XX_INDEX]->bw_cap is always updated from
+		 * pub->phy_bwXX_capable. We will initialize common BW cap to bandstate->bw_cap
+		 * in this scenario for any sanitization of chanspec
+		 */
+		cmn_bwcap = wlc_get_cmn_bwcap(wlc,
+				(band2G ? WLC_BAND_2G: WLC_BAND_5G));
+	} else {
+		cmn_bwcap = (wlc->pub->phy_bw160_capable) ? WLC_BW_CAP_160MHZ :
+			((wlc->pub->phy_bw80_capable) ? WLC_BW_CAP_80MHZ :
+			((wlc->pub->phy_bw40_capable) ? WLC_BW_CAP_40MHZ : WLC_BW_CAP_20MHZ));
+	}
 
 	/* see if we need to look up country. Else, current locale */
 	if (strcmp(abbrev, "")) {

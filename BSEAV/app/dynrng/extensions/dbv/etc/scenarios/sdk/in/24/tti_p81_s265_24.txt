@@ -1,4 +1,0 @@
-stream=/mnt/hd/Test_Vectors/Dolby_Vision/Transition_Tests/implicit/dvhe.sth/UHD/23976/DOVI_to_SDR/Transition_Test_dvhesth_to_SDR_UHD_23976_st.ts
-forceRestart=on
-stcTrick=off
-commit

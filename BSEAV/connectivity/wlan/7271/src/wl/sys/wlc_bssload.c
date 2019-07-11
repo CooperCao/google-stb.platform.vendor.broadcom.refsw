@@ -48,6 +48,7 @@
 #include <wlc_event_utils.h>
 
 #define MAX_CHAN_UTIL 255
+#define CU_CHECK_INTERVAL 10 /* in unit of tbtt */
 
 /* iovar table */
 enum {
@@ -82,6 +83,7 @@ struct wlc_bssload_info {
 	cca_ucode_counts_t cca_stats;	/* cca stats from ucode */
 	uint8 chan_util;	/* channel utilization */
 	wl_bssload_static_t bssload_static;
+	uint8 p2pgo_mchan_tbtt_cnt; /* counter for checking channel utilization in VSDB case*/
 #endif /* WLBSSLOAD */
 };
 
@@ -101,6 +103,7 @@ static int wlc_bssload_doiovar(void *ctx, uint32 actionid,
 	void *params, uint p_len, void *arg, uint len, uint val_size, struct wlc_if *wlcif);
 #ifdef WLBSSLOAD
 static void wlc_bssload_watchdog(void *ctx);
+static void wlc_bssload_check_cu(wlc_bssload_info_t *mbssload);
 
 /* IE mgmt */
 static uint wlc_bssload_calc_qbss_load_ie_len(void *ctx, wlc_iem_calc_data_t *data);
@@ -381,20 +384,48 @@ static void wlc_bssload_get_chan_util(wlc_info_t *wlc, uint8 *chan_util,
 	cca_stats->usecs = tmp.usecs;
 }
 
+static void wlc_bssload_check_cu(wlc_bssload_info_t *mbssload)
+{
+	wlc_info_t *wlc = mbssload->wlc;
+	uint8 chan_util;	/* old channel utilization */
+	chan_util = mbssload->chan_util;
+	wlc_bssload_get_chan_util(wlc, &mbssload->chan_util, &mbssload->cca_stats);
+	/* update beacon only when CU is changed */
+	if ((chan_util != mbssload->chan_util) && wlc->pub->up) {
+		wlc_update_beacon(wlc);
+		wlc_update_probe_resp(wlc, TRUE);
+	}
+}
+
+void
+wlc_bssload_reset_go_tbtt_cnt (wlc_info_t *wlc)
+{
+	wlc->mbssload->p2pgo_mchan_tbtt_cnt = 0;
+}
+
+
+/* This function is used for GO to update bssload ie in VSDB case */
+void
+wlc_bssload_tbtt(wlc_bssload_info_t *mbssload, wlc_bsscfg_t *cfg)
+{
+	wlc_info_t *wlc = mbssload->wlc;
+	if (WLBSSLOAD_ENAB(wlc->pub) && MCHAN_ENAB(wlc->pub) && MCHAN_ACTIVE(wlc->pub) && P2P_GO(wlc,cfg)) {
+		mbssload->p2pgo_mchan_tbtt_cnt++;
+		if (mbssload->p2pgo_mchan_tbtt_cnt >= CU_CHECK_INTERVAL) { /*Check CU every # of  tbtt*/
+			wlc_bssload_reset_go_tbtt_cnt(wlc);
+			wlc_bssload_check_cu(mbssload);
+		}
+	}
+
+}
+
 static void wlc_bssload_watchdog(void *ctx)
 {
 	wlc_bssload_info_t *mbssload = (wlc_bssload_info_t *)ctx;
 	wlc_info_t *wlc = mbssload->wlc;
-	uint8 chan_util;	/* old channel utilization */
 
-	if (WLBSSLOAD_ENAB(wlc->pub)) {
-		chan_util = mbssload->chan_util;
-		wlc_bssload_get_chan_util(wlc, &mbssload->chan_util, &mbssload->cca_stats);
-		/* update beacon only when CU is changed */
-		if ((chan_util != mbssload->chan_util) && wlc->pub->up) {
-			wlc_update_beacon(wlc);
-			wlc_update_probe_resp(wlc, TRUE);
-		}
+	if (WLBSSLOAD_ENAB(wlc->pub) && !(MCHAN_ENAB(wlc->pub) && MCHAN_ACTIVE(wlc->pub))) {
+		wlc_bssload_check_cu(mbssload);
 	}
 }
 

@@ -68,7 +68,7 @@
 #include <wps_ui.h>
 #endif
 
-#include <cgi_common.h>
+#include "cgi_common.h"
 
 #if defined(linux)
 #include <fcntl.h>
@@ -193,13 +193,13 @@ ej_lan_route(int eid, webs_t wp, int argc, char_t **argv)
 			if (!gateway || !metric)
 				continue;
 			if (!strcmp(arg, "ipaddr"))
-				return websWrite(wp, ipaddr);
+				return websWrite(wp, "%s", ipaddr);
 			else if (!strcmp(arg, "netmask"))
-				return websWrite(wp, netmask);
+				return websWrite(wp, "%s", netmask);
 			else if (!strcmp(arg, "gateway"))
-				return websWrite(wp, gateway);
+				return websWrite(wp, "%s", gateway);
 			else if (!strcmp(arg, "metric"))
-				return websWrite(wp, metric);
+				return websWrite(wp, "%s", metric);
 		}
 	}
 

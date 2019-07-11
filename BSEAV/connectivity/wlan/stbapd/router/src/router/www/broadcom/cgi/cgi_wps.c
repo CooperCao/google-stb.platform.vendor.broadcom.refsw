@@ -68,7 +68,7 @@
 #include <wps_ui.h>
 #endif
 
-#include <cgi_common.h>
+#include "cgi_common.h"
 
 static int
 ej_wps_config_change_display(int eid, webs_t wp, int argc, char_t **argv)

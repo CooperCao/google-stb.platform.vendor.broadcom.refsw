@@ -41,7 +41,11 @@
 
 /* Linux specific headers */
 #ifdef linux
+#ifdef TARGETENV_android
+#include <linux/can/error.h>
+#else
 #include <error.h>
+#endif /* TARGETENV_android */
 #include <termios.h>
 #include <sys/time.h>
 #include <net/ethernet.h>
@@ -177,7 +181,11 @@ _eval(char *const argv[], char *path, int timeout, int *ppid)
 			"/sbin:/bin:/usr/sbin:/usr/bin:/opt/sbin:/opt/bin:/opt/usr/sbin:/opt/usr/bin",
 			1);
 #else /* ! BCA_HNDROUTER */
+#ifdef TARGETENV_android
+		setenv("PATH", "/sbin:/bin:/usr/sbin:/usr/bin:/vendor/bin", 1);
+#else
 		setenv("PATH", "/sbin:/bin:/usr/sbin:/usr/bin", 1);
+#endif /* TARGETENV_android */
 #endif /* ! BCA_HNDROUTER */
 		alarm(timeout);
 		execvp(argv[0], argv);

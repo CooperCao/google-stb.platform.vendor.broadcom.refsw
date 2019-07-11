@@ -45,17 +45,21 @@ B_REFSW_TOP := $(subst /${THIS_DIR},,${CURDIR})
 BSEAV_TOP := $(B_REFSW_TOP)/BSEAV
 NEXUS_TOP := $(B_REFSW_TOP)/nexus
 
+ifneq ($(NEXUS_PLATFORM),)
 include ${NEXUS_TOP}/platforms/common/build/platform_app.inc
 include ${NEXUS_TOP}/platforms/common/build/nexus_platforms.inc
+endif
 ###############################################
-#Adjust these two parameter. DEBUG=y will add -debug to end ${4375_DEFAULT_BUILDCFG}
+#Adjust these parameters. DEBUG=y will add -debug to end ${4375_DEFAULT_BUILDCFG}
 #####################################################
 4375_DEBUG=y
+4375_MFGTEST=n
 4375_DEFAULT_BUILDCFG?=dhd-msgbuf-pciefd-cfg80211-stb
 ##########################################################
 
 WIFI_4375_TAR_NAME := stb_4375_wifi.tar.gz
 WIFI_4375_LOCAL_TAR_LOCATION=${BSEAV_TOP}/../${THIS_DIR}/${WIFI_4375_TAR_NAME}
+ifneq ($(NEXUS_PLATFORM),)
 B_REFSW_OBJ_DIR  ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${BSEAV_TOP}/../${B_REFSW_OBJ_DIR}
 BSEAV_BIN_DIR?=${B_REFSW_OBJ_ROOT}/BSEAV/bin
@@ -67,7 +71,6 @@ K_PATCHLEVEL	:= $(shell grep "^PATCHLEVEL" $(LINUX)/Makefile | cut -d " " -f3)
 K_SUBLEVEL	:= $(shell grep "^SUBLEVEL" $(LINUX)/Makefile | cut -d " " -f3)
 K_EXTRAVERSION	:= $(shell grep "^EXTRAVERSION" $(LINUX)/Makefile | cut -d- -f2-)
 KERNEL_VERSION	:= $(K_VERSION).$(K_PATCHLEVEL).$(K_SUBLEVEL)-$(K_EXTRAVERSION)
-
 
 # Handle 32-bit ARM (B_REFSW_ARCH==arm*)
 ifneq ($(filter arm%,${B_REFSW_ARCH}),)
@@ -131,21 +134,28 @@ export LINUXVER?=$(shell cat ${LINUXDIR}/include/config/kernel.release)
 export CROSS_COMPILE?=${B_REFSW_CROSS_COMPILE}
 
 #location of clm, fw, and dhd.ko
-ifneq (,$(findstring mfgtest,$(4375_DEFAULT_BUILDCFG)))
-    # Found
-    CLM_DIR=${4375_OOSRC}/clm_blobs/dongle/4375b1-roml/config_pcie_stb_mfgtest
+ifeq (${4375_MFGTEST},y)
+    # Note: clmblob built in to mfgtest fw. No need to do download clm_blob for mfgtest
+    #CLM_DIR=${4375_OOSRC}/clm_blobs/dongle/4375b1-roml/config_pcie_stb_mfgtest
+    CLM_DIR=${4375_OOSRC}/clm_blobs/dongle/4375b1-roml/dummy_nonexistant
     FW_BINARIES=${4375_OOSRC}/firmware/4375b1-roml/config_pcie_stb_mfgtest.*
 else
-    # Not found
+    # Release
     CLM_DIR=${4375_OOSRC}/clm_blobs/dongle/4375b1-roml/config_pcie_stb_release
     FW_BINARIES=${4375_OOSRC}/firmware/4375b1-roml/config_pcie_stb_release.*
 endif
 DHD_KO=${4375_OOSRC}/dhd/src/dhd/linux/${BUILDCFG}-${LINUXVER}/dhd.ko
+endif
+
+CUR_TARBALL_SHASUM:=$(shell sha1sum ${WIFI_4375_TAR_NAME})
+RELEASE_TARBALL_SHASUM:=$(shell awk 'END{print}' wifi_4375.txt | awk -F ' ' '{print $$3}')
 
 # Check if wifi tarball has been fetched
 WIFI_4375_TAR_FETCH_MAYBE := ${WIFI_4375_LOCAL_TAR_LOCATION}
 ifneq ("$(wildcard $(WIFI_4375_LOCAL_TAR_LOCATION))","")
+ifeq ($(CUR_TARBALL_SHASUM),$(RELEASE_TARBALL_SHASUM))
 	WIFI_4375_TAR_FETCH_MAYBE :=
+endif
 endif
 
 .PHONY: all clean
@@ -156,23 +166,36 @@ release:
 	@bash ${B_REFSW_TOP}/BSEAV/tools/build/binaries/verify_binaries.sh wifi_4375.txt stb_4375_wifi.tar.gz ${BSEAV_TOP}/../${THIS_DIR}
 
 
-${WIFI_4375_TAR_FETCH_MAYBE}: release
+${WIFI_4375_TAR_FETCH_MAYBE}:
+	@echo "================FETCHING 4375 wifi tarball  =========================================="
+	@echo "================CUR_TARBALL_SHASUM=${CUR_TARBALL_SHASUM} != RELEASE_TARBALL_SHASUM=${RELEASE_TARBALL_SHASUM}"
+	@bash ${B_REFSW_TOP}/BSEAV/tools/build/binaries/verify_binaries.sh wifi_4375.txt stb_4375_wifi.tar.gz ${BSEAV_TOP}/../${THIS_DIR}
 
 build_dhd: ${WIFI_4375_TAR_FETCH_MAYBE}
-	@echo "================ Untar 4375 wifi tarball to ${4375_OOSRC}=========================================="
-	${Q_}mkdir -p ${4375_OOSRC}
-	tar -xvzf ${WIFI_4375_LOCAL_TAR_LOCATION} -C ${4375_OOSRC}
-	@echo "================ build dhd driver=========================================="
-	${Q_}make -C ${4375_OOSRC}/dhd/src/include clean
-	${Q_}make -C ${4375_OOSRC}/dhd/src/include
+	@if [ "$(NEXUS_PLATFORM)" = "" ]; then \
+		echo "Error:NEXUS_PLATFORM is not defined!"; \
+		exit 1; \
+	fi
+	@if [ ! -d "${4375_OOSRC}/dhd" ]; then \
+		echo "================ Untar 4375 wifi tarball to ${4375_OOSRC}=========================================="; \
+		mkdir -p ${4375_OOSRC}; \
+		tar -xvzf ${WIFI_4375_LOCAL_TAR_LOCATION} -C ${4375_OOSRC}; \
+	fi
+	@echo "================ build dhd driver ${WIFI_4375_TAR_FETCH_MAYBE}=========================================="
+	${Q_}${MAKE} -C ${4375_OOSRC}/dhd/src/include clean
+	${Q_}${MAKE} -C ${4375_OOSRC}/dhd/src/include
 #${Q_}${MAKE} -C ${B_WLAN_DRIVER_BUILD_OOSRC_DIR} JOBS= MAKEJOBS= ${BUILDCFG} FIRMWARE="${FIRMWARE}"  LINUXVER=${LINUXVER} ${BUILDARG}  ${B_WLAN_DRIVER_MAKE_REDIR}
-	${Q_}make -j 16 -C ${4375_OOSRC}/dhd/src/dhd/linux ${BUILDCFG} WLTEST=${WLTEST} WLLXIW=${WLLXIW} LINUXVER=${LINUXVER} ${BUILDARG} CC=${CC} STRIP=${STRIP} 2>&1 | tee ${4375_OOSRC}/build-${BUILDCFG}.log
+	${Q_}${MAKE} -C ${4375_OOSRC}/dhd/src/dhd/linux ${BUILDCFG} WLTEST=${WLTEST} WLLXIW=${WLLXIW} LINUXVER=${LINUXVER} ${BUILDARG} CC=${CC} STRIP=${STRIP} 2>&1 | tee ${4375_OOSRC}/build-${BUILDCFG}.log
 
 install: build_dhd
+	${Q_}mkdir -p ${BSEAV_BIN_DIR}
 	@echo "================ copy nvram=========================================="
-	cp ${4375_OOSRC}/nvram/* ${BSEAV_BIN_DIR}
+	cp ${4375_OOSRC}/nvrams/* ${BSEAV_BIN_DIR}
 	@echo "================ copy stb_release_clm=========================================="
-	cp ${CLM_DIR}/* ${BSEAV_BIN_DIR}
+	if [ -d ${CLM_DIR} ]; then \
+		cp ${CLM_DIR}/* ${BSEAV_BIN_DIR}; \
+		cp ${CLM_DIR}/* ${NEXUS_BIN_DIR}; \
+	fi;
 	@echo "================ copy fw=========================================="
 	cp ${FW_BINARIES} ${BSEAV_BIN_DIR}
 	@echo "================ copy driver=========================================="
@@ -185,3 +208,8 @@ install: build_dhd
 clean:
 	@echo "================ MAKE CLEAN remove tar files =========================================="
 	@rm -rf ${4375_OOSRC}
+
+dist-clean: clean
+	@echo "================ MAKE DIST-CLEAN remove local tar files =========================================="
+	@rm -rf ${WIFI_4375_LOCAL_TAR_LOCATION}
+

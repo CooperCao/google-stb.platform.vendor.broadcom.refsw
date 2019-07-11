@@ -4965,6 +4965,12 @@ wl_cfg80211_create_iface(struct wiphy *wiphy,
 		for_each_ndev(cfg, iter, next) {
 			if (iter->ndev) {
 				if (strcmp(iter->ndev->name, name) == 0) {
+					/* If iface already exists and has wdev, return
+					 * the corresponding wdev.
+					 */
+					if (iter->wdev != NULL) {
+						return iter->wdev;
+					}
 					WL_ERR(("Interface name, %s exists !\n", iter->ndev->name));
 					return NULL;
 				}
@@ -10863,11 +10869,10 @@ static s32 wl_cfg80211_bcn_set_params(
 		}
 	}
 
-	if (info->hidden_ssid != NL80211_HIDDEN_SSID_NOT_IN_USE) {
-		if ((err = wldev_iovar_setint(dev, "closednet", 1)) < 0)
-			WL_ERR(("failed to set hidden : %d\n", err));
-		WL_DBG(("hidden_ssid_enum_val: %d \n", info->hidden_ssid));
-	}
+	if ((err = wldev_iovar_setint(dev, "closednet",
+		(info->hidden_ssid == NL80211_HIDDEN_SSID_NOT_IN_USE)? 0: 1)) < 0)
+		WL_ERR(("failed to set hidden : %d\n", err));
+	WL_DBG(("hidden_ssid_enum_val: %d \n", info->hidden_ssid));
 
 	return err;
 }
@@ -12042,9 +12047,11 @@ wl_cfg80211_start_ap(
 	}
 
 #ifdef TRAFFIC_MGMT
-	if ((err = wl_cfg80211_set_trf_mgmt_filter(wiphy, dev)) < 0) {
-		WL_ERR(("set traffic mgmt filter failed \n"));
-		goto fail;
+	if (dev_role != NL80211_IFTYPE_P2P_GO) {
+		if ((err = wl_cfg80211_set_trf_mgmt_filter(wiphy, dev)) < 0) {
+			WL_ERR(("set traffic mgmt filter failed \n"));
+			goto fail;
+		}
 	}
 #endif
 
@@ -23178,6 +23185,10 @@ static s32 wl_radar_event_handler(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *c
 
 	if (likely(cfgdev)) {
 		ndev = cfgdev_to_wlc_ndev(cfgdev, cfg);
+		if (wl_get_mode_by_netdev(cfg, ndev) == WL_MODE_BSS && !wl_get_drv_status(cfg, CONNECTED, ndev)) {
+			WL_ERR(("%s: Ignore WLC_E_RADAR_DETECTED event.\n", ndev->name));
+			return BCME_ERROR;
+		}
 		radar_data = *((wl_event_radar_detect_data_t *)data);
 		chanspec = radar_data.current_chanspec;
 		if (wl_chspec_chandef(chanspec, &chandef, wiphy)) {
@@ -24110,6 +24121,10 @@ const wl_event_msg_t *e, void *data)
 			/* For AP/GO role */
 			wl_ap_channel_ind(cfg, ndev, chanspec);
 		} else {
+			if (!wl_get_drv_status(cfg, CONNECTED, ndev)) {
+				WL_ERR(("%s: Ignore WLC_E_CSA_COMPLETE_IND event\n", ndev->name));
+				return BCME_ERROR;
+			}
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0))
 			wl_cfg80211_ch_switch_notify(ndev, chanspec, bcmcfg_to_wiphy(cfg));
 #endif /* LINUX_VERSION_CODE >= (3, 5, 0) */
@@ -25225,11 +25240,15 @@ static bool wl_cfg80211_wbtext_send_btm_query(struct bcm_cfg80211 *cfg, struct n
 {
 	int error = -1;
 	bool ret = FALSE;
+	wl_bsstrans_query_t btq;
 
 	WL_DBG(("Enter\n"));
 
-	error = wldev_iovar_setbuf(dev, "wnm_bsstrans_query", NULL,
-		0, cfg->ioctl_buf, WLC_IOCTL_SMLEN, &cfg->ioctl_buf_sync);
+	bzero(&btq, sizeof(wl_bsstrans_query_t));
+
+	btq.version = WL_BSSTRANS_QUERY_VERSION_1;
+	error = wldev_iovar_setbuf(dev, "wnm_bsstrans_query", &btq,
+		sizeof(btq), cfg->ioctl_buf, WLC_IOCTL_SMLEN, &cfg->ioctl_buf_sync);
 	if (error == BCME_OK) {
 		ret = wl_cfg80211_wbtext_add_bssid_list(cfg,
 			(struct ether_addr *)&profile->bssid);

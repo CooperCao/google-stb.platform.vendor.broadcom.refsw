@@ -66,7 +66,7 @@ void NEXUS_SurfaceCompositorModule_P_Print(void)
         NEXUS_SurfaceClientHandle client;
         unsigned i;
         BDBG_LOG(("SurfaceCompositor %p", (void *)server));
-        for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+        for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
             struct NEXUS_SurfaceCompositorDisplay *display = server->display[i];
             if (display && display->display) {
                 BDBG_LOG(("display %d: %p, canvas %dx%d, %d compositions, %d fills", display->index, (void *)display->display, display->formatInfo.canvas.width, display->formatInfo.canvas.height,
@@ -302,7 +302,7 @@ NEXUS_SurfaceCompositorHandle NEXUS_SurfaceCompositor_Create( unsigned server_id
     server->state.update_flags = 0;
     NEXUS_Graphics2D_GetCapabilities(server->gfx, &server->bounceBuffer.capabilities);
 
-    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+    for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
         /* default settings per display */
         server->settings.display[i].enabled = true;
         server->settings.display[i].framebuffer.number = 2;
@@ -386,7 +386,7 @@ static void NEXUS_SurfaceCompositor_P_Finalizer( NEXUS_SurfaceCompositorHandle s
     /* release held surfaces */
     nexus_surface_compositor_p_release_surfaces(server);
 
-    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+    for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
         struct NEXUS_SurfaceCompositorDisplay *cmpDisplay = server->display[i];
         if(cmpDisplay) {
             nexus_surface_compositor_p_destroy_display(cmpDisplay);
@@ -453,7 +453,7 @@ static void nexus_surface_compositor_p_dealloc_displays(NEXUS_SurfaceCompositorH
 
     NEXUS_SurfaceCursor_P_Clear(server);
 
-    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+    for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
         struct NEXUS_SurfaceCompositorDisplay *cmpDisplay = server->display[i];
         if(cmpDisplay==NULL) {
             continue;
@@ -606,7 +606,7 @@ NEXUS_Error nexus_surface_compositor_p_realloc_framebuffers(NEXUS_SurfaceComposi
         return NEXUS_SUCCESS;
     }
 
-    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+    for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
         struct NEXUS_SurfaceCompositorDisplay *cmpDisplay = server->display[i];
         if (!cmpDisplay) continue;
         if (server->bypass_compose.client) {
@@ -628,7 +628,7 @@ NEXUS_Error nexus_surface_compositor_p_realloc_framebuffers(NEXUS_SurfaceComposi
 #define COPY_STRUCT_FIELD(TO, FROM, FIELD) do {if ((TO)->FIELD != (FROM)->FIELD) { (TO)->FIELD = (FROM)->FIELD; change = true; }}while(0)
 
 struct nexus_surface_compositor_p_update_graphics_settings_status {
-    bool toggle_enabled[NEXUS_MAX_DISPLAYS];
+    bool toggle_enabled[NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS];
 };
 
 static NEXUS_Error nexus_surface_compositor_p_update_graphics_settings( NEXUS_SurfaceCompositorHandle server, const NEXUS_SurfaceCompositorSettings *pSettings,
@@ -637,7 +637,7 @@ static NEXUS_Error nexus_surface_compositor_p_update_graphics_settings( NEXUS_Su
     unsigned i;
     NEXUS_Error rc;
     BSTD_UNUSED(server);
-    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+    for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
         NEXUS_GraphicsSettings graphicsSettings;
         bool change = false;
         status->toggle_enabled[i] = false;
@@ -676,7 +676,7 @@ static bool nexus_p_is_secure_heap(NEXUS_HeapHandle heap)
 static void nexus_surfacemp_p_release_all_display_framebuffers(NEXUS_SurfaceCompositorHandle server)
 {
     unsigned i;
-    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+    for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
         if (server->display[i]) {
             nexus_surfacemp_p_release_display_framebuffers(server->display[i]);
         }
@@ -736,7 +736,7 @@ static NEXUS_Error nexus_surface_compositor_p_update_display( NEXUS_SurfaceCompo
         if (rc) {BERR_TRACE(rc); goto err_switch_secure;}
     }
 
-    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+    for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
         struct NEXUS_SurfaceCompositorDisplay *cmpDisplay = server->display[i];
         NEXUS_VideoFormatInfo formatInfo;
         NEXUS_DisplaySettings displaySettings;
@@ -992,7 +992,7 @@ static void nexus_surface_compositor_p_inactive_timer(void *context)
         fire_again = true;
     } else {
         unsigned i;
-        for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+        for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
             if(server->settings.display[i].display && !nexus_surface_compositor_p_display_enabled(server, i)) {
                 struct NEXUS_SurfaceCompositorDisplay *display =  server->display[i];
                 if(display && display->submitted) {
@@ -1010,7 +1010,7 @@ static void nexus_surface_compositor_p_inactive_timer(void *context)
             unsigned i;
             BDBG_WRN(("auto_disable of unused graphics"));
             server->auto_disable.disabled = true;
-            for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+            for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
                 if (server->display[i]) {
                     nexus_surfacemp_p_disable_display(server, server->display[i]);
                 }
@@ -1043,7 +1043,7 @@ NEXUS_Error NEXUS_SurfaceCompositor_SetSettings( NEXUS_SurfaceCompositorHandle s
     BDBG_OBJECT_ASSERT(server, NEXUS_SurfaceCompositor);
 
     if (server->state.active) {
-        for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+        for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
             if (pSettings->display[i].display != server->settings.display[i].display ||
                 pSettings->display[i].framebuffer.number != server->settings.display[i].framebuffer.number ||
                 pSettings->display[i].framebuffer.width != server->settings.display[i].framebuffer.width ||
@@ -1091,7 +1091,7 @@ NEXUS_Error NEXUS_SurfaceCompositor_SetSettings( NEXUS_SurfaceCompositorHandle s
         bool muteVideoChanged = false;
         struct nexus_surface_compositor_p_update_graphics_settings_status status;
 
-        for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+        for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
             if (pSettings->muteVideo[i] != server->settings.muteVideo[i]) {
                 muteVideoChanged = true;
                 break;
@@ -1103,7 +1103,7 @@ NEXUS_Error NEXUS_SurfaceCompositor_SetSettings( NEXUS_SurfaceCompositorHandle s
         /* if active, the only possible change is the enabled flag. */
         server->settings = *pSettings;
 
-        for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+        for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
             if (status.toggle_enabled[i]) {
                 /* for any change, clear compositor's auto_disable state */
                 server->auto_disable.cnt = 0;
@@ -1119,6 +1119,18 @@ NEXUS_Error NEXUS_SurfaceCompositor_SetSettings( NEXUS_SurfaceCompositorHandle s
         }
 
         if (enable_changed && !pSettings->enabled) {
+            unsigned i;
+            /*
+             * If graphics are disabled and we then disable NSC, submitted can safely be
+             * cleared here so that NSC will eventually declare itself inactive.
+             */
+            for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
+                if(server->settings.display[i].display && !nexus_surface_compositor_p_display_enabled(server, i)) {
+                    struct NEXUS_SurfaceCompositorDisplay *display =  server->display[i];
+                    display->submitted = NULL;
+                }
+            }
+
             /* starting disabled -> !active process */
             if (server->state.active) {
                 nexus_p_surface_compositor_check_inactive(server);
@@ -1867,7 +1879,7 @@ void nexus_surface_compositor_p_compose(NEXUS_SurfaceCompositorHandle server)
             unsigned i;
             server->auto_disable.cnt = 0;
             server->auto_disable.disabled = false;
-            for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+            for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
                 if (server->display[i] && server->settings.display[i].enabled) {
                     NEXUS_GraphicsSettings graphicsSettings;
                     NEXUS_Error rc;
@@ -2304,7 +2316,7 @@ void nexus_p_surface_compositor_check_inactive(NEXUS_SurfaceCompositorHandle ser
     BDBG_ASSERT(server->state.active); /* if inactive, the condition should never arise to call this */
     BDBG_ASSERT(!server->settings.enabled); /* if enabled, it should not be called */
 
-    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+    for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
         if(server->display[i]==NULL) {
             continue;
         }
@@ -2319,7 +2331,7 @@ void nexus_p_surface_compositor_check_inactive(NEXUS_SurfaceCompositorHandle ser
     BDBG_MSG(("inactive"));
     nexus_surface_compositor_p_release_surfaces(server);
     /* last fb callbacks received, so disable displays */
-    for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
+    for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
         struct NEXUS_SurfaceCompositorDisplay *cmpDisplay = server->display[i];
         if (cmpDisplay && cmpDisplay->display) {
             nexus_surfacemp_p_disable_display(server, cmpDisplay);

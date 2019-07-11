@@ -80,6 +80,7 @@ static void BAPE_Decoder_P_FirstPts_isr(void *pParam1, int param2, const BDSP_Au
 static void BAPE_Decoder_P_TsmFail_isr(void *pParam1, int param2, const BDSP_AudioTaskTsmStatus *pTsmStatus);
 static void BAPE_Decoder_P_TsmPass_isr(void *pParam1, int param2, const BDSP_AudioTaskTsmStatus *pTsmStatus);
 static void BAPE_Decoder_P_SampleRateChange_isr(void *pParam1, int param2, unsigned streamSampleRate, unsigned baseSampleRate);
+static void BAPE_Decoder_P_UnlicensedAlgo_isr(void *pParam1, int param2);
 static void BAPE_Decoder_P_ModeChange_isr(void *pParam1, int param2, unsigned mode);
 static void BAPE_Decoder_P_BitrateChange_isr(void *pParam1, int param2, const BDSP_AudioBitRateChangeInfo *pInfo);
 static void BAPE_Decoder_P_Overflow_isr(void *pParam1, int param2);
@@ -3325,6 +3326,7 @@ static void BAPE_Decoder_P_GetQueuedOutput(BAPE_DecoderHandle handle, BAPE_Decod
     }
     return;
 }
+
 void BAPE_Decoder_GetStatus(
     BAPE_DecoderHandle handle,
     BAPE_DecoderStatus *pStatus     /* [out] */
@@ -3339,7 +3341,22 @@ void BAPE_Decoder_GetStatus(
     pStatus->codec = BAVC_AudioCompressionStd_eMax;
     if ( handle->state != BAPE_DecoderState_eStopped )
     {
+        BAPE_MixerHandle fwMixer=NULL;
+        const BAPE_CodecAttributes  *pCodecAttributes = BAPE_P_GetCodecAttributes_isrsafe(handle->startSettings.codec);
+        errCode = BAPE_PathNode_P_GetDecodersDownstreamDspMixer(&handle->node, &fwMixer);
+        if ( errCode != BERR_SUCCESS ) {
+            BERR_TRACE(errCode);
+            return;
+        }
+        if (fwMixer) {
+            BAPE_MixerStatus mixerStatus;
+            BAPE_Mixer_GetStatus(fwMixer, &mixerStatus);
+            pStatus->unlicensedAlgo = mixerStatus.unlicensedAlgo;
+        }
         pStatus->codec = handle->startSettings.codec;
+        pStatus->unlicensedAlgo |= handle->unlicensedAlgo;
+        BKNI_Snprintf(pStatus->codecName, sizeof(pStatus->codecName), "%s%s",
+                      pCodecAttributes->pName, BAPE_P_GetAlgoSpecificName(handle));
         BAPE_Decoder_GetTsmStatus(handle, &pStatus->tsmStatus);
         pStatus->sampleRate = handle->pcmOutputSampleRate;
         errCode = BAPE_Decoder_P_GetCodecStatus(handle, pStatus);
@@ -3643,6 +3660,9 @@ BERR_Code BAPE_Decoder_SetInterruptHandlers(
         interrupts.bitrateChange.pParam1 = handle;
         interrupts.cdbItbOverflow.pCallback_isr = BAPE_Decoder_P_Overflow_isr;
         interrupts.cdbItbOverflow.pParam1 = handle;
+        interrupts.unlicensedAlgo.pCallback_isr = BAPE_Decoder_P_UnlicensedAlgo_isr;
+        interrupts.unlicensedAlgo.pParam1 = handle;
+        handle->unlicensedAlgo = false;
 #if 0 /* disable due to out of control interrupts */
         interrupts.CdbItbUnderflowAfterGateOpen.pCallback_isr = BAPE_Decoder_P_Underflow_isr;
         interrupts.CdbItbUnderflowAfterGateOpen.pParam1 = handle;
@@ -3955,6 +3975,24 @@ static void BAPE_Decoder_P_Overflow_isr(void *pParam1, int param2)
     }
 }
 
+static void BAPE_Decoder_P_UnlicensedAlgo_isr(void *pParam1, int param2)
+{
+    BAPE_DecoderHandle handle = pParam1;
+    BDSP_AudioInterruptHandlers interrupts;
+    BDBG_OBJECT_ASSERT(handle, BAPE_Decoder);
+    BSTD_UNUSED(param2);
+    BDSP_AudioTask_GetInterruptHandlers_isr(handle->hTask, &interrupts);
+    interrupts.unlicensedAlgo.pCallback_isr = NULL;
+    interrupts.unlicensedAlgo.pParam1 = handle;
+    (void)BDSP_AudioTask_SetInterruptHandlers_isr(handle->hTask, &interrupts);
+    handle->unlicensedAlgo = true;
+    if ( handle->interrupts.unlicensedAlgo.pCallback_isr )
+    {
+        handle->interrupts.unlicensedAlgo.pCallback_isr(handle->interrupts.unlicensedAlgo.pParam1,
+                                                        handle->interrupts.unlicensedAlgo.param2);
+    }
+
+}
 #if 0 /* disable due to out of control interrupts */
 static void BAPE_Decoder_P_Underflow_isr(void *pParam1, int param2)
 {

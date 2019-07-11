@@ -7,7 +7,37 @@ To build the default configuration, simply do:
         make -j8 clean
     Building:
         make -j8
+To build stbapd:
+    Key exports:
+    export B_WLAN_STBAPD={1|0}  // enables stbapd Makefile targets. See below.
+    export WLAN_DEFAULT_BUILDCFG={driver target}  // Note. if driver target contains -stbapd-
+							will automatically build stbapd_drivers and enable B_WLAN_STBAPD
+    export BUILD_BRCM_HOSTAPD={y|n}  // y, builds opensource external authenticator files(libnl,openssl,wpa_supplicant,hostapd,iw etc.).
 
+
+    Makefile targets:
+    make stbapd_build_all  :  builds both stbapd apps and stbapd drivers(emf,igs,dpsta)
+    make stbapd_install    :  copies stbapd drivers and apps to common out of source location (i.e obj.97271.B0/BSEAV/bin/stbapd)
+				+ will create tarball package (i.e obj.97271.B0/BSEAV/bin/stbapd/ext_auth/target_bin.bz2)
+    make stbapd_clean_all  :  cleans both stbapd apps and driver completely
+    make stbapd_drv_clean :  cleans just stbapd driver
+    make stbadpd_apps_clean:  clean just stbapd apps
+
+    Examples:
+    // External Authenticator:Creates complete packages of sta driver, stbapd apps, stbapd driver, and  using opensource.
+    plat 97271 B0 64 4.9-1.12 or plat 97271 B0 (takes defaults bit and kernel) //sets platfrom variables,toolchain and kernel
+    make -j8 WLAN_DEFAULT_BUILDCFG=debug-bcmintdbg-apdef-stadef-extnvm-mfp-wet-pspretend-cfg80211-stbapd-multiap-stbsoc // building 7271 driver
+    make -j8 stbapd_build_all WLAN_DEFAULT_BUILDCFG=debug-bcmintdbg-apdef-stadef-extnvm-mfp-wet-pspretend-cfg80211-stbapd-multiap-stbsoc BUILD_BRCM_HOSTAPD=y //stapbd drv+apps+opensrc
+    make stbapd_install WLAN_DEFAULT_BUILDCFG=debug-bcmintdbg-apdef-stadef-extnvm-mfp-wet-pspretend-cfg80211-stbapd-multiap-stbsoc  BUILD_BRCM_HOSTAPD=y  // copy and tarball
+
+    // Internal Authenticator:Creates complete packages of sta driver, stbapd apps, stbapd driver.
+    plat 97271 B0 64 4.9-1.12 or plat 97271 B0 (takes defaults bit and kernel)
+    make -j8 WLAN_DEFAULT_BUILDCFG=debug-bcmintdbg-apdef-stadef-extnvm-mfp-wet-pspretend-stbapd-multiap-stbsoc
+    make -j8 stbapd_build_all WLAN_DEFAULT_BUILDCFG=debug-bcmintdbg-apdef-stadef-extnvm-mfp-wet-pspretend-stbapd-multiap-stbsoc 
+    make stbapd_install WLAN_DEFAULT_BUILDCFG=debug-bcmintdbg-apdef-stadef-extnvm-mfp-wet-pspretend-stbapd-multiap-stbsoc 
+
+    //cleans everything
+    make clean WLAN_DEFAULT_BUILDCFG=debug-bcmintdbg-apdef-stadef-extnvm-mfp-wet-pspretend-cfg80211-stbapd-multiap-stbsoc BUILD_BRCM_HOSTAPD={y|n}
 
 However, the WLAN code can be built in many different ways, depending on the values of the following "build flags":
 

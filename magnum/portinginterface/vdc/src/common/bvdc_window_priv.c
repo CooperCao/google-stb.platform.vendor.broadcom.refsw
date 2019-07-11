@@ -72,6 +72,7 @@
 #include "bvdc_mcdi_priv.h"
 #include "bvdc_tnt_priv.h"
 #include "bvdc_tntd_priv.h"
+#include "bvdc_adjrect_priv.h"
 
 BDBG_MODULE(BVDC_WIN);
 BDBG_FILE_MODULE(BVDC_TIMESTAMP);
@@ -2402,7 +2403,6 @@ BERR_Code BVDC_P_Window_ValidateChanges
     uint32_t ulBoxWinId;
     BVDC_DisplayId eDisplayId;
     BVDC_P_WindowId eWindowId;
-    uint32_t ulBoxWindowHeightFraction, ulBoxWindowWidthFraction;
     BDBG_ENTER(BVDC_P_Window_ValidateChanges);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
     BDBG_OBJECT_ASSERT(hWindow->stNewInfo.hSource, BVDC_SRC);
@@ -2465,25 +2465,6 @@ BERR_Code BVDC_P_Window_ValidateChanges
 
     BDBG_ASSERT(ulBoxWinId < BBOX_VDC_WINDOW_COUNT_PER_DISPLAY);
 
-    ulBoxWindowHeightFraction = pBoxVdc->astDisplay[eDisplayId].astWindow[ulBoxWinId].stSizeLimits.ulHeightFraction;
-    ulBoxWindowWidthFraction = pBoxVdc->astDisplay[eDisplayId].astWindow[ulBoxWinId].stSizeLimits.ulWidthFraction;
-
-    if (ulBoxWindowHeightFraction != BBOX_VDC_DISREGARD && ulBoxWindowWidthFraction != BBOX_VDC_DISREGARD)
-    {
-        BDBG_ASSERT(ulBoxWindowHeightFraction);
-        BDBG_ASSERT(ulBoxWindowWidthFraction);
-
-        if (pNewInfo->stDstRect.ulHeight > ulVsize/ulBoxWindowHeightFraction ||
-            pNewInfo->stDstRect.ulWidth > ulHsize/ulBoxWindowWidthFraction)
-        {
-            BDBG_ERR(("Window %d: DstRect[%dx%d], BOX limits[%dx%d].",
-                hWindow->eId,
-                pNewInfo->stDstRect.ulWidth, pNewInfo->stDstRect.ulHeight,
-                ulHsize/ulBoxWindowWidthFraction, ulVsize/ulBoxWindowHeightFraction));
-            return BERR_TRACE(BBOX_WINDOW_SIZE_EXCEEDS_LIMIT);
-        }
-    }
-
     /* override if BOX mode say so */
     if (pBoxVdc->astDisplay[eDisplayId].astWindow[ulBoxWinId].eSclCapBias != BBOX_VDC_DISREGARD)
     {
@@ -2543,16 +2524,6 @@ BERR_Code BVDC_P_Window_ValidateChanges
         BDBG_MSG(("Align up surface %s, to min dst vertical %d", (pDstFormatInfo->bInterlaced) ?  "interlace" : "progressive", ulMinV));
     }
 
-    /* (1) Destination rect is bigger than canvas. */
-    if((pNewInfo->stDstRect.ulWidth  > ulHsize) ||
-       (pNewInfo->stDstRect.ulHeight > ulVsize))
-    {
-        BDBG_ERR(("DstRect[%dx%d], Canvas[%dx%d], Orientation[%d].",
-            pNewInfo->stDstRect.ulWidth, pNewInfo->stDstRect.ulHeight,
-            ulHsize, ulVsize, hCompositor->stNewInfo.eOrientation));
-        return BERR_TRACE(BVDC_ERR_DST_SIZE_LARGER_THAN_CANVAS);
-    }
-
     /* (2) DstRect can not be larger than scaler output. */
     if((pNewInfo->stDstRect.ulWidth  + pNewInfo->stScalerOutput.lLeft > pNewInfo->stScalerOutput.ulWidth) ||
        (pNewInfo->stDstRect.ulHeight + pNewInfo->stScalerOutput.lTop  > pNewInfo->stScalerOutput.ulHeight))
@@ -2561,26 +2532,6 @@ BERR_Code BVDC_P_Window_ValidateChanges
             pNewInfo->stDstRect.ulWidth, pNewInfo->stDstRect.ulHeight, pNewInfo->stScalerOutput.lLeft,
             pNewInfo->stScalerOutput.lTop, pNewInfo->stScalerOutput.ulWidth, pNewInfo->stScalerOutput.ulHeight));
         return BERR_TRACE(BVDC_ERR_DST_SIZE_LARGER_THAN_SCL_OUTPUT);
-    }
-
-    /* (2.5) DstRect can not be out of bound of canvas. */
-    if((pNewInfo->stDstRect.ulWidth  + pNewInfo->stDstRect.lLeft > ulHsize)  ||
-       (pNewInfo->stDstRect.ulHeight + pNewInfo->stDstRect.lTop  > ulVsize) ||
-       (pNewInfo->stDstRect.lLeft < 0) || (pNewInfo->stDstRect.lTop < 0))
-    {
-        BDBG_ERR(("DstRect has to be inside display boundary! DstRect(%d, %d, %u, %u) canvas(%u, %u)",
-            pNewInfo->stDstRect.lLeft, pNewInfo->stDstRect.lTop, pNewInfo->stDstRect.ulWidth, pNewInfo->stDstRect.ulHeight,
-            ulHsize, ulVsize));
-        return BERR_TRACE(BVDC_ERR_DST_RECT_OUT_OF_BOUND);
-    }
-
-    /* (2.6) DstRect cannot be out of bound of canvas, right window for 3D Left right*/
-    if((pNewInfo->stDstRect.ulWidth  + pNewInfo->lRWinXOffsetDelta + pNewInfo->stDstRect.lLeft > ulHsize) ||
-        (pNewInfo->lRWinXOffsetDelta + pNewInfo->stDstRect.lLeft < 0))
-    {
-        BDBG_ERR(("Rigth window DstRect has to be inside canvas boundary! 3D DstRect(Left=%d, Xoffset=%d, W=%u)",
-            pNewInfo->stDstRect.lLeft, pNewInfo->lRWinXOffsetDelta, pNewInfo->stDstRect.ulWidth));
-        return BERR_TRACE(BVDC_ERR_DST_RECT_OUT_OF_BOUND);
     }
 
 #if BVDC_P_SUPPORT_XCODE_WIN_CAP
@@ -7774,21 +7725,6 @@ void BVDC_P_Window_UpdateUserState_isr
     return;
 }
 
-#ifndef BVDC_UINT32_ONLY
-
-#define BVDC_P_SUB_ASPR_INT_BITS_NUM       (12)
-#define BVDC_P_SUB_ASPR_FRAC_BITS_NUM      (40)
-#define BVDC_P_SUB_ASPR_ALL_BITS_NUM       (BVDC_P_SUB_ASPR_INT_BITS_NUM+BVDC_P_SUB_ASPR_FRAC_BITS_NUM)
-
-#else
-
-/* for NOT well bounded value such as sub-rect aspect ratio value */
-#define BVDC_P_SUB_ASPR_INT_BITS_NUM       10
-#define BVDC_P_SUB_ASPR_FRAC_BITS_NUM      11
-#define BVDC_P_SUB_ASPR_ALL_BITS_NUM       (BVDC_P_SUB_ASPR_INT_BITS_NUM+BVDC_P_SUB_ASPR_FRAC_BITS_NUM)
-
-#endif
-
 /***************************************************************************
  * {private}
  *
@@ -7830,7 +7766,7 @@ static void BVDC_P_Window_CalcuAutoDisplaySize_isr
         ulDspPxlAspRatio * ulFullDspWidth, ulFullDspHeight);
 
     /* calcu user pan scan disp size (cut src width or height):
-     * see the equation in BVDC_P_Window_AspectRatioCorrection_isr */
+     * see the equation in BVDC_P_AspectRatioCorrection_isrsafe */
     if( ulFullSrcAspR > ulFullDspAspR )
     {
         /* needs cut cw: new cw = cw * dar / sar */
@@ -8316,7 +8252,8 @@ static void BVDC_P_Window_UserSrcCut_isr
  */
 static void BVDC_P_Window_AdjDstCut_isr
     ( BVDC_Window_Handle               hWindow,
-      const BFMT_VideoInfo            *pDstFmtInfo,
+      uint32_t                         ulMaxWidth,
+      uint32_t                         ulMaxHeight,
       BVDC_P_Rect                     *pSrcCnt,
       BVDC_P_Rect                     *pAdjSclOut,
       const BVDC_P_Rect               *pAdjDstRect )
@@ -8334,8 +8271,8 @@ static void BVDC_P_Window_AdjDstCut_isr
 
     /* If SclOut is larger than canvas, transfer to src cut, otherwise */
     /* allow dst cut */
-    if(pAdjSclOut->ulWidth  > pDstFmtInfo->ulWidth ||
-       pAdjSclOut->ulHeight > pDstFmtInfo->ulHeight)
+    if(pAdjSclOut->ulWidth  > ulMaxWidth ||
+       pAdjSclOut->ulHeight > ulMaxHeight)
     {
         lTopThresh     = 0;
         ulBottomThresh = 0;
@@ -8462,267 +8399,6 @@ static void BVDC_P_Window_AdjDstCut_isr
     }
 
     BDBG_LEAVE(BVDC_P_Window_AdjDstCut_isr);
-    return;
-}
-
-#define BVDC_P_WIN_ROUND_CUT_OVER_ORIG        0
-#if (BVDC_P_WIN_ROUND_CUT_OVER_ORIG == 1)
-/***************************************************************************
- * {private}
- *
- * Utility function called by BVDC_P_Window_AspectRatioCorrection_isr to
- * round the (ulCutLen / ulFullLen) to i/16, iff the rounded ulCutLen really
- * makes the ratio exactly == i/16, and Src / Dst offset is inside
- * ulSclFctRndToler %
- */
-static uint32_t BVDC_P_Window_CutRounding_isr
-    ( uint32_t                         ulSclFctRndToler,
-      uint32_t                         ulCutLen,
-      uint32_t                         ulFullLen )
-{
-    uint32_t ul16TmpLen, ul16CutRatio;
-    uint32_t ulOff, ulTmpLen, ulNewLen;
-
-    ulNewLen = ulCutLen;
-
-    if((0 != ulSclFctRndToler) && (ulCutLen < ulFullLen) && (0 != ulCutLen))
-    {
-        ul16CutRatio = BVDC_P_DIV_ROUND_NEAR(ulCutLen * 16, ulFullLen);
-        ul16TmpLen = ul16CutRatio * ulFullLen;
-        if(0 == (ul16TmpLen & 15)) /* fully devided by 16 */
-        {
-            ulTmpLen = ul16TmpLen / 16;
-            ulOff = (ulTmpLen < ulCutLen)? (ulCutLen - ulTmpLen): (ulTmpLen - ulCutLen);
-            if(200 * ulOff < ulCutLen * ulSclFctRndToler)
-            {
-                ulNewLen = ulTmpLen;
-            }
-        }
-    }
-
-    return BVDC_P_MIN(ulNewLen, ulFullLen);
-}
-#else
-#define BVDC_P_Window_CutRounding_isr(t, c, f)  BVDC_P_MIN(c, f)
-#endif
-
-/* temporary struct for auto adjust status */
-typedef struct BVDC_P_AutoAdj
-{
-    uint32_t     ulAdjFlags;  /* what is adjusted */
-
-    uint32_t     ulCntWidth;  /* new cntWidth */
-    uint32_t     ulOutWidth;  /* new SclOutWidth */
-    uint32_t     ulCntHeight; /* new cntHeight */
-    uint32_t     ulOutHeight; /* new SclOutHeight */
-} BVDC_P_AutoAdj;
-
-#define BVDC_P_ADJ_CNT_CUT            (0x1)
-#define BVDC_P_ADJ_OUT_CUT            (0x2)
-#define BVDC_P_ADJ_SRC_STEP           (0x4)
-#define BVDC_P_ADJ_FLAG_HRZ_SHIFT     (0)
-#define BVDC_P_ADJ_FLAG_VRT_SHIFT     (4)
-
-#define BVDC_P_ADJ_CNT_WIDTH          (BVDC_P_ADJ_CNT_CUT  << BVDC_P_ADJ_FLAG_HRZ_SHIFT)
-#define BVDC_P_ADJ_OUT_WIDTH          (BVDC_P_ADJ_OUT_CUT  << BVDC_P_ADJ_FLAG_HRZ_SHIFT)
-#define BVDC_P_ADJ_HRZ_SRC_STEP       (BVDC_P_ADJ_SRC_STEP << BVDC_P_ADJ_FLAG_HRZ_SHIFT)
-#define BVDC_P_ADJ_CNT_HEIGHT         (BVDC_P_ADJ_CNT_CUT  << BVDC_P_ADJ_FLAG_VRT_SHIFT)
-#define BVDC_P_ADJ_OUT_HEIGHT         (BVDC_P_ADJ_OUT_CUT  << BVDC_P_ADJ_FLAG_VRT_SHIFT)
-#define BVDC_P_ADJ_VRT_SRC_STEP       (BVDC_P_ADJ_SRC_STEP << BVDC_P_ADJ_FLAG_VRT_SHIFT)
-
-/***************************************************************************
- * {private}
- *
- * This function atomatically cut the window's content size (width or height)
- * or scl-out-rect size (width or height), to enforce correct aspect ratio.
- * It outputs the new content and scl-out-rect size, and appropriate AdjFlags
- * bits to indicate what has changed, by modifying the struct BVDC_P_AutoAdj
- * pointed by pAutoAdj. ulAdjFlags is also set
- *
- * If AspectRatioMode is Zoom, it will cut src rect to make it have the same
- * aspect ratio as the scaler-out-rect. When AspectRatioMode is Box, it will
- * cut the scaler-out-rect to make the src aspect ration unchanged after
- * scaling.
- *
- * When this func is called, it is called after box auto cut, pan scan, and
- * user set src/dst clipping. It assumes that aspect-ratio mode is set to
- * either box or zoom, and that it is not in non-linear scale mode.
- *
- * Theoretically, if the src is mpeg, hddvi, or if letter box auto back cut
- * is enabled, it should be called at every vsync when RUL is built.
- * Otherwise, it should be called only once at the first vsync after
- * ApplyChanges.
- *
- * Optimize: aspect ratio correctio and scale factor rounding needs re-do
- * only if values of SrcCut changed after box cut, pan scan, and user clip,
- * or right after ApplyChanges has been called.
- */
-static void BVDC_P_Window_AspectRatioCorrection_isr
-    ( BVDC_Window_Handle               hWindow,
-      uintAR_t                         ulSrcPxlAspRatio,  /* U4.16 value */
-      uintAR_t                         ulDspPxlAspRatio,  /* U4.16 value */
-      BVDC_P_AutoAdj                  *pAutoAdj )         /* auto adj */
-{
-    const BVDC_P_Window_Info *pUserInfo;
-    uint32_t  ulSclOutWidth, ulSclOutHeight;
-    uint32_t  ulCntWidth, ulCntHeight;
-    uintAR_t  ulCntAspR, ulDspAspR;
-    uint32_t  ulTmpWidth, ulTmpHeight;
-
-    BDBG_ENTER(BVDC_P_Window_AspectRatioCorrection_isr);
-    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-    BDBG_ASSERT(pAutoAdj);
-    BDBG_OBJECT_ASSERT(hWindow->hCompositor, BVDC_CMP);
-
-    pUserInfo = &hWindow->stCurInfo;
-    BDBG_ASSERT((BVDC_AspectRatioMode_eUseAllDestination == pUserInfo->eAspectRatioMode) ||
-                (BVDC_AspectRatioMode_eUseAllSource == pUserInfo->eAspectRatioMode));
-
-    ulCntWidth  = hWindow->stSrcCnt.ulWidth;
-    ulCntHeight = hWindow->stSrcCnt.ulHeight;
-    ulSclOutWidth  = hWindow->stAdjSclOut.ulWidth;
-    ulSclOutHeight = hWindow->stAdjSclOut.ulHeight;
-    if((0 != ulSclOutWidth)  &&
-       (0 != ulSclOutHeight) &&
-       (0 != ulCntWidth)  &&
-       (0 != ulCntHeight))
-    {
-        /* Lets use notation as the following
-         * cw:  content width
-         * ch:  content height
-         * spar: src pixel aspect ratio value in U4.16
-         * dw:  scaler output width
-         * dh:  scaler output height
-         * dpar: display pixel aspect ratio value in U4.16
-         * sar: aspect ratio of the content rect in U10.11
-         * dar: aspect ratio of the scaler-output rect in U10.11
-         *
-         * Then
-         *        cw
-        *  sar = -- * spar >> (BVDC_P_ASPR_FRAC_BITS_NUM - BVDC_P_SUB_ASPR_FRAC_BITS_NUM)
-         *        ch
-         *
-         *        dw
-        *  dar = -- * dpar >> (BVDC_P_ASPR_FRAC_BITS_NUM - BVDC_P_SUB_ASPR_FRAC_BITS_NUM)
-         *        dh
-         * or
-         *        dw
-         *  dar = --    if hWindow->hCompositor->stCurInfo.eAspectRatio IS eSquarePxl
-         *        dh
-         *
-         * If AspectRatioMode is Zoom, our goal is to cut cw or ch to make sar to be the same as dar,
-         * When AspectRatioMode is Box, our goal is to cut dw or dh to make dar to be the same as sar.
-         */
-
-        /* calculate the aspect ratio of the scalerOutput, in U10.11 fix pt */
-        ulDspAspR = (BVDC_P_DIV_ROUND_NEAR(ulSclOutWidth * ulDspPxlAspRatio, ulSclOutHeight) >>
-                     (BVDC_P_ASPR_FRAC_BITS_NUM - BVDC_P_SUB_ASPR_FRAC_BITS_NUM));
-        ulDspAspR = BVDC_P_MIN(ulDspAspR, (((uintAR_t)1<<BVDC_P_SUB_ASPR_ALL_BITS_NUM) - 1));
-
-        /* calculate the aspect ratio of the content rect, in U10.11 fix pt */
-        ulCntAspR = (BVDC_P_DIV_ROUND_NEAR(ulCntWidth * ulSrcPxlAspRatio, ulCntHeight) >>
-                     (BVDC_P_ASPR_FRAC_BITS_NUM - BVDC_P_SUB_ASPR_FRAC_BITS_NUM));
-        ulCntAspR = BVDC_P_MIN(ulCntAspR, (((uintAR_t)1<<BVDC_P_SUB_ASPR_ALL_BITS_NUM) - 1));
-
-        if(BVDC_AspectRatioMode_eUseAllDestination == pUserInfo->eAspectRatioMode)
-        {
-            if( ulCntAspR > ulDspAspR )
-            {
-                /* needs cut cw: new cw = cw * dar / sar */
-                ulTmpWidth = BVDC_P_DIV_ROUND_NEAR(ulCntWidth * ulDspAspR, ulCntAspR);
-                ulTmpWidth = BVDC_P_MIN(ulTmpWidth, ulCntWidth);
-                /* round cut/orig ratio to i/16 if it make sense and
-                 * does not break the scale factor rounding tolerance */
-                pAutoAdj->ulCntWidth = BVDC_P_Window_CutRounding_isr(
-                    hWindow->stCurInfo.ulHrzSclFctRndToler, ulTmpWidth, ulCntWidth);
-                pAutoAdj->ulAdjFlags |= (BVDC_P_ADJ_CNT_WIDTH | BVDC_P_ADJ_HRZ_SRC_STEP);
-                BDBG_MODULE_MSG(BVDC_ASP_RAT,("AspR correct: cut content W: new width %d", pAutoAdj->ulCntWidth));
-#ifndef BVDC_UINT32_ONLY
-                BDBG_MODULE_MSG(BVDC_ASP_RAT,("New equation cnt side " BDBG_UINT64_FMT ", disp side " BDBG_UINT64_FMT,
-                    BDBG_UINT64_ARG((pAutoAdj->ulCntWidth * ulCntAspR) / ulCntWidth), BDBG_UINT64_ARG(ulDspAspR)));
-#else
-                BDBG_MODULE_MSG(BVDC_ASP_RAT,("New equation cnt side 0x%Lx, disp side 0x%Lx",
-                    (pAutoAdj->ulCntWidth * ulCntAspR) / ulCntWidth, ulDspAspR));
-#endif
-            }
-            else if( ulCntAspR < ulDspAspR )
-            {
-                /* needs cut ch: new ch = ch * sar / dar */
-                ulTmpHeight = BVDC_P_DIV_ROUND_NEAR(ulCntHeight * ulCntAspR, ulDspAspR);
-                /* round cut/orig ratio to i/16 if it make sense and
-                 * does not break the scale factor rounding tolerance */
-                pAutoAdj->ulCntHeight = BVDC_P_Window_CutRounding_isr(
-                    hWindow->stCurInfo.ulVrtSclFctRndToler, ulTmpHeight, ulCntHeight);
-                pAutoAdj->ulAdjFlags |= (BVDC_P_ADJ_CNT_HEIGHT | BVDC_P_ADJ_VRT_SRC_STEP);
-                BDBG_MODULE_MSG(BVDC_ASP_RAT,("AspR correct: cut content H: new height %d", pAutoAdj->ulCntHeight));
-#ifndef BVDC_UINT32_ONLY
-                BDBG_MODULE_MSG(BVDC_ASP_RAT,("New equation cnt side " BDBG_UINT64_FMT ", disp side " BDBG_UINT64_FMT,
-                    BDBG_UINT64_ARG((ulCntHeight * ulCntAspR) / pAutoAdj->ulCntHeight), BDBG_UINT64_ARG(ulDspAspR)));
-#else
-                BDBG_MODULE_MSG(BVDC_ASP_RAT,("New equation cnt side 0x%Lx, disp side 0x%Lx",
-                    (ulCntHeight * ulCntAspR) / pAutoAdj->ulCntHeight, ulDspAspR));
-#endif
-            }
-            /* else: no cut is needed */
-        }
-
-        else if(BVDC_AspectRatioMode_eUseAllSource == pUserInfo->eAspectRatioMode)
-        {
-            if( ulCntAspR > ulDspAspR )
-            {
-                /* needs cut dh: new dh = dh * dar / sar */
-                ulTmpHeight = BVDC_P_DIV_ROUND_NEAR(ulSclOutHeight * ulDspAspR, ulCntAspR);
-                /* round cut/orig ratio to i/16 if it make sense and
-                 * does not break the scale factor rounding tolerance */
-                ulTmpHeight = BVDC_P_Window_CutRounding_isr(
-                    hWindow->stCurInfo.ulVrtSclFctRndToler, ulTmpHeight, ulSclOutHeight);
-                pAutoAdj->ulOutHeight = ulTmpHeight;
-#if BVDC_P_SHOW_ASP_RAT_MSG
-                if((!hWindow->bCapture) &&
-                   (hWindow->hCompositor->stCurInfo.pFmtInfo->ulDigitalHeight * 3 / 4 > ulTmpHeight))
-                {
-                    BDBG_MODULE_MSG(BVDC_ASP_RAT,("AllSrc asp-ratio correction cuts more than 1/4 SclOut height,"));
-                    BDBG_MODULE_MSG(BVDC_ASP_RAT,("it might cause bandwidth problem if cap is not used!"));
-                }
-#endif
-                pAutoAdj->ulAdjFlags |= (BVDC_P_ADJ_OUT_HEIGHT | BVDC_P_ADJ_VRT_SRC_STEP);
-                BDBG_MODULE_MSG(BVDC_ASP_RAT,("AspR correct: cut out H: new height %d", pAutoAdj->ulOutHeight));
-#ifndef BVDC_UINT32_ONLY
-                BDBG_MODULE_MSG(BVDC_ASP_RAT,("New equation cnt side " BDBG_UINT64_FMT ", disp side " BDBG_UINT64_FMT,
-                    BDBG_UINT64_ARG(ulCntAspR), BDBG_UINT64_ARG((ulSclOutHeight * ulDspAspR) / pAutoAdj->ulOutHeight)));
-#else
-                BDBG_MODULE_MSG(BVDC_ASP_RAT,("New equation cnt side 0x%Lx, disp side 0x%Lx",
-                    ulCntAspR, (ulSclOutHeight * ulDspAspR) / pAutoAdj->ulOutHeight));
-#endif
-            }
-            else if( ulCntAspR < ulDspAspR )
-            {
-                /* needs cut dw: new dw = dw * sar / dar */
-                ulTmpWidth = BVDC_P_DIV_ROUND_NEAR(ulSclOutWidth * ulCntAspR, ulDspAspR);
-                /* round cut/orig ratio to i/16 if it make sense and
-                 * does not break the scale factor rounding tolerance */
-                pAutoAdj->ulOutWidth = BVDC_P_Window_CutRounding_isr(
-                    hWindow->stCurInfo.ulHrzSclFctRndToler, ulTmpWidth, ulSclOutWidth);
-                pAutoAdj->ulAdjFlags |= (BVDC_P_ADJ_OUT_WIDTH | BVDC_P_ADJ_HRZ_SRC_STEP);
-                BDBG_MODULE_MSG(BVDC_ASP_RAT,("AspR correct: cut out W: new width %d", pAutoAdj->ulOutWidth));
-#ifndef BVDC_UINT32_ONLY
-                BDBG_MODULE_MSG(BVDC_ASP_RAT,("New equation cnt side " BDBG_UINT64_FMT ", disp side " BDBG_UINT64_FMT,
-                    BDBG_UINT64_ARG(ulCntAspR), BDBG_UINT64_ARG((pAutoAdj->ulOutWidth * ulDspAspR) / ulSclOutWidth)));
-#else
-                BDBG_MODULE_MSG(BVDC_ASP_RAT,("New equation cnt side 0x%Lx, disp side 0x%Lx",
-                    ulCntAspR, (pAutoAdj->ulOutWidth * ulDspAspR) / ulSclOutWidth));
-#endif
-            }
-            /* else: no cut is needed */
-        }
-        /* else: should not call this func */
-    }
-    else
-    {
-        BDBG_WRN(("Zero Rect Edge, Non-Linear Horizontal Scaling, or AspR unknown."));
-    }
-
-    BDBG_LEAVE(BVDC_P_Window_AspectRatioCorrection_isr);
     return;
 }
 
@@ -8975,7 +8651,7 @@ static void BVDC_P_Window_ScaleFactorRounding_isr
  * {private}
  *
  * Utility func called by BVDC_P_Window_AdjustRectangles_isr to perform
- * automatic rectangle cut, decided by BVDC_P_Window_AspectRatioCorrection_isr
+ * automatic rectangle cut, decided by BVDC_P_AspectRatioCorrection_isrsafe
  * and/or BVDC_P_Window_ScaleFactorRounding_isr, and stored the result into
  * struct hWindow->stSrcCnt or hWindow->stAdjSclOut / stAdjDstRect.
  */
@@ -9253,8 +8929,13 @@ static void BVDC_P_Window_AutoAdjRelatedToSclRatio_isr
             hWindow->stAdjDstRect.lLeft, hWindow->stAdjDstRect.lTop,
             hWindow->stAdjDstRect.ulWidth, hWindow->stAdjDstRect.ulHeight));
 
-        BVDC_P_Window_AspectRatioCorrection_isr(
-            hWindow, ulSrcPxlAspRatio, ulDspPxlAspRatio, &stAutoAdj);
+        BVDC_P_AspectRatioCorrection_isrsafe(
+            ulSrcPxlAspRatio,
+            ulDspPxlAspRatio,
+            hWindow->stCurInfo.eAspectRatioMode,
+            hWindow->stCurInfo.ulHrzSclFctRndToler,
+            hWindow->stCurInfo.ulVrtSclFctRndToler,
+            &stAutoAdj);
     }
 
     /* --- (6.2) adjust stAutoAdj for scale factor rounding --- */
@@ -9368,6 +9049,156 @@ static void BVDC_P_ScaleSrcPxlAspRatio_isr
     *pulOutPxlAspRatio_x_y = (ulPxlAspR_x_low << 16) | ulPxlAspR_y_low;
 }
 
+/***************************************************************************
+ * {private}
+ *
+ * It is only used by BVDC_P_Window_AdjustRectangles_isr
+ */
+static void BVDC_P_Window_AdjOffscreen_isr
+    ( BVDC_Window_Handle               hWindow,
+      const BFMT_VideoInfo            *pDstFmtInfo,
+      BVDC_P_Rect                     *pSrcCnt,
+      BVDC_P_Rect                     *pAdjSclOut,
+      BVDC_P_Rect                     *pAdjDstRect )
+{
+    uint32_t ulBoxWinId;
+    BVDC_DisplayId eDisplayId = hWindow->hCompositor->hDisplay->eId;
+    const BBOX_Vdc_Capabilities *pBoxVdc;
+    uint32_t ulBoxWindowHeightFraction, ulBoxWindowWidthFraction;
+    uint32_t ulMaxWidth, ulMaxHeight;
+    uint32_t ulMinV = pDstFmtInfo->bInterlaced ? BVDC_P_WIN_DST_OUTPUT_V_MIN * 2 : BVDC_P_WIN_DST_OUTPUT_V_MIN;
+
+    /* Check if destination rectangle is bigger than BOX limits */
+    pBoxVdc = &hWindow->hCompositor->hVdc->stBoxConfig.stVdc;
+    ulBoxWinId = BVDC_P_GetBoxWindowId_isrsafe(hWindow->eId);
+
+    BDBG_ASSERT(ulBoxWinId < BBOX_VDC_WINDOW_COUNT_PER_DISPLAY);
+
+    ulBoxWindowHeightFraction = pBoxVdc->astDisplay[eDisplayId].astWindow[ulBoxWinId].stSizeLimits.ulHeightFraction;
+    ulBoxWindowWidthFraction = pBoxVdc->astDisplay[eDisplayId].astWindow[ulBoxWinId].stSizeLimits.ulWidthFraction;
+
+    if(pAdjDstRect->lTop  + (int32_t)pAdjDstRect->ulHeight <= 0 ||
+       pAdjDstRect->lLeft + (int32_t)pAdjDstRect->ulWidth  <= 0 ||
+       pAdjDstRect->lTop  >= (int32_t)pDstFmtInfo->ulHeight ||
+       pAdjDstRect->lLeft >= (int32_t)pDstFmtInfo->ulWidth)
+    {
+        /* Mute video */
+        hWindow->bMuteBypass = true;
+        BDBG_MSG(("Offscreen MUTE: [%d,%d] [%ux%u] [%ux%u]", pAdjDstRect->lLeft, pAdjDstRect->lTop, pAdjDstRect->ulWidth,
+            pAdjDstRect->ulHeight, pDstFmtInfo->ulWidth, pDstFmtInfo->ulHeight));
+        pAdjDstRect->lTop = 0;
+        pAdjDstRect->lLeft = 0;
+        pAdjDstRect->ulWidth = BVDC_P_WIN_DST_OUTPUT_H_MIN;
+        pAdjDstRect->ulHeight = ulMinV;
+    }
+    else
+    {
+        /* when mute toggles, reprogram CFC */
+        if(hWindow->bMuteBypass) {
+            hWindow->bCfcDirty = true;
+            BDBG_MSG(("Win%d mute -> UNMUTE!", hWindow->eId));
+        }
+        hWindow->bMuteBypass = false;
+        if(pAdjDstRect->lTop < 0)
+        {
+            if(pAdjDstRect->lTop + pAdjDstRect->ulHeight < pDstFmtInfo->ulHeight)
+                pAdjDstRect->ulHeight = pAdjDstRect->lTop + pAdjDstRect->ulHeight;
+            else
+                pAdjDstRect->ulHeight = pDstFmtInfo->ulHeight;
+            pAdjSclOut->lTop = -pAdjDstRect->lTop;
+            pAdjDstRect->lTop = 0;
+        }
+        else
+        {
+            if(pAdjDstRect->lTop + pAdjDstRect->ulHeight > pDstFmtInfo->ulHeight)
+            {
+                pAdjDstRect->ulHeight = pDstFmtInfo->ulHeight - pAdjDstRect->lTop;
+            }
+        }
+
+        if(pAdjDstRect->lLeft < 0)
+        {
+            if(pAdjDstRect->lLeft + pAdjDstRect->ulWidth < pDstFmtInfo->ulWidth)
+                pAdjDstRect->ulWidth = pAdjDstRect->lLeft + pAdjDstRect->ulWidth;
+            else
+                pAdjDstRect->ulWidth = pDstFmtInfo->ulWidth;
+            pAdjSclOut->lLeft = -pAdjDstRect->lLeft;
+            pAdjDstRect->lLeft = 0;
+        }
+        else
+        {
+            if(pAdjDstRect->lLeft + pAdjDstRect->ulWidth > pDstFmtInfo->ulWidth)
+            {
+                pAdjDstRect->ulWidth = pDstFmtInfo->ulWidth - pAdjDstRect->lLeft;
+            }
+        }
+    }
+
+    if (ulBoxWindowHeightFraction != BBOX_VDC_DISREGARD && ulBoxWindowWidthFraction != BBOX_VDC_DISREGARD)
+    {
+        BDBG_ASSERT(ulBoxWindowHeightFraction);
+        BDBG_ASSERT(ulBoxWindowWidthFraction);
+
+        ulMaxWidth  = BVDC_P_MIN(pDstFmtInfo->ulWidth,  pDstFmtInfo->ulWidth  / ulBoxWindowWidthFraction);
+        ulMaxHeight = BVDC_P_MIN(pDstFmtInfo->ulHeight, pDstFmtInfo->ulHeight / ulBoxWindowHeightFraction);
+
+        pAdjDstRect->ulWidth  = BVDC_P_MIN(pAdjDstRect->ulWidth,  ulMaxWidth);
+        pAdjDstRect->ulHeight = BVDC_P_MIN(pAdjDstRect->ulHeight, ulMaxHeight);
+    }
+    else
+    {
+        ulMaxWidth  = pDstFmtInfo->ulWidth;
+        ulMaxHeight = pDstFmtInfo->ulHeight;
+    }
+
+    if(pAdjDstRect->ulHeight < ulMinV)
+    {
+        pAdjSclOut->lTop = pAdjSclOut->lTop - (ulMinV - pAdjDstRect->ulHeight);
+        if(pAdjSclOut->lTop < 0)
+        {
+            pAdjSclOut->lTop = 0;
+        }
+        pAdjDstRect->ulHeight = ulMinV;
+        BDBG_MSG(("Offscreen: Align up displaying %s, to min dst vertical %d", (pDstFmtInfo->bInterlaced) ?  "interlace" : "progressive", ulMinV));
+    }
+
+    if(pAdjSclOut->ulHeight < ulMinV)
+    {
+        pAdjSclOut->ulHeight = ulMinV;
+        BDBG_MSG(("Offscreen: Align up surface %s, to min dst vertical %d", (pDstFmtInfo->bInterlaced) ?  "interlace" : "progressive", ulMinV));
+    }
+
+    if(pAdjDstRect->ulWidth < BVDC_P_WIN_DST_OUTPUT_H_MIN)
+    {
+        pAdjSclOut->lLeft = pAdjSclOut->lLeft - (BVDC_P_WIN_DST_OUTPUT_H_MIN - pAdjDstRect->ulWidth);
+        if(pAdjSclOut->lLeft < 0)
+        {
+            pAdjSclOut->lLeft = 0;
+        }
+        pAdjDstRect->ulWidth = BVDC_P_WIN_DST_OUTPUT_H_MIN;
+        BDBG_MSG(("Offscreen: Align up displaying to min dst horizontal %d", BVDC_P_WIN_DST_OUTPUT_H_MIN));
+    }
+
+    if(pAdjSclOut->ulWidth < BVDC_P_WIN_DST_OUTPUT_H_MIN)
+    {
+        pAdjSclOut->ulWidth = BVDC_P_WIN_DST_OUTPUT_H_MIN;
+        BDBG_MSG(("Offscreen: Align up surface to min dst horizontal %d", BVDC_P_WIN_DST_OUTPUT_H_MIN));
+    }
+
+    if((pAdjDstRect->lLeft + pAdjDstRect->ulWidth  > pDstFmtInfo->ulWidth) ||
+       (pAdjDstRect->lTop  + pAdjDstRect->ulHeight > pDstFmtInfo->ulHeight))
+    {
+        hWindow->bMuteBypass = true;
+        BDBG_MSG(("Offscreen MUTE: [%d,%d] [%ux%u]", pAdjDstRect->lLeft, pAdjDstRect->lTop, pAdjDstRect->ulWidth,
+            pAdjDstRect->ulHeight));
+        pAdjDstRect->lTop = 0;
+        pAdjDstRect->lLeft = 0;
+        pAdjDstRect->ulWidth = BVDC_P_WIN_DST_OUTPUT_H_MIN;
+        pAdjDstRect->ulHeight = ulMinV;
+    }
+
+    BVDC_P_Window_AdjDstCut_isr(hWindow, ulMaxWidth, ulMaxHeight, pSrcCnt, pAdjSclOut, pAdjDstRect);
+}
 
 /***************************************************************************
  * {private}
@@ -9477,13 +9308,13 @@ void BVDC_P_Window_InitMuteRec_isr
 
     if(!bMosaicMode)
     {
-        BVDC_P_Window_AdjDstCut_isr(hWindow, pDstFmtInfo,
+        BVDC_P_Window_AdjDstCut_isr(hWindow, pDstFmtInfo->ulWidth, pDstFmtInfo->ulHeight,
             &hWindow->stSrcCnt, &hWindow->stAdjSclOut, &hWindow->stAdjDstRect);
     }
 
     if(bDoAspRatCorrect)
     {
-        BVDC_P_CalcuPixelAspectRatio_isr(
+        BVDC_P_CalcuPixelAspectRatio_isrsafe(
             pMvdFieldData->eAspectRatio,
             pMvdFieldData->uiSampleAspectRatioX,
             pMvdFieldData->uiSampleAspectRatioY,
@@ -9505,7 +9336,7 @@ void BVDC_P_Window_InitMuteRec_isr
     {
         if(0 == ulSrcPxlAspRatio)    /* non-0 iff already calculated */
         {
-            BVDC_P_CalcuPixelAspectRatio_isr(
+            BVDC_P_CalcuPixelAspectRatio_isrsafe(
                 pMvdFieldData->eAspectRatio,
                 pMvdFieldData->uiSampleAspectRatioX,
                 pMvdFieldData->uiSampleAspectRatioY,
@@ -9541,6 +9372,15 @@ void BVDC_P_Window_InitMuteRec_isr
     hWindow->ulNonlinearSrcWidth = 0;
     hWindow->ulNonlinearSclOutWidth = 0;
     hWindow->ulCentralRegionSclOutWidth = BVDC_P_OVER_CENTER_WIDTH;
+
+    /* ------------------------------------------------------------------*/
+    /* support offscreen                                            */
+    /* ------------------------------------------------------------------*/
+    if(!bMosaicMode)
+    {
+        BVDC_P_Window_AdjOffscreen_isr(hWindow, pDstFmtInfo,
+                &hWindow->stSrcCnt, &hWindow->stAdjSclOut, &hWindow->stAdjDstRect);
+    }
 
     /* bAdjRectsDirty is set to true by BVDC_P_Window_ApplyChanges_isr and
      * BVDC_P_Window_ValidateRects_isr, or something changes here.
@@ -9808,13 +9648,11 @@ void BVDC_P_Window_AdjustRectangles_isr
     ulSrcDispHeight = BVDC_P_MIN(ulSrcHeight, ulSrcDispHeight);
 
     /* Handle unknown source aspect ratio */
-    if(BVDC_P_IS_UNKNOWN_ASPR(pAspRatioSettings->eSrcAspectRatio,
-       pAspRatioSettings->uiSampleAspectRatioX, pAspRatioSettings->uiSampleAspectRatioY))
-    {
-        uint32_t ulHVRatio = (ulSrcDispWidth * 100) / ulSrcDispHeight;
-        pAspRatioSettings->eSrcAspectRatio = BVDC_P_EQ_DELTA(ulHVRatio, 130, 25)
-            ? BFMT_AspectRatio_e4_3 : BFMT_AspectRatio_eSquarePxl;
-    }
+    BVDC_P_SetDefaultAspRatio_isrsafe(
+        &pAspRatioSettings->eSrcAspectRatio,
+        pAspRatioSettings->uiSampleAspectRatioX,
+        pAspRatioSettings->uiSampleAspectRatioY,
+        ulSrcDispWidth, ulSrcDispHeight);
 
     /* (0) Init stSrcCnt: prepare for box cut, pan scan and user's clip */
     stSrcCnt.lLeft    = 0;
@@ -9871,7 +9709,7 @@ void BVDC_P_Window_AdjustRectangles_isr
                 /* note: CalcuAutoDisplaySize will change the dispSize, it will affect
                  * Src Aspect Ratio. However ulSrcPxlAspRatio is not to be re-calculated
                  * and eSrcAspectRatio is no longer used */
-                BVDC_P_CalcuPixelAspectRatio_isr(
+                BVDC_P_CalcuPixelAspectRatio_isrsafe(
                     pAspRatioSettings->eSrcAspectRatio,
                     pAspRatioSettings->uiSampleAspectRatioX,
                     pAspRatioSettings->uiSampleAspectRatioY,
@@ -9996,7 +9834,7 @@ void BVDC_P_Window_AdjustRectangles_isr
            (0!=pUserInfo->ulNonlinearSrcWidth)||
            (0!=pUserInfo->ulNonlinearSclOutWidth)))
         {
-            BVDC_P_CalcuPixelAspectRatio_isr(
+            BVDC_P_CalcuPixelAspectRatio_isrsafe(
                 pAspRatioSettings->eSrcAspectRatio,
                 pAspRatioSettings->uiSampleAspectRatioX,
                 pAspRatioSettings->uiSampleAspectRatioY,
@@ -10041,7 +9879,7 @@ void BVDC_P_Window_AdjustRectangles_isr
          * correction does not cause new dst cut */
         if(!pUserInfo->bMosaicMode)
         {
-            BVDC_P_Window_AdjDstCut_isr(hWindow, pDstFmtInfo,
+            BVDC_P_Window_AdjDstCut_isr(hWindow, pDstFmtInfo->ulWidth, pDstFmtInfo->ulHeight,
                 &hWindow->stSrcCnt, &hWindow->stAdjSclOut, &hWindow->stAdjDstRect);
         }
 
@@ -10160,7 +9998,7 @@ void BVDC_P_Window_AdjustRectangles_isr
         {
             if(0 == pAspRatioSettings->ulSrcPxlAspRatio)    /* non-0 iff already calculated */
             {
-                BVDC_P_CalcuPixelAspectRatio_isr(
+                BVDC_P_CalcuPixelAspectRatio_isrsafe(
                     pAspRatioSettings->eSrcAspectRatio,
                     pAspRatioSettings->uiSampleAspectRatioX,
                     pAspRatioSettings->uiSampleAspectRatioY,
@@ -10186,6 +10024,22 @@ void BVDC_P_Window_AdjustRectangles_isr
 
         /* The source also need to adjust it output rect. */
         hWindow->stCurInfo.hSource->stCurInfo.stDirty.stBits.bRecAdjust = BVDC_P_DIRTY;
+
+        /* ------------------------------------------------------------------*/
+        /* (12) support offscreen                                            */
+        /* ------------------------------------------------------------------*/
+        if(!pUserInfo->bMosaicMode)
+        {
+            BDBG_MSG(("W%d: Offscreen In: %d %d %d %d - %d %d %d %d",
+                hWindow->eId, hWindow->stAdjSclOut.lLeft, hWindow->stAdjSclOut.lTop, hWindow->stAdjSclOut.ulWidth, hWindow->stAdjSclOut.ulHeight,
+                hWindow->stAdjDstRect.lLeft, hWindow->stAdjDstRect.lTop, hWindow->stAdjDstRect.ulWidth, hWindow->stAdjDstRect.ulHeight));
+            BVDC_P_Window_AdjOffscreen_isr(hWindow, pDstFmtInfo,
+                    &hWindow->stSrcCnt, &hWindow->stAdjSclOut, &hWindow->stAdjDstRect);
+            BDBG_MSG(("W%d: Offscreen Out: %d %d %d %d - %d %d %d %d",
+                hWindow->eId, hWindow->stAdjSclOut.lLeft, hWindow->stAdjSclOut.lTop, hWindow->stAdjSclOut.ulWidth, hWindow->stAdjSclOut.ulHeight,
+                hWindow->stAdjDstRect.lLeft, hWindow->stAdjDstRect.lTop, hWindow->stAdjDstRect.ulWidth, hWindow->stAdjDstRect.ulHeight));
+        }
+
     }
 
     BDBG_LEAVE(BVDC_P_Window_AdjustRectangles_isr);
@@ -10919,7 +10773,7 @@ static void BVDC_P_Window_DetermineBufferCount_isr
 
         bDoPulldown =
             (!hWindow->bSyncLockSrc && !hWindow->stSettings.bForceSyncLock && !BVDC_P_SRC_IS_VFD(hWindow->stNewInfo.hSource->eId) &&
-            ((VIDEO_FORMAT_IS_PROGRESSIVE(hWindow->hCompositor->stNewInfo.pFmtInfo->eVideoFmt)
+            ((VIDEO_FORMAT_IS_PROGRESSIVE(hWindow->hCompositor->stCurInfo.pFmtInfo->eVideoFmt)
             && (eWriterVsReaderRateCode == eReaderVsWriterRateCode)) ||
                (hWindow->bDoPulldown && eReaderVsWriterRateCode > BVDC_P_WrRate_Faster /* not for 50i-to-60i */)));
 

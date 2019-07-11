@@ -272,7 +272,9 @@ hotplug_block(void)
 
 		hotplug_dbg("adding disk...\n");
 
+#ifndef TARGETENV_android
 		err = mknod(mntdev, S_IRWXU|S_IFBLK, makedev(major_no, minor_no));
+#endif /* TARGETENV_android */
 		hotplug_dbg("err = %d\n", err);
 
 		err = mkdir(mntpath, 0777);

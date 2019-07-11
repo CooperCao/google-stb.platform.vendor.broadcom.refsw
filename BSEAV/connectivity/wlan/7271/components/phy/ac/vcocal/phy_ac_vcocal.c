@@ -1092,7 +1092,7 @@ wlc_phy_radio20694_vcocal_isdone(phy_info_t *pi, bool set_delay, bool cache_calc
 }
 
 void
-wlc_phy_radio20696_vcocal_isdone(phy_info_t *pi, bool set_delay, bool cache_calcode)
+wlc_phy_radio20696_vcocal_isdone(phy_info_t *pi, bool set_delay)
 {
 	uint8 done, itr;
 
@@ -1114,7 +1114,7 @@ wlc_phy_radio20696_vcocal_isdone(phy_info_t *pi, bool set_delay, bool cache_calc
 	if (set_delay == TRUE) {
 		OSL_DELAY(120);
 	}
-	if (!cache_calcode) {
+	if (!done) {
 		PHY_ERROR(("wl%d: %s  vcocal failure (not done, timeout)\n",
 				pi->sh->unit, __FUNCTION__));
 	}
@@ -1151,7 +1151,7 @@ phy_ac_vcocal(phy_info_t *pi)
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_36)) */
 #if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_37))
 	if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
-		wlc_phy_radio20696_vcocal_isdone(pi, TRUE, FALSE);
+		wlc_phy_radio20696_vcocal_isdone(pi, TRUE);
 	} else
 #endif /* !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_37)) */
 #if !defined(PHY_VER)  || (defined(PHY_VER) && defined(PHY_ACMAJORREV_40))

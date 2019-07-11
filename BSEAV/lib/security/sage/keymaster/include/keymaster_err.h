@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom.
+ *  Copyright (C) 2019 Broadcom.
  *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -111,6 +111,7 @@
 #define BSAGE_ERR_KM_KEYMASTER_NOT_CONFIGURED                   BERR_MAKE_CODE(BERR_KM_ID,164)
 #define BSAGE_ERR_ATTESTATION_APPLICATION_ID_MISSING            BERR_MAKE_CODE(BERR_KM_ID,165)
 #define BSAGE_ERR_CANNOT_ATTEST_IDS                             BERR_MAKE_CODE(BERR_KM_ID,166)
+#define BSAGE_ERR_NO_USER_CONFIRMATION                          BERR_MAKE_CODE(BERR_KM_ID,167)
 #define BSAGE_ERR_KM_VERSION_MISMATCH                           BERR_MAKE_CODE(BERR_KM_ID,199)
 #define BSAGE_ERR_KM_AGAIN                                      BERR_MAKE_CODE(BERR_KM_ID,200)
 #define BSAGE_ERR_KM_RETRY                                      BERR_MAKE_CODE(BERR_KM_ID,201)

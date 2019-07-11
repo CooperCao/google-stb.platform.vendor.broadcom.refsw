@@ -682,27 +682,40 @@ static int
 wl_wnm_bsstq(void *wl, cmd_t *cmd, char **argv)
 {
 	int err, buflen;
-	wlc_ssid_t ssid;
+	wl_bsstrans_query_t bss_trans_query;
+	char *param = NULL, *val_p = NULL;
+	int ver = WL_BSSTRANS_QUERY_VERSION_1;
 
 	UNUSED_PARAMETER(cmd);
 
+	memset(&bss_trans_query, 0, sizeof(wl_bsstrans_query_t));
 	strcpy(buf, "wnm_bsstrans_query");
+	argv++;
 	buflen = strlen("wnm_bsstrans_query") + 1;
-
-	if (*++argv) {
-		uint32 len;
-
-		len = strlen(*argv);
-		if (len > DOT11_MAX_SSID_LEN) {
-			printf("ssid too long\n");
-			return (-1);
+	while ((param = *argv++) != NULL) {
+		val_p = *argv++;
+		if (!*val_p || *val_p == '-') {
+			printf("%s: Need value following %s\n", __FUNCTION__, param);
+			return BCME_USAGE_ERROR;
 		}
-		memset(&ssid, 0, sizeof(wlc_ssid_t));
-		memcpy(ssid.SSID, *argv, len);
-		ssid.SSID_len = len;
-		memcpy(&buf[buflen], &ssid, sizeof(wlc_ssid_t));
-		buflen += sizeof(wlc_ssid_t);
+		if (strcmp(param, "-s") == 0) {
+			uint32 len;
+			len = strlen(val_p);
+			if (len > DOT11_MAX_SSID_LEN) {
+				printf("ssid too long\n");
+				return BCME_USAGE_ERROR;
+			}
+			memcpy(bss_trans_query.ssid.SSID, val_p, len);
+			bss_trans_query.ssid.SSID_len = len;
+		} else if (strcmp(param, "-r") == 0) {
+			bss_trans_query.reason = atoi(val_p);
+		} else {
+			printf("%s:Unsupported Parameter for bss_trans_query\n", __FUNCTION__);
+		}
 	}
+	bss_trans_query.version = htod16(ver);
+	memcpy(&buf[buflen], &bss_trans_query, sizeof(wl_bsstrans_query_t));
+	buflen += sizeof(wl_bsstrans_query_t);
 
 	err = wlu_set(wl, WLC_SET_VAR, buf, buflen);
 

@@ -31,4 +31,9 @@ extern void wlc_bssload_detach(wlc_bssload_info_t *mbssload);
 extern void wlc_bssload_reset_saved_data(wlc_bsscfg_t *cfg);
 #endif /* defined(WLBSSLOAD_REPORT) */
 
+#if defined(WLBSSLOAD)
+extern void wlc_bssload_tbtt(wlc_bssload_info_t *mbssload, wlc_bsscfg_t *cfg);
+extern void wlc_bssload_reset_go_tbtt_cnt (wlc_info_t *wlc);
+#endif
+
 #endif /* _WLC_BSSLOAD_H_ */

@@ -34,6 +34,17 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
+ ******************************************************************************
+ *
+ * $brcm_Workfile: $
+ * $brcm_Revision: $
+ * $brcm_Date: $
+ *
+ * API Description:
+ *
+ * Revision History:
+ *
+ * $brcm_Log: $
  *
  ******************************************************************************
  *
@@ -123,8 +134,8 @@ static const uint32_t aulMemc0_20180511203111_7278B0_box6_box_mid_performance_sm
            0x3ffff05e,  /*  49: VICE_IMD0 off */
            0x3ffff05f,  /*  50: VICE_IMD1 off */
            0x3ffff06a,  /*  51: VICE_DBLK off */
-           0xbfffe034,  /*  52: VICE_CABAC0 RR 800000ns */
-           0x8117502a,  /*  53: VICE_CABAC1 RR 9200ns */
+           0x8117502a,  /*  52: VICE_CABAC1 RR 9200ns */
+           0xbfffe034,  /*  53: VICE_CABAC0 RR 800000ns */
            0x8067c03e,  /*  54: VICE_ARCSS0 RR 3625ns */
            0x3ffff026,  /*  55: VICE_VIP0_INST0 off */
            0x3ffff02b,  /*  56: VICE_VIP1_INST0 off */
@@ -381,8 +392,8 @@ static const uint32_t aulMemc1_20180511203111_7278B0_box6_box_mid_performance_sm
            0x80d2705e,  /*  49: VICE_IMD0 RR 7350ns */
            0x80d2705f,  /*  50: VICE_IMD1 RR 7350ns */
            0x800b006a,  /*  51: VICE_DBLK RR 0ns */
-           0x3ffff034,  /*  52: VICE_CABAC0 off */
-           0x3ffff02a,  /*  53: VICE_CABAC1 off */
+           0x3ffff02a,  /*  52: VICE_CABAC1 off */
+           0x3ffff034,  /*  53: VICE_CABAC0 off */
            0x3ffff03e,  /*  54: VICE_ARCSS0 off */
            0x80e14026,  /*  55: VICE_VIP0_INST0 RR 7420ns */
            0x812c402b,  /*  56: VICE_VIP1_INST0 RR 9890ns */

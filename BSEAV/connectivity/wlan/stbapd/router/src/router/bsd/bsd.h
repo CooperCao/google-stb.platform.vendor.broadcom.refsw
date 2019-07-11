@@ -41,6 +41,9 @@
 #include <netinet/in.h>
 #include <net/if.h>
 #include <arpa/inet.h>
+#ifdef TARGETENV_android
+#include <osl.h>
+#endif /* TARGETENV_android */
 
 #ifdef BCM_WBD
 #include "bsd_wbd.h"

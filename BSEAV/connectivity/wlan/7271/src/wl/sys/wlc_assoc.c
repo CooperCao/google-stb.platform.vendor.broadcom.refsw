@@ -188,6 +188,9 @@
 #include <wlc_stf.h>
 #include <wlc_dump.h>
 #include <wlc_iocv.h>
+#ifdef WL_MBO
+#include <wlc_mbo.h>
+#endif /* WL_MBO */
 #ifdef WL_OCE
 #include <wlc_oce.h>
 #endif /* WL_OCE */
@@ -1546,7 +1549,7 @@ wlc_cook_join_targets(wlc_bsscfg_t *cfg, bool for_roam, int cur_rssi)
 				break;
 			}
 		}
-#ifdef BCMCCX
+#if defined(BCMCCX) || defined(WL_MBO)
 		/* disable roam delta-based prune for certain reasons of roam */
 		if ((roam->reason == WLC_E_REASON_TSPEC_REJECTED) ||
 			(roam->reason == WLC_E_REASON_DIRECTED_ROAM) ||
@@ -1563,7 +1566,7 @@ wlc_cook_join_targets(wlc_bsscfg_t *cfg, bool for_roam, int cur_rssi)
 			      "0x%x\n", WLCWLUNIT(wlc), __FUNCTION__, cur_pref_score,
 			      roam->reason));
 		}
-#endif /* BCMCCX */
+#endif /* BCMCCX || WL_MBO */
 
 		WL_ASSOC(("wl%d: ROAM: wlc_cook_join_targets, roam_metric[%s] = 0x%x\n",
 			WLCWLUNIT(wlc), bcm_ether_ntoa(&(cfg->BSSID), eabuf),
@@ -4247,7 +4250,11 @@ wlc_join_attempt(wlc_bsscfg_t *cfg)
 
 #ifdef WL_MBO
 		if (MBO_ENAB(wlc->pub)) {
-			if (bi->bcnflags & WLC_BSS_MBO_ASSOC_DISALLOWED) {
+			if ((bi->bcnflags & WLC_BSS_MBO_ASSOC_DISALLOWED)
+				|| (bi->flags3 & WLC_BSS3_MBO_ASSOC_RETRY_DELAY_ACTIVE)
+			) {
+				WL_ASSOC(("wl%d: JOIN: BSSID "MACF" pruned, MBO filters is set\n",
+				WLCWLUNIT(wlc), ETHER_TO_MACF(bi->BSSID)));
 				continue;
 			}
 		}
@@ -9985,6 +9992,18 @@ wlc_roamscan_start(wlc_bsscfg_t *cfg, uint roam_reason)
 
 		/* FALSE = rssi(-70) >= roam_trigger(-60) */
 		roamscan_stop = (cfg->link->rssi >= wlc->band->roam_trigger);
+#ifdef WL_MBO
+		/* If roam trigger is not hit pass to MBO for processing */
+		if (roam_reason == WLC_E_REASON_LOW_RSSI && roamscan_stop &&
+			MBO_ENAB(wlc->pub) && wlc_is_mbo_association(cfg)) {
+			err = wlc_mbo_handle_rssi_variation(cfg,
+				wlc->band->roam_trigger, cfg->link->rssi);
+			/* go ahead after logging the error */
+			if (err != BCME_OK) {
+				WL_ASSOC(("MBO error: %d", err));
+			}
+		}
+#endif /* WL_MBO */
 #ifdef WLWNM
 		/* confirm roamscan is really required */
 		if (WBTEXT_ACTIVE(wlc->pub) && !roamscan_stop) {

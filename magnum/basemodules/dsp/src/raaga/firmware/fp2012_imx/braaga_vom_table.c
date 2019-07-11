@@ -57,7 +57,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eAc3Decode */
 		{
 			0x0000004a,
-			0x000000a4,
+			0x000000a5,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eAacDecode */
@@ -69,13 +69,13 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eAacHeLpSbrDecode */
 		{
 			0x00000191,
-			0x000001e3,
+			0x000001e2,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDdpDecode */
 		{
 			0x000000ca,
-			0x00000124,
+			0x00000125,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDdLosslessDecode */
@@ -171,7 +171,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eDraDecode */
 		{
 			0x000003ad,
-			0x000003b9,
+			0x000003ba,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eRealAudioLbrDecode */
@@ -255,7 +255,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eUdcDecode */
 		{
 			0x00000a60,
-			0x00000ab8,
+			0x00000ab9,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDolbyAacheDecode */
@@ -939,7 +939,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eMixerDapv2PostProc */
 		{
 			0x00000cec,
-			0x00000d4c,
+			0x00000d4d,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eOutputFormatterPostProc */

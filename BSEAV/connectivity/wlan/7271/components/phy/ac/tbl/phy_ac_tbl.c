@@ -1904,7 +1904,7 @@ WLBANDINITFN(phy_ac_set_decode_timeouts)(phy_info_t *pi)
 	if (ACMAJORREV_0(pi->pubpi->phy_rev) || ACMAJORREV_3(pi->pubpi->phy_rev) ||
 	    (ACMAJORREV_1(pi->pubpi->phy_rev) && ACMINORREV_2(pi)) ||
 	    ACMAJORREV_5(pi->pubpi->phy_rev) || ACMAJORREV_32(pi->pubpi->phy_rev) ||
-	    ACMAJORREV_33(pi->pubpi->phy_rev)) {
+	    ACMAJORREV_33(pi->pubpi->phy_rev) || ACMAJORREV_37(pi->pubpi->phy_rev)) {
 #else /* defined(BCMINTPHYDBG) || defined(WLTEST) */
 	/* For customer builds we like to enable PHY timeouts that will catch when
 	 * pktproc is hanging and reset the PHY

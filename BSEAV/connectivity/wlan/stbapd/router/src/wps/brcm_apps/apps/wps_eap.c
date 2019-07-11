@@ -49,7 +49,9 @@
 #include <wps.h>
 #include <wps_eap.h>
 #include <shutils.h>
-
+#ifdef TARGETENV_android
+#include <osl.h>
+#endif /* TARGETENV_android */
 
 #ifdef WPS_UPNP_DEVICE
 #include <wps_upnp.h>

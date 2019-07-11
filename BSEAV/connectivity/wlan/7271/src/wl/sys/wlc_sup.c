@@ -1436,7 +1436,8 @@ wlc_wpa_sup_eapol(supplicant_t *sup, eapol_header_t *eapol, bool encrypted)
 
 				/* extract GTK */
 				data_encap = wpa_find_gtk_encap(body->data, data_len);
-				if (!data_encap) {
+				if (!data_encap || ((uint)(data_encap->length -
+					EAPOL_WPA2_GTK_ENCAP_MIN_LEN) > sizeof(wpa->gtk))) {
 					WL_SUP_ERROR(("wl%d: wlc_wpa_sup_eapol: encapsulated GTK"
 					         " missing from message 3\n", UNIT(sup_info)));
 					wlc_wpa_send_sup_status(sup_info, sup->cfg,
@@ -1529,7 +1530,8 @@ wlc_wpa_sup_eapol(supplicant_t *sup, eapol_header_t *eapol, bool encrypted)
 			/* extract GTK */
 			data_len = ntoh16_ua(&body->data_len);
 			data_encap = wpa_find_gtk_encap(body->data, data_len);
-			if (!data_encap) {
+			if (!data_encap || ((uint)(data_encap->length -
+				EAPOL_WPA2_GTK_ENCAP_MIN_LEN) > sizeof(wpa->gtk))) {
 				WL_SUP_ERROR(("wl%d: wlc_wpa_sup_eapol: encapsulated GTK missing"
 					" from group message 1\n", UNIT(sup)));
 				wlc_wpa_send_sup_status(sup_info, sup->cfg,

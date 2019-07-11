@@ -28,15 +28,21 @@
 #include <sys/sysinfo.h>
 #include <fcntl.h>
 #include <errno.h>
+#ifdef TARGETENV_android
+#include <linux/can/error.h>
+#else
 #include <error.h>
+#endif /* TARGETENV_android */
 #include <sys/ioctl.h>
 #include <dirent.h>
 
+#ifndef TARGETENV_android
 #ifdef LINUX26
 #include <mtd/mtd-user.h>
 #else /* LINUX26 */
 #include <linux/mtd/mtd.h>
 #endif /* LINUX26 */
+#endif /* TARGETENV_android */
 
 #include <confmtd_utils.h>
 
@@ -48,6 +54,7 @@
 #define TMPFS_MAGIC		0x01021994
 #endif
 
+#ifndef TARGETENV_android
 static unsigned short
 confmtd_checksum(const char *data, int datalen)
 {
@@ -101,6 +108,7 @@ confmtd_open(const char *mtd, int flags)
 
 	return open(mtd, flags);
 }
+#endif /* TARGETENV_android */
 
 /*
  * Write a file to an MTD device
@@ -111,6 +119,7 @@ confmtd_open(const char *mtd, int flags)
 int
 confmtd_backup()
 {
+#ifndef TARGETENV_android
 	char *cmd = "tar cf - confmtd -C /tmp | gzip -c > "CONFMTD_TGZ_TMP_FILE;
 	const char *cp_file = "cp "CONFMTD_TGZ_TMP_FILE" "NAND_DIR;
 	mtd_info_t mtd_info;
@@ -269,6 +278,9 @@ fail2:
 		fflush(stderr);
 
 	return ret;
+#else
+	return 0;
+#endif /* TARGETENV_android */
 }
 
 /*
@@ -280,6 +292,7 @@ fail2:
 int
 confmtd_restore()
 {
+#ifndef TARGETENV_android
 	char *cmd = "gunzip -c "CONFMTD_TGZ_TMP_FILE" | tar xf - -C /tmp";
 	const char *cp_file = "cp "NAND_FILE" "CONFMTD_TGZ_TMP_FILE;
 	mtd_info_t mtd_info;
@@ -373,4 +386,7 @@ fail:
 		close(mtd_fd);
 
 	return ret;
+#else
+	return 0;
+#endif /* TARGETENV_android */
 }

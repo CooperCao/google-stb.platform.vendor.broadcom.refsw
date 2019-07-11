@@ -18,8 +18,11 @@
 #
 # src/wl/linux driver config file
 
-# For MBO AP
+WL_MBO_OCE=1
 WL_MBO=1
 WL_GLOBAL_RCLASS=1
 ANQPO=1
 WL11U=1
+#WL_MBO_TB=1
+WLWNM=1
+

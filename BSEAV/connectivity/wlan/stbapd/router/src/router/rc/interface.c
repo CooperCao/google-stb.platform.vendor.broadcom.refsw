@@ -22,7 +22,11 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <errno.h>
+#ifdef TARGETENV_android
+#include <linux/can/error.h>
+#else
 #include <error.h>
+#endif /* TARGETENV_android */
 #include <string.h>
 #include <unistd.h>
 #include <sys/ioctl.h>

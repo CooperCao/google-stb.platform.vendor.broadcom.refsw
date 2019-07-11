@@ -57,7 +57,7 @@ extern void wlc_phy_28nm_radio_vcocal_isdone(phy_info_t *pi, bool set_delay);
 extern void wlc_phy_20694_radio_vcocal(phy_info_t *pi, uint8 cal_mode, uint8 coupling_mode);
 extern void wlc_phy_20696_radio_vcocal(phy_info_t *pi, uint8 cal_mode, uint8 coupling_mode);
 extern void wlc_phy_radio20694_vcocal_isdone(phy_info_t *pi, bool set_delay, bool cache_calcode);
-extern void wlc_phy_radio20696_vcocal_isdone(phy_info_t *pi, bool set_delay, bool cache_calcode);
+extern void wlc_phy_radio20696_vcocal_isdone(phy_info_t *pi, bool set_delay);
 /* 20695 vco cal */
 #define VCO_CAL_MODE_20695              0
 #define VCO_CAL_COUPLING_MODE_20695     0

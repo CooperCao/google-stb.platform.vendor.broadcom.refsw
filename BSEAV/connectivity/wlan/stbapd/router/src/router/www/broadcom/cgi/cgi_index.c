@@ -44,7 +44,7 @@
 #include <time.h>
 #endif /* WEBS */
 
-#include <cgi_common.h>
+#include "cgi_common.h"
 
 /* Report time in RFC-822 format */
 static int
@@ -53,6 +53,6 @@ ej_localtime(int eid, webs_t wp, int argc, char_t **argv)
 	time_t tm;
 
 	time(&tm);
-	return websWrite(wp, rfctime(&tm));
+	return websWrite(wp, "%s", rfctime(&tm));
 }
 REG_EJ_HANDLER(localtime);

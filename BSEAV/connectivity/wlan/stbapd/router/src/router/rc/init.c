@@ -28,7 +28,11 @@
 #include <termios.h>
 #include <unistd.h>
 #include <limits.h>
+#ifdef TARGETENV_android
+#include <fcntl.h>
+#else
 #include <sys/fcntl.h>
+#endif /* TARGETENV_android */
 #include <sys/ioctl.h>
 #include <sys/mount.h>
 #include <sys/reboot.h>

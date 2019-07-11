@@ -57,7 +57,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eAc3Decode */
 		{
 			0x0000004a,
-			0x000000a3,
+			0x000000a4,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eAacDecode */
@@ -75,7 +75,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eDdpDecode */
 		{
 			0x000000ca,
-			0x00000123,
+			0x00000124,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDdLosslessDecode */
@@ -939,7 +939,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eMixerDapv2PostProc */
 		{
 			0x00000cec,
-			0x00000d4c,
+			0x00000d4d,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eOutputFormatterPostProc */

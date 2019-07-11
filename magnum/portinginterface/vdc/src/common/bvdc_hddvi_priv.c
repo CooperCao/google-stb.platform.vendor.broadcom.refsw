@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -38,10 +38,6 @@
  * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
  * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
  * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- *
  ***************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -627,6 +623,26 @@ BERR_Code BVDC_P_HdDvi_Create
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
+#ifdef BCHP_HD_DVI_0_BVB_OUTPUT_MONITOR_1_BVB_LINE_COUNT_MASK
+    pHdDvi->ulOutputMonitor0RegAddr = BRDC_AllocScratchReg(pHdDvi->hSource->hVdc->hRdc);
+    if(!pHdDvi->ulOutputMonitor0RegAddr)
+    {
+        BDBG_ERR(("Not enough scratch registers for error scratch!"));
+        BDBG_OBJECT_DESTROY(pHdDvi, BVDC_DVI);
+        BKNI_Free((void*)pHdDvi);
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    pHdDvi->ulOutputMonitor1RegAddr = BRDC_AllocScratchReg(pHdDvi->hSource->hVdc->hRdc);
+    if(!pHdDvi->ulOutputMonitor1RegAddr)
+    {
+        BDBG_ERR(("Not enough scratch registers for error scratch!"));
+        BDBG_OBJECT_DESTROY(pHdDvi, BVDC_DVI);
+        BKNI_Free((void*)pHdDvi);
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+#endif
+
 #if ((BVDC_P_SUPPORT_HDDVI > 1) && \
      (BVDC_P_SUPPORT_HDDVI_VER >= BVDC_P_HDDVI_NEW_VER_1))  /* 2 new hddvi's */
     /* Regigister offset from HD_DVI_0. */
@@ -659,9 +675,22 @@ void BVDC_P_HdDvi_Destroy
     BDBG_OBJECT_ASSERT(hHdDvi, BVDC_DVI);
 
     /* Free scratch register */
-    BRDC_FreeScratchReg(hHdDvi->hSource->hVdc->hRdc, hHdDvi->ulBridgeErrRegAddr);
-    BRDC_FreeScratchReg(hHdDvi->hSource->hVdc->hRdc, hHdDvi->ulPctrErrRegAddr);
-    BRDC_FreeScratchReg(hHdDvi->hSource->hVdc->hRdc, hHdDvi->ulFormatUpdateRegAddr);
+    if(BERR_SUCCESS != BRDC_FreeScratchReg(hHdDvi->hSource->hVdc->hRdc, hHdDvi->ulBridgeErrRegAddr))
+        BDBG_ERR(("HdDvi[%d] failed to free bridge error scratch reg %#x!", hHdDvi->eId, hHdDvi->ulBridgeErrRegAddr));
+
+    if(BERR_SUCCESS != BRDC_FreeScratchReg(hHdDvi->hSource->hVdc->hRdc, hHdDvi->ulPctrErrRegAddr))
+        BDBG_ERR(("HdDvi[%d] failed to free Pctr error scratch reg %#x!", hHdDvi->eId, hHdDvi->ulPctrErrRegAddr));
+
+    if(BERR_SUCCESS != BRDC_FreeScratchReg(hHdDvi->hSource->hVdc->hRdc, hHdDvi->ulFormatUpdateRegAddr))
+        BDBG_ERR(("HdDvi[%d] failed to free format update scratch reg %#x!", hHdDvi->eId, hHdDvi->ulFormatUpdateRegAddr));
+
+#ifdef BCHP_HD_DVI_0_BVB_OUTPUT_MONITOR_1_BVB_LINE_COUNT_MASK
+    if(BERR_SUCCESS != BRDC_FreeScratchReg(hHdDvi->hSource->hVdc->hRdc, hHdDvi->ulOutputMonitor0RegAddr))
+        BDBG_ERR(("HdDvi[%d] failed to free output monitor 0 scratch reg %#x!", hHdDvi->eId, hHdDvi->ulOutputMonitor0RegAddr));
+
+    if(BERR_SUCCESS != BRDC_FreeScratchReg(hHdDvi->hSource->hVdc->hRdc, hHdDvi->ulOutputMonitor1RegAddr))
+        BDBG_ERR(("HdDvi[%d] failed to free output monitor 1 scratch reg %#x!", hHdDvi->eId, hHdDvi->ulOutputMonitor1RegAddr));
+#endif
 
     BDBG_OBJECT_DESTROY(hHdDvi, BVDC_DVI);
     /* Release context in system memory */
@@ -867,6 +896,11 @@ static void BVDC_P_HdDvi_ReadHwStatus_isr
     ulReg   = BREG_Read32_isr(hHdDvi->hReg, BCHP_HD_DVI_0_BUFFER_FIFO + ulOffset);
     hHdDvi->bFifoErr =
         BCHP_GET_FIELD_DATA(ulReg, HD_DVI_0_BUFFER_FIFO, OVERFLOW);
+#endif
+
+#ifdef BCHP_HD_DVI_0_BVB_OUTPUT_MONITOR_1_BVB_LINE_COUNT_MASK
+    hHdDvi->ulBVBOutputErr = (uint32_t)BRDC_ReadScratch_isrsafe(hHdDvi->hReg, hHdDvi->ulOutputMonitor0RegAddr);
+    hHdDvi->ulBVBOutputSize = (uint32_t)BRDC_ReadScratch_isrsafe(hHdDvi->hReg, hHdDvi->ulOutputMonitor1RegAddr);
 #endif
 
     /* HD_DVI_0_BRIDGE_ERRORS_RDB_CLR */
@@ -2649,6 +2683,16 @@ static void BVDC_P_HdDvi_BuildVsyncRul_isr
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HD_DVI_0_BRIDGE_ERRORS_RDB_CLR + ulOffset);
     *pList->pulCurrent++ = BRDC_REGISTER(hHdDvi->ulBridgeErrRegAddr);
 
+#ifdef BCHP_HD_DVI_0_BVB_OUTPUT_MONITOR_1_BVB_LINE_COUNT_MASK
+    *pList->pulCurrent++ = BRDC_OP_REG_TO_REG( 1 );
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HD_DVI_0_BVB_OUTPUT_MONITOR_0 + ulOffset);
+    *pList->pulCurrent++ = BRDC_REGISTER(hHdDvi->ulOutputMonitor0RegAddr);
+
+    *pList->pulCurrent++ = BRDC_OP_REG_TO_REG( 1 );
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HD_DVI_0_BVB_OUTPUT_MONITOR_1 + ulOffset);
+    *pList->pulCurrent++ = BRDC_REGISTER(hHdDvi->ulOutputMonitor1RegAddr);
+#endif
+
     *pList->pulCurrent++ = BRDC_OP_REG_TO_REG( 1 );
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HD_DVI_0_PCTR_ERROR_STATUS + ulOffset);
     *pList->pulCurrent++ = BRDC_REGISTER(hHdDvi->ulPctrErrRegAddr);
@@ -3159,11 +3203,21 @@ static void BVDC_P_HdDvi_UpdateStatus_isr
         bVideoDetected       = false;
         hHdDvi->ulDetectTrig = 0;
         hHdDvi->bResetFormatDetect = true;
+        pCurDirty->stBits.bInputFormat  = BVDC_P_DIRTY;
+
         BDBG_WRN(("HD_DVI[%d] Fifo overflow!", hHdDvi->eId));
     }
 
     /* Detected video or not */
     bVideoDetected &= (!hHdDvi->bPctrErr);
+#ifdef BCHP_HD_DVI_0_BVB_OUTPUT_MONITOR_1_BVB_LINE_COUNT_MASK
+    if(hHdDvi->ulBVBOutputErr)
+    {
+        BDBG_WRN(("HdDvi[%d] BCHP_HD_DVI_0_BVB_OUTPUT_MONITOR_0: 0x%x",
+            hHdDvi->eId, hHdDvi->ulBVBOutputErr));
+        bVideoDetected = false;
+    }
+#endif
 
     /* Change in status? */
     if(hHdDvi->bVideoDetected != bVideoDetected)
@@ -3196,11 +3250,36 @@ static void BVDC_P_HdDvi_UpdateStatus_isr
     }
     else
     {
+#ifdef BCHP_HD_DVI_0_BVB_OUTPUT_MONITOR_1_BVB_LINE_COUNT_MASK
+        uint32_t   ulOutputWidth, ulOutputHeight;
+
+        ulOutputHeight = BCHP_GET_FIELD_DATA(hHdDvi->ulBVBOutputSize, HD_DVI_0_BVB_OUTPUT_MONITOR_1, BVB_LINE_COUNT);
+        ulOutputWidth = BCHP_GET_FIELD_DATA(hHdDvi->ulBVBOutputSize, HD_DVI_0_BVB_OUTPUT_MONITOR_1, BVB_PIXEL_COUNT);
+
+        if((pNewFmtInfo->ulDigitalWidth == ulOutputWidth)  &&
+          ((pNewFmtInfo->ulDigitalHeight >> pNewFmtInfo->bInterlaced) == ulOutputHeight))
+        {
+            if(++hHdDvi->ulStartFeedCnt >= BVDC_P_HDDVI_VIDEO_DETECT_COUNT)
+            {
+                hHdDvi->ulStartFeedCnt = 0;
+                hHdDvi->hSource->bStartFeed = true;
+            }
+        }
+        else
+        {
+            hHdDvi->ulStartFeedCnt = 0;
+            hHdDvi->hSource->bStartFeed = false;
+            BDBG_WRN(("HdDvi[%d] bVideoDetected %d, Mismatch format %dx%d vs BVB output %dx%d",
+                hHdDvi->eId, bVideoDetected, pNewFmtInfo->ulDigitalWidth ,
+                pNewFmtInfo->ulDigitalHeight, ulOutputWidth, ulOutputHeight));
+        }
+#else
         if(++hHdDvi->ulStartFeedCnt >= BVDC_P_HDDVI_VIDEO_DETECT_COUNT)
         {
             hHdDvi->ulStartFeedCnt = 0;
             hHdDvi->hSource->bStartFeed = true;
         }
+#endif
     }
 
     /* If hmdi mode use from aviInfo frame */

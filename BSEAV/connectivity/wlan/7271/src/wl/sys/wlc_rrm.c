@@ -2855,10 +2855,15 @@ wlc_rrm_bcnreq_scancb(void *arg, int status, wlc_bsscfg_t *cfg)
 	rrm_bcnreq_t *bcn_req;
 	wlc_rrm_req_state_t *rrm_state = rrm_info->rrm_state;
 
-	WL_ERROR(("%s: state: %d, status: %d\n", __FUNCTION__, rrm_state->step, status));
+	if (status == WLC_E_STATUS_ABORT) {
+		WL_ERROR(("%s: state: %d, status: %d\n", __FUNCTION__, rrm_state->step, status));
+		return;
+	}
 	bcn_req = rrm_info->bcnreq;
-	ASSERT(bcn_req != NULL);
-	ASSERT(rrm_state != NULL);
+	if (bcn_req == NULL || rrm_state == NULL) {
+		 WL_ERROR(("%s: bcn_req or rrm_state is NULL\n", __FUNCTION__));
+		 return;
+	}
 
 	bcn_req->scan_status = status;
 	rrm_state->scan_active = FALSE;
@@ -3959,8 +3964,11 @@ wlc_rrm_send_bcnreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, bcnreq_t *bcnre
 	dot11_rmreq_bcn_t *rmreq_bcn;
 	uint8 bcnmode;
 	uint8 *ptr = NULL;
+	struct ether_addr *da;
+	struct scb *scb;
 
 	wlc_info_t *wlc = rrm_info->wlc;
+	da = &bcnreq->da;
 	dur = bcnreq->dur;
 	channel = bcnreq->channel;
 	interval = bcnreq->random_int;
@@ -4052,7 +4060,8 @@ wlc_rrm_send_bcnreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, bcnreq_t *bcnre
 			rmreq_bcn->duration, rmreq_bcn->bcn_mode));
 	}
 	memset(&rmreq_bcn->bssid.octet, 0xff, ETHER_ADDR_LEN);
-	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, NULL);
+	scb = wlc_scbfind(wlc, cfg, da);
+	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, scb);
 }
 
 #ifdef STA
@@ -5410,6 +5419,26 @@ wlc_rrm_doiovar(void *hdl, uint32 actionid,
 		dot11_rrm_cap_ie_t *rrm_cap = (dot11_rrm_cap_ie_t *)a;
 		bool enabled;
 
+#ifdef WL_MBO
+		if (MBO_ENAB(wlc->pub)) {
+			if (!isset(rrm_cap->cap, DOT11_RRM_CAP_BCN_ACTIVE)) {
+				WL_INFORM(("wl%d: Cannot disable Active mode bit in rrm"
+					" cap while MBO is enabled\n", wlc->pub->unit));
+				setbit(rrm_cap->cap, DOT11_RRM_CAP_BCN_ACTIVE);
+			}
+			if (!isset(rrm_cap->cap, DOT11_RRM_CAP_BCN_PASSIVE)) {
+				WL_INFORM(("wl%d: Cannot disable Passive mode bit in rrm"
+					" cap while MBO is enabled\n", wlc->pub->unit));
+				setbit(rrm_cap->cap, DOT11_RRM_CAP_BCN_PASSIVE);
+			}
+			if (!isset(rrm_cap->cap, DOT11_RRM_CAP_BCN_TABLE)) {
+				WL_INFORM(("wl%d: Cannot disable Table mode bit in rrm"
+					" cap while MBO is enabled\n", wlc->pub->unit));
+				setbit(rrm_cap->cap, DOT11_RRM_CAP_BCN_TABLE);
+			}
+		}
+#endif /* WL_MBO */
+
 		current_bss = cfg->current_bss;
 
 		/* Set/clear extended capabilities bits for LCI/Civic/Identifier
@@ -6052,6 +6081,9 @@ wlc_rrm_abort(wlc_info_t *wlc)
 		/* timer has been canceled, but not fired yet */
 		return FALSE;
 	}
+
+	if (rrm_state->scan_active == TRUE)
+		wlc_scan_abort(wlc->scan, WLC_E_STATUS_ABORT);
 
 	wlc_rrm_state_upd(rrm_info, WLC_RRM_ABORT);
 	WL_ERROR(("%s: state upd to %d\n", __FUNCTION__, rrm_state->step));

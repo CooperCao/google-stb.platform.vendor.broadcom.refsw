@@ -1049,6 +1049,9 @@ typedef struct BAPE_Mixer
     BAPE_StereoMode stereoMode; /* For HDMI on IOP devices.  We may need to adjust the input channel pairs to swap left and
                                    right or put just left or right on both channels.  Using the crossbar introduces issues
                                    with Sony TVs because the channel status would be invalid. */
+    BAPE_MixerInterruptHandlers interrupts;
+    bool unlicensedAlgo; /* Set to true after interrupt is triggered */
+
 #if BAPE_CHIP_MAX_DSP_MIXERS > 0
     BAPE_TaskState taskState;
     #if BAPE_CHIP_MAX_MIXER_INPUTS > 0
@@ -1869,6 +1872,7 @@ typedef struct BAPE_Decoder
     bool stereoOnCompressed;
     bool disablePauseBursts; /* If at least one compressed output requests no pause bursts
                                 then disable decoder pause bursts */
+    bool unlicensedAlgo;
 
     BAPE_DecoderType type;
     BAPE_PathNodeOutputStatus outputStatus;

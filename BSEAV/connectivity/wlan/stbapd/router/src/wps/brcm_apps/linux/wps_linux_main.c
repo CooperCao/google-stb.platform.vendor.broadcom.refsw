@@ -60,7 +60,11 @@ typedef u_int8_t u8;
 #include <wbd_rc_shared.h>
 #endif /* MULTIAP */
 
+#ifdef TARGETENV_android
+#define WPSM_PID_FILE_PATH	"/data/tmp/wps_monitor.pid"
+#else
 #define WPSM_PID_FILE_PATH	"/tmp/wps_monitor.pid"
+#endif
 
 extern void RAND_linux_init();
 

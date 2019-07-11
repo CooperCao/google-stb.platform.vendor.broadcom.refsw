@@ -2311,6 +2311,7 @@ endif
 
 #ifdef ANQPO
 ifeq ($(ANQPO),1)
+	WLFLAGS += -DWL_ANQPO_PEER_LIST_TYPEDEF_HAS_ALIAS
 	WLFLAGS += -DANQPO
 	WLFLAGS += -DWL_EVENTQ
 	WLFLAGS += -DBCM_DECODE_NO_ANQP
@@ -2549,15 +2550,21 @@ ifeq ($(WL_GLOBAL_RCLASS),1)
 	WLFLAGS += -DWL_GLOBAL_RCLASS
 endif
 
+ifeq ($(WL_MBO_OCE),1)
+	WLFLAGS += -DWL_MBO_OCE
+	WLFILES_SRC += src/wl/mbo_oce/src/wlc_mbo_oce.c
+endif
+
 ifeq ($(WL_MBO),1)
 	WLFLAGS += -DWL_MBO
 	WLFILES_SRC += src/wl/mbo_oce/src/wlc_mbo.c
+	ifeq ($(WL_MBO_TB),1)
+		WLFLAGS += -DWL_MBO_TB
+	endif
 endif
 
 ifeq ($(WL_OCE),1)
-	WLFLAGS += -DWL_MBO_OCE
 	WLFLAGS += -DWL_OCE
-	WLFILES_SRC += src/wl/mbo_oce/src/wlc_mbo_oce.c
 		WLFILES_SRC += src/wl/mbo_oce/src/wlc_oce.c
 		ifeq ($(AP),1)
 			WLFLAGS += -DWL_OCE_AP

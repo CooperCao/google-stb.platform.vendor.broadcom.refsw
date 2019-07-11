@@ -2850,7 +2850,7 @@ static BERR_Code BHDM_EDID_P_ParseYCbCr420CapabilityMapDB(
 
 	uiNumMapBits = (DataBlockLength - 1) * 8 ;
 	pVideoDescriptor = BLST_Q_FIRST(&hHDMI->AttachedEDID.VideoDescriptorList);
-	for (i = 0 ; pVideoDescriptor && (i < uiNumMapBits) ; i++)
+	for (i = 0 ; pVideoDescriptor ; i++)
 	{
 		CapabilityByte =
 			hHDMI->AttachedEDID.Block[DataBlockIndex + 2 + (i / 8)] ;
@@ -2862,7 +2862,7 @@ static BERR_Code BHDM_EDID_P_ParseYCbCr420CapabilityMapDB(
 		/* skip formats that do not support YCbCr 420 colorspace */
 
 		if ((BFMT_IS_4kx2k_50_60HZ(pVideoDescriptor->eVideoFmt))
-		&&  (CapabilityByte & CapabilityBitMask))
+		&&  ((CapabilityByte & CapabilityBitMask) || (!uiNumMapBits)))
 		{
 			hHDMI->AttachedEDID.BcmSupported420VideoFormats[pVideoDescriptor->eVideoFmt] = true ;
 			pVideoFormatInfo = (BFMT_VideoInfo *) BFMT_GetVideoFormatInfoPtr(pVideoDescriptor->eVideoFmt) ;

@@ -36,6 +36,8 @@
 #include <sys/utsname.h>
 #endif
 
+#define IS_FIRST_WET_BSSIDX	0
+
 /* phy types */
 #define	PHY_TYPE_A		0
 #define	PHY_TYPE_B		1
@@ -2317,6 +2319,19 @@ wlconf(char *name)
 		 */
 		for (i = 0; i < bclist->count; i++) {
 			bsscfg = &bclist->bsscfgs[i];
+#ifdef CONFIG_HOSTAPD
+			/* Use iw cmd only for virtual interface.
+			 * Non zero value of i confirms the bss being vifs.
+			 */
+			if (!nvram_match("hapd_enable", "0") && i) {
+				WLCONF_DBG("Create interface %s using iw\n", bsscfg->ifname);
+				snprintf(tmp, sizeof(tmp), "iw dev %s interface"
+						" add %s type __%s", name, bsscfg->ifname,
+						nvram_safe_get(strcat_r(bsscfg->prefix,
+								"mode", var)));
+				system(tmp);
+			}
+#endif /* CONFIG_HOSTAPD */
 			strcat_r(bsscfg->prefix, "ssid", tmp);
 			ssid.SSID_len = strlen(nvram_safe_get(tmp));
 			if (ssid.SSID_len > sizeof(ssid.SSID))
@@ -4057,6 +4072,7 @@ wlconf_start(char *name)
 	int is_dhd = 0;
 #endif
 	int wmf_bss_disab = 0;
+	bool ure_mbss_enab = FALSE;
 
 	/* Check interface (fail silently for non-wl interfaces) */
 	if ((ret = wl_probe(name)))
@@ -4149,6 +4165,12 @@ wlconf_start(char *name)
 		WL_IOVAR_SETINT(name, "wdstimeout", val);
 	}
 
+	if (!strcmp(nvram_safe_get("ure_disable"), "0") &&
+		!strcmp(nvram_safe_get(strcat_r(prefix, "ure_mbss", tmp)), "1")) {
+		/* Multiple URE BSS is enabled */
+		ure_mbss_enab = TRUE;
+	}
+
 	/*
 	 * Finally enable BSS Configs or Join BSS
 	 * code copied as-is from wlconf function
@@ -4168,7 +4190,20 @@ wlconf_start(char *name)
 		if (ap || apsta || sta || wet) {
 			for (ii = 0; ii < MAX_BSS_UP_RETRIES; ii++) {
 				if (wl_ap_build) {
-					WL_IOVAR_SET(name, "bss", &setbuf, sizeof(setbuf));
+#ifdef CONFIG_HOSTAPD
+					if (!nvram_match("hapd_enable", "0") && i) {
+					/* No need to enable interface here, hostapd should take
+					 * care of enabling the intreface
+					 */
+					} else
+#endif	/* CONFIG_HOSTAPD */
+					{
+						WL_IOVAR_SET(name, "bss", &setbuf, sizeof(setbuf));
+						if (ure_mbss_enab && (i == IS_FIRST_WET_BSSIDX)) {
+							// Make sure primary sta can join successful
+							sleep_ms(2000);
+						}
+					}
 				}
 				else {
 					strcat_r(prefix, "ssid", tmp);

@@ -433,6 +433,8 @@ struct wlc_bss_info {
 
 /* additional wlc_bss_info flag bit values (flags3 field) */
 #define WLC_BSS3_HE		0x0001	/* BSS is HE (802.11ax) capable */
+#define WLC_BSS3_MBO_ASSOC_RETRY_DELAY_ACTIVE	0x0002	/* Association is not allowed in this BSS */
+#define WLC_BSS3_MBO_AP_CELLULAR_AWARE 0x0004 /* MBO AP capability indication field bit */
 
 #define BAR0_INVALID		(1 << 0)
 #define VENDORID_INVALID	(1 << 1)

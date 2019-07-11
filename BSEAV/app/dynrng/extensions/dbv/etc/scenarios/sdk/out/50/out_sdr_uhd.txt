@@ -1,6 +1,0 @@
-format=2160p50
-sampling=422
-depth=12
-dynrng=sdr
-gamut=709
-commit

@@ -19,13 +19,13 @@ all: emf
 endif
 
 emf: $(ALL_OBJS)
-	$(CC) $(CCFLAGS) $(LDFLAGS) -o $@ $(ALL_OBJS) $(LDLIBS)
+	$(CC) $(CFLAGS) $(CCFLAGS) $(LDFLAGS) -o $@ $(ALL_OBJS) $(LDLIBS)
 	$(STRIP) $@
 
 $(ALL_OBJS): %.o: %.c
 	@echo " "
 	@echo "Making $<"
-	$(CC) $(CCFLAGS) -c $<
+	$(CC) $(CFLAGS) $(CCFLAGS) -c $<
 
 install: all
 	install -d $(INSTALLDIR)/emf/usr/sbin
