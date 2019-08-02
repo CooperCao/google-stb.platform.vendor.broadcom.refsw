@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -714,6 +714,17 @@ BERR_Code BAPE_DfifoGroup_P_GetQueuedBytes(
 
 /***************************************************************************
 Summary:
+Get address of the valid ptr
+***************************************************************************/
+void BAPE_DfifoGroup_P_GetValidAddress(
+    BAPE_DfifoGroupHandle handle,
+    unsigned chPair,       /*0,1,2,3*/
+    unsigned bufferNum,     /*0,1*/
+    BMMA_DeviceOffset *pValidPtr
+    );
+
+/***************************************************************************
+Summary:
 Enable/Disable a DFIFO Fullmark Interrupt
 ***************************************************************************/
 BERR_Code BAPE_DfifoGroup_P_SetFullmarkInterrupt(
@@ -1343,6 +1354,7 @@ typedef struct BAPE_LoopbackGroupSettings
     bool insertOnUnderflow;     /* Insert zereos if the loopback underflows.
                                     This is needed for the DSP mixer's loopback but
                                     this should not be set for captures */
+    bool ignoreInvalidFrames;   /* If true this will drop frames marked as inserted */
 
 #if BAPE_CHIP_MAX_FS > 0
     unsigned fs;                    /* Which FS timing source will be used. */

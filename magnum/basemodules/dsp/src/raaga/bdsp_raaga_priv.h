@@ -543,6 +543,10 @@ BERR_Code BDSP_Raaga_P_GetAudioLicenseStatus(
 void BDSP_Raaga_P_DestroyContext(
     void *pContextHandle);
 
+BERR_Code BDSP_Raaga_P_ProcessPing(
+	void *pContextHandle
+);
+
 void BDSP_Raaga_P_GetDefaultTaskSettings(
     void *pContextHandle,
     BDSP_TaskCreateSettings *pSettings);

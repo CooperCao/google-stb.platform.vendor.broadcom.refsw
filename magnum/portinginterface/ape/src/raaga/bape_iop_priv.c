@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -951,7 +951,7 @@ BERR_Code BAPE_LoopbackGroup_P_SetSettings_isr(
         /* Typical STB */
         regAddr = BCHP_AUD_FMM_IOP_CTRL_LOOPBACK_CFGi_ARRAY_BASE + (4*handle->loopbackIds[i]);
         regVal = BREG_Read32(handle->deviceHandle->regHandle, regAddr);
-        regVal &= ~(BCHP_MASK(AUD_FMM_IOP_CTRL_LOOPBACK_CFGi, TMG_SRC_SEL) | BCHP_MASK(AUD_FMM_IOP_CTRL_LOOPBACK_CFGi, INSERT_CTL));
+        regVal &= ~(BCHP_MASK(AUD_FMM_IOP_CTRL_LOOPBACK_CFGi, TMG_SRC_SEL) | BCHP_MASK(AUD_FMM_IOP_CTRL_LOOPBACK_CFGi, INSERT_CTL) | BCHP_MASK(AUD_FMM_IOP_CTRL_LOOPBACK_CFGi, INS_NOACK));
         regVal |= BCHP_FIELD_DATA(AUD_FMM_IOP_CTRL_LOOPBACK_CFGi, TMG_SRC_SEL, pSettings->fs);
         if (handle->settings.insertOnUnderflow) {
             regVal |= BCHP_FIELD_ENUM(AUD_FMM_IOP_CTRL_LOOPBACK_CFGi, INSERT_CTL, Insert_zero);
@@ -959,6 +959,7 @@ BERR_Code BAPE_LoopbackGroup_P_SetSettings_isr(
         else {
             regVal |= BCHP_FIELD_ENUM(AUD_FMM_IOP_CTRL_LOOPBACK_CFGi, INSERT_CTL, No_insert);
         }
+        regVal |= BCHP_FIELD_DATA(AUD_FMM_IOP_CTRL_LOOPBACK_CFGi, INS_NOACK, handle->settings.ignoreInvalidFrames ? 1 : 0);
         BREG_Write32(handle->deviceHandle->regHandle, regAddr, regVal);
     }
 #elif defined BCHP_AUD_FMM_IOP_CTRL_LOOPBACK_CFG
@@ -1099,6 +1100,10 @@ BERR_Code BAPE_LoopbackGroup_P_SetSettings_isr(
             regVal |= BCHP_FIELD_ENUM(AUD_FMM_IOP_LOOPBACK_0_LOOPBACK_CFG_i, INSERT_CTL, No_insert);
         }
         BREG_Write32_isr(handle->deviceHandle->regHandle, regAddr, regVal);
+
+        /* Configure to ignore upstream invalid frames*/
+        regAddr = BAPE_Reg_P_GetArrayAddress(AUD_FMM_IOP_LOOPBACK_0_STREAM_CFG_i, handle->loopbackIds[i]);
+        BAPE_Reg_P_UpdateField(handle->deviceHandle, regAddr, AUD_FMM_IOP_LOOPBACK_0_STREAM_CFG_i, INS_INVAL, pSettings->ignoreInvalidFrames ? 1 : 0);
     }
 #else
 #error Unknown loopback register layout

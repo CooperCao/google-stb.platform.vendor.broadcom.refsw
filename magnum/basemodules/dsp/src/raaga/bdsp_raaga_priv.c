@@ -3501,6 +3501,8 @@ BERR_Code BDSP_Raaga_P_CreateContext(
 	pRaagaContext->context.createQueue = BDSP_Raaga_P_Queue_Create;
 	pRaagaContext->context.getDefaultQueueSettings = BDSP_Raaga_P_GetDefaultCreateQueueSettings;
 
+	pRaagaContext->context.pingDsp = BDSP_Raaga_P_ProcessPing;
+
 	errCode = BDSP_Raaga_P_ContextInterruptInstall((void *)pRaagaContext);
 	if ( BERR_SUCCESS!=errCode )
 	{
@@ -3612,6 +3614,24 @@ void BDSP_Raaga_P_DestroyContext(
 	BDBG_OBJECT_DESTROY(pRaagaContext, BDSP_RaagaContext);
 	BKNI_Free(pRaagaContext);
 	BDBG_LEAVE(BDSP_Raaga_P_DestroyContext);
+}
+
+BERR_Code BDSP_Raaga_P_ProcessPing(
+	void *pContextHandle
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	BDSP_RaagaContext *pRaagaContext = (BDSP_RaagaContext *)pContextHandle;
+	BDBG_OBJECT_ASSERT(pRaagaContext, BDSP_RaagaContext);
+
+	/*errCode = BDSP_Raaga_P_ProcessPingCommand(pRaagaContext->pDevice,0);*/
+	/* We don't support PING for a Context in Raaga/Octave Platform */
+	if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_ProcessPing: Error in Processing Ping for Context %s",ContextType[pRaagaContext->settings.contextType]));
+		errCode = BERR_TRACE(errCode);
+	}
+	return errCode;
 }
 
 /***********************************************************************

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -1486,6 +1486,9 @@ BERR_Code BAPE_DspMixer_P_Create(
     const BAPE_MixerSettings *pSettings,
     BAPE_MixerHandle *pHandle               /* [out] */
     );
+
+/* DSP mixer requires 12416 bytes of FMM input before it starts consumption*/
+#define BAPE_DSP_MIXER_MIN_INPUT 6144
 
 /***************************************************************************
 Summary:

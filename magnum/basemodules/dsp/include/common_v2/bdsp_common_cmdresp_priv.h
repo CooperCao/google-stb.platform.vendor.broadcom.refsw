@@ -299,6 +299,7 @@ typedef struct BDSP_P_StartTaskCommand{
 	uint32_t                       Dummy;                   /*Dummy Variable to Pack the structure*/
 
 	uint32_t                       ui32MasterTaskId;        /*ID of master task*/
+    uint32_t                       ui32MasterInputIndex;    /*Input port index at which it is connected to master*/
     uint32_t                       ui32SyncQueueFifoId;		/* Task Sync queue Id */
     uint32_t                       ui32AsyncQueueFifoId;   	/* Task Async queue Id */
 	uint32_t                       ui32EventEnableMask;     /* Event Mask Enable */

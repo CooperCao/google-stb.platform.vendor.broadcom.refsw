@@ -3086,6 +3086,11 @@ typedef struct BDSP_Raaga_Audio_DolbyAacheUserConfig
               -Stereo is at -24dB */
 
     uint32_t    ui32LoudnessEquivalenceMode;
+	/* dual mono downmix mode
+    enum { GBL_DUAL_STEREO=0, GBL_DUAL_LEFTMONO, GBL_DUAL_RGHTMONO, GBL_DUAL_MIXMONO };
+    i32DualMode = 0 is default value;
+    */
+    int32_t         i32DualMonoMode;
 
     /* Port specific configs : 0 -> Multichannel; 1 -> Stereo */
     BDSP_Raaga_Audio_DolbyAachePortConfig   sOutPortCfg[2];

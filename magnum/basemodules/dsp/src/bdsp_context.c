@@ -141,3 +141,17 @@ BERR_Code BDSP_Context_ProcessWatchdogInterrupt(
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 }
+BERR_Code BDSP_Context_ProcessPing(
+    BDSP_ContextHandle context
+)
+{
+    BDBG_OBJECT_ASSERT(context, BDSP_Context);
+    if(context->pingDsp)
+    {
+        return context->pingDsp(context->pContextHandle);
+    }
+    else
+    {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+}

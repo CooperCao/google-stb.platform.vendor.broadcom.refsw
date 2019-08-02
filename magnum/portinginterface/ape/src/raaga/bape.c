@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -2425,5 +2425,35 @@ bool BAPE_CodecSupportsCompressed16x (
     )
 {
     return BAPE_P_CodecSupportsCompressed16x(codec);
+}
+
+void BAPE_PingDsp(BAPE_Handle handle, BDSP_Handle hDsp)
+{
+    BDSP_ContextHandle dspContext = NULL;
+    BDBG_OBJECT_ASSERT(handle, BAPE_Device);
+
+    if ( hDsp == handle->dspHandle)
+    {
+        dspContext = handle->dspContext;
+    }
+    else if ( hDsp == handle->armHandle )
+    {
+        dspContext = handle->armContext;
+    }
+
+    if ( dspContext )
+    {
+        BERR_Code errCode;
+        errCode = BERR_TRACE(BDSP_Context_ProcessPing(dspContext));
+        if ( errCode )
+        {
+            BDBG_ERR(("DSP Ping Command returned an error."));
+        }
+    }
+    else
+    {
+        BERR_TRACE(BERR_NOT_AVAILABLE);
+        BDBG_WRN(("No valid context found. Ping NOT executed."));
+    }
 }
 #endif

@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom.
+*  Copyright (C) 2019 Broadcom.
 *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -1309,6 +1309,7 @@ static const char * const NEXUS_P_GetEnvVariables [] =
     "dejag",
     "disable_arm_audio",
     "disable_audio_dsp",
+    "disable_audio_dsp_ack",
     "disable_avs",
     "disable_oob_frontend",
     "disable_thermal_monitor",

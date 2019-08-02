@@ -52,7 +52,8 @@ const BDSP_AudioTaskDatasyncSettings BDSP_sDefaultFrameSyncSettings =
         1,
         {{
         BDSP_Audio_ASFPTSType_eInterpolated,
-            BDSP_Audio_WMAIpType_eASF
+            BDSP_Audio_WMAIpType_eASF,
+			0
         }},
     0,                                           /* eForceCompleteFirstFrame */
     BDSP_Raaga_Audio_DatasyncType_eNone
@@ -1615,6 +1616,7 @@ const BDSP_Raaga_Audio_DolbyAacheUserConfig BDSP_sDolbyAacheDefaultUserConfig =
 	0,                      /* ui32EnableStereoDownmixType */
 	0,                      /* ui32IDKCertificationFlag */
 	0,                      /* ui32LoudnessEquivalenceMode */
+	0,                      /* i32DualMonoMode, left mono */
 	{
 		{
 			{ 0, 1,0xFFFFFFFF,0xFFFFFFFF, 0xFFFFFFFF,

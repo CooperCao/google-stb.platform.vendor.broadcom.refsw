@@ -136,7 +136,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x103d1800,
 
 		/* BDSP_AF_P_AlgoId_eFlacDecode */
-		0x104526d0,
+		0x104526d8,
 
 		/* BDSP_AF_P_AlgoId_eMacDecode */
 		0x1045a000,
@@ -145,7 +145,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x1047a800,
 
 		/* BDSP_AF_P_AlgoId_eiLBCDecode */
-		0x104e0504,
+		0x104e04d4,
 
 		/* BDSP_AF_P_AlgoId_eiSACDecode */
 		0x104fb044,
@@ -160,10 +160,10 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x106b6b70,
 
 		/* BDSP_AF_P_AlgoId_eALSDecode */
-		0x106eed78,
+		0x106eedac,
 
 		/* BDSP_AF_P_AlgoId_eAC4Decode */
-		0x106f3f10,
+		0x106f3f14,
 
 		/* BDSP_AF_P_AlgoId_eEndOfAudioDecodeAlgos */
 		0x00000000,
@@ -298,7 +298,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x00000000,
 
 		/* BDSP_AF_P_AlgoId_eAacHeEncode */
-		0x102e36ac,
+		0x102e36a4,
 
 		/* BDSP_AF_P_AlgoId_eDtsEncode */
 		0x10281000,

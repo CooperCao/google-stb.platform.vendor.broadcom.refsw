@@ -1777,7 +1777,7 @@ DrmRC DRM_WVOemCrypto_LoadKeys_V13(uint32_t session,
     if(srm_requirement)
     {
         container->blocks[7].data.ptr = SRAI_Memory_Allocate(WVCDM_KEY_CONTROL_SIZE, SRAI_MemoryType_Shared);
-        if(container->blocks[6].data.ptr == NULL)
+        if(container->blocks[7].data.ptr == NULL)
         {
             BDBG_ERR(("%s - Error allocating memory for SRM requirement data (%u bytes)", BSTD_FUNCTION, WVCDM_KEY_CONTROL_SIZE));
             rc = Drm_Err;
@@ -1945,6 +1945,11 @@ ErrorExit:
         if(container->blocks[6].data.ptr != NULL){
             SRAI_Memory_Free(container->blocks[6].data.ptr);
             container->blocks[6].data.ptr = NULL;
+        }
+
+        if(container->blocks[7].data.ptr != NULL){
+            SRAI_Memory_Free(container->blocks[7].data.ptr);
+            container->blocks[7].data.ptr = NULL;
         }
 
         SRAI_Container_Free(container);
@@ -8138,6 +8143,11 @@ ErrorExit:
         }
     }
 
+    if(container != NULL)
+    {
+        SRAI_Container_Free(container);
+        container = NULL;
+    }
     BDBG_LEAVE(DRM_WVOemCrypto_P_Query_Mgn_Initialized);
     return rc;
 }
@@ -8190,6 +8200,11 @@ ErrorExit:
         rc = Drm_Success;
     }
 
+    if(container != NULL)
+    {
+        SRAI_Container_Free(container);
+        container = NULL;
+    }
     BDBG_LEAVE(DRM_WVOemCrypto_P_Query_Write_Pending);
     return rc;
 }
@@ -9799,17 +9814,17 @@ DrmRC DRM_WVOemCrypto_Create_Old_Usage_Entry(uint64_t time_since_license_receive
         }
         if(container->blocks[1].data.ptr != NULL)
         {
-            SRAI_Memory_Free(container->blocks[0].data.ptr);
+            SRAI_Memory_Free(container->blocks[1].data.ptr);
             container->blocks[1].data.ptr = NULL;
         }
         if(container->blocks[2].data.ptr != NULL)
         {
-            SRAI_Memory_Free(container->blocks[0].data.ptr);
+            SRAI_Memory_Free(container->blocks[2].data.ptr);
             container->blocks[2].data.ptr = NULL;
         }
         if(container->blocks[3].data.ptr != NULL)
         {
-            SRAI_Memory_Free(container->blocks[0].data.ptr);
+            SRAI_Memory_Free(container->blocks[3].data.ptr);
             container->blocks[3].data.ptr = NULL;
         }
         SRAI_Container_Free(container);
@@ -10547,7 +10562,7 @@ DrmRC DRM_WVOemCrypto_LoadKeys(uint32_t session,
     if(srm_requirement)
     {
         container->blocks[7].data.ptr = SRAI_Memory_Allocate(WVCDM_KEY_CONTROL_SIZE, SRAI_MemoryType_Shared);
-        if(container->blocks[6].data.ptr == NULL)
+        if(container->blocks[7].data.ptr == NULL)
         {
             BDBG_ERR(("%s - Error allocating memory for SRM requirement data (%u bytes)", BSTD_FUNCTION, WVCDM_KEY_CONTROL_SIZE));
             rc = Drm_Err;
@@ -10715,6 +10730,10 @@ ErrorExit:
             container->blocks[6].data.ptr = NULL;
         }
 
+        if(container->blocks[7].data.ptr != NULL){
+            SRAI_Memory_Free(container->blocks[7].data.ptr);
+            container->blocks[7].data.ptr = NULL;
+        }
         SRAI_Container_Free(container);
         container = NULL;
     }

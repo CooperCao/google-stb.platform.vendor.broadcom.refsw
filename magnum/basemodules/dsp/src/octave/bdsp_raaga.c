@@ -106,6 +106,7 @@ BDSP_RaagaSettings *pSettings	   /* [out] */
 
 	pSettings->NumDsp  	     = BDSP_RAAGA_MAX_DSP;
 	pSettings->numCorePerDsp = BDSP_RAAGA_MAX_CORE_PER_DSP;
+	pSettings->disableSyncCommmand = false;
 }
 
  /***********************************************************************

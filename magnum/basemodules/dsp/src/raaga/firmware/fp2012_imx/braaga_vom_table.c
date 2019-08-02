@@ -69,7 +69,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eAacHeLpSbrDecode */
 		{
 			0x00000191,
-			0x000001e2,
+			0x000001e3,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDdpDecode */

@@ -1226,6 +1226,7 @@ BERR_Code BDSP_Raaga_P_CreateContext(
 	pRaagaContext->context.processWatchdogInterrupt= BDSP_Raaga_P_ProcessContextWatchdogInterrupt;
 	pRaagaContext->context.createCapture = BDSP_Raaga_P_AudioCaptureCreate;
 
+	pRaagaContext->context.pingDsp = BDSP_Raaga_P_ProcessPing;
 	BKNI_AcquireMutex(pDevice->deviceMutex);
 	BLST_S_INSERT_HEAD(&pDevice->contextList, pRaagaContext, node);
 	BLST_S_INIT(&pRaagaContext->taskList);
@@ -1263,6 +1264,24 @@ void BDSP_Raaga_P_DestroyContext(
 	BDBG_OBJECT_DESTROY(pRaagaContext, BDSP_RaagaContext);
 	BKNI_Free(pRaagaContext);
 	BDBG_LEAVE(BDSP_Raaga_P_DestroyContext);
+}
+
+BERR_Code BDSP_Raaga_P_ProcessPing(
+	void *pContextHandle
+)
+{
+	BERR_Code errCode = BERR_SUCCESS;
+	BDSP_RaagaContext *pRaagaContext = (BDSP_RaagaContext *)pContextHandle;
+	BDBG_OBJECT_ASSERT(pRaagaContext, BDSP_RaagaContext);
+
+	/*errCode = BDSP_Raaga_P_ProcessPingCommand(pRaagaContext->pDevice,0);*/
+	/* We don't support PING for a Context in Raaga/Octave Platform */
+	if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_ProcessPing: Error in Processing Ping for Context %s",ContextType[pRaagaContext->settings.contextType]));
+		errCode = BERR_TRACE(errCode);
+	}
+	return errCode;
 }
 
 void BDSP_Raaga_P_GetDefaultTaskSettings(
@@ -1573,6 +1592,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
 	sPayload.ui32TaskId          = pRaagaTask->taskParams.taskId;
 	sPayload.ui32CoreIndex       = pRaagaTask->taskParams.coreIndex;
 	sPayload.ui32MasterTaskId    = pRaagaTask->taskParams.masterTaskId;
+	sPayload.ui32MasterInputIndex= pRaagaTask->taskParams.masterInputIndex;
 	sPayload.ui32SyncQueueFifoId = pRaagaTask->hSyncQueue->ui32FifoId;
 	sPayload.ui32AsyncQueueFifoId= pRaagaTask->hAsyncQueue->ui32FifoId;
 	sPayload.ui32EventEnableMask = pRaagaTask->taskParams.eventEnabledMask;

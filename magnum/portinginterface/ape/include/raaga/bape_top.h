@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -94,6 +94,10 @@ typedef void *BTEE_InstanceHandle;
 #define BAPE_ADDRESS_ALIGN_CDB  8 /* CDB is aligned to 2^8 Bytes*/
 #define BAPE_ADDRESS_ALIGN_ITB  7 /* ITB is aligned to 2^7 Bytes*/
 #endif
+
+#define BAPE_MANUAL_DSP_CMD_BLOCKING_START      0
+#define BAPE_MANUAL_DSP_CMD_BLOCKING_STOP       1
+#define BAPE_MANUAL_DSP_CMD_BLOCKING_PAUSE      1
 
 /*=************************ Module Overview ********************************
 APE (Audio Processing Engine) is a porting interface (PI) module that
@@ -265,6 +269,7 @@ typedef struct BAPE_Settings
             APE is unable to access a discontiguous upper memory region, so its base address and size is not needed. */
     } memc[3]; /* for each MEMC */
     BTEE_InstanceHandle bTeeInstance;
+    bool dspManualCmdBlocking;
 } BAPE_Settings;
 
 /***************************************************************************
@@ -610,6 +615,11 @@ bool BAPE_CodecSupportsCompressed4x (
 
 bool BAPE_CodecSupportsCompressed16x (
     BAVC_AudioCompressionStd codec
+    );
+
+void BAPE_PingDsp (
+    BAPE_Handle handle,
+    BDSP_Handle hDsp
     );
 #endif
 

@@ -143,6 +143,7 @@ typedef struct BDSP_P_TaskParams
 	bool	 frozen;
 	unsigned taskId;
 	unsigned masterTaskId;
+	unsigned masterInputIndex; /* For a slave task, it indicates the input index of the master to which it is connected */
 	unsigned commandCounter;
 	unsigned lastCommand;
 	uint32_t eventEnabledMask;

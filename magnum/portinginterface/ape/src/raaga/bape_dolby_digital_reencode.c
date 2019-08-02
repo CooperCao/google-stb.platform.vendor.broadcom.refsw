@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom.
+*  Copyright (C) 2019 Broadcom.
 *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -913,6 +913,27 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_AllocatePathFromInput(struct BAPE_P
                 goto err_task_start;
             }
 
+            #if BAPE_MANUAL_DSP_CMD_BLOCKING_START
+            if ( handle->deviceHandle->settings.dspManualCmdBlocking )
+            {
+                if ( handle->node.deviceContext )
+                {
+                    errCode = BDSP_Context_ProcessPing(handle->node.deviceContext);
+                    if ( errCode )
+                    {
+                        BERR_TRACE(errCode);
+                        goto err_task_start;
+                    }
+                }
+                else
+                {
+                    BDBG_WRN(("No valid context found. Unable to wait for command ACK from DSP!!!"));
+                    BERR_TRACE(BERR_UNKNOWN);
+                    /* proceed anyway */
+                }
+            }
+            #endif
+
             handle->taskStarted = true;
         }
     }
@@ -1617,6 +1638,21 @@ static void BAPE_DolbyDigitalReencode_P_StopPathFromInput(struct BAPE_PathNode *
         {
             BERR_TRACE(errCode);
         }
+            #if BAPE_MANUAL_DSP_CMD_BLOCKING_STOP
+            if ( handle->deviceHandle->settings.dspManualCmdBlocking )
+            {
+                if ( handle->node.deviceContext )
+                {
+                    BERR_TRACE(BDSP_Context_ProcessPing(handle->node.deviceContext));
+                }
+                else
+                {
+                    BDBG_WRN(("No valid context found. Unable to wait for command ACK from DSP!!!"));
+                    BERR_TRACE(BERR_UNKNOWN);
+                    /* proceed anyway */
+                }
+            }
+            #endif
 
         handle->taskStarted = false;
 

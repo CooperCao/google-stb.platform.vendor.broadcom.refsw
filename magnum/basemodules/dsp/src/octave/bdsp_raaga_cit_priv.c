@@ -431,6 +431,8 @@ next_step_1:
                         pSchedulingConfig->sExtendedBuffer.sCircularBuffer.ReadAddr  = BaseOffset + (2*sizeof(dramaddr_t));
                         pSchedulingConfig->sExtendedBuffer.sCircularBuffer.WriteAddr = BaseOffset + (3*sizeof(dramaddr_t));
                         pSchedulingConfig->sExtendedBuffer.sCircularBuffer.WrapAddr  = BaseOffset + (4*sizeof(dramaddr_t));
+
+                        pRaagaTask->taskParams.masterInputIndex = pInterTaskBuffer->dstIndex;
                     }
                     independentDelay = 0;
                     goto next_step_2;

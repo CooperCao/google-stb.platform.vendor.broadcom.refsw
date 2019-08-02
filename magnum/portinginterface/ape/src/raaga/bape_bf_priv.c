@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -2405,6 +2405,63 @@ static BERR_Code BAPE_Dfifo_P_GetQueuedBytes(
         }
     }
     *pQueuedBytes = queuedBytes;
+    return BERR_SUCCESS;
+}
+
+void BAPE_DfifoGroup_P_GetValidAddress(
+    BAPE_DfifoGroupHandle handle,
+    unsigned chPair,       /*0,1,2,3*/
+    unsigned bufferNum,     /*0,1*/
+    BMMA_DeviceOffset *pValidPtr
+    )
+{
+    BMMA_DeviceOffset valid;
+    unsigned dfifoId;
+
+    BDBG_ASSERT(NULL != handle);
+    BDBG_ASSERT(handle->allocated);
+    BDBG_ASSERT(NULL != pValidPtr);
+
+    dfifoId = handle->dfifoIds[chPair];
+    valid = BREG_ReadAddr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_WRADDR_REG(dfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
+
+#ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
+    *pValidPtr = BCHP_GET_FIELD_DATA(valid, AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
+#else
+    *pValidPtr = BCHP_GET_FIELD_DATA(valid, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
+#endif
+}
+
+BERR_Code BAPE_DfifoGroup_P_HasConsumptionOccured(
+    BAPE_DfifoGroupHandle handle,
+    bool *pConsumptionOccured
+    )
+
+{
+    BMMA_DeviceOffset rd,base,rdaddr;
+
+    BDBG_ASSERT(NULL != handle);
+    BDBG_ASSERT(handle->allocated);
+    BDBG_ASSERT(NULL != pConsumptionOccured);
+
+    *pConsumptionOccured = false;
+
+    /* All channel pairs should be linked so if the first got consumed they all did */
+    rd = BREG_ReadAddr_isrsafe(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_RDADDR_REG(handle->dfifoIds[0]));
+    base = BREG_ReadAddr_isrsafe(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_BASEADDR_REG(handle->dfifoIds[0]));
+
+    #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
+    rdaddr = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR);
+    #else
+    rdaddr = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR, RINGBUF_RDADDR);
+    #endif
+
+    if ( rdaddr == base ) {
+        *pConsumptionOccured = false;
+    }
+    else {
+        *pConsumptionOccured = true;
+    }
 
     return BERR_SUCCESS;
 }

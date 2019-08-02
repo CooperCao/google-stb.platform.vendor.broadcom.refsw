@@ -115,6 +115,7 @@ typedef struct BDSP_RaagaSettings
         uint64_t size;
     } heap[BDSP_RAAGA_MAX_NUM_HEAPS]; /* heaps that DSP is expected to access */
     BCHP_MemoryLayout memoryLayout; /* all addressable memory per MEMC */
+	bool disableSyncCommmand;
 } BDSP_RaagaSettings;
 
 void BDSP_Raaga_GetDefaultSettings(

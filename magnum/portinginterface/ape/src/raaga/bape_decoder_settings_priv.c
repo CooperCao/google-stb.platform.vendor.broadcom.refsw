@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -1421,6 +1421,23 @@ static BERR_Code BAPE_Decoder_P_ApplyMs12AacSettings(
         break;
     case BAPE_AacStereoMode_eArib:
         handle->userConfig.aac.ui32EnableStereoDownmixType = 2;
+        break;
+    }
+
+    switch ( handle->settings.dualMonoMode )
+    {
+    default:
+    case BAPE_DualMonoMode_eStereo:
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, i32DualMonoMode, 0);
+        break;
+    case BAPE_DualMonoMode_eLeft:
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, i32DualMonoMode, 1);
+        break;
+    case BAPE_DualMonoMode_eRight:
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, i32DualMonoMode, 2);
+        break;
+    case BAPE_DualMonoMode_eMix:
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.aac, i32DualMonoMode, 3);
         break;
     }
 

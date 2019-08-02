@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2018 Broadcom.
+*  Copyright (C) 2019 Broadcom.
 *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -405,6 +405,11 @@ static void NEXUS_AudioModule_P_PopulateRaagaOpenSettings(
     }
 
     raagaSettings->NumDsp = boxConfig->stAudio.numDsps;
+
+    if ( NEXUS_GetEnv("disable_audio_dsp_ack") )
+    {
+        raagaSettings->disableSyncCommmand = true;
+    }
 }
 #endif
 
@@ -445,9 +450,10 @@ static void NEXUS_AudioModule_P_PopulateArmOpenSettings(
         armSettings->maxAlgorithms[i] = pSettings->softAudioAlgorithmSettings.typeSettings[i].count;
     }
 
-    #if 0
-    armSettings->NumDsp = boxConfig->stAudio.numDsps;
-    #endif
+    if ( NEXUS_GetEnv("disable_audio_dsp_ack") )
+    {
+        armSettings->disableSyncCommmand = true;
+    }
 }
 #endif
 
@@ -780,6 +786,20 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
     }
 
     BAPE_GetDefaultSettings(pApeSettings);
+    #if BAPE_DSP_SUPPORT
+      /* DSP will take priority of ARM */
+      #if BDSP_RAAGA_AUDIO_SUPPORT
+      if ( pRaagaSettings )
+      {
+          pApeSettings->dspManualCmdBlocking = pRaagaSettings->disableSyncCommmand;
+      }
+      #elif BDSP_ARM_AUDIO_SUPPORT
+      if ( pArmSettings )
+      {
+          pApeSettings->dspManualCmdBlocking = pArmSettings->disableSyncCommmand;
+      }
+      #endif
+    #endif
     pApeSettings->maxDspTasks = pSettings->maxAudioDspTasks;
     pApeSettings->maxIndependentDelay = pSettings->independentDelay ? pSettings->maxIndependentDelay : 0;
     pApeSettings->maxPcmSampleRate = pSettings->maxPcmSampleRate;
@@ -1599,6 +1619,37 @@ void NEXUS_GetAudioFirmwareVersion(
     pVersion->branch[1] = dspStatus.firmwareVersion.branchSubVersion;
     #else
     BKNI_Memset(pVersion, 0, sizeof(NEXUS_AudioFirmwareVersion));
+    #endif
+}
+
+void NEXUS_AudioModule_PingDsp_priv(void)
+{
+    #if BAPE_DSP_SUPPORT
+    BDSP_Handle hDsp = NULL;
+
+    if ( g_NEXUS_audioModuleData.dspHandle )
+    {
+        hDsp = g_NEXUS_audioModuleData.dspHandle;
+    }
+    else if ( g_NEXUS_audioModuleData.armHandle )
+    {
+        hDsp = g_NEXUS_audioModuleData.armHandle;
+    }
+    else
+    {
+        BDBG_WRN(("no valid Audio device found"));
+        return;
+    }
+
+    if ( hDsp != NULL )
+    {
+        BAPE_PingDsp(g_NEXUS_audioModuleData.apeHandle, hDsp);
+    }
+    else
+    {
+        BDBG_WRN(("No DSP Device Found!!! Ping NOT executed."));
+        BERR_TRACE(NEXUS_UNKNOWN);
+    }
     #endif
 }
 

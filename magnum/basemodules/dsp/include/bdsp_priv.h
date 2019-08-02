@@ -201,6 +201,8 @@ typedef struct BDSP_Context
 
     BERR_Code (*createQueue)(void *pContextHandle, unsigned dspIndex, BDSP_QueueCreateSettings *pSettings, BDSP_QueueHandle *pQueueHandle);
     BERR_Code (*getDefaultQueueSettings)(void *pContextHandle, BDSP_QueueCreateSettings *pSettings);
+
+	BERR_Code (*pingDsp)(void *pContextHandle);
 }BDSP_Context;
 
 void BDSP_P_InitContext(

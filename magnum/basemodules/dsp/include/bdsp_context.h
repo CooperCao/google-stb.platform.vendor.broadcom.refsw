@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -129,6 +129,14 @@ Process a watchdog interrupt for this context
 BERR_Code BDSP_Context_ProcessWatchdogInterrupt(
     BDSP_ContextHandle context
     );
+
+/***************************************************************************
+Summary:
+Process Ping command to wait for ACK of a previous sequence of cmds
+***************************************************************************/
+BERR_Code BDSP_Context_ProcessPing(
+    BDSP_ContextHandle context
+);
 
 
 /*BDSP_DataType  and BDSP_StageCreateSettings has gone into bdsp_types.h*/

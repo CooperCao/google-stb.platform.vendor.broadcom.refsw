@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -103,6 +103,7 @@ static bool BAPE_Decoder_P_OrphanConnector(BAPE_DecoderHandle handle, BAPE_Conne
 static BERR_Code BAPE_Decoder_P_GetPathDelay_isr(BAPE_DecoderHandle handle, unsigned *pDelay);
 static void BAPE_Decoder_P_FreeDecodeToMemory(BAPE_DecoderHandle hDecoder);
 static bool BAPE_Decoder_P_HasConnectedOutput(BAPE_DecoderHandle handle, BAPE_ConnectorFormat format);
+static void BAPE_Decoder_P_FlushDecodeToMemory(BAPE_DecoderHandle handle);
 
 #define BAVC_CODEC_IS_AAC(c) \
     (c == BAVC_AudioCompressionStd_eAacAdts || \
@@ -1751,14 +1752,13 @@ static BERR_Code BAPE_Decoder_P_Start(
             errCode = BERR_TRACE(errCode);
             goto err_stages;
         }
-        BDSP_Queue_Flush(handle->decodeToMem.hARQ);
+        BAPE_Decoder_P_FlushDecodeToMemory(handle);
         errCode = BDSP_Stage_AddQueueOutput(handle->hOutputFormatter, handle->decodeToMem.hARQ, &dummy);
         if ( errCode )
         {
             errCode = BERR_TRACE(errCode);
             goto err_stages;
         }
-        BDSP_Queue_Flush(handle->decodeToMem.hADQ);
         errCode = BDSP_Stage_AddQueueOutput(handle->hOutputFormatter, handle->decodeToMem.hADQ, &dummy);
         if ( errCode )
         {
@@ -2253,6 +2253,28 @@ static BERR_Code BAPE_Decoder_P_Start(
         (void)BERR_TRACE(errCode);
         goto err_start_task;
     }
+
+    #if BAPE_MANUAL_DSP_CMD_BLOCKING_START
+    if ( handle->deviceHandle->settings.dspManualCmdBlocking )
+    {
+        if ( handle->dspContext )
+        {
+            errCode = BDSP_Context_ProcessPing(handle->dspContext);
+            if ( errCode )
+            {
+                BERR_TRACE(errCode);
+                goto err_start_task;
+            }
+        }
+        else
+        {
+            BDBG_WRN(("No valid context found. Unable to wait for command ACK from DSP!!!"));
+            BERR_TRACE(BERR_UNKNOWN);
+            /* proceed anyway */
+        }
+    }
+    #endif
+
 #endif
 
     /* Start the DFIFOs */
@@ -2487,7 +2509,24 @@ static void BAPE_Decoder_P_Stop(
     BDBG_ERR(("NOT STOPPING DSP"));
 #else
     BDSP_Task_Stop(handle->hTask);
+    #if BAPE_MANUAL_DSP_CMD_BLOCKING_STOP
+    if ( handle->deviceHandle->settings.dspManualCmdBlocking )
+    {
+        if ( handle->dspContext )
+        {
+            BERR_TRACE(BDSP_Context_ProcessPing(handle->dspContext));
+        }
+        else
+        {
+            BDBG_WRN(("No valid context found. Unable to wait for command ACK from DSP!!!"));
+            BERR_TRACE(BERR_UNKNOWN);
+            /* proceed anyway */
+        }
+    }
+    #endif
 #endif
+
+    BAPE_Decoder_P_FlushDecodeToMemory(handle);
 
     BAPE_PathNode_P_StopPaths(&handle->node);
 
@@ -2607,6 +2646,27 @@ BERR_Code BAPE_Decoder_Pause(
         {
             return BERR_TRACE(errCode);
         }
+
+        #if BAPE_MANUAL_DSP_CMD_BLOCKING_PAUSE
+        if ( handle->deviceHandle->settings.dspManualCmdBlocking )
+        {
+            if ( handle->dspContext )
+            {
+                errCode = BDSP_Context_ProcessPing(handle->dspContext);
+                if ( errCode )
+                {
+                    BDBG_WRN(("BDSP_Context_ProcessPing returned %u", errCode));
+                    BERR_TRACE(errCode);
+                }
+            }
+            else
+            {
+                BDBG_WRN(("No valid context found. Unable to wait for command ACK from DSP!!!"));
+                BERR_TRACE(BERR_UNKNOWN);
+                /* proceed anyway */
+            }
+        }
+        #endif
     }
 
     handle->state = BAPE_DecoderState_ePaused;
@@ -3350,8 +3410,10 @@ void BAPE_Decoder_GetStatus(
         }
         if (fwMixer) {
             BAPE_MixerStatus mixerStatus;
-            BAPE_Mixer_GetStatus(fwMixer, &mixerStatus);
-            pStatus->unlicensedAlgo = mixerStatus.unlicensedAlgo;
+            errCode = BAPE_Mixer_GetStatus(fwMixer, &mixerStatus);
+            if (errCode == BERR_SUCCESS) {
+                pStatus->unlicensedAlgo = mixerStatus.unlicensedAlgo;
+            }
         }
         pStatus->codec = handle->startSettings.codec;
         pStatus->unlicensedAlgo |= handle->unlicensedAlgo;
@@ -4932,6 +4994,26 @@ void BAPE_Decoder_InitBufferDescriptor(
     BKNI_Memset(pDescriptor, 0, sizeof(BAPE_DecoderBufferDescriptor));
 }
 
+/***************************************************************************
+Summary:
+Reset DecodeToMemory Queues
+***************************************************************************/
+static void BAPE_Decoder_P_FlushDecodeToMemory(BAPE_DecoderHandle handle)
+{
+    BAPE_DecodeToMemoryNode *pNode;
+    while ( (pNode = BLST_Q_FIRST(&handle->decodeToMem.pendingList)) )
+    {
+        BLST_Q_REMOVE_HEAD(&handle->decodeToMem.pendingList, node);
+        BLST_Q_INSERT_TAIL(&handle->decodeToMem.freeList, pNode, node);
+    }
+    while ( (pNode = BLST_Q_FIRST(&handle->decodeToMem.completedList)) )
+    {
+        BLST_Q_REMOVE_HEAD(&handle->decodeToMem.completedList, node);
+        BLST_Q_INSERT_TAIL(&handle->decodeToMem.freeList, pNode, node);
+    }
+    if ( handle->decodeToMem.hARQ ) { BDSP_Queue_Flush(handle->decodeToMem.hARQ); }
+    if ( handle->decodeToMem.hADQ ) { BDSP_Queue_Flush(handle->decodeToMem.hADQ); }
+}
 
 /***************************************************************************
 Summary:

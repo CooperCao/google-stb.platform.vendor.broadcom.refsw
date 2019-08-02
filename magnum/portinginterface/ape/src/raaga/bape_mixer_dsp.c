@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -75,6 +75,7 @@ static BERR_Code BAPE_DspMixer_P_RemoveAllInputs(BAPE_MixerHandle handle);
 static BERR_Code BAPE_DspMixer_P_CreateLoopBackMixer (BAPE_MixerHandle handle);
 static BERR_Code BAPE_DspMixer_P_CreateLoopBackPath (BAPE_MixerHandle handle);
 static void BAPE_DSPMixer_P_RemoveLoopback(BAPE_MixerHandle handle);
+static void BAPE_DSPMixer_P_GetDiscontinuityPoint(BAPE_MixerHandle handle);
 static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle);
 static void BAPE_DspMixer_P_StopTask(BAPE_MixerHandle handle);
 static void BAPE_DspMixer_P_FreeConnectionResources(BAPE_MixerHandle handle, BAPE_PathConnection *pConnection);
@@ -697,7 +698,11 @@ static BERR_Code BAPE_DspMixer_P_CreateLoopBackPath (BAPE_MixerHandle handle)
     BKNI_EnterCriticalSection();
     BAPE_LoopbackGroup_P_GetSettings_isr(handle->loopbackGroup, &loopbackSettings);
     BKNI_LeaveCriticalSection();
-    loopbackSettings.insertOnUnderflow = true;
+    if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
+    {
+        loopbackSettings.insertOnUnderflow = false;
+        loopbackSettings.ignoreInvalidFrames = true;
+    }
 #if BAPE_CHIP_MAX_FS > 0
     loopbackSettings.fs = handle->fs;
 #else
@@ -1056,6 +1061,27 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
         errCode = BERR_TRACE(errCode);
         goto err_start_task;
     }
+
+    #if BAPE_MANUAL_DSP_CMD_BLOCKING_START
+    if ( handle->deviceHandle->settings.dspManualCmdBlocking )
+    {
+        if ( handle->dspContext )
+        {
+            errCode = BDSP_Context_ProcessPing(handle->dspContext);
+            if ( errCode )
+            {
+                BERR_TRACE(errCode);
+                goto err_start_task;
+            }
+        }
+        else
+        {
+            BDBG_WRN(("No valid context found. Unable to wait for command ACK from DSP!!!"));
+            BERR_TRACE(BERR_UNKNOWN);
+            /* proceed anyway */
+        }
+    }
+    #endif
 
     handle->taskState = BAPE_TaskState_eStarted;
     return BERR_SUCCESS;
@@ -1711,7 +1737,38 @@ static void BAPE_DSPMixer_P_RemoveLoopback(BAPE_MixerHandle handle)
     }
 }
 
-int count = 0;
+static void BAPE_DSPMixer_P_GetDiscontinuityPoint(BAPE_MixerHandle handle)
+{
+    BDSP_AudioTaskDatasyncSettings datasyncSettings;
+    if (handle->loopbackAttached) {
+        BMMA_DeviceOffset validPtr = 0, temp = 0;
+        unsigned count = 0;
+
+        BAPE_DfifoGroup_P_GetValidAddress(handle->loopbackDfifoGroup, 0, 0, &validPtr);
+        if (validPtr != 0) {
+            /*BDBG_ERR(("  Valid Pointer " BDBG_UINT64_FMT " ", BDBG_UINT64_ARG(validPtr)));*/
+            while (temp != validPtr) {
+                temp = validPtr;
+                if (count > 10) {
+                    BDBG_WRN(("Dfifo is still being filled. Can't set discontinuity point"));
+                    return;
+                }
+                BKNI_Delay(200);
+                BAPE_DfifoGroup_P_GetValidAddress(handle->loopbackDfifoGroup, 0, 0, &validPtr);
+                /*BDBG_ERR(("  Valid Pointer " BDBG_UINT64_FMT " ", BDBG_UINT64_ARG(validPtr)));*/
+                count++;
+            }
+
+            /* Apply settings to FW Mixer */
+            BERR_TRACE(BDSP_AudioStage_GetDatasyncSettings(handle->hMixerStage, &datasyncSettings));
+            datasyncSettings.uAlgoSpecConfigStruct.sMixerDapv2Config.ui32FMMValidPointerAddress = validPtr;
+            datasyncSettings.uAlgoSpecConfigStruct.sMixerDapv2Config.ui32DiscontuityCounter++;
+            BERR_TRACE(BDSP_AudioStage_SetDatasyncSettings(handle->hMixerStage, &datasyncSettings));
+        }
+    }
+
+    return;
+}
 static void BAPE_DspMixer_P_StopPathFromInput(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection)
 {
     BAPE_MixerHandle handle;
@@ -1760,6 +1817,13 @@ static void BAPE_DspMixer_P_StopPathFromInput(struct BAPE_PathNode *pNode, struc
         {
             BAPE_MixerGroup_P_StopInput(handle->loopbackMixerGroup, inputIndex);
         }
+
+        if (handle->loopbackRunning == 0 && handle->loopbackAttached) {
+            if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 ) {
+                BAPE_DSPMixer_P_GetDiscontinuityPoint(handle);
+            }
+        }
+
     }
 
     handle->running--;
@@ -1973,6 +2037,21 @@ static void BAPE_DspMixer_P_StopTask(BAPE_MixerHandle handle)
     }
 
     BDSP_Task_Stop(handle->hTask);
+    #if BAPE_MANUAL_DSP_CMD_BLOCKING_STOP
+    if ( handle->deviceHandle->settings.dspManualCmdBlocking )
+    {
+        if ( handle->dspContext )
+        {
+            BERR_TRACE(BDSP_Context_ProcessPing(handle->dspContext));
+        }
+        else
+        {
+            BDBG_WRN(("No valid context found. Unable to wait for command ACK from DSP!!!"));
+            BERR_TRACE(BERR_UNKNOWN);
+            /* proceed anyway */
+        }
+    }
+    #endif
     BDSP_Stage_RemoveAllInputs(handle->hMixerStage);
     BDSP_Stage_RemoveAllOutputs(handle->hMixerStage);
     BDSP_Stage_RemoveAllInputs(handle->hSrcStage);
@@ -2984,7 +3063,7 @@ static BERR_Code BAPE_DspMixer_P_GetStatus(
         BKNI_Snprintf(pStatus->mixerName, sizeof(pStatus->mixerName), "FW Mixer");
     }
 
-    return BERR_TRACE(BERR_NOT_SUPPORTED);
+    return BERR_NOT_SUPPORTED;
 }
 
 static void BAPE_DspMixer_P_EncoderOverflow_isr(void *pParam1, int param2)

@@ -199,6 +199,7 @@ typedef struct BDSP_AudioTaskDatasyncSettings
         {
             BDSP_Audio_ASFPTSType eAsfPtsType;            /* Default = 0 (Use Interpolation always). 1 = Use Coded always. */
             BDSP_Audio_WMAIpType eWMAIpType;              /* Default = 0 (Type ASF). Set to TS only when WMATS is enabled */
+			uint32_t        ui32dummy;               /* Added to detect the transition during continuous FMM Input*/
         }sWmaConfig;
         struct
         {
@@ -215,10 +216,12 @@ typedef struct BDSP_AudioTaskDatasyncSettings
         }sMixerConfig;
 
 
-        struct
-        {
-            uint32_t        ui32DualMainModeEnable;                  /* Added for Dual Main Mixing  Support */
-        }sMixerDapv2Config;
+		struct
+		{
+			uint32_t        ui32DualMainModeEnable;                  /* Added for Dual Main Mixing  Support */
+			uint32_t        ui32FMMValidPointerAddress;               /* Added to detect the transition during continuous FMM Input*/
+			uint32_t        ui32DiscontuityCounter;               /* Added to detect the transition during continuous FMM Input*/
+		}sMixerDapv2Config;
 
 
     }uAlgoSpecConfigStruct;                                     /* The algo specific structures for configuration */
@@ -3228,6 +3231,11 @@ typedef struct BDSP_Raaga_Audio_DolbyAacheUserConfig
               -Stereo is at -24dB */
 
     uint32_t    ui32LoudnessEquivalenceMode;
+	/* dual mono downmix mode
+    enum { GBL_DUAL_STEREO=0, GBL_DUAL_LEFTMONO, GBL_DUAL_RGHTMONO, GBL_DUAL_MIXMONO };
+    i32DualMode = 0 is default value;
+    */
+    int32_t         i32DualMonoMode;
 
     /* Port specific configs : 0 -> Multichannel; 1 -> Stereo */
     BDSP_Raaga_Audio_DolbyAachePortConfig   sOutPortCfg[2];

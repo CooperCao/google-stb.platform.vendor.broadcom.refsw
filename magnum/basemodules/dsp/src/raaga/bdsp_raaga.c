@@ -105,6 +105,7 @@ void BDSP_Raaga_GetDefaultSettings(
     pSettings->maxAlgorithms[BDSP_AlgorithmType_eSecurity] = BDSP_RAAGA_MAX_SCM_CTXT;
 
     pSettings->NumDsp = BDSP_RAAGA_MAX_DSP;
+	pSettings->disableSyncCommmand = false;
 
     /*pSettings->enableDebugLog = false;*/
 }

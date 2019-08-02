@@ -133,6 +133,7 @@ typedef struct BDSP_AudioTaskDatasyncSettings
         {
             BDSP_Audio_ASFPTSType eAsfPtsType;            /* Default = 0 (Use Interpolation always). 1 = Use Coded always. */
             BDSP_Audio_WMAIpType eWMAIpType;              /* Default = 0 (Type ASF). Set to TS only when WMATS is enabled */
+			uint32_t        ui32dummy;               /* Added to detect the transition during continuous FMM Input*/
         }sWmaConfig;
         struct
         {
@@ -152,6 +153,8 @@ typedef struct BDSP_AudioTaskDatasyncSettings
         struct
         {
             uint32_t        ui32DualMainModeEnable;                  /* Added for Dual Main Mixing  Support */
+			uint32_t        ui32FMMValidPointerAddress;               /* Added to detect the transition during continuous FMM Input*/
+			uint32_t        ui32DiscontuityCounter;               /* Added to detect the transition during continuous FMM Input*/
         }sMixerDapv2Config;
 
 

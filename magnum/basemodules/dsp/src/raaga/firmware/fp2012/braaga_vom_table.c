@@ -273,7 +273,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eALSDecode */
 		{
 			0x00000dd8,
-			0x00000de4,
+			0x00000de5,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eAC4Decode */
@@ -651,7 +651,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_VF_P_AlgoId_eH264Encode */
 		{
 			0x00000803,
-			0x00000840,
+			0x00000841,
 			0x00000000,
 		},
 		/* BDSP_VF_P_AlgoId_eX264Encode */
@@ -1059,7 +1059,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eVideoDecodeTask */
 		{
 			0x00000a50,
-			0x00000a51,
+			0x00000a52,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eVideoEncodeTask */
