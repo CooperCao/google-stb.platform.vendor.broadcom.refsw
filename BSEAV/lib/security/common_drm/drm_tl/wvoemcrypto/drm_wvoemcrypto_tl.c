@@ -172,7 +172,6 @@ static uint8_t *gPadding = NULL;
 #define MAX_INIT_QUERY_RETRIES 20
 
 #define WV_DECRYPT_VERIFY_INTERVAL 2
-#define WV_KEY_SELECT_COUNT_MAX 58
 
 #define WV_CENTRAL_MAX_NUM_KEY_SLOT 8
 
@@ -433,11 +432,6 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
             NEXUS_KeySlot_Free(gKeySlotCache[i].hSwKeySlot);
 #endif
             gKeySlotCache[i].hSwKeySlot = NULL;
-            if(gKeySlotCache[i].btp_sage_buffer != NULL)
-            {
-                SRAI_Memory_Free(gKeySlotCache[i].btp_sage_buffer);
-                gKeySlotCache[i].btp_sage_buffer = NULL;
-            }
         }
     }
     gKeySlotCacheAllocated = 0;
@@ -1091,7 +1085,14 @@ ErrorExit:
             session_ctx->encDmaBlockInfoList.non_sec_len = NULL;
         }
 
-        session_ctx->btp_sage_buffer_ptr = NULL;
+        if (gHostSessionCtx[session].btp_sage_buffer)
+        {
+            BDBG_MSG(("%s  Freeing btp buffer 0x%08x", BSTD_FUNCTION, gHostSessionCtx[session].btp_sage_buffer ));
+            SRAI_Memory_Free( gHostSessionCtx[session].btp_sage_buffer );
+            gHostSessionCtx[session].btp_sage_buffer = NULL;
+        }
+
+
         session_ctx->drmCommonOpStruct.keyConfigSettings.keySlot = NULL;
         session_ctx->drmCommonOpStruct.num_dma_block = 0;
         session_ctx->decrypt_buffer_native_handle = NULL;
@@ -1126,11 +1127,6 @@ ErrorExit:
                     NEXUS_KeySlot_Free(session_ctx->key_slot_ptr[i]->hSwKeySlot);
 #endif
                     session_ctx->key_slot_ptr[i]->hSwKeySlot = NULL;
-                    if(gKeySlotCache[i].btp_sage_buffer != NULL)
-                    {
-                        SRAI_Memory_Free(gKeySlotCache[i].btp_sage_buffer);
-                        gKeySlotCache[i].btp_sage_buffer = NULL;
-                    }
                     gKeySlotCacheAllocated--;
                 }
                 session_ctx->key_slot_ptr[i] = NULL;
@@ -3007,7 +3003,7 @@ static DrmRC DRM_WVOemCrypto_P_Do_SelectKey_V13(const uint32_t session,
         goto ErrorExit;
     }
 
-    BDBG_MSG(("%s:session =%d, key_id_len=%d, key central cache mode=%d",BSTD_FUNCTION,session,key_id_length, gCentralKeySlotCacheMode));
+    BDBG_ERR(("%s:session =%d, key_id_len=%d, key central cache mode=%d",BSTD_FUNCTION,session,key_id_length, gCentralKeySlotCacheMode));
 
     gHostSessionCtx[session].session_id=session;
 
@@ -3036,7 +3032,7 @@ static DrmRC DRM_WVOemCrypto_P_Do_SelectKey_V13(const uint32_t session,
         {
             if(gKeySlotCache[i].hSwKeySlot == NULL)
             {
-                BDBG_MSG(("%s:Allocate keyslot for index %d",BSTD_FUNCTION, i));
+                BDBG_ERR(("%s:Allocate keyslot for index %d",BSTD_FUNCTION, i));
 #if (NEXUS_SECURITY_API_VERSION==1)
                 NEXUS_Security_GetDefaultKeySlotSettings(&keyslotSettings);
                 keyslotSettings.keySlotEngine = NEXUS_SecurityEngine_eM2m;
@@ -3055,7 +3051,7 @@ static DrmRC DRM_WVOemCrypto_P_Do_SelectKey_V13(const uint32_t session,
                         (gCentralKeySlotCacheMode && gKeySlotCacheAllocated > 0))
                     {
                         /* Continue onwards if we allocated at least one key slot */
-                        BDBG_WRN(("%s - Unable to allocate keyslot at index %d, continuing with %d keyslots allocated", BSTD_FUNCTION, i, gKeySlotCacheAllocated));
+                        BDBG_ERR(("%s - Unable to allocate keyslot at index %d, continuing with %d keyslots allocated", BSTD_FUNCTION, i, gKeySlotCacheAllocated));
                         break;
                     }
                     else
@@ -3068,16 +3064,16 @@ static DrmRC DRM_WVOemCrypto_P_Do_SelectKey_V13(const uint32_t session,
                     }
                 }
 
-                BDBG_MSG(("%s: ======Allocated nexus key slot for index %d, keyslot handle=%p =======",
+                BDBG_ERR(("%s: ======Allocated nexus key slot for index %d, keyslot handle=%p =======",
                     BSTD_FUNCTION, i, (void *)gKeySlotCache[i].hSwKeySlot));
 #if (NEXUS_SECURITY_API_VERSION==1)
                 NEXUS_Security_GetKeySlotInfo(gKeySlotCache[i].hSwKeySlot, &keyslotInfo);
                 gKeySlotCache[i].keySlotID = keyslotInfo.keySlotNumber;
-                BDBG_MSG(("%s - keyslotID[%d] Keyslot number = '%u'", BSTD_FUNCTION, i, keyslotInfo.keySlotNumber));
+                BDBG_ERR(("%s - keyslotID[%d] Keyslot number = '%u'", BSTD_FUNCTION, i, keyslotInfo.keySlotNumber));
 #else
                 NEXUS_KeySlot_GetInformation( gKeySlotCache[i].hSwKeySlot, &keyslotInfo);
                 gKeySlotCache[i].keySlotID = keyslotInfo.slotNumber;
-                BDBG_MSG(("%s - keyslotID[%d] Keyslot number = '%u'", BSTD_FUNCTION, i, keyslotInfo.slotNumber));
+                BDBG_ERR(("%s - keyslotID[%d] Keyslot number = '%u'", BSTD_FUNCTION, i, keyslotInfo.slotNumber));
 #endif
                 gHostSessionCtx[session].key_slot_ptr[gHostSessionCtx[session].num_key_slots] = &gKeySlotCache[i];
                 gHostSessionCtx[session].num_key_slots++;
@@ -3172,10 +3168,10 @@ static DrmRC DRM_WVOemCrypto_P_Do_SelectKey_V13(const uint32_t session,
         goto ErrorExit;
     }
 
-    BDBG_MSG(("%s:Sage process command is sucesss, next extract the status of the command",BSTD_FUNCTION));
+    BDBG_ERR(("%s:Sage process command is sucesss, next extract the status of the command",BSTD_FUNCTION));
 
     *wvRc = container->basicOut[2];
-    BDBG_MSG(("%s:* WVRC=%d",BSTD_FUNCTION,*wvRc));
+    BDBG_ERR(("%s:* WVRC=%d",BSTD_FUNCTION,*wvRc));
 
     if (container->basicOut[0] != BERR_SUCCESS)
     {
@@ -3230,17 +3226,16 @@ static DrmRC DRM_WVOemCrypto_P_Do_SelectKey_V13(const uint32_t session,
     gHostSessionCtx[session].drmCommonOpStruct.keyConfigSettings.keySlot = hKeySlotSelected;
 
 #if (NEXUS_SECURITY_API_VERSION==1)
-    BDBG_MSG(("%s - Selected by Sage: Keyslot number = '%u'", BSTD_FUNCTION, keyslotInfo.keySlotNumber));
+    BDBG_ERR(("%s - Selected by Sage: Keyslot number = '%u'", BSTD_FUNCTION, keyslotInfo.keySlotNumber));
 #else
-    BDBG_MSG(("%s - Selected by Sage: Keyslot number = '%u'", BSTD_FUNCTION, keyslotInfo.slotNumber));
+    BDBG_ERR(("%s - Selected by Sage: Keyslot number = '%u'", BSTD_FUNCTION, keyslotInfo.slotNumber));
 #endif
 
     BKNI_ReleaseMutex(gWVKeySlotMutex);
 
     /* Set the cipher mode */
     gHostSessionCtx[session].cipher_mode = container->basicOut[1];
-    gHostSessionCtx[session].key_select_count++;
-    gHostSessionCtx[session].btp_sage_buffer_ptr = NULL;
+    gHostSessionCtx[session].new_key_selected = true;
 
 IgnoreKeySlot:
 ErrorExit:
@@ -3742,11 +3737,11 @@ static DrmRC DRM_WVOemCrypto_P_DecryptDMA_SG(uint8_t *data_addr,
 
         if (dmaBlockIdx == 0)
         {
-            if (gHostSessionCtx[session].btp_sage_buffer_ptr != NULL)
+            if (gHostSessionCtx[session].btp_sage_buffer != NULL)
             {
                 /* BTP block */
-                blockInfo[dmaBlockIdx].pDstData = gHostSessionCtx[session].btp_sage_buffer_ptr;
-                blockInfo[dmaBlockIdx].pSrcData = gHostSessionCtx[session].btp_sage_buffer_ptr;
+                blockInfo[dmaBlockIdx].pDstData = gHostSessionCtx[session].btp_sage_buffer;
+                blockInfo[dmaBlockIdx].pSrcData = gHostSessionCtx[session].btp_sage_buffer;
                 blockInfo[dmaBlockIdx].uiDataSize = BTP_SIZE;
                 blockInfo[dmaBlockIdx].sg_start = true;
                 blockInfo[dmaBlockIdx].sg_end = true;
@@ -3866,8 +3861,6 @@ static DrmRC DRM_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
     bool call_decrypt_verify = false;
     time_t current_time;
     bool hold_keyslot = false;
-    uint32_t i = 0;
-    bool keyslot_found = false;
     bool wait_for_clear_transfer = false;
 
     BDBG_ENTER(DRM_WVOemCrypto_P_DecryptPatternBlock);
@@ -3986,51 +3979,24 @@ static DrmRC DRM_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
         }
 
         /* Allocate BTP buffer if needed */
-        if (gHostSessionCtx[session].btp_sage_buffer_ptr == NULL)
+        if (gHostSessionCtx[session].btp_sage_buffer == NULL)
         {
-            /* Search for available BTP.  If not found, allocate. */
-            for(i = 0; i < gKeySlotMaxAvail; i++)
+            if(gEventDrivenVerify)
             {
-                if(gKeySlotCache[i].hSwKeySlot != NULL)
-                {
-                    if(gHostSessionCtx[session].drmCommonOpStruct.keyConfigSettings.keySlot == gKeySlotCache[i].hSwKeySlot)
-                    {
-                        keyslot_found = true;
-                        break;
-                    }
-                }
+                gHostSessionCtx[session].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_Shared);
+            }
+            else
+            {
+                gHostSessionCtx[session].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_SagePrivate);
             }
 
-            if(!keyslot_found)
+            if(gHostSessionCtx[session].btp_sage_buffer == NULL)
             {
-                BDBG_ERR(("%s: Unable to find selected key slot ID (%u)", BSTD_FUNCTION, gHostSessionCtx[session].drmCommonOpStruct.keyConfigSettings.keySlot));
-                *wvRc = SAGE_OEMCrypto_ERROR_INVALID_CONTEXT;
+                BDBG_ERR(("%s: Out of memory for BTP (%u bytes)", BSTD_FUNCTION, BTP_SIZE));
+                *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
                 rc = Drm_Err;
                 goto ErrorExit;
             }
-
-            if(gKeySlotCache[i].btp_sage_buffer == NULL)
-            {
-                if(gEventDrivenVerify)
-                {
-                    gKeySlotCache[i].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_Shared);
-                }
-                else
-                {
-                    gKeySlotCache[i].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_SagePrivate);
-                }
-
-                if(gKeySlotCache[i].btp_sage_buffer == NULL)
-                {
-                    BDBG_ERR(("%s: Out of memory for BTP (%u bytes)", BSTD_FUNCTION, BTP_SIZE));
-                    *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
-                    rc = Drm_Err;
-                    goto ErrorExit;
-                }
-                /* We must fill the BTP by calling decryption verify */
-                call_decrypt_verify = true;
-            }
-            gHostSessionCtx[session].btp_sage_buffer_ptr = gKeySlotCache[i].btp_sage_buffer;
         }
 
         /* Mark if this is the first encrypted subsample */
@@ -4083,12 +4049,10 @@ static DrmRC DRM_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
             {
                 /* Required to call SAGE for decrypt verification every second or when new key selected */
                 current_time = time(NULL);
-                if(gHostSessionCtx[session].force_decrypt_verify ||
-                    gHostSessionCtx[session].key_select_count > WV_KEY_SELECT_COUNT_MAX ||
+                if(gHostSessionCtx[session].new_key_selected ||
                     current_time >= gHostSessionCtx[session].decrypt_verify_time + WV_DECRYPT_VERIFY_INTERVAL)
                 {
-                    gHostSessionCtx[session].key_select_count = 0;
-                    gHostSessionCtx[session].force_decrypt_verify = false;
+                    gHostSessionCtx[session].new_key_selected = false;
                     call_decrypt_verify = true;
                 }
             }
@@ -4097,7 +4061,7 @@ static DrmRC DRM_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
         {
             if(gHostSessionCtx[session].drmCommonOpStruct.num_dma_block == 0)
             {
-                gHostSessionCtx[session].key_select_count = 0;
+                gHostSessionCtx[session].new_key_selected = false;
                 call_decrypt_verify = true;
             }
         }
@@ -4137,7 +4101,7 @@ static DrmRC DRM_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
             container->basicIn[2] = buffer_type;
 
             container->basicIn[3]= BTP_SIZE;
-            container->blocks[1].data.ptr = gHostSessionCtx[session].btp_sage_buffer_ptr;
+            container->blocks[1].data.ptr = gHostSessionCtx[session].btp_sage_buffer;
             container->blocks[1].len = BTP_SIZE;
 
             /* This command loads the IV and validates key control */
@@ -4176,8 +4140,8 @@ static DrmRC DRM_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
         else if(gEventDrivenVerify && gHostSessionCtx[session].drmCommonOpStruct.num_dma_block == 0)
         {
             /* Fill in BTP information */
-            BKNI_Memcpy(&gHostSessionCtx[session].btp_sage_buffer_ptr[20 +(gHostSessionCtx[session].ext_iv_offset * 16)], &iv[8], 8);
-            BKNI_Memcpy(&gHostSessionCtx[session].btp_sage_buffer_ptr[20 +(gHostSessionCtx[session].ext_iv_offset * 16) + 16], &iv[0], 8);
+            BKNI_Memcpy(&gHostSessionCtx[session].btp_sage_buffer[20 +(gHostSessionCtx[session].ext_iv_offset * 16)], &iv[8], 8);
+            BKNI_Memcpy(&gHostSessionCtx[session].btp_sage_buffer[20 +(gHostSessionCtx[session].ext_iv_offset * 16) + 16], &iv[0], 8);
         }
 
         BKNI_AcquireMutex(gWVKeySlotMutex);
@@ -4319,8 +4283,6 @@ DrmRC DRM_WVOemCrypto_DecryptCTR_V10(uint32_t session,
     BERR_Code sage_rc = BERR_SUCCESS;
     *wvRc = SAGE_OEMCrypto_SUCCESS;
     bool isSecureDecrypt = (buffer_type == Drm_WVOEMCrypto_BufferType_Secure);
-    uint32_t i = 0;
-    bool keyslot_found = false;
 
     BDBG_ENTER(DRM_WVOemCrypto_DecryptCTR_V10);
     BDBG_MSG(("%s: Input data len=%d,is_encrypted=%d, sf:%d, secure:%d",
@@ -4426,52 +4388,23 @@ DrmRC DRM_WVOemCrypto_DecryptCTR_V10(uint32_t session,
             }
 
             /* Allocate BTP buffer if needed */
-            if (gHostSessionCtx[session].btp_sage_buffer_ptr == NULL)
+            if (gHostSessionCtx[session].btp_sage_buffer == NULL)
             {
-                /* Search for available BTP.  If not found, allocate. */
-                for(i = 0; i < gKeySlotMaxAvail; i++)
+                if(gEventDrivenVerify)
                 {
-                    if(gKeySlotCache[i].hSwKeySlot != NULL)
-                    {
-                        if(gHostSessionCtx[session].drmCommonOpStruct.keyConfigSettings.keySlot == gKeySlotCache[i].hSwKeySlot)
-                        {
-                            keyslot_found = true;
-                            break;
-                        }
-                    }
-                }
-
-                if(!keyslot_found)
-                {
-                    BDBG_ERR(("%s: Unable to find selected key slot ID (%u)", BSTD_FUNCTION, gHostSessionCtx[session].drmCommonOpStruct.keyConfigSettings.keySlot));
-                    *wvRc = SAGE_OEMCrypto_ERROR_INVALID_CONTEXT;
-                    rc = Drm_Err;
-                    goto ErrorExit;
-                }
-
-                if(gKeySlotCache[i].btp_sage_buffer == NULL)
-                {
-                     if(gEventDrivenVerify)
-                     {
-                         gKeySlotCache[i].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_Shared);
-                     }
-                     else
-                     {
-                         gKeySlotCache[i].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_SagePrivate);
-                     }
-
-                     if(gKeySlotCache[i].btp_sage_buffer == NULL)
-                     {
-                         BDBG_ERR(("%s: Out of memory for BTP (%u bytes)", BSTD_FUNCTION, BTP_SIZE));
-                         *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
-                         rc = Drm_Err;
-                         goto ErrorExit;
-                     }
+                    gHostSessionCtx[session].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_Shared);
                 }
                 else
                 {
-                    /* Point to stored btp buffer */
-                    gHostSessionCtx[session].btp_sage_buffer_ptr = gKeySlotCache[i].btp_sage_buffer;
+                    gHostSessionCtx[session].btp_sage_buffer = SRAI_Memory_Allocate(BTP_SIZE, SRAI_MemoryType_SagePrivate);
+                }
+
+                if(gHostSessionCtx[session].btp_sage_buffer == NULL)
+                {
+                    BDBG_ERR(("%s: Out of memory for BTP (%u bytes)", BSTD_FUNCTION, BTP_SIZE));
+                    *wvRc = SAGE_OEMCrypto_ERROR_INSUFFICIENT_RESOURCES;
+                    rc = Drm_Err;
+                    goto ErrorExit;
                 }
             }
 
@@ -4481,7 +4414,7 @@ DrmRC DRM_WVOemCrypto_DecryptCTR_V10(uint32_t session,
             container->basicIn[2] = buffer_type;
 
             container->basicIn[3]= BTP_SIZE;
-            container->blocks[1].data.ptr = gHostSessionCtx[session].btp_sage_buffer_ptr;
+            container->blocks[1].data.ptr = gHostSessionCtx[session].btp_sage_buffer;
             container->blocks[1].len = BTP_SIZE;
 
             /* This command loads the IV and validates key control */
@@ -9337,7 +9270,6 @@ DrmRC DRM_WVOemCrypto_Update_Usage_Entry(uint32_t session, uint8_t* header_buffe
     BKNI_Memcpy(entry_buffer, container->blocks[1].data.ptr, *entry_buffer_length);
 
     /* We must verify decryption after an update to an entry*/
-    gHostSessionCtx[session].force_decrypt_verify = true;
 
 ErrorExit:
     if(container != NULL)
@@ -10133,7 +10065,7 @@ static DrmRC DRM_WVOemCrypto_P_Do_SelectKey(const uint32_t session,
         goto ErrorExit;
     }
 
-    BDBG_MSG(("%s:session =%d, key_id_len=%d, key central cache mode=%d",BSTD_FUNCTION,session,key_id_length, gCentralKeySlotCacheMode));
+    BDBG_ERR(("%s:session =%d, key_id_len=%d, key central cache mode=%d",BSTD_FUNCTION,session,key_id_length, gCentralKeySlotCacheMode));
 
     gHostSessionCtx[session].session_id=session;
 
@@ -10162,7 +10094,7 @@ static DrmRC DRM_WVOemCrypto_P_Do_SelectKey(const uint32_t session,
         {
             if(gKeySlotCache[i].hSwKeySlot == NULL)
             {
-                BDBG_MSG(("%s:Allocate keyslot for index %d",BSTD_FUNCTION, i));
+                BDBG_ERR(("%s:Allocate keyslot for index %d",BSTD_FUNCTION, i));
 #if (NEXUS_SECURITY_API_VERSION==1)
                 NEXUS_Security_GetDefaultKeySlotSettings(&keyslotSettings);
                 keyslotSettings.keySlotEngine = NEXUS_SecurityEngine_eM2m;
@@ -10181,7 +10113,7 @@ static DrmRC DRM_WVOemCrypto_P_Do_SelectKey(const uint32_t session,
                         (gCentralKeySlotCacheMode && gKeySlotCacheAllocated > 0))
                     {
                         /* Continue onwards if we allocated at least one key slot */
-                        BDBG_WRN(("%s - Unable to allocate keyslot at index %d, continuing with %d keyslots allocated", BSTD_FUNCTION, i, gKeySlotCacheAllocated));
+                        BDBG_ERR(("%s - Unable to allocate keyslot at index %d, continuing with %d keyslots allocated", BSTD_FUNCTION, i, gKeySlotCacheAllocated));
                         break;
                     }
                     else
@@ -10194,16 +10126,16 @@ static DrmRC DRM_WVOemCrypto_P_Do_SelectKey(const uint32_t session,
                     }
                 }
 
-                BDBG_MSG(("%s: ======Allocated nexus key slot for index %d, keyslot handle=%p =======",
+                BDBG_ERR(("%s: ======Allocated nexus key slot for index %d, keyslot handle=%p =======",
                     BSTD_FUNCTION, i, (void *)gKeySlotCache[i].hSwKeySlot));
 #if (NEXUS_SECURITY_API_VERSION==1)
                 NEXUS_Security_GetKeySlotInfo(gKeySlotCache[i].hSwKeySlot, &keyslotInfo);
                 gKeySlotCache[i].keySlotID = keyslotInfo.keySlotNumber;
-                BDBG_MSG(("%s - keyslotID[%d] Keyslot number = '%u'", BSTD_FUNCTION, i, keyslotInfo.keySlotNumber));
+                BDBG_ERR(("%s - keyslotID[%d] Keyslot number = '%u'", BSTD_FUNCTION, i, keyslotInfo.keySlotNumber));
 #else
                 NEXUS_KeySlot_GetInformation( gKeySlotCache[i].hSwKeySlot, &keyslotInfo);
                 gKeySlotCache[i].keySlotID = keyslotInfo.slotNumber;
-                BDBG_MSG(("%s - keyslotID[%d] Keyslot number = '%u'", BSTD_FUNCTION, i, keyslotInfo.slotNumber));
+                BDBG_ERR(("%s - keyslotID[%d] Keyslot number = '%u'", BSTD_FUNCTION, i, keyslotInfo.slotNumber));
 #endif
                 gHostSessionCtx[session].key_slot_ptr[gHostSessionCtx[session].num_key_slots] = &gKeySlotCache[i];
                 gHostSessionCtx[session].num_key_slots++;
@@ -10299,10 +10231,10 @@ static DrmRC DRM_WVOemCrypto_P_Do_SelectKey(const uint32_t session,
         goto ErrorExit;
     }
 
-    BDBG_MSG(("%s:Sage process command is sucesss, next extract the status of the command",BSTD_FUNCTION));
+    BDBG_ERR(("%s:Sage process command is sucesss, next extract the status of the command",BSTD_FUNCTION));
 
     *wvRc = container->basicOut[2];
-    BDBG_MSG(("%s:* WVRC=%d",BSTD_FUNCTION,*wvRc));
+    BDBG_ERR(("%s:* WVRC=%d",BSTD_FUNCTION,*wvRc));
 
     if (container->basicOut[0] != BERR_SUCCESS)
     {
@@ -10354,22 +10286,21 @@ static DrmRC DRM_WVOemCrypto_P_Do_SelectKey(const uint32_t session,
     gHostSessionCtx[session].drmCommonOpStruct.keyConfigSettings.keySlot = hKeySlotSelected;
 
 #if (NEXUS_SECURITY_API_VERSION==1)
-    BDBG_MSG(("%s - Selected by Sage: Keyslot number = '%u'", BSTD_FUNCTION, keyslotInfo.keySlotNumber));
+    BDBG_ERR(("%s - Selected by Sage: Keyslot number = '%u'", BSTD_FUNCTION, keyslotInfo.keySlotNumber));
 #else
-    BDBG_MSG(("%s - Selected by Sage: Keyslot number = '%u'", BSTD_FUNCTION, keyslotInfo.slotNumber));
+    BDBG_ERR(("%s - Selected by Sage: Keyslot number = '%u'", BSTD_FUNCTION, keyslotInfo.slotNumber));
 #endif
 
     BKNI_ReleaseMutex(gWVKeySlotMutex);
 
     /* Set the cipher mode */
     gHostSessionCtx[session].cipher_mode = cipher_mode;
-    gHostSessionCtx[session].key_select_count++;
-    gHostSessionCtx[session].btp_sage_buffer_ptr = NULL;
+    gHostSessionCtx[session].new_key_selected = true;
 
 IgnoreKeySlot:
 ErrorExit:
 
-    BDBG_MSG(("%s: free container block 0:",BSTD_FUNCTION));
+    BDBG_ERR(("%s: free container block 0:",BSTD_FUNCTION));
     if(container != NULL)
     {
         if(container->blocks[0].data.ptr != NULL)
@@ -10386,7 +10317,7 @@ ErrorExit:
         container = NULL;
     }
 
-    BDBG_MSG(("%s:set the return value based on wvRc",BSTD_FUNCTION));
+    BDBG_ERR(("%s:set the return value based on wvRc",BSTD_FUNCTION));
     if (*wvRc!= 0)
     {
         rc = Drm_Err;

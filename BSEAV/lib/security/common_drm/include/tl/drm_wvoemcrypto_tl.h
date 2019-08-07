@@ -242,7 +242,6 @@ typedef struct Drm_WVoemCryptoKeySlot_t
 {
     NEXUS_KeySlotHandle hSwKeySlot;
     uint32_t keySlotID;
-    uint8_t *btp_sage_buffer;
 } Drm_WVoemCryptoKeySlot_t;
 
 /*  nexus bounce buffer.
@@ -276,10 +275,9 @@ typedef struct Drm_WVOemCryptoHostSessionCtx_t
     Drm_WVOemCryptoCipherMode cipher_mode;
     Drm_WVoemCryptoKeySlot_t *key_slot_ptr[DRM_WVOEMCRYPTO_MAX_NUM_KEY_SLOT];
     uint32_t num_key_slots;
-    uint8_t *btp_sage_buffer_ptr;
+    uint8_t *btp_sage_buffer;
     uint32_t ext_iv_offset;
-    uint32_t key_select_count;
-    bool force_decrypt_verify;
+    bool new_key_selected;
     bool key_slot_error_notification;
     time_t decrypt_verify_time;
     Drm_WVOemCryptoBounceBuffer src_decrypt_bounce_buffer[MAX_SG_DMA_BLOCKS];

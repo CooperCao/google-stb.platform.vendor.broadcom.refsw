@@ -1367,23 +1367,33 @@ void NEXUS_Frontend_P_DumpMtsifConfig(const NEXUS_FrontendDeviceMtsifConfig *pCo
 
 NEXUS_Error NEXUS_Frontend_ReapplyTransportSettings(NEXUS_FrontendHandle handle)
 {
+    NEXUS_Error rc;
+    NEXUS_FrontendFastStatus fastStatus;
     BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
 
     if(NEXUS_Frontend_P_CheckDeviceOpen(handle)){
         return BERR_TRACE(NEXUS_NOT_INITIALIZED);
     }
 
-    /* call the device-specific function because the cached MTSIF-config struct is per-device */
-    if (NULL == handle->reapplyTransportSettings) {
-        if (handle->pParentFrontend) {
-            return NEXUS_Frontend_ReapplyTransportSettings(handle->pParentFrontend);
+    rc = NEXUS_Frontend_GetFastStatus(handle, &fastStatus);
+    if (rc) { return BERR_TRACE(rc); }
+
+    if (fastStatus.lockStatus == NEXUS_FrontendLockStatus_eLocked) {
+        /* call the device-specific function because the cached MTSIF-config struct is per-device */
+        if (NULL == handle->reapplyTransportSettings) {
+            if (handle->pParentFrontend) {
+                return NEXUS_Frontend_ReapplyTransportSettings(handle->pParentFrontend);
+            }
+            else {
+                return BERR_TRACE(BERR_SUCCESS);
+            }
         }
         else {
-            return BERR_TRACE(BERR_SUCCESS);
+            return handle->reapplyTransportSettings(handle->pDeviceHandle);
         }
-    }
-    else {
-        return handle->reapplyTransportSettings(handle->pDeviceHandle);
+    } else {
+        BDBG_ERR(("Skipping reapply transport settings, as the Frontend is not locked"));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 }
 
