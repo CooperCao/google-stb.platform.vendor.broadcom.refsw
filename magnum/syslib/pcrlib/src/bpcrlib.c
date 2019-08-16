@@ -754,36 +754,16 @@ BPCRlib_Channel_AudioRequestStc_isr(BPCRlib_Handle handle, void *audio, uint32_t
                 if (chn->video_state != BPCRlib_Decoder_State_eWaitingSTC && chn->video_state != BPCRlib_Decoder_State_eInvalidated && chn->cfg.video)
                 {
                     uint32_t new_stc = 0;
-
-                    if (chn->video_state != BPCRlib_Decoder_State_eNotLocked)
-                    {
-                        if (BPCRlib_IsVideoLocked_isr(chn, &new_stc))
-                        {
-                            BDBG_MSG(("AudioRequestStc(%p): Video master mode -> using video STC %#x as new STC", (void *)audio, (unsigned)new_stc));
-                        }
-                        else
-                        {
-                            BDBG_MSG(("AudioRequestStc(%p): [video not locked] Video master mode -> awaiting video request", (void *)audio));
-                            goto no_seed;
-                        }
-                    }
-                    else if (BPCRlib_IsVideoLocked_isr(chn, &new_stc) && BPCRlib_IsVideoBufferLevel_isr(chn))
-                    {
-                        BDBG_MSG(("AudioRequestStc(%p): [VBV/Fifo] Video master mode -> using video STC %#x as new STC", (void *)audio, (unsigned)new_stc));
-                    }
-                    else
-                    {
-                        BDBG_MSG(("AudioRequestStc(%p): [video not locked] Video master mode -> awaiting video request", (void *)audio));
-                        goto no_seed;
-                    }
-
+                    BDBG_ASSERT(chn->cfg.video_iface->getStc);
+                    rc = chn->cfg.video_iface->getStc(chn->cfg.aux_transport, chn->cfg.video, &new_stc);
+                    if (rc!=BERR_SUCCESS) { return rc; }
+                    chn->audio_state = BPCRlib_Decoder_State_eLocked;
                     rc = b_send_stc_isr(chn, new_stc, audio);
                 }
                 else
                 {
                     BDBG_MSG(("AudioRequestStc(%p): [video not locked] Video master mode -> awaiting video request", (void *)audio));
                 }
-no_seed:
                 break;
 
             case BPCRlib_TsmMode_eAudioMaster:
@@ -802,38 +782,24 @@ no_seed:
                     }
 
                     rc = chn->cfg.audio_iface->getStc(chn->cfg.aux_transport, chn->cfg.audio, &new_stc);
-                    if (rc != BERR_SUCCESS)
-                    {
-                        return rc;
-                    }
+                    if (rc != BERR_SUCCESS) { return rc; }
 
                     /* if primary audio is locked, use its STC, otherwise, wait for primary audio to lock and load its STC */
-                    if (chn->audio_state != BPCRlib_Decoder_State_eWaitingSTC && chn->cfg.audio)
+                    if (chn->audio_state != BPCRlib_Decoder_State_eWaitingSTC && chn->audio_state != BPCRlib_Decoder_State_eInvalidated && chn->cfg.audio)
                     {
-                        if (chn->audio_state != BPCRlib_Decoder_State_eNotLocked)
-                        {
-                            if (BPCRlib_IsAudioLocked_isr(chn, &new_stc))
-                            {
-                                BDBG_MSG(("AudioRequestStc(%p): Audio master mode -> %s channel, using primary audio STC %#x as new STC", (void *)audio, channel_name, (unsigned)new_stc));
-                                rc = b_send_stc_isr(chn, new_stc, audio);
-                            }
-                        }
-                        else if (BPCRlib_IsAudioLocked_isr(chn, &new_stc))
-                        {
-                            BDBG_MSG(("AudioRequestStc(%p): [CDB/Fifo] Audio master mode -> %s channel, using primary audio STC %#x as new STC", (void *)audio, channel_name, (unsigned)new_stc));
-                            rc = b_send_stc_isr(chn, new_stc, audio);
-                        }
+                        BDBG_MSG(("AudioRequestStc(%p): Audio master mode -> %s channel, using primary audio STC %#x as new STC", (void *)audio, channel_name, (unsigned)new_stc));
+                        rc = b_send_stc_isr(chn, new_stc, audio);
                     }
                     else
                     {
-                        BDBG_MSG(("AudioRequestStc(%p): Audio master mode -> %s channel request before primary channel request, ignored", (void *)audio, channel_name));
+                        BDBG_MSG(("AudioRequestStc(%p): Audio master mode -> %s channel request before primary channel request, awaiting primary request", (void *)audio, channel_name));
                     }
                 }
                 else
                 {
                     uint32_t new_stc = 0;
                     new_stc = audio_pts;
-                    BDBG_MSG(("AudioRequestStc(%p): Audio master mode -> using audio PTS %#x as new STC %#x", (void *)audio, (unsigned)audio_pts, (unsigned)new_stc));
+                    BDBG_MSG(("AudioRequestStc(%p): Audio master mode -> using primary audio PTS %#x as new STC %#x", (void *)audio, (unsigned)audio_pts, (unsigned)new_stc));
                     BPCRlib_P_InvalidatePCRCache_isr(chn);
                     chn->audio_state = BPCRlib_Decoder_State_eLocked;
                     rc = b_send_stc_isr(chn, new_stc, audio);
@@ -977,9 +943,12 @@ BPCRlib_Channel_VideoRequestStc_isr(BPCRlib_Handle handle, void *video, const BA
         {
             case BPCRlib_TsmMode_eAudioMaster:
 
-                if (BPCRlib_IsAudioLocked_isr(chn, &new_stc) && chn->audio_state == BPCRlib_Decoder_State_eLocked)
+                if (chn->audio_state != BPCRlib_Decoder_State_eWaitingSTC && chn->audio_state != BPCRlib_Decoder_State_eInvalidated && chn->cfg.audio)
                 {
                     BDBG_MSG(("VideoRequestStc(%p): Audio master mode -> using audio STC %#x as new STC", (void *)video, (unsigned)new_stc));
+                    BDBG_ASSERT(chn->cfg.audio_iface->getStc);
+                    rc = chn->cfg.audio_iface->getStc(chn->cfg.aux_transport, chn->cfg.audio, &new_stc);
+                    if (rc!=BERR_SUCCESS) { return rc; }
                     chn->video_state = BPCRlib_Decoder_State_eLocked;
                     rc = b_send_stc_isr(chn, new_stc, video);
                 }
@@ -1007,7 +976,6 @@ BPCRlib_Channel_VideoRequestStc_isr(BPCRlib_Handle handle, void *video, const BA
                 }
                 BDBG_MSG(("VideoRequestStc(%p): Video master mode -> using video PTS %#x as new STC", (void *)video, (unsigned)new_stc));
                 BPCRlib_P_InvalidatePCRCache_isr(chn);
-
                 chn->video_state = BPCRlib_Decoder_State_eLocked;
                 rc = b_send_stc_isr(chn, new_stc, video);
                 break;

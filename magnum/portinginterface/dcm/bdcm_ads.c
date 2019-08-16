@@ -1,42 +1,47 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
- *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- ******************************************************************************/
-
-
+* Copyright (C) 2018 Broadcom.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+*
+* This program is the proprietary software of Broadcom and/or its licensors,
+* and may only be used, duplicated, modified or distributed pursuant to
+* the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied),
+* right to use, or waiver of any kind with respect to the Software, and
+* Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+* THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+* IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1.     This program, including its structure, sequence and organization,
+* constitutes the valuable trade secrets of Broadcom, and you shall use all
+* reasonable efforts to protect the confidentiality thereof, and to use this
+* information only in connection with your use of Broadcom integrated circuit
+* products.
+*
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+* "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+* OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+* RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+* IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+* A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+* ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+* THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+* OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+* INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+* RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+* HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+* EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+* WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+* FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+*
+* API Description:
+*
+****************************************************************************/
 
 #include "bdcm_device.h"
 
@@ -60,8 +65,10 @@ struct BDCM_AdsChannel
     bool fastAcquire;
     BDCM_AdsLockStatus lockStatus;    /* current lock status */
     BKNI_MutexHandle mutex;              /* mutex to protect lock status*/
+    uint32_t accCorrectedBits;           /* Accumulated corrected bits. Reset on every reset status */
     uint32_t accCorrectedCount;          /* Accumulated corrected block count. Reset on every reset status */
     uint32_t accUncorrectedCount;        /* Accumulated un corrected block count. Reset on every reset status */
+    uint32_t accCleanCount;              /* Accumulated clean block count. Reset on every reset status */
     uint32_t dsChannelPower;
 };
 
@@ -190,6 +197,8 @@ BERR_Code BDCM_Ads_AcquireChannel(
     BKNI_ReleaseMutex(hChannel->mutex);
     hChannel->accCorrectedCount = 0;
     hChannel->accUncorrectedCount = 0;
+    hChannel->accCorrectedBits = 0;
+    hChannel->accCleanCount = 0;
     BDBG_MSG(("%s: Channel %u devID %u",BSTD_FUNCTION,hChannel->channelNum,hChannel->devId));
     BDBG_MSG(("%s: modType=%d, symbolRate=%d", BSTD_FUNCTION, ibParam->modType, ibParam->symbolRate));
     Param.devId = hChannel->devId;
@@ -257,6 +266,8 @@ BERR_Code BDCM_Ads_GetChannelStatus(
 
     hChannel->accCorrectedCount += outParam.correctedCount;
     hChannel->accUncorrectedCount += outParam.uncorrectedCount;
+    hChannel->accCorrectedBits += outParam.correctedBitCount;
+    hChannel->accCleanCount += outParam.goodRsBlockCount;
 
     pStatus->isPowerSaverEnabled = outParam.isPowerSaverEnabled;
     pStatus->modType = outParam.modType;
@@ -282,8 +293,10 @@ BERR_Code BDCM_Ads_GetChannelStatus(
     pStatus->isSpectrumInverted = outParam.spectralInversion;
     pStatus->preRsBER = outParam.preRsBER;
 
+    pStatus->correctedBits = hChannel->accCorrectedBits;
     pStatus->accCorrectedCount = hChannel->accCorrectedCount;
     pStatus->accUncorrectedCount = hChannel->accUncorrectedCount;
+    pStatus->accCleanCount = hChannel->accCleanCount;
     pStatus->dsChannelPower = hChannel->dsChannelPower;
 
 done:
@@ -298,6 +311,8 @@ BERR_Code BDCM_Ads_ResetChannelStatus(BDCM_AdsChannelHandle hChannel)
     BDBG_ASSERT( hChannel );
     hChannel->accCorrectedCount = 0;
     hChannel->accUncorrectedCount = 0;
+    hChannel->accCorrectedBits = 0;
+    hChannel->accCleanCount = 0;
     BDBG_LEAVE(BDCM_Ads_ResetChannelStatus);
 	return retCode;
 }
@@ -497,6 +512,8 @@ BERR_Code BDCM_Ads_SetScanParam(
     BKNI_ReleaseMutex(hChannel->mutex);
     hChannel->accCorrectedCount = 0;
     hChannel->accUncorrectedCount = 0;
+    hChannel->accCorrectedBits = 0;
+    hChannel->accCleanCount = 0;
     BDBG_MSG(("%s: Channel %u devID %u",BSTD_FUNCTION,hChannel->channelNum,hChannel->devId));
     Param.devId = hChannel->devId;
 

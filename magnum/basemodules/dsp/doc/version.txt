@@ -1,6 +1,6 @@
 ECLIPSE_VERSION:4.3-18s5
-RAAGA-RELEASE-TAG/CID:25900d4e808f79bbcae184f49c27b85d0b5242d8
-RAAGA_RELEASE_BRANCH:personal/blraudiofw/RAAGA_RELEASE_18p2p22_20190730
+RAAGA-RELEASE-TAG/CID:ff3b3dca182a5290eab16c425be06860573e24ca
+RAAGA_RELEASE_BRANCH:personal/blraudiofw/RAAGA_RELEASE_18p2p23_20190813
 7425_B2:
 7435_B0:
 7445_D0:
@@ -12,4 +12,4 @@ RAAGA_RELEASE_BRANCH:personal/blraudiofw/RAAGA_RELEASE_18p2p22_20190730
 7278_B1:
 7255_A0_32:
 7255_A0_64:
-SMOKETEST_CONFIG_FILE:/projects/automatix_ext/testsuite_releases/raaga_smoketest/RaagaRelease_References/RTF_SMOKETEST_18p2p22_CFG.txt
+SMOKETEST_CONFIG_FILE:/projects/automatix_ext/testsuite_releases/raaga_smoketest/RaagaRelease_References/RTF_SMOKETEST_18p2p23_CFG.txt

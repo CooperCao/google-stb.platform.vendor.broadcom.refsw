@@ -1,40 +1,47 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
- *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
- *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- ******************************************************************************/
+* Copyright (C) 2018 Broadcom.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
+*
+* This program is the proprietary software of Broadcom and/or its licensors,
+* and may only be used, duplicated, modified or distributed pursuant to
+* the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied),
+* right to use, or waiver of any kind with respect to the Software, and
+* Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+* THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+* IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1.     This program, including its structure, sequence and organization,
+* constitutes the valuable trade secrets of Broadcom, and you shall use all
+* reasonable efforts to protect the confidentiality thereof, and to use this
+* information only in connection with your use of Broadcom integrated circuit
+* products.
+*
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+* "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+* OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+* RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+* IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+* A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+* ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+* THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+* OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+* INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+* RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+* HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+* EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+* WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+* FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+*
+* API Description:
+*
+****************************************************************************/
 
 #include "nexus_frontend_module.h"
 #include "nexus_docsis_priv.h"
@@ -1065,16 +1072,25 @@ NEXUS_Error NEXUS_Docsis_P_GetQamStatus(
     NEXUS_FrontendQamStatus *pStatus
     )
 {
-	BERR_Code retCode;
+    BERR_Code retCode;
     BDCM_AdsStatus adsStatus;
-	BDCM_Version version;
+    BDCM_Version version;
+    uint64_t totalbits=0, uncorrectedBits=0;
+    unsigned cleanBlock = 0, correctedBlock = 0, unCorrectedBlock = 0, totalBlock = 0;
     NEXUS_DocsisChannelHandle hChannel = NULL;
     NEXUS_DocsisDeviceHandle hDevice=NULL;
+    NEXUS_FrontendQamStatus prevStatus;
     hChannel = (NEXUS_DocsisChannelHandle)handle;
     BDBG_OBJECT_ASSERT(hChannel,NEXUS_DocsisChannel);
     BDBG_ASSERT(pStatus);
     hDevice = hChannel->hDevice;
     BDBG_OBJECT_ASSERT(hDevice,NEXUS_DocsisDevice);
+
+    prevStatus.fecUncorrected = hChannel->qamStatus.fecUncorrected;
+    prevStatus.fecClean = hChannel->qamStatus.fecClean;
+    prevStatus.fecCorrected = hChannel->qamStatus.fecCorrected;
+    prevStatus.viterbiUncorrectedBits = hChannel->qamStatus.viterbiUncorrectedBits;
+    prevStatus.viterbiTotalBits = hChannel->qamStatus.viterbiTotalBits;
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
     if(hDevice->status.state != NEXUS_DocsisDeviceState_eOperational)
@@ -1114,25 +1130,70 @@ NEXUS_Error NEXUS_Docsis_P_GetQamStatus(
     if (adsStatus.isFecLock == false ||adsStatus.isQamLock == false)
     {
         adsStatus.snrEstimate = 0;
-        adsStatus.correctedCount = 0;
-        adsStatus.uncorrectedCount = 0;
+        adsStatus.accCorrectedCount = 0;
+        adsStatus.accUncorrectedCount = 0;
+        adsStatus.accCleanCount = 0;
         adsStatus.berRawCount = 0;
         adsStatus.goodRsBlockCount = 0;
         adsStatus.postRsBER = 0;
         adsStatus.elapsedTimeSec = 0;
+        adsStatus.correctedBits = 0;
     }
 
     pStatus->snrEstimate = adsStatus.snrEstimate*100/256;
-    pStatus->fecCorrected = adsStatus.correctedCount;
-    pStatus->fecUncorrected = adsStatus.uncorrectedCount;
+    pStatus->fecCorrected = adsStatus.accCorrectedCount;
+    pStatus->fecUncorrected = adsStatus.accUncorrectedCount;
+    pStatus->fecClean = adsStatus.accCleanCount;
     pStatus->berEstimate = adsStatus.berRawCount;
     pStatus->goodRsBlockCount = adsStatus.goodRsBlockCount;
-    pStatus->postRsBer = adsStatus.postRsBER;
     pStatus->postRsBerElapsedTime = adsStatus.elapsedTimeSec;
     pStatus->spectrumInverted = adsStatus.isSpectrumInverted;
-    pStatus->viterbiErrorRate = adsStatus.preRsBER;
-    pStatus->errorRateUnits = NEXUS_FrontendErrorRateUnits_eNaturalLog;
+    pStatus->errorRateUnits = NEXUS_FrontendErrorRateUnits_eLinear;
     pStatus->settings = hChannel->qamSettings;
+
+    if(pStatus->fecUncorrected  > prevStatus.fecUncorrected)
+        unCorrectedBlock = pStatus->fecUncorrected - prevStatus.fecUncorrected;
+    if(pStatus->fecClean > prevStatus.fecClean)
+        cleanBlock = pStatus->fecClean - prevStatus.fecClean;
+    if(pStatus->fecCorrected > prevStatus.fecCorrected)
+        correctedBlock = pStatus->fecCorrected - prevStatus.fecCorrected;
+
+    totalBlock = (uint64_t)(unCorrectedBlock + cleanBlock + correctedBlock);
+
+    if(totalBlock > unCorrectedBlock){
+        unCorrectedBlock = (uint64_t)unCorrectedBlock * 11224 / 1000;
+        if(pStatus->settings.annex == NEXUS_FrontendQamAnnex_eA || pStatus->settings.annex == NEXUS_FrontendQamAnnex_eC)
+            pStatus->postRsBer = ((uint64_t)unCorrectedBlock * 2097152 * 1024 )/((uint64_t)totalBlock*8*187);
+        else if(pStatus->settings.annex == NEXUS_FrontendQamAnnex_eB)
+            pStatus->postRsBer = ((uint64_t)unCorrectedBlock * 2097152 * 1024)/((uint64_t)totalBlock*7*122);
+    }
+
+    pStatus->viterbiUncorrectedBits = adsStatus.correctedBits + (uint32_t)((uint64_t)pStatus->fecUncorrected * 11224)/1000;
+
+
+    if(pStatus->viterbiUncorrectedBits > prevStatus.viterbiUncorrectedBits)
+        uncorrectedBits = pStatus->viterbiUncorrectedBits - prevStatus.viterbiUncorrectedBits;
+
+    if(pStatus->settings.annex == NEXUS_FrontendQamAnnex_eA || pStatus->settings.annex == NEXUS_FrontendQamAnnex_eC){
+        pStatus->viterbiTotalBits = (uint32_t)(((uint64_t)pStatus->fecCorrected + (uint64_t)pStatus->fecUncorrected + (uint64_t)pStatus->fecClean) * 204 * 8);
+    }
+    else if(pStatus->settings.annex == NEXUS_FrontendQamAnnex_eB){
+        pStatus->viterbiTotalBits = (uint32_t)(((uint64_t)pStatus->fecCorrected + (uint64_t)pStatus->fecUncorrected + (uint64_t)pStatus->fecClean) * 127 * 7);
+    }
+
+    if(pStatus->viterbiTotalBits > prevStatus.viterbiTotalBits)
+        totalbits =  pStatus->viterbiTotalBits - prevStatus.viterbiTotalBits;
+
+    if (totalbits > uncorrectedBits) {
+        pStatus->viterbiErrorRate = (uint32_t)((uint64_t)uncorrectedBits * 2097152 * 1024 / totalbits);
+    }
+
+    hChannel->qamStatus.fecUncorrected = pStatus->fecUncorrected;
+    hChannel->qamStatus.fecClean = pStatus->fecClean;
+    hChannel->qamStatus.fecCorrected = pStatus->fecCorrected;
+    hChannel->qamStatus.viterbiUncorrectedBits = pStatus->viterbiUncorrectedBits;
+    hChannel->qamStatus.viterbiTotalBits = pStatus->viterbiTotalBits;
+
 
     BDBG_MSG(("DOCSIS QAM status"));
     BDBG_MSG(("isFecLock:%d",adsStatus.isFecLock));
@@ -1140,9 +1201,14 @@ NEXUS_Error NEXUS_Docsis_P_GetQamStatus(
     BDBG_MSG(("agcIntLevel:%d",adsStatus.agcIntLevel));
     BDBG_MSG(("agcExtLevel:%d",adsStatus.agcExtLevel));
     BDBG_MSG(("snrEstimate:%d",adsStatus.snrEstimate));
-    BDBG_MSG(("correctedCount:%d",adsStatus.correctedCount));
-    BDBG_MSG(("uncorrectedCount:%d",adsStatus.uncorrectedCount));
+    BDBG_MSG(("correctedCount:%d",adsStatus.accCorrectedCount));
+    BDBG_MSG(("uncorrectedCount:%d",adsStatus.accUncorrectedCount));
+    BDBG_MSG(("cleanCount:%d",adsStatus.accCleanCount));
+    BDBG_MSG(("preRsBER:%u",adsStatus.preRsBER));
+    BDBG_MSG(("postRsBER:%u",adsStatus.postRsBER));
+    BDBG_MSG(("downstream power:%d",adsStatus.dsChannelPower));
     BDBG_MSG(("berRawCount:%d",adsStatus.berRawCount));
+    BDBG_MSG(("correctedbit:%u",adsStatus.correctedBits));
     return retCode;
 }
 

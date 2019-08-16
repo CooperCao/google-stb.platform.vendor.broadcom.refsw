@@ -1585,7 +1585,7 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_ApplyDspSettings(BAPE_DolbyDigitalR
 
     if ( handle->hTranscodeStage )
     {
-        if ( BAPE_DolbyDigitalReencode_P_HasCompressedOutput(handle) )
+        if ( BAPE_DolbyDigitalReencode_P_HasCompressedOutput(handle) || BAPE_DolbyDigitalReencode_P_Has4xCompressedOutput(handle) )
         {
             #if BAPE_DSP_MS12_SUPPORT
             BAPE_DSP_P_SET_VARIABLE((*pEncodeStageSettings), ui32DolbyCertificationFlag, handle->settings.encodeSettings.certificationMode ? BDSP_AF_P_eDisable : BDSP_AF_P_eEnable);
