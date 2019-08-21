@@ -693,7 +693,11 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
 
     if(pSettings->spliceEnabled) {
         handle->spliceCallback = NEXUS_IsrCallback_Create(handle, NULL);
-        if(!handle->spliceCallback) {errCode=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto err_sample_rate_event;}
+        if ( !handle->spliceCallback )
+        {
+            errCode=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+            goto err_splice_callback;
+        }
         BKNI_Memset(&handle->spliceSettings,0,sizeof(NEXUS_AudioDecoderSpliceSettings));
         NEXUS_CALLBACKDESC_INIT(&handle->spliceSettings.splicePoint);
         handle->spliceFlowStopped = false;
@@ -1125,8 +1129,21 @@ err_channel_change_report_event_handler:
 err_channel_change_report_event:
     NEXUS_UnregisterEvent(handle->sampleRateCallback);
 err_sample_rate_callback:
+    for ( j = 0; j < NEXUS_AudioConnectorType_eMax; j++ )
+    {
+        NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connectors[j], Close);
+    }
     BKNI_DestroyEvent(handle->sampleRateEvent);
 err_sample_rate_event:
+    for ( j = 0; j < NEXUS_AudioConnectorType_eMax; j++ )
+    {
+        NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connectors[j], Close);
+    }
+    if ( handle->spliceCallback ) {
+        NEXUS_IsrCallback_Destroy(handle->spliceCallback);
+        handle->spliceCallback = NULL;
+    }
+err_splice_callback:
     NEXUS_OBJECT_DESTROY(NEXUS_AudioDecoder, handle);
     BKNI_Free(handle);
     return NULL;

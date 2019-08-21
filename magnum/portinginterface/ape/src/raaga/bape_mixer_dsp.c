@@ -698,6 +698,9 @@ static BERR_Code BAPE_DspMixer_P_CreateLoopBackPath (BAPE_MixerHandle handle)
     BKNI_EnterCriticalSection();
     BAPE_LoopbackGroup_P_GetSettings_isr(handle->loopbackGroup, &loopbackSettings);
     BKNI_LeaveCriticalSection();
+
+    loopbackSettings.insertOnUnderflow = true;
+
     if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
     {
         loopbackSettings.insertOnUnderflow = false;
@@ -1640,6 +1643,25 @@ static BERR_Code BAPE_DspMixer_P_StartPathFromInput(struct BAPE_PathNode *pNode,
         }
     }
     handle->loopbackRunning++;
+    /* Once we start a second fmm input disable ignore invalid frames.
+       DP Mixer will mark frames as invalid if even 1 input is underflowing */
+    if (handle->loopbackGroup && handle->loopbackRunning == 2 &&
+        BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12) {
+        BAPE_LoopbackGroupSettings loopbackSettings;
+        BKNI_EnterCriticalSection();
+        BAPE_LoopbackGroup_P_GetSettings_isr(handle->loopbackGroup, &loopbackSettings);
+        BKNI_LeaveCriticalSection();
+        loopbackSettings.ignoreInvalidFrames = false;
+        BKNI_EnterCriticalSection();
+        errCode = BAPE_LoopbackGroup_P_SetSettings_isr(handle->loopbackGroup, &loopbackSettings);
+        BKNI_LeaveCriticalSection();
+        if (errCode)
+        {
+            (void)BERR_TRACE(errCode);
+            goto err_configure_loopback;
+        }
+    }
+
     if ( handle->loopbackMixerGroup )
     {
         BAPE_MixerGroup_P_GetInputSettings(handle->loopbackMixerGroup, inputIndex, &mixerInputSettings);
@@ -1673,22 +1695,48 @@ err_src_start:
         BAPE_MixerGroup_P_StopInput(handle->loopbackMixerGroup, inputIndex);
     }
 err_mixer_input:
-    handle->loopbackRunning--;
-    if ( 0 == handle->loopbackRunning )
+err_configure_loopback:
+    if ( handle->loopbackRunning > 0 )
     {
+        handle->loopbackRunning--;
+        if (handle->loopbackGroup && handle->loopbackRunning == 1 &&
+            BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12) {
+            BAPE_LoopbackGroupSettings loopbackSettings;
+            BERR_Code loopbackErr;
+            BKNI_EnterCriticalSection();
+            BAPE_LoopbackGroup_P_GetSettings_isr(handle->loopbackGroup, &loopbackSettings);
+            BKNI_LeaveCriticalSection();
+            loopbackSettings.ignoreInvalidFrames = true;
+            BKNI_EnterCriticalSection();
+            loopbackErr = BAPE_LoopbackGroup_P_SetSettings_isr(handle->loopbackGroup, &loopbackSettings);
+            BKNI_LeaveCriticalSection();
+            if (loopbackErr)
+            {
+                BERR_TRACE(loopbackErr);
+            }
+        }
+    }
 err_input_vol:
+    if ( handle->loopbackRunning == 0 && handle->loopbackDspInput != BAPE_MIXER_INPUT_INDEX_INVALID )
+    {
         BDSP_Stage_RemoveInput(handle->hMixerStage, handle->loopbackDspInput);
         handle->loopbackDspInput = BAPE_MIXER_INPUT_INDEX_INVALID;
         handle->loopbackAttached = false;
+    }
 err_add_input:
 err_input_scaling:
-        if ( handle->loopbackMixerGroup )
-        {
-            BAPE_MixerGroup_P_StopOutput(handle->loopbackMixerGroup, 0);
-        }
+    if ( handle->loopbackRunning == 0 && handle->loopbackMixerGroup )
+    {
+        BAPE_MixerGroup_P_StopOutput(handle->loopbackMixerGroup, 0);
+    }
 err_mixer_output:
+    if ( handle->loopbackRunning == 0 && handle->loopbackGroup )
+    {
         BAPE_LoopbackGroup_P_Stop(handle->loopbackGroup);
+    }
 err_loopback_start:
+    if ( handle->loopbackRunning == 0 && handle->loopbackDfifoGroup )
+    {
         BAPE_DfifoGroup_P_Stop(handle->loopbackDfifoGroup);
     }
 err_dfifo_start:
@@ -1808,6 +1856,23 @@ static void BAPE_DspMixer_P_StopPathFromInput(struct BAPE_PathNode *pNode, struc
         BDBG_ASSERT(handle->running > 0);
 
         handle->loopbackRunning--;
+
+        if (handle->loopbackGroup && handle->loopbackRunning == 1 &&
+            BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12) {
+            BAPE_LoopbackGroupSettings loopbackSettings;
+            BERR_Code errCode;
+            BKNI_EnterCriticalSection();
+            BAPE_LoopbackGroup_P_GetSettings_isr(handle->loopbackGroup, &loopbackSettings);
+            BKNI_LeaveCriticalSection();
+            loopbackSettings.ignoreInvalidFrames = true;
+            BKNI_EnterCriticalSection();
+            errCode = BAPE_LoopbackGroup_P_SetSettings_isr(handle->loopbackGroup, &loopbackSettings);
+            if (errCode)
+            {
+                BERR_TRACE(errCode);
+            }
+            BKNI_LeaveCriticalSection();
+        }
 
         if ( pConnection->srcGroup )
         {

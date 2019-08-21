@@ -1417,7 +1417,7 @@ static BERR_Code BAPE_Playback_P_ConfigPathToOutput(BAPE_PathNode *pNode, BAPE_P
             sfifoSettings.dataWidth = hPlayback->startSettings.bitsPerSample;
         }
         sfifoSettings.reverseEndian = hPlayback->startSettings.reverseEndian;
-        sfifoSettings.sampleRepeatEnabled = BAPE_FMT_P_RampingValid_isrsafe(&hPlayback->node.connectors[0].format);
+        sfifoSettings.sampleRepeatEnabled = false; /* This used to be set based on BAPE_FMT_P_RampingValid_isrsafe()*/
         sfifoSettings.loopAround = hPlayback->startSettings.loopEnabled;
         sfifoSettings.wrpointEnabled = false;
         if ( hPlayback->startSettings.startThreshold > 0 )

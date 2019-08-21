@@ -397,6 +397,7 @@ mixer_create_fail:
     {
         BKNI_Free(pMixerSettings);
     }
+    NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &pMixer->connector, Close);
     pMixer->opened = false;
     NEXUS_OBJECT_DESTROY(NEXUS_AudioMixer, pMixer);
     return NULL;
