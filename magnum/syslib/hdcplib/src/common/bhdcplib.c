@@ -806,6 +806,11 @@ BERR_Code BHDCPlib_SetConfiguration(BHDCPlib_Handle hHDCPlib, BHDCPlib_Configura
 	BDBG_ENTER(BHDCPlib_SetConfiguration);
 	BDBG_OBJECT_ASSERT(hHDCPlib, HDCPLIB);
 
+#if BHDCPLIB_HAS_HDCP_2X_SUPPORT && defined(BHDCPLIB_HAS_SAGE)
+	hHDCPlib->bCstChange =
+        hHDCPlib->stHdcpConfiguration.eHdcp2xContentStreamControl != stHdcpConfiguration->eHdcp2xContentStreamControl ;
+#endif
+
 
 	/* Copy Hdcp Link data into HDMlib handle 	*/
 	BKNI_Memcpy(&hHDCPlib->stHdcpConfiguration, stHdcpConfiguration, sizeof(BHDCPlib_Configuration));
@@ -1187,3 +1192,26 @@ BERR_Code BHDCPlib_DisableAuthentication(BHDCPlib_Handle hHDCPlib)
 	return rc;
 }
 
+#if BHDCPLIB_HAS_HDCP_2X_SUPPORT && defined(BHDCPLIB_HAS_SAGE)
+bool BHDCPlib_IsCstChange(BHDCPlib_Handle hHDCPlib)
+{
+	BERR_Code rc ;
+	uint8_t uiRepeater ;
+
+	/* Check if Rx is a repeater */
+	rc = BHDM_HDCP_CheckForRepeater(hHDCPlib->stDependencies.hHdm, &uiRepeater) ;
+	if (rc)
+	{
+		BDBG_WRN(("Unable determine if Rx is a repeater; Rx will be treated as a non-repeater")) ;
+		uiRepeater = 0 ;
+	}
+
+	return hHDCPlib->bCstChange && uiRepeater ;
+}
+
+void BHDCPlib_ClearCstChange(BHDCPlib_Handle hHDCPlib)
+{
+	hHDCPlib->bCstChange = false ;
+}
+
+#endif

@@ -134,7 +134,7 @@ static void scenario_player_p_get_reset_scenario(Scenario * pScenario)
 {
     scenario_player_p_get_default_scenario(pScenario);
     pScenario->pictureInfo.gamut = PlatformColorimetry_e709;
-    pScenario->pictureInfo.dynrng = PlatformDynamicRange_eInvalid;
+    pScenario->pictureInfo.dynrng = PlatformDynamicRange_eLegacy;
     pScenario->pictureInfo.space = PlatformColorSpace_eYCbCr;
     pScenario->pictureInfo.depth = 8;
     pScenario->pictureInfo.sampling = 444;
@@ -379,13 +379,17 @@ static int scenario_player_p_set_variable(ScenarioPlayerHandle player, const cha
         {
             pScenario->pictureInfo.dynrng = PlatformDynamicRange_eHdr10;
         }
-        else if (!strcasecmp(value, "dbv"))
+        else if (!strcasecmp(value, "dbv") || !strcasecmp(value, "dovi"))
         {
             pScenario->pictureInfo.dynrng = PlatformDynamicRange_eDolbyVision;
         }
-        else if (!strcasecmp(value, "disabled"))
+        else if (!strcasecmp(value, "hdr10+") || !strcasecmp(value, "hdr10plus"))
         {
-            pScenario->pictureInfo.dynrng = PlatformDynamicRange_eInvalid;
+            pScenario->pictureInfo.dynrng = PlatformDynamicRange_eHdr10Plus;
+        }
+        else if (!strcasecmp(value, "legacy"))
+        {
+            pScenario->pictureInfo.dynrng = PlatformDynamicRange_eLegacy;
         }
         else
         {

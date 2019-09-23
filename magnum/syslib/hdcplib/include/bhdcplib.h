@@ -195,6 +195,10 @@ typedef enum BHDCPlib_Hdcp2xContentStreamType
     BHDCPlib_Hdcp2xContentStreamType_eMax
 
 } BHDCPlib_Hdcp2xContentStreamType;
+
+bool BHDCPlib_IsCstChange(BHDCPlib_Handle hHDCPlib) ;
+void BHDCPlib_ClearCstChange(BHDCPlib_Handle hHDCPlib) ;
+
 #endif
 
 
@@ -324,6 +328,9 @@ typedef struct BHDCPlib_Status
     BHDCPlib_State eAuthenticationState;        /* current authentication state */
     BHDCPlib_HdcpError eHdcpError;      /* last Hdcp error */
     uint16_t msRecommendedWaitTime;
+
+    unsigned ConsecutiveAKESendCertCount;
+    unsigned TotalAKESendCertCount;
 } BHDCPlib_Status;
 
 

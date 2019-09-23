@@ -167,16 +167,9 @@ NEXUS_Display_P_SetSettings(NEXUS_DisplayHandle display, const NEXUS_DisplaySett
 {
     BERR_Code rc;
     unsigned i;
+    NEXUS_Rect prevDisplayRect = display->displayRect;
 
     force = force || pVideo->lastUpdateFailed;
-#if NEXUS_DBV_SUPPORT
-    if (NEXUS_SUCCESS != NEXUS_Display_P_DbvFormatCheck(display, pSettings->format))
-    {
-        rc = BERR_NOT_SUPPORTED;
-        rc = BERR_TRACE(rc);
-        return rc;
-    }
-#endif
 
     /* NOTE: display->cfg are the old settings. pSettings are the new settings. always apply pSettings, not display->cfg. */
 
@@ -333,6 +326,9 @@ err_aspectratio:
 err_setaspectratio:
 err_setorientation:
 err_setformat:
+    display->displayRect = prevDisplayRect;
+    NEXUS_Display_P_ResetGraphics(display);
+    /* it would be nice to restore graphics, but that's a bigger change, and we've had this behavior for a long time */
 err_format:
     return rc;
 }
@@ -1224,7 +1220,6 @@ NEXUS_Display_Open(unsigned displayIndex,const NEXUS_DisplaySettings *pSettings)
     if (!display->hdmi.hdrInfoChange.handler) {rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_registerhdrInfoChange;}
 
     BDBG_ASSERT(NULL == display->hdmi.rateChangeCb_isr);
-    NEXUS_CallbackHandler_Init(display->hdmi.outputNotifyDisplay,NEXUS_VideoOutput_P_SetHdmiSettings, display );
     display->hdmi.outputNotify = NULL;
 
     display->private.hdrInfoChangedCallback = NEXUS_TaskCallback_Create(display, NULL);
@@ -1309,7 +1304,6 @@ err_install_display_cb:
     if (rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);}
 err_open:
 #if NEXUS_HAS_HDMI_OUTPUT
-    NEXUS_CallbackHandler_Shutdown(display->hdmi.outputNotifyDisplay);
     NEXUS_UnregisterEvent(display->hdmi.hdrInfoChange.handler);
 err_registerhdrInfoChange:
     BKNI_DestroyEvent(display->hdmi.hdrInfoChange.event);
@@ -1426,11 +1420,12 @@ NEXUS_Display_P_Finalizer(NEXUS_DisplayHandle display)
         }
         BKNI_Free(display->customFormatInfo);
         display->customFormatInfo = NULL;
+        BKNI_Free(display->oldCustomFormatInfo);
+        display->oldCustomFormatInfo = NULL;
     }
 
 #if NEXUS_HAS_HDMI_OUTPUT
     NEXUS_TaskCallback_Destroy(display->private.hdrInfoChangedCallback);
-    NEXUS_CallbackHandler_Shutdown(display->hdmi.outputNotifyDisplay);
     NEXUS_UnregisterEvent(display->hdmi.hdrInfoChange.handler);
     BKNI_DestroyEvent(display->hdmi.hdrInfoChange.event);
 #endif
@@ -1675,6 +1670,15 @@ NEXUS_Display_SetSettings(NEXUS_DisplayHandle display, const NEXUS_DisplaySettin
     NEXUS_OBJECT_ASSERT(NEXUS_Display, display);
     BDBG_ASSERT(pSettings);
 
+    for( output=BLST_D_FIRST(&display->outputs); NULL != output; output=BLST_D_NEXT(output, link) )
+    {
+         if( output->iface.checkSettings )
+         {
+             rc = output->iface.checkSettings(output->output->source, display, pSettings);
+             if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_validate; }
+         }
+    }
+
     prevDisplayRect = display->displayRect;
     if(pSettings->format != display->cfg.format) {
         formatChanged = true;
@@ -1745,22 +1749,31 @@ NEXUS_Display_SetSettings(NEXUS_DisplayHandle display, const NEXUS_DisplaySettin
 
         if ( !rc)
         {
-            bool formatChange, aspectRatioChange, _3dOrientationChange ;
+            bool formatChange, aspectRatioChange, _3dOrientationChange, dynrngChange ;
 
             formatChange = pSettings->format != display->cfg.format ;
             aspectRatioChange = beforeAR != afterAR;
             _3dOrientationChange =
                 (pSettings->display3DSettings.overrideOrientation != display->cfg.display3DSettings.overrideOrientation)
              || (pSettings->display3DSettings.orientation != display->cfg.display3DSettings.orientation) ;
+            dynrngChange = pSettings->dynamicRangeMode != display->cfg.dynamicRangeMode || pSettings->priority != display->cfg.priority;
 
-            if (formatChange || aspectRatioChange || _3dOrientationChange)
+            if (formatChange || aspectRatioChange || _3dOrientationChange || dynrngChange)
             {
                 for( output=BLST_D_FIRST(&display->outputs); NULL != output; output=BLST_D_NEXT(output, link) )
                 {
                      if( output->iface.formatChange )
                      {
+                         NEXUS_VideoOutput_P_FormatChangeParams params;
+                         BKNI_Memset(&params, 0, sizeof(params));
+                         params.display = display;
+                         params.format = pSettings->format;
+                         params.aspectRatio = pSettings->aspectRatio;
+                         params._3dOrientationChange = _3dOrientationChange;
+                         params.dynamicRangeMode = pSettings->dynamicRangeMode;
+                         params.priority = pSettings->priority;
                          /* Update format to outputs that require knowledge (e.g. HDMI) */
-                         rc = output->iface.formatChange(output->output->source, display, pSettings->format, pSettings->aspectRatio, _3dOrientationChange);
+                         rc = output->iface.formatChange(output->output->source, &params);
                          if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);}
                      }
                 }
@@ -1801,6 +1814,11 @@ NEXUS_Display_SetSettings(NEXUS_DisplayHandle display, const NEXUS_DisplaySettin
 #if NEXUS_VBI_SUPPORT
 err_vbi: /* ignore VBI errors */
 #endif
+    /* update the old custom format info with the successful update */
+    if(NEXUS_VideoFormat_eCustom2 == pSettings->format && display->oldCustomFormatInfo)
+    {
+        *display->oldCustomFormatInfo = *display->customFormatInfo;
+    }
     return BERR_SUCCESS;
 
 err_applychanges:
@@ -1816,6 +1834,12 @@ err_windowsettings:
         BERR_Code rc = BVDC_AbortChanges(pVideo->vdc);
         if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
     }
+    /* restore old custom format info when aborted */
+    if(NEXUS_VideoFormat_eCustom2 == pSettings->format && display->customFormatInfo)
+    {
+        *display->customFormatInfo = *display->oldCustomFormatInfo;
+    }
+err_validate:
     return rc;
 }
 
@@ -2106,11 +2130,15 @@ NEXUS_Error NEXUS_Display_SetCustomFormatSettings( NEXUS_DisplayHandle display, 
         /* allocate the data structure and all its linked substructures */
         display->customFormatInfo = BKNI_Malloc(sizeof(BFMT_VideoInfo));
         if (!display->customFormatInfo) {
-
             return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
-
         }
         display->customFormatInfo->pCustomInfo = NULL; /* no custom info */
+        display->oldCustomFormatInfo = BKNI_Malloc(sizeof(BFMT_VideoInfo));
+        if (!display->oldCustomFormatInfo) {
+            BKNI_Free(display->customFormatInfo);
+            return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        }
+        display->oldCustomFormatInfo->pCustomInfo = NULL; /* no custom info */
         /* this memory is freed in NEXUS_Display_Close */
     }
 
@@ -2136,6 +2164,9 @@ NEXUS_Error NEXUS_Display_SetCustomFormatSettings( NEXUS_DisplayHandle display, 
 
     rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(format, &magnumVideoFormat);
     if (rc) return BERR_TRACE(rc);
+
+    /* store the old custom format info in case need to back out later */
+    *display->oldCustomFormatInfo = *display->customFormatInfo;
 
     display->customFormatInfo->eVideoFmt = magnumVideoFormat;
     display->customFormatInfo->ulWidth = pSettings->width;

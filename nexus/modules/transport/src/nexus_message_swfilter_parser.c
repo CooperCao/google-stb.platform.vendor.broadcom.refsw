@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2018 Broadcom.
+ *  Copyright (C) 2019 Broadcom.
  *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -66,9 +66,12 @@ struct NEXUS_SwFilter_FilterState {
     unsigned buffer_size;
     NEXUS_SwFilter_Msg_P_callback_t callback;
     void * context;
+    NEXUS_SwFilter_Msg_P_callback_tc callback_crcErr;
+    void * context_crcErr;
 
     /* The following are used for For PSI filters*/
     NEXUS_MessageFilter filt;
+    unsigned filterSize; /* total bytes of filt that must be tested */
     bool enabled;
     struct ts_pid * pid_state;  /* parent */
     bool disable_crc_check;
@@ -128,7 +131,7 @@ typedef enum {bdemux_pes_result_match, bdemux_pes_result_nomatch, bdemux_pes_res
 static uint32_t bcrc32(uint8_t * data, unsigned len);
 static struct ts_pid * NEXUS_SwFilter_Msg_P_FindPid(NEXUS_SwMsgFilterHandle handle, uint16_t pid);
 static void NEXUS_SwFilter_Msg_P_ProcessPacket(ts_packet_t * packet, struct ts_pid * pid_state);
-static void NEXUS_SwFilter_Msg_P_MatchFilters(const uint8_t * msg, struct ts_pid * pid_state);
+static void NEXUS_SwFilter_Msg_P_MatchFilters(const uint8_t * msg, struct ts_pid * pid_state, size_t msgSize);
 static void NEXUS_SwFilter_Msg_P_ParsePacket(const uint8_t *buf, ts_packet_t * packet);
 static void NEXUS_SwFilter_Msg_P_CapturePacket(ts_packet_t * packet, struct ts_pid * pid_state);
 static void NEXUS_SwFilter_Msg_P_FreePid(NEXUS_SwMsgFilterHandle handle, struct ts_pid *pid_state);
@@ -164,6 +167,20 @@ void NEXUS_SwFilter_Msg_P_Uninit(NEXUS_SwMsgFilterHandle handle)
     }
     BKNI_Free(handle);
 }
+
+#if 0
+static void DUMP_BUFFER(const char *name, const void *data, unsigned datasize)
+{
+    char buf[256], *ptr = buf, *end = &buf[sizeof(buf)];
+    unsigned i;
+    for (i=0;i<datasize && ptr<end;i++) {
+        ptr += BKNI_Snprintf(ptr, end-ptr, "%02x ", ((uint8_t*)data)[i]);
+    }
+    BDBG_LOG(("%s: %s", name, buf));
+}
+#else
+#define DUMP_BUFFER(name, data, datasize)
+#endif
 
 /* Break buffer on packets and process each packet */
 size_t NEXUS_SwFilter_Msg_P_Feed(NEXUS_SwMsgFilterHandle handle, uint8_t * buffer, size_t size)
@@ -216,6 +233,7 @@ static struct ts_pid * NEXUS_SwFilter_Msg_P_AllocPid(NEXUS_SwMsgFilterHandle han
         return NULL;
     }
     pid_state->discontinuity = 1;
+    pid_state->want=0;
     BLST_S_INIT(&pid_state->filters);
     BLST_S_INSERT_HEAD(&handle->pids, pid_state, link);
     return pid_state;
@@ -239,6 +257,7 @@ void NEXUS_SwFilter_Msg_P_ProcessPacket(ts_packet_t * packet, struct ts_pid * pi
 
 /*    BDBG_MSG(("NEXUS_SwFilter_Msg_P_ProcessPacket: Entering: packet=0x%x, pid_state=0x%x", packet, pid_state));*/
 
+    DUMP_BUFFER("data:", packet->p_data_byte, packet->data_size);
 
     /* check continuity */
     if((pid_state->continuity_counter == packet->continuity_counter) && !pid_state->discontinuity && !packet->discontinuity){
@@ -263,6 +282,7 @@ void NEXUS_SwFilter_Msg_P_ProcessPacket(ts_packet_t * packet, struct ts_pid * pi
     }
 
     if(NULL != pid_state->capture_filter){
+        /* TODO: payload_unit_start_indicator bit ignored and pointer_field likely not skipped continuing msg */
         NEXUS_SwFilter_Msg_P_CapturePacket(packet, pid_state);
         goto ExitFunc;
     }
@@ -286,7 +306,6 @@ void NEXUS_SwFilter_Msg_P_ProcessPacket(ts_packet_t * packet, struct ts_pid * pi
             goto ExitFunc;
         }
     }
-
     bytes_remains = packet->data_size + packet->p_data_byte - current_pos;
     msg_skip = 0;
 
@@ -296,43 +315,79 @@ void NEXUS_SwFilter_Msg_P_ProcessPacket(ts_packet_t * packet, struct ts_pid * pi
         if(bytes_remains >= pid_state->want){
 
             if((NULL == pid_state->matched_filter) && (0 == msg_skip)){
+
                 if(pid_state->tmp_filter){
+                    size_t tmp_len;
+                    uint8_t * tmp_ptr=pid_state->tmp_buffer;
+
+                    tmp_len = (TS_READ_16(&tmp_ptr[1]) & 0xFFF) + 3;
+                    if ( tmp_len < NEXUS_MESSAGE_FILTER_SIZE && tmp_len > pid_state->want ) {
+                        dst = pid_state->tmp_buffer + (tmp_len - pid_state->want);
+                    }
+                    else {
+                        dst = pid_state->tmp_buffer + (NEXUS_MESSAGE_FILTER_SIZE - pid_state->want);
+                    }
                     /* part of the filter is in the temp buffer */
                     /* copy the rest */
 
-                    dst = pid_state->tmp_buffer + (NEXUS_MESSAGE_FILTER_SIZE - pid_state->want);
                     BKNI_Memcpy(dst, current_pos, pid_state->want);
                     /* reset dst pointer */
                     dst = pid_state->tmp_buffer;
-                    NEXUS_SwFilter_Msg_P_MatchFilters(dst, pid_state);
+                    msg_length = (TS_READ_16(&dst[1]) & 0xFFF) + 3;
+
+                    NEXUS_SwFilter_Msg_P_MatchFilters(dst, pid_state, msg_length);
 
                     if(NULL != pid_state->matched_filter){
-                        BKNI_Memcpy(pid_state->matched_filter->buffer, dst, NEXUS_MESSAGE_FILTER_SIZE);
-                        pid_state->msg_end = (uint8_t * )(pid_state->matched_filter->buffer) + NEXUS_MESSAGE_FILTER_SIZE;
+                        unsigned cp_sz=NEXUS_MESSAGE_FILTER_SIZE;
+                        if ( msg_length < NEXUS_MESSAGE_FILTER_SIZE ) {
+                            if ( tmp_len == 3 ) {
+                                if ( msg_length == 3 ) {
+                                    cp_sz = 2;
+                                    pid_state->want = NEXUS_MESSAGE_FILTER_SIZE;
+                                }
+                                else {
+                                    cp_sz = msg_length;
+                                    pid_state->want = msg_length - pid_state->tmp_filter;
+                                }
+                            }
+                        }
+                        BKNI_Memcpy(pid_state->matched_filter->buffer, dst, cp_sz);
+                        pid_state->msg_end = (uint8_t * )(pid_state->matched_filter->buffer) + cp_sz;
 
                     }else{
                         msg_skip = 1;
                     }
                     pid_state->tmp_filter = 0;
-                    msg_length = (TS_READ_16(&dst[1]) & 0xFFF) + 3;
                 }else{
-                    NEXUS_SwFilter_Msg_P_MatchFilters(current_pos, pid_state);
+                    msg_length = (TS_READ_16(&current_pos[1]) & 0xFFF) + 3;
+                    NEXUS_SwFilter_Msg_P_MatchFilters(current_pos, pid_state, msg_length);
                     if(NULL != pid_state->matched_filter){
-                        BKNI_Memcpy(pid_state->matched_filter->buffer, current_pos, NEXUS_MESSAGE_FILTER_SIZE);
-                        pid_state->msg_end = (uint8_t * )(pid_state->matched_filter->buffer) + NEXUS_MESSAGE_FILTER_SIZE;
+                        if ( pid_state->want < NEXUS_MESSAGE_FILTER_SIZE ) {
+                            BKNI_Memcpy(pid_state->matched_filter->buffer, current_pos, pid_state->want );
+                            pid_state->msg_end = (uint8_t * )(pid_state->matched_filter->buffer) + pid_state->want;
+                        }
+                        else {
+                            unsigned cp_sz=NEXUS_MESSAGE_FILTER_SIZE;
+                            if ( msg_length < NEXUS_MESSAGE_FILTER_SIZE ) {
+                                cp_sz=msg_length;
+                                pid_state->want = cp_sz;
+                            }
+
+                            BKNI_Memcpy(pid_state->matched_filter->buffer, current_pos, cp_sz);
+                            pid_state->msg_end = (uint8_t * )(pid_state->matched_filter->buffer) + cp_sz;
+                        }
 
                     }else{
                         msg_skip = 1;
                     }
-                    msg_length = (TS_READ_16(&current_pos[1]) & 0xFFF) + 3;
                 }
 
                 if(msg_length < NEXUS_MESSAGE_FILTER_SIZE){
-                    current_pos += msg_length;
-                    bytes_remains -= msg_length;
+                    current_pos   += pid_state->want;
+                    bytes_remains -= pid_state->want;
                     pid_state->want = 0;
                 }else{
-                    current_pos += pid_state->want;
+                    current_pos   += pid_state->want;
                     bytes_remains -= pid_state->want;
                     pid_state->want = msg_length - NEXUS_MESSAGE_FILTER_SIZE;
                 }
@@ -344,9 +399,16 @@ void NEXUS_SwFilter_Msg_P_ProcessPacket(ts_packet_t * packet, struct ts_pid * pi
                     uint8_t * pBuffer;
                     pBuffer = (uint8_t * )(pid_state->matched_filter->buffer);
                     /* complete message */
-                    BKNI_Memcpy(pid_state->msg_end, current_pos, pid_state->want);
-
-                    pid_state->msg_end += pid_state->want;
+                    if ( pid_state->want ) {
+                        BKNI_Memcpy(pid_state->msg_end, current_pos, pid_state->want);
+                        pid_state->msg_end += pid_state->want;
+                    }
+                    else {
+                        size_t tmp_sz;
+                        tmp_sz = 3 + (TS_READ_16(&pBuffer[1]) & 0xFFF);
+                        BKNI_Memcpy(pid_state->msg_end, current_pos, tmp_sz );
+                        pid_state->msg_end += tmp_sz;
+                    }
                     /* notify here*/
 /*
                     msg_length = 3 + (TS_READ_16(&pid_state->matched_filter->buffer[1]) & 0xFFF);
@@ -356,11 +418,15 @@ void NEXUS_SwFilter_Msg_P_ProcessPacket(ts_packet_t * packet, struct ts_pid * pi
                     syntax_indicator = (uint8_t)(pBuffer[1]) & 0x80;
 
                     msg_notify = 1;
-                    if((0 == pid_state->matched_filter->disable_crc_check) && (0 != syntax_indicator)){
-                        msg_notify = (0 == bcrc32(pid_state->matched_filter->buffer, msg_length));
-                        BDBG_MSG(("msg_process_packet: crc %s",((msg_notify) ? "passed" : "failed")));
+                    if((0 == pid_state->matched_filter->disable_crc_check) /* && (0 != syntax_indicator) mimic hardware */ ){
+                        uint32_t crc = bcrc32(pid_state->matched_filter->buffer, msg_length);
+                        msg_notify = (0 == crc);
+                        BDBG_MSG(("msg_process_packet: crc %s syn_idn=%u ",((msg_notify) ? "passed" : "failed"), (syntax_indicator>>8) ));
+                        if ( !msg_notify && pid_state->matched_filter->callback_crcErr ) {
+                            (pid_state->matched_filter->callback_crcErr)( pid_state->matched_filter->context_crcErr, crc);
+                        }
                     }
-                    BDBG_MSG(("msg_process_packet: pid %x msg %x len %u not %d sid %x", pid_state->pid, pBuffer[0], (uint32_t)msg_length, msg_notify, syntax_indicator));
+                    BDBG_MSG(("msg_process_packet: pid %x msg %x len %u not %d sid %x want=%u", pid_state->pid, pBuffer[0], (uint32_t)msg_length, msg_notify, syntax_indicator, (uint32_t)pid_state->want));
 
                     if((0 != msg_notify) && (NULL != pid_state->matched_filter->callback)){
                         new_buffer = (pid_state->matched_filter->callback)( pid_state->matched_filter->context, msg_length);
@@ -368,6 +434,7 @@ void NEXUS_SwFilter_Msg_P_ProcessPacket(ts_packet_t * packet, struct ts_pid * pi
                             pid_state->matched_filter->enabled = false;
                         }else{
                             pid_state->matched_filter->buffer = new_buffer;
+                            pid_state->msg_end = new_buffer;
                         }
                     }
                     /* terminate message */
@@ -377,8 +444,16 @@ void NEXUS_SwFilter_Msg_P_ProcessPacket(ts_packet_t * packet, struct ts_pid * pi
                         /* end of messages in this packet */
                         bytes_remains = 0;
                     }else{
+                        unsigned tmp_len;
                         bytes_remains -= pid_state->want;
-                        pid_state->want = NEXUS_MESSAGE_FILTER_SIZE;
+                        tmp_len = 3 + (TS_READ_16(&current_pos[1]) & 0xFFF);
+                        if ( tmp_len < NEXUS_MESSAGE_FILTER_SIZE ) {
+                            pid_state->want = tmp_len;
+                        }
+                        else
+                        {
+                            pid_state->want = NEXUS_MESSAGE_FILTER_SIZE;
+                        }
                     }
                 }else{
                     /* skipping message */
@@ -397,10 +472,14 @@ void NEXUS_SwFilter_Msg_P_ProcessPacket(ts_packet_t * packet, struct ts_pid * pi
             if(NULL == pid_state->matched_filter){
                 if(0 == msg_skip){ /* capture header */
                     dst = pid_state->tmp_buffer;
-                    dst += NEXUS_MESSAGE_FILTER_SIZE - pid_state->want;
+                    dst[1] = dst[2] = 0; /* clear anything from last time */
                     BKNI_Memcpy(dst, current_pos, bytes_remains);
                     pid_state->want -= bytes_remains;
-                    pid_state->tmp_filter = 1;
+                    if ( bytes_remains < 3 ) {
+                        pid_state->tmp_filter = bytes_remains;
+                    }
+                    else
+                        pid_state->tmp_filter = 1;
                 }
                 bytes_remains = 0;
             }else{
@@ -417,19 +496,18 @@ ExitFunc:
 }
 
 
-static bool NEXUS_SwFilter_Msg_P_FilterCompare(const uint8_t *msg, const uint8_t *inclMask, const uint8_t *exclMask, const uint8_t *coef, size_t filterSize )
+static bool NEXUS_SwFilter_Msg_P_FilterCompare(const uint8_t *msg, const uint8_t *inclMask, const uint8_t *exclMask, const uint8_t *coef, size_t filterSize, size_t msgSize )
 {
     bool inclResult = true;
     bool exclResult = true;
     bool exclEnabled = false;
     size_t i;
 
-/* Skip byte two (since the hardware doesn't look at that byte). we want to make the SW filter same as HW  */
-
-
-    for( i = 0; i < 1; i++ )
+    for( i = 0; i < msgSize && i < filterSize; i++ )
     {
-        if( (inclMask[i] | coef[i]) != (inclMask[i] | msg[i]) )
+        /* coef[1] applies to msg[1], but coef[2] applies to msg[3], etc. */
+        unsigned msg_i = i < 2 ? i : i + 1;
+        if( (inclMask[i] | coef[i]) != (inclMask[i] | msg[msg_i]) )
         {
             inclResult = false;
             break;
@@ -441,37 +519,31 @@ static bool NEXUS_SwFilter_Msg_P_FilterCompare(const uint8_t *msg, const uint8_t
             exclResult = false;
         }
 
-        if( (~exclMask[i] & coef[i]) != (~exclMask[i] & msg[i]) )
+        if( (~exclMask[i] & coef[i]) != (~exclMask[i] & msg[msg_i]) )
         {
             exclResult = true;
         }
     }
 
-    for( i = 2; i < filterSize; i++ )
+    /* Check we aren't trying to match more bytes than are in the section */
+    for(; (inclResult && exclResult) && i < filterSize; i++ )
     {
-        if( (inclMask[i] | coef[i]) != (inclMask[i] | msg[i+1]) )
+        if( inclMask[i] != 0xFF)
         {
             inclResult = false;
-            break;
-        }
-
-        if( exclEnabled == false && exclMask[i] != 0xFF )
-        {
-            exclEnabled = true;
-            exclResult = false;
-        }
-
-        if( (~exclMask[i] & coef[i]) != (~exclMask[i] & msg[i+1]) )
-        {
-            exclResult = true;
         }
     }
+
+    DUMP_BUFFER("msg :", msg, msgSize);
+    DUMP_BUFFER("incl:", inclMask, filterSize);
+    DUMP_BUFFER("excl:", exclMask, filterSize);
+    DUMP_BUFFER("coef:", coef, filterSize);
 
     return inclResult && exclResult;
 }
 
 /* Enumerate filters for pid and compare them against message */
-static void NEXUS_SwFilter_Msg_P_MatchFilters(const uint8_t * msg, struct ts_pid * pid_state)
+static void NEXUS_SwFilter_Msg_P_MatchFilters(const uint8_t * msg, struct ts_pid * pid_state, size_t msgSize)
 {
     struct NEXUS_SwFilter_FilterState * f;
 /*    BDBG_MSG(("NEXUS_SwFilter_Msg_P_MatchFilters: msg=0x%x, pid_state=0x%x", msg, pid_state));*/
@@ -479,7 +551,7 @@ static void NEXUS_SwFilter_Msg_P_MatchFilters(const uint8_t * msg, struct ts_pid
     f = BLST_S_FIRST(&pid_state->filters);
     for(; f != NULL ; f = BLST_S_NEXT(f, next)){
         if(0 != f->enabled){
-            if(NEXUS_SwFilter_Msg_P_FilterCompare(msg, f->filt.mask, f->filt.exclusion, f->filt.coefficient, NEXUS_MESSAGE_FILTER_SIZE)){
+            if(NEXUS_SwFilter_Msg_P_FilterCompare(msg, f->filt.mask, f->filt.exclusion, f->filt.coefficient, f->filterSize, msgSize)){
                 pid_state->matched_filter = f;
                 /* BDBG_MSG(("NEXUS_SwFilter_Msg_P_MatchFilters: matched filter handle=%p, msg=%p, pid=0x%x", (void *)f, (void *)msg, pid_state->pid)); */
                 break;
@@ -530,6 +602,15 @@ static void NEXUS_SwFilter_Msg_P_ParsePacket(const uint8_t *buf, ts_packet_t * p
     BDBG_MSG(("NEXUS_SwFilter_Msg_P_ParsePacket: p_data_byte=%p, data_size=%d, p_packet=%p", (void *)packet->p_data_byte, packet->data_size, (void *)packet->p_packet));
 }
 
+static unsigned NEXUS_SwFilter_P_CalcFilterSize(const struct NEXUS_SwFilter_FilterState *f)
+{
+    unsigned i;
+    for (i=NEXUS_MESSAGE_FILTER_SIZE;i;i--) {
+        if (f->filt.mask[i-1] != 0xFF || f->filt.exclusion[i-1] != 0xFF) break;
+    }
+    return i;
+}
+
 struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetFilter(NEXUS_SwMsgFilterHandle handle, NEXUS_SwFilter_MsgParams_t * params)
 {
     struct NEXUS_SwFilter_FilterState * f;
@@ -552,13 +633,16 @@ struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetFilter(NEXUS_SwMsgFi
     BKNI_Memcpy(f->filt.coefficient, params->filt.coefficient, NEXUS_MESSAGE_FILTER_SIZE);
     BKNI_Memcpy(f->filt.mask, params->filt.mask, NEXUS_MESSAGE_FILTER_SIZE);
     BKNI_Memcpy(f->filt.exclusion, params->filt.exclusion, NEXUS_MESSAGE_FILTER_SIZE);
-
+    f->filterSize = NEXUS_SwFilter_P_CalcFilterSize(f);
 
     f->buffer = params->buffer;
     f->buffer_size = params->buffer_size;
     f->disable_crc_check = params->disable_crc_check;
     f->callback = params->callback;
     f->context = params->context;
+    f->callback_crcErr = params->callback_crcErr;
+    f->context_crcErr  = params->context_crcErr;
+
     pid_state = NEXUS_SwFilter_Msg_P_FindPid(handle, params->pid);
     if(NULL == pid_state){
         pid_state = NEXUS_SwFilter_Msg_P_AllocPid(handle);
@@ -1032,6 +1116,7 @@ struct NEXUS_SwFilter_FilterState * NEXUS_SwFilter_Msg_P_SetDssFilter(NEXUS_SwMs
     BKNI_Memcpy(f->filt.coefficient, params->filt.coefficient, NEXUS_MESSAGE_FILTER_SIZE);
     BKNI_Memcpy(f->filt.mask, params->filt.mask, NEXUS_MESSAGE_FILTER_SIZE);
     BKNI_Memcpy(f->filt.exclusion, params->filt.exclusion, NEXUS_MESSAGE_FILTER_SIZE);
+    f->filterSize = NEXUS_SwFilter_P_CalcFilterSize(f);
 
     f->buffer = params->buffer;
     f->buffer_size = params->buffer_size;
@@ -1171,7 +1256,7 @@ void NEXUS_SwFilter_Msg_P_ProcessDssPacket(ts_packet_t * packet, struct ts_pid *
 
     current_pos = (uint8_t *)packet->p_data_byte;
     pid_state->matched_filter = NULL;   /* reset every packet, if have matched filter, let it be reset */
-    NEXUS_SwFilter_Msg_P_MatchFilters(current_pos, pid_state);
+    NEXUS_SwFilter_Msg_P_MatchFilters(current_pos, pid_state, NEXUS_MESSAGE_FILTER_SIZE);
 
 #if 0 /* Reduce callbacks */
     if(NULL != pid_state->matched_filter){

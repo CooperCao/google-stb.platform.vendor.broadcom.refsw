@@ -46,7 +46,6 @@
 #include "nexus_mosaic_video_decoder.h"
 #include "nexus_mosaic_display.h"
 #include "nexus_video_input.h"
-#include "nexus_video_decoder_private.h"
 
 BDBG_MODULE(nxserverlib_video);
 
@@ -321,29 +320,6 @@ static void video_decoder_p_find_decoder(struct b_connect *connect, unsigned ass
     }
 }
 
-#if NEXUS_HAS_HDMI_OUTPUT
-static void video_decoder_stream_changed(void * context, int param)
-{
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    struct video_decoder_resource *r = context;
-    NEXUS_VideoDecoderStreamInformation streamInfo;
-
-    BSTD_UNUSED(param);
-
-    rc = NEXUS_VideoDecoder_GetStreamInformation(r->handle[0], &streamInfo);
-    if (!rc)
-    {
-        struct b_session *session = r->session;
-        BKNI_AcquireMutex(session->server->settings.lock);
-        session->hdmi.drm.input.eotf = streamInfo.eotf;
-        session->hdmi.drm.eotfValid = true;
-        nxserverlib_p_apply_hdmi_drm(session, NULL, false);
-        BKNI_ReleaseMutex(session->server->settings.lock);
-    }
-
-}
-#endif
-
 /* Because of RTS dependencies, we don't keep a cached decoder open beyond the next video_decoder_create.
 After that create, any cached decoder should be closed.
 For instance, if a 4K decoder is cached, it may prevent another 1080p decoder from running. */
@@ -606,19 +582,6 @@ static struct video_decoder_resource *video_decoder_create(struct b_connect *con
         }
         /* maxWidth, maxHeight and supportedCodecs may be used in decoder selection,
         but they are also set by simple_decoder once selection is made. Cannot call NEXUS_VideoDecoder_SetSettings here. */
-
-#if NEXUS_HAS_HDMI_OUTPUT
-        /* TODO: This is for dynamic range -- not sure how that applies to mosaic. */
-        if (session->hdmiOutput)
-        {
-            NEXUS_VideoDecoderPrivateSettings privateSettings;
-            NEXUS_VideoDecoder_GetPrivateSettings(r->handle[0], &privateSettings);
-            privateSettings.streamChanged.callback = video_decoder_stream_changed;
-            privateSettings.streamChanged.context = r;
-            rc = NEXUS_VideoDecoder_SetPrivateSettings(r->handle[0], &privateSettings);
-            if (rc) { rc = BERR_TRACE(rc); goto error; }
-        }
-#endif
 
         BDBG_MSG(("  videoDecoder[%d]: %p, max %dx%d",
                   index, (void*)r->handle[0],
@@ -1200,6 +1163,9 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
     rc = video_acquire_stc_index(connect, &stcIndex);
     if (rc) { rc = BERR_TRACE(rc); goto err_stcindex; }
 
+    rc = nxserverlib_dynrng_p_video_decoder_acquired(&session->hdmi.dynrng, r->handle[0], connect->settings.simpleVideoDecoder[0].windowCapabilities.type);
+    if (rc) { rc = BERR_TRACE(rc); goto err_stcindex; }
+
     req->handles.simpleVideoDecoder[0].r = r;
 
     decoder_index = 0;
@@ -1241,7 +1207,11 @@ int acquire_video_decoders(struct b_connect *connect, bool grab)
         if (has_window(connect)) {
             unsigned j;
             for (j=0;j<NXCLIENT_MAX_DISPLAYS;j++) {
-                if (j>0 && (nxserverlib_p_native_3d_active(session) || nxserverlib_p_dolby_vision_active(session))) {
+                if (j>0 && (nxserverlib_p_native_3d_active(session)
+#if NEXUS_HAS_HDMI_OUTPUT
+                    || nxserverlib_dynrng_p_is_dolby_vision_active(session)
+#endif
+                )) {
                     continue;
                 }
                 settings.window[j] = session->display[j].window[connect->windowIndex][window_index];

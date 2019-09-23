@@ -120,6 +120,13 @@
 #include "bchp_int_id_hdmi_tx_scdc_intr2_0.h"
 #endif
 
+#if BHDM_OVERRIDE_DBG_MSG_LEVEL
+#undef BDBG_MSG
+#define BDBG_MSG(format) BDBG_P_PRINTMSG(BDBG_eMsg, format)
+#undef BDBG_WRN
+#define BDBG_WRN(format) BDBG_P_PRINTMSG(BDBG_eWrn, format)
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -382,6 +389,7 @@ BERR_Code BHDM_P_CreateTimer(const BHDM_Handle hHDM, BTMR_TimerHandle * timerHan
 BERR_Code BHDM_P_DestroyTimer(const BHDM_Handle hHDM, BTMR_TimerHandle *timerHandle, uint8_t timerId) ;
 void BHDM_MONITOR_P_CreateTimers(BHDM_Handle hHDMI) ;
 void BHDM_MONITOR_P_DestroyTimers(BHDM_Handle hHDMI) ;
+void BHDM_P_StopTimers_isr(const BHDM_Handle hHDMI) ;
 
 #endif
 
@@ -759,7 +767,7 @@ void BHDM_P_RxDeviceAttached_isr(
 
 
 
-void BHDM_P_EnableInterrupts(const BHDM_Handle hHDMI) ;
+void BHDM_P_EnableInterrupts_isr(const BHDM_Handle hHDMI) ;
 void BHDM_P_DisableInterrupts(const BHDM_Handle hHDMI) ;
 void BHDM_P_DisableDisplay_isr(const BHDM_Handle hHDMI  /* [in] HDMI handle */) ;
 

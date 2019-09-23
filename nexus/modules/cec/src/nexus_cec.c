@@ -1,39 +1,43 @@
 /***************************************************************************
-* Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2018 Broadcom.
+* The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+* and may only be used, duplicated, modified or distributed pursuant to
+* the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied),
+* right to use, or waiver of any kind with respect to the Software, and
+* Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+* THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+* IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 *
 * Except as expressly set forth in the Authorized License,
 *
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
+* 1.     This program, including its structure, sequence and organization,
+* constitutes the valuable trade secrets of Broadcom, and you shall use all
+* reasonable efforts to protect the confidentiality thereof, and to use this
+* information only in connection with your use of Broadcom integrated circuit
+* products.
 *
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+* "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+* OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+* RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+* IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+* A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+* ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+* THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+* OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+* INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+* RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+* HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+* EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+* WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+* FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 *
 * Module Description:
 *
@@ -50,7 +54,13 @@ BDBG_MODULE(nexus_cec);
 
 static NEXUS_Cec g_cec;
 static void NEXUS_Cec_P_AllocateLogicalAddress(NEXUS_CecHandle handle);
+static void NEXUS_Cec_P_UpdatePhysicalAddress(void *pContext);
 
+static struct {
+    NEXUS_HdmiOutputHandle hdmiOutput; /* never dereferenced or used, only compared */
+    bool connected; /* Tx phy is connected */
+    NEXUS_HdmiOutputEdidRxHdmiVsdb vsdb;
+} g_NEXUS_cecCache;
 
 void NEXUS_CecModule_Print(void)
 {
@@ -77,26 +87,31 @@ void NEXUS_Cec_P_Shutdown(void)
 
 void NEXUS_Cec_P_TransmittedCallback(void *pContext)
 {
-	NEXUS_CecHandle handle = (NEXUS_CecHandle)pContext;
-	BCEC_MessageStatus stMessageStatus;
+    NEXUS_CecHandle handle = (NEXUS_CecHandle)pContext;
+    BCEC_MessageStatus stMessageStatus;
 
-	BDBG_OBJECT_ASSERT(handle, NEXUS_Cec);
+    BDBG_OBJECT_ASSERT(handle, NEXUS_Cec);
 
-	BCEC_GetTransmitMessageStatus(handle->cecHandle, &stMessageStatus);
+    BCEC_GetTransmitMessageStatus(handle->cecHandle, &stMessageStatus);
     if ((!handle->cecSettings.disableLogicalAddressPolling)
     &&  (handle->searchState < NEXUS_CecLogicalAddrSearch_eReady))
-	{
-		if (!stMessageStatus.uiStatus)
-			handle->searchState = NEXUS_CecLogicalAddrSearch_eReady;
-		else
-			handle->searchState = NEXUS_CecLogicalAddrSearch_eNext;
-		NEXUS_Cec_P_AllocateLogicalAddress(handle);
-	}
-	else
-	{
-		handle->status.messageTransmitPending = false;
-		NEXUS_TaskCallback_Fire(handle->messageTransmittedCallback);
-	}
+    {
+        if (!stMessageStatus.uiStatus)  /* NACK */
+            handle->searchState = NEXUS_CecLogicalAddrSearch_eReportAddrFound;
+        else                            /*  ACK */
+        {
+            if (handle->searchState == NEXUS_CecLogicalAddrSearch_eReportAddrFound)
+                handle->searchState = NEXUS_CecLogicalAddrSearch_eReady ;
+            else
+                handle->searchState = NEXUS_CecLogicalAddrSearch_eNext;
+        }
+        NEXUS_Cec_P_AllocateLogicalAddress(handle);
+    }
+    else
+    {
+        NEXUS_TaskCallback_Fire(handle->messageTransmittedCallback);
+    }
+    handle->status.messageTransmitPending = false;
 }
 
 
@@ -182,6 +197,17 @@ NEXUS_CecHandle NEXUS_Cec_Open( /* attr{destructor=NEXUS_Cec_Close} */
 	if (!pCec->cecReceivedEventCallback)
 		goto err_cec;
 
+    errCode = BKNI_CreateEvent(&pCec->cecHotplugEvent);
+    if (errCode != BERR_SUCCESS) {
+        BERR_TRACE(errCode);
+        goto err_cec;
+    }
+    pCec->cecHotplugEventCallback = NEXUS_RegisterEvent(pCec->cecHotplugEvent,
+            NEXUS_Cec_P_UpdatePhysicalAddress, pCec);
+    if (!pCec->cecHotplugEventCallback) {
+        BERR_TRACE(NEXUS_UNKNOWN);
+        goto err_cec;
+    }
 
 	/* Set appropriate CEC settings */
 	errCode = NEXUS_Cec_SetSettings(pCec, pSettings);
@@ -209,6 +235,14 @@ static void NEXUS_Cec_P_Finalizer(	NEXUS_CecHandle handle)
 	NEXUS_Error rc = NEXUS_SUCCESS;
 	NEXUS_OBJECT_ASSERT(NEXUS_Cec, handle);
 
+    if (handle->cecHotplugEventCallback) {
+        NEXUS_UnregisterEvent(handle->cecHotplugEventCallback);
+    }
+    if (handle->cecHotplugEvent) {
+        BKNI_EventHandle event = handle->cecHotplugEvent;
+        handle->cecHotplugEvent = NULL;
+        BKNI_DestroyEvent(event);
+    }
 	if ( handle->cecTransmittedEventCallback ) {
 		NEXUS_UnregisterEvent(handle->cecTransmittedEventCallback);
 	}
@@ -283,8 +317,25 @@ NEXUS_Error NEXUS_Cec_SetSettings(
 
 	BDBG_OBJECT_ASSERT(handle, NEXUS_Cec);
 
-	/* save physical address & device type */
-	BKNI_Memcpy(handle->status.physicalAddress, pSettings->physicalAddress, sizeof(pSettings->physicalAddress));
+    if ((pSettings->physicalAddress[0] != 0xFF)
+    ||  (pSettings->physicalAddress[1] != 0xFF))
+    {
+        BDBG_WRN(("NEXUS_CecSettings.physicalAddress is now ignored. Using internally obtained value.")) ;
+    }
+
+    BKNI_EnterCriticalSection();
+        /* use our global storage. don't call into HdmiOutput because it might be in standby. */
+        if (!g_NEXUS_cecCache.connected)
+        {
+            BDBG_LOG(("No Rx device attached - physicalAddress not updated"));
+            handle->status.physicalAddress[0] = 0xFF;
+            handle->status.physicalAddress[1] = 0xFF;
+        }
+        else {
+            handle->status.physicalAddress[0]= (g_NEXUS_cecCache.vsdb.physicalAddressA << 4) | g_NEXUS_cecCache.vsdb.physicalAddressB;
+            handle->status.physicalAddress[1]= (g_NEXUS_cecCache.vsdb.physicalAddressC << 4) | g_NEXUS_cecCache.vsdb.physicalAddressD;
+        }
+    BKNI_LeaveCriticalSection();
 	handle->status.deviceType = pSettings->deviceType;
 
     /* Disable polling for logical address NEXUS. Save provided logical address */
@@ -318,7 +369,9 @@ NEXUS_Error NEXUS_Cec_SetSettings(
 	NEXUS_TaskCallback_Set(handle->messageReceivedCallback, &pSettings->messageReceivedCallback);
 	NEXUS_TaskCallback_Set(handle->logicalAddressAcquiredCallback, &pSettings->logicalAddressAcquiredCallback);
 
-	handle->cecSettings = *pSettings;
+    if (pSettings != &handle->cecSettings) {
+        handle->cecSettings = *pSettings;
+    }
 	return rc;
 }
 
@@ -452,139 +505,77 @@ done:
 }
 
 
-static void NEXUS_Cec_P_UpdatePhysicalAddress(void *pContext)
+static NEXUS_Error NEXUS_Cec_P_Send_ReportPhysicalAddress(NEXUS_CecHandle handle)
 {
-    NEXUS_CecHandle handle = pContext;
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    NEXUS_HdmiOutputStatus hdmiOutputStatus;
-    NEXUS_CecSettings cecSettings;
 
-    rc = NEXUS_HdmiOutput_GetStatus(handle->hdmiOutput, &hdmiOutputStatus);
-    if (rc) {
-        BDBG_ERR(("Error getting Hdmi_Output status to update CEC physical address"));
-        rc = BERR_TRACE(rc) ;
-        goto done;
-    }
+	BERR_Code rc ;
+	NEXUS_CecMessage stMessage ;
 
-    NEXUS_Cec_GetSettings(handle, &cecSettings);
-    if (!hdmiOutputStatus.connected)
-    {
-        BDBG_LOG(("No Rx device attached - physicalAddress not updated"));
-        cecSettings.physicalAddress[0] = 0xFF;
-        cecSettings.physicalAddress[1] = 0xFF;
-    }
-    else {
-        cecSettings.physicalAddress[0]= (hdmiOutputStatus.physicalAddressA << 4) | hdmiOutputStatus.physicalAddressB;
-        cecSettings.physicalAddress[1]= (hdmiOutputStatus.physicalAddressC << 4) | hdmiOutputStatus.physicalAddressD;
-    }
-    rc = NEXUS_Cec_SetSettings(handle, &cecSettings);
-    if (rc) { BERR_TRACE(rc);}
+	/**********************************
+		CEC Message Buffer consists of:
+			hexOpCode
+			device physical address
+			device type
+	***********************************/
 
-done:
-    return;
+	/* CEC message opcode = 0x84 */
+	stMessage.buffer[0] = BCEC_OpCode_ReportPhysicalAddress;
+
+	/* [Device Physical Address] */
+	stMessage.buffer[1] = handle->status.physicalAddress[0] ;
+	stMessage.buffer[2] = handle->status.physicalAddress[1] ;
+
+	/* Device Type */
+	stMessage.buffer[3] = handle->cecSettings.deviceType ;
+
+	/* Broadcast CEC message */
+	stMessage.initiatorAddr = handle->cecSettings.logicalAddress ;
+	stMessage.destinationAddr = BCEC_BROADCAST_ADDR ;
+	stMessage.length = 4 ;
+
+	rc = NEXUS_Cec_TransmitMessage(handle, &stMessage) ;
+	return rc ;
 }
 
+
+static void NEXUS_Cec_P_UpdatePhysicalAddress(void *pContext)
+{
+    NEXUS_CecHandle hCEC = pContext;
+    if (hCEC->opened) {
+        NEXUS_Error rc = NEXUS_Cec_SetSettings(hCEC, &hCEC->cecSettings);
+        if (rc) { BERR_TRACE(rc);}
+    }
+}
+
+void NEXUS_Cec_P_StorePhysicalAddress_isr(NEXUS_HdmiOutputHandle hdmiOutput, const NEXUS_HdmiOutputEdidRxHdmiVsdb *vsdb)
+{
+    /* Store CEC phy address if HDMI had been opened */
+    if (g_NEXUS_cecCache.hdmiOutput && g_NEXUS_cecCache.hdmiOutput != hdmiOutput)
+		return;
+
+    if (vsdb) {
+        g_NEXUS_cecCache.connected = true;
+        g_NEXUS_cecCache.vsdb = *vsdb;
+    }
+    else {
+        g_NEXUS_cecCache.connected = false;
+    }
+    if (g_cec.opened && g_cec.cecHotplugEvent) {
+        BKNI_SetEvent(g_cec.cecHotplugEvent);
+    }
+}
 
 NEXUS_Error NEXUS_Cec_SetHdmiOutput(
     NEXUS_CecHandle handle,
     NEXUS_HdmiOutputHandle hdmiOutput /* attr{null_allowed=y} Pass NULL to remove/disconnected the link */
 )
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
-
     BDBG_OBJECT_ASSERT(handle, NEXUS_Cec);
-
-    if (hdmiOutput)
-    {
-        if (handle->hdmiOutput)
-        {
-            if (handle->hdmiOutput == hdmiOutput) {
-                rc = NEXUS_SUCCESS;
-                goto done;
-            }
-            else {
-                NEXUS_Module_Lock(g_NEXUS_cecModuleSettings.hdmiOutput);
-                NEXUS_HdmiOutput_SetCecHotplugHandler_priv(handle->hdmiOutput, NULL);
-                NEXUS_Module_Unlock(g_NEXUS_cecModuleSettings.hdmiOutput);
-                NEXUS_OBJECT_RELEASE(handle, NEXUS_HdmiOutput, handle->hdmiOutput);
-            }
-        }
-
-        NEXUS_OBJECT_ACQUIRE(handle, NEXUS_HdmiOutput, hdmiOutput);
-        handle->hdmiOutput = hdmiOutput;
-
-        /* first, update CEC physical address */
-        NEXUS_Cec_P_UpdatePhysicalAddress(handle);
-
-        if (!handle->cecHotplugEvent)
-        {
-            rc = BKNI_CreateEvent(&handle->cecHotplugEvent);
-            if (rc != BERR_SUCCESS) {
-                BDBG_ERR(( "Error creating cecHotplug Event" ));
-                rc = BERR_TRACE(rc);
-                NEXUS_OBJECT_RELEASE(handle, NEXUS_HdmiOutput, handle->hdmiOutput);
-                handle->hdmiOutput = NULL;
-                goto done;
-            }
-        }
-
-        /* register event */
-        if (handle->cecHotplugEventCallback) {
-            NEXUS_UnregisterEvent(handle->cecHotplugEventCallback);
-            handle->cecHotplugEventCallback = NULL;
-        }
-
-        /* register event */
-        handle->cecHotplugEventCallback = NEXUS_RegisterEvent(handle->cecHotplugEvent,
-                NEXUS_Cec_P_UpdatePhysicalAddress, handle);
-
-        if (handle->cecHotplugEventCallback == NULL)
-        {
-            BDBG_ERR(( "NEXUS_RegisterEvent(cecHotplugEvent) failed!" ));
-            rc = BERR_TRACE(NEXUS_OS_ERROR);
-
-            if (handle->cecHotplugEvent) {
-                BKNI_DestroyEvent(handle->cecHotplugEvent);
-                handle->cecHotplugEvent = NULL;
-            }
-            NEXUS_OBJECT_RELEASE(handle, NEXUS_HdmiOutput, handle->hdmiOutput);
-            handle->hdmiOutput = NULL;
-            goto done;
-        }
-
-        NEXUS_Module_Lock(g_NEXUS_cecModuleSettings.hdmiOutput);
-        NEXUS_HdmiOutput_SetCecHotplugHandler_priv(hdmiOutput, handle->cecHotplugEvent);
-        NEXUS_Module_Unlock(g_NEXUS_cecModuleSettings.hdmiOutput);
-    }
-    else {
-        if (!handle->hdmiOutput) {
-            rc = NEXUS_SUCCESS;
-            goto done;
-        }
-
-        NEXUS_Module_Lock(g_NEXUS_cecModuleSettings.hdmiOutput);
-        NEXUS_HdmiOutput_SetCecHotplugHandler_priv(handle->hdmiOutput, NULL);
-        NEXUS_Module_Unlock(g_NEXUS_cecModuleSettings.hdmiOutput);
-
-        if (handle->cecHotplugEventCallback) {
-            NEXUS_UnregisterEvent(handle->cecHotplugEventCallback);
-            handle->cecHotplugEventCallback = NULL;
-        }
-
-        if (handle->cecHotplugEvent) {
-            BKNI_DestroyEvent(handle->cecHotplugEvent);
-            handle->cecHotplugEvent = NULL;
-        }
-
-        NEXUS_OBJECT_RELEASE(handle, NEXUS_HdmiOutput, handle->hdmiOutput);
-        handle->hdmiOutput = NULL;
-    }
-
-done:
-    return rc;
-
+    /* don't need to ACQUIRE/RELEASE hdmiOutput because we will only compare the
+    handle value after returning from this function */
+    g_NEXUS_cecCache.hdmiOutput = hdmiOutput;
+    return NEXUS_SUCCESS;
 }
-
 
 static const uint8_t g_logicalAddrArray[] =
 {
@@ -656,22 +647,21 @@ static void NEXUS_Cec_P_AllocateLogicalAddress(NEXUS_CecHandle handle)
 			BCEC_EnableReceive(handle->cecHandle);
 
 			NEXUS_TaskCallback_Fire(handle->logicalAddressAcquiredCallback);
-
-			break;
 		}
 		else {
 			addr = g_logicalAddrArray[handle->logAddrSearchIndex];
 			BDBG_MSG(("Continuing search for CEC Logical Addr: %d...", addr)) ;
 			rc = BCEC_PingLogicalAddr(handle->cecHandle, addr);
 			if (rc) rc = BERR_TRACE(rc);
-			break;
 		}
+		break;
 
 
-	case NEXUS_CecLogicalAddrSearch_eReady:
+	case NEXUS_CecLogicalAddrSearch_eReportAddrFound :
+
 		handle->status.logicalAddress = g_logicalAddrArray[handle->logAddrSearchIndex];
 
-		BDBG_MSG(("Found CEC Logical Addr: %d", handle->status.logicalAddress)) ;
+		BDBG_MSG(("Report CEC Logical Addr: %d", handle->status.logicalAddress)) ;
 
 		/* Get cec Settings. Ignore uninitialized error due to uninitialize Logical Address */
 		BCEC_GetSettings(handle->cecHandle, &stCecSettings);
@@ -692,15 +682,18 @@ static void NEXUS_Cec_P_AllocateLogicalAddress(NEXUS_CecHandle handle)
 		else
 		{
 			/* Report Physical Address */
-			rc = BCEC_ReportPhysicalAddress(handle->cecHandle);
+			rc = NEXUS_Cec_P_Send_ReportPhysicalAddress(handle) ;
 			if (rc) rc = BERR_TRACE(rc);
 
 			/* always enable receive after CEC msg is processed */
 			BCEC_EnableReceive(handle->cecHandle);
-
-			NEXUS_TaskCallback_Fire(handle->logicalAddressAcquiredCallback);
 		}
+
 		break;
+
+	case NEXUS_CecLogicalAddrSearch_eReady:
+		NEXUS_TaskCallback_Fire(handle->logicalAddressAcquiredCallback);
+		break ;
 	}
 }
 

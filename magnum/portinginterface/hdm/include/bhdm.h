@@ -1931,7 +1931,28 @@ BERR_Code BHDM_GetDRMInfoFramePacket(
 	BAVC_HDMI_DRMInfoFrame *pstDrmInfoFrame
 ) ;
 
+typedef enum {
+    BHDM_HdrRamMode_eDisable = 0,
+    BHDM_HdrRamMode_eBitInjection1,
+    BHDM_HdrRamMode_eBitInjection2,
+    BHDM_HdrRamMode_eMetadataPacket
+} BHDM_HdrRamMode;
 
+/******************************************************************************
+Summary:
+	Set HDR RAM mode
+
+Input:
+	BHDM_HdrRamMode
+
+Returns:
+	BERR_SUCCESS - HDR RAM mode successfully set
+	BERR_NOT_SUPPORTED - HDR RAM mode not supported
+*******************************************************************************/
+BERR_Code BHDM_SetHdrRamMode(
+    BHDM_Handle hHDMI,          /* [in] HDMI handle */
+    BHDM_HdrRamMode mode
+);
 
 /******************************************************************************
 Summary:

@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #ifndef NEXUS_HDMI_OUTPUT_PRIV_H__
 #define NEXUS_HDMI_OUTPUT_PRIV_H__
@@ -52,21 +55,8 @@ extern "C" {
 #endif
 
 
-typedef struct NEXUS_HdmiOutputVideoSettings
-{
-    NEXUS_VideoFormat videoFormat;
-    NEXUS_ColorSpace colorSpace;
-    unsigned colorDepth;
-} NEXUS_HdmiOutputVideoSettings;
-
-NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings_priv(
-    NEXUS_HdmiOutputHandle hdmiOutput,
-    const NEXUS_HdmiOutputVideoSettings *requested,
-    NEXUS_HdmiOutputVideoSettings *preferred /* [out] */
-) ;
-
 void NEXUS_HdmiOutput_SelectVideoSettingsPriorityTable_priv(
-	void
+    void
 )  ;
 
 /* VDC -> HDM callback info for rate changes */
@@ -83,33 +73,24 @@ void NEXUS_HdmiOutput_AudioSampleRateChange_isr(
 
 typedef struct NEXUS_HdmiOutputDisplaySettings
 {
-    bool overrideMatrixCoefficients ;
-    NEXUS_MatrixCoefficients eColorimetry ;
+    NEXUS_VideoFormat format ;
+    NEXUS_VideoDynamicRangeMode dynamicRangeMode;
+    NEXUS_MatrixCoefficients colorimetry ;
     NEXUS_ColorSpace colorSpace ;
-    bool overrideColorRange ;
     NEXUS_ColorRange colorRange ;
     unsigned colorDepth ;
 } NEXUS_HdmiOutputDisplaySettings ;
 
 
-typedef struct NEXUS_HdmiOutputColorimetryParameters
-{
-    NEXUS_VideoFormat format ;
-    bool xvYccEnabled ;
-} NEXUS_HdmiOutputColorimetryParameters ;
-
-
-/* Returns false if the format is not supported, true if it is */
-bool NEXUS_HdmiOutput_GetColorimetry_priv(
-    NEXUS_HdmiOutputHandle hdmiOutput,
-    const NEXUS_HdmiOutputColorimetryParameters *parameters,
-    BAVC_MatrixCoefficients *pColorimetry
-    );
-
-bool NEXUS_HdmiOutput_GetEotf_priv(
-    NEXUS_HdmiOutputHandle hdmiOutput,
-    NEXUS_VideoEotf *pEotf
-	);
+NEXUS_Error NEXUS_HdmiOutput_ResolveDisplaySettings_priv
+(
+    NEXUS_HdmiOutputHandle hdmiOutput, /* in */
+    const NEXUS_HdmiOutputSettings * pSettings, /* in */
+    bool xvYccEnabled, /* in */
+    bool hdmiMasterMode, /* in */
+    bool requiredOutputSystem, /* in */
+    NEXUS_HdmiOutputDisplaySettings * pDisplaySettings /* in/out */
+);
 
 void NEXUS_HdmiOutput_GetDisplaySettings_priv(
     NEXUS_HdmiOutputHandle handle,
@@ -118,7 +99,7 @@ void NEXUS_HdmiOutput_GetDisplaySettings_priv(
 
 NEXUS_Error NEXUS_HdmiOutput_SetDisplaySettings_priv(
     NEXUS_HdmiOutputHandle handle,
-    NEXUS_HdmiOutputDisplaySettings *stDisplaySettings
+    const NEXUS_HdmiOutputDisplaySettings *stDisplaySettings
     );
 
 /* Connect video and set format parameters */
@@ -127,8 +108,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplayParams_priv(
     BFMT_VideoFmt format,
     BAVC_MatrixCoefficients colorimetry,
     BFMT_AspectRatio aspectRatio,
-    bool masterMode,
-    const NEXUS_CallbackDesc *notifyDisplay
+    bool masterMode
     );
 
 typedef struct NEXUS_HdmiOutputAudioStatus
@@ -143,7 +123,8 @@ void NEXUS_HdmiOutput_GetAudioStatus_priv(
     );
 
 NEXUS_Error NEXUS_HdmiOutput_Connect_priv(
-    NEXUS_HdmiOutputHandle handle
+    NEXUS_HdmiOutputHandle handle,
+    BKNI_EventHandle notifyDisplayEvent
     );
 
 /* Disconnect video */
@@ -170,14 +151,13 @@ void NEXUS_HdmiOutput_SetNotifyAudioEvent_priv(
     );
 
     /* called before Display NEXUS_VideoFormat change */
-NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(
+void NEXUS_HdmiOutput_PreFormatChange_priv(
     NEXUS_HdmiOutputHandle hdmiOutput,
-    BFMT_VideoFmt format,
-    bool aspectRatioChangeOnly
+    bool contentChangeOnly
     );
 
 /* called after Display NEXUS_VideoFormat change */
-NEXUS_Error NEXUS_HdmiOutput_P_PostFormatChange_priv(
+void NEXUS_HdmiOutput_PostFormatChange_priv(
     NEXUS_HdmiOutputHandle hdmiOutput
     );
 
@@ -191,16 +171,6 @@ NEXUS_Error NEXUS_HdmiOutput_P_PostFormatChange_priv(
 void NEXUS_HdmiOutput_P_Vsync_isr(
     void *handle /* NEXUS_HdmiOutputHandle */
     );
-
-
-void NEXUS_HdmiOutput_ReadFormatChangeStatus_priv(
-    NEXUS_HdmiOutputHandle handle,
-    bool *pFormatChangeUpdate
-    );
-
-void NEXUS_HdmiOutput_RestorePrevSettings_priv(
-	NEXUS_HdmiOutputHandle hdmiOutput
-	) ;
 
 
 #if NEXUS_HAS_SECURITY
@@ -218,26 +188,14 @@ void NEXUS_HdmiOutput_PrintDrmInfoFramePacket(void);
 void NEXUS_HdmiOutput_PrintAcrPacket(void) ;
 
 /* call by NEXUS_Cec */
-void NEXUS_HdmiOutput_SetCecHotplugHandler_priv(NEXUS_HdmiOutputHandle hdmiOutput, BKNI_EventHandle cecHotplugEvent);
+typedef void (*NEXUS_HdmiOutputCecCallback)(NEXUS_HdmiOutputHandle hdmiOutput,  const NEXUS_HdmiOutputEdidRxHdmiVsdb *vsdb);
+void NEXUS_HdmiOutputModule_SetCecCallback_priv(NEXUS_HdmiOutputCecCallback cec_callback_isr);
 
 NEXUS_Error NEXUS_HdmiOutputModule_GetStatus_priv(NEXUS_HdmiOutputModuleStatus *pStatus);
 
 /* dynrng stuff */
 
-typedef struct NEXUS_HdmiOutputDynamicRangeSettings
-{
-    NEXUS_VideoFormat format;
-    NEXUS_VideoDynamicRangeMode dynamicRangeMode;
-} NEXUS_HdmiOutputDynamicRangeSettings;
-
-NEXUS_Error NEXUS_HdmiOutput_CheckDynrngSettings_priv(
-    NEXUS_HdmiOutputHandle hdmiOutput,
-    const NEXUS_HdmiOutputDynamicRangeSettings * pSettings
-);
-
-NEXUS_Error NEXUS_HdmiOutput_SetDynamicRangeMode_priv(NEXUS_HdmiOutputHandle hdmiOutput, NEXUS_VideoDynamicRangeMode dynamicRangeMode);
-
-NEXUS_Error NEXUS_HdmiOutput_SetInputDrmInfoFrame_priv(
+void NEXUS_HdmiOutput_SetInputDrmInfoFrame_priv(
     NEXUS_HdmiOutputHandle output, const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame);
 
 /* API review says keep this private to HDMI, as public version is going in an extension */
@@ -258,25 +216,11 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplayDynamicRangeProcessingCapabilities_priv(
     NEXUS_HdmiOutputHandle output,
     const NEXUS_HdmiOutputDisplayDynamicRangeProcessingCapabilities * pCaps);
 
-#if NEXUS_HAS_SECURITY
-BHDCPlib_State NEXUS_HdmiOutput_P_GetCurrentHdcplibState(
-	NEXUS_HdmiOutputHandle hdmiOutput);
-#endif
+void NEXUS_HdmiOutput_GetDynrngEdidBytes_priv(NEXUS_HdmiOutputHandle hdmiOutput, uint8_t * bytes);
 
-void NEXUS_HdmiOutput_GetDefaultOpenSettings_isrsafe( NEXUS_HdmiOutputOpenSettings *pSettings );
+NEXUS_VideoDynamicRangeMode NEXUS_HdmiOutput_GetDynamicRangeModeStatus_priv(NEXUS_HdmiOutputHandle hdmiOutput);
 
-void NEXUS_HdmiOutput_PrintRxEdid(void);
-void NEXUS_HdmiOutput_PrintAudioInfoFramePacket(void);
-void NEXUS_HdmiOutput_PrintAviInfoFramePacket(void);
-void NEXUS_HdmiOutput_PrintVendorSpecificInfoFramePacket(void);
-void NEXUS_HdmiOutput_PrintDrmInfoFramePacket(void);
-void NEXUS_HdmiOutput_PrintAcrPacket(void) ;
-
-/* call by NEXUS_Cec */
-void NEXUS_HdmiOutput_SetCecHotplugHandler_priv(NEXUS_HdmiOutputHandle hdmiOutput, BKNI_EventHandle cecHotplugEvent);
-
-NEXUS_Error NEXUS_HdmiOutputModule_GetStatus_priv(NEXUS_HdmiOutputModuleStatus *pStatus);
-
+/* hdmi object */
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_HdmiOutput);
 
 #ifdef __cplusplus
@@ -284,4 +228,3 @@ NEXUS_OBJECT_CLASS_DECLARE(NEXUS_HdmiOutput);
 #endif
 
 #endif /* NEXUS_HDMI_OUTPUT_PRIV_H__ */
-

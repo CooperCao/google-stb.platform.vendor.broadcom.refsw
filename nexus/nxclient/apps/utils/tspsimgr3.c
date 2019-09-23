@@ -161,9 +161,11 @@ static void message_callback(void *context, int index)
                     startSettings.pidChannel             = handle->pidChannel[msgindex];
                     startSettings.filter.mask[0]         = 0x0;
                     startSettings.filter.mask[2]         = 0x0;
+                    startSettings.filter.mask[3]         = 0x0;
                     startSettings.filter.mask[15]        = 0xFF;
                     startSettings.filter.coefficient[0]  = 0x02;
                     startSettings.filter.coefficient[2]  = (program.program_number & 0xFF00) >> 8;
+                    startSettings.filter.coefficient[3]  = (program.program_number & 0xFF);
                     startSettings.filter.coefficient[15] = 0xFF;
                     rc = NEXUS_Message_Start(handle->msg[msgindex], &startSettings);
                     if (rc) {

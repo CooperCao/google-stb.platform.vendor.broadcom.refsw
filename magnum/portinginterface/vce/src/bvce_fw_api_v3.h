@@ -1,39 +1,43 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2019 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  * ***************************************************************************/
 /*
     Title: ViCE Firmware API definitions (bvce_fw_api_v3.h)
@@ -67,7 +71,7 @@ extern "C"
  * API Version  MM.mm.pp.bb
  */
 
-#define VICE_API_VERSION                  0x09000000
+#define VICE_API_VERSION                  0x09000002
 
 /*
  * Size of the command buffer between host (PI) and FW in bytes
@@ -252,6 +256,9 @@ extern "C"
 #define VICE_ERROR_RESOLUTION_IS_TOO_HIGH_FOR_THIS_LEVEL           (21)
 #define VICE_ERROR_FW_INCREASED_BITRATE_TO_MINIMUM_SUPPORTED       (22)
 #define VICE_ERROR_UNSUPPORTED_FRAME_RATE_FOR_THIS_RESOLUTION_AND_GOP_STRUCTURE       (23)
+#define VICE_ERROR_USER_DATA_SIZE_IS_BIGGER_THAN_MAX               (24)
+#define VICE_ERROR_PROBLEM_WITH_USER_DATA                          (25)
+
 /* Events (MSBs) */
 #define VICE_EVENT_EOS_SENT_BIT                                    (30)
 #define VICE_EVENT_BVN_METADATA_CHANGE_BIT                         (31)
@@ -413,8 +420,9 @@ typedef enum
     VICE_WDOG_TRACE_MB_WAIT_CABAC_STAT_TO_MBARC_DINO            = 0x4B0,
     VICE_WDOG_TRACE_MB_WAIT_CABAC_STAT_TO_MBARC_DINO_AFTER      = 0x4B1,
     VICE_WDOG_TRACE_MB_WAIT_CABAC_READ_PROB_TO_BE_DONE          = 0x4C0,
-    VICE_WDOG_TRACE_MB_WAIT_CABAC_READ_PROB_TO_BE_DONE_AFTER    = 0x4C1
-
+    VICE_WDOG_TRACE_MB_WAIT_CABAC_READ_PROB_TO_BE_DONE_AFTER    = 0x4C1,
+    VICE_WDOG_TRACE_WAIT_FOR_AVAILABLE_CDB_PIC_SIZE_SPACE       = 0x4D0,
+    VICE_WDOG_TRACE_WAIT_FOR_AVAILABLE_CDB_PIC_SIZE_SPACE_AFTER = 0x4D1
 } WdogTraceCode_e;
 
 /* Add more here, note: codes are bit-mapped (max: 32) */
@@ -738,8 +746,14 @@ typedef enum
    SOURCE_ORIENTATION_TYPE_3D_LEFT_RIGHT_ENHANCED
 } OrientationType_e;
 
-#define BVCE_P_FW_PictureBufferMailbox_Metadata_RESERVED_MASK 0xFFFFFFF8
-#define BVCE_P_FW_PictureBufferMailbox_Metadata_RESERVED_SHIFT 3
+#define BVCE_P_FW_PictureBufferMailbox_Metadata_RESERVED_MASK 0xFFFFFF80
+#define BVCE_P_FW_PictureBufferMailbox_Metadata_RESERVED_SHIFT 7
+#define BVCE_P_FW_PictureBufferMailbox_Metadata_NULL_PIC_MASK 0x00000040
+#define BVCE_P_FW_PictureBufferMailbox_Metadata_NULL_PIC_SHIFT 6
+#define BVCE_P_FW_PictureBufferMailbox_Metadata_ORIGINAL_PIC_TYPE_MASK 0x00000030
+#define BVCE_P_FW_PictureBufferMailbox_Metadata_ORIGINAL_PIC_TYPE_SHIFT 4
+#define BVCE_P_FW_PictureBufferMailbox_Metadata_RESTART_GOP_MASK 0x00000008
+#define BVCE_P_FW_PictureBufferMailbox_Metadata_RESTART_GOP_SHIFT 3
 #define BVCE_P_FW_PictureBufferMailbox_Metadata_LAST_MASK 0x00000004
 #define BVCE_P_FW_PictureBufferMailbox_Metadata_LAST_SHIFT 2
 #define BVCE_P_FW_PictureBufferMailbox_Metadata_CHANNEL_CHANGE_MASK 0x00000002
@@ -771,8 +785,10 @@ typedef enum
 #define BVCE_P_FW_PictureBufferMailbox_BarData_BOTTOM_RIGHT_VALUE_MASK 0x00003FFF
 #define BVCE_P_FW_PictureBufferMailbox_BarData_BOTTOM_RIGHT_VALUE_SHIFT 0
 
-#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_RESERVED_MASK 0xFFFF8000
-#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_RESERVED_SHIFT 15
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_RESERVED_MASK 0xFF800000
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_RESERVED_SHIFT 23
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_PIC_INDEX_MASK 0x007F8000
+#define BVCE_P_FW_PictureBufferMailbox_FormatInfo_PIC_INDEX_SHIFT 15
 #define BVCE_P_FW_PictureBufferMailbox_FormatInfo_ORIENTATION_MASK 0x00007000
 #define BVCE_P_FW_PictureBufferMailbox_FormatInfo_ORIENTATION_SHIFT 12
 #define BVCE_P_FW_PictureBufferMailbox_FormatInfo_AFD_MODE_MASK 0x00000F00
@@ -830,7 +846,9 @@ typedef enum
 typedef struct BVCE_P_FW_PictureBufferMailbox
 {
    /* Metadata */
-   uint32_t uiMetadata;          /* [31:03] Unused
+   uint32_t uiMetadata;          /* [31:05] Unused
+                                  * [04:04] Null Pic
+                                  * [03:03] Restart Gop
                                   * [02:02] Last Flag
                                   * [01:01] Channel Change Flag
                                   * [00:00] Busy Flag
@@ -1423,6 +1441,7 @@ typedef struct StatusInfo_t
     uint32_t        NumOfPicsVipDroppedDueToHRDUnderFlow;
     uint32_t        uiEtsDtsOffset;                         /* The ETS to DTS offset for the encode session as determined by RC */
     uint32_t        Throughput;                             /* Average time between picture end messages in 351mhz ticks */
+    uint32_t        NumOfPicsDroppedDueToITFP;
 } StatusInfo_t;
 
 

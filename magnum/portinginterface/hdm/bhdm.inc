@@ -126,6 +126,9 @@ ifeq ($(BHDM_HDMI_20_SUPPORT), y)
 	BHDM_SOURCES += $(MAGNUM)/portinginterface/hdm/src/core28nm/bhdm_auto_i2c_priv.c
 endif
 
+ifeq ($(BHDM_OVERRIDE_DBG_MSG_LEVEL),y)
+BHDM_DEFINES += BHDM_OVERRIDE_DBG_MSG_LEVEL=1
+endif
 
 ##
 ##

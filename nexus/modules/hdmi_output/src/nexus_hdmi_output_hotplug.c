@@ -54,18 +54,10 @@ static void NEXUS_HdmiOutput_P_RxPowerTimerExpired(void *pContext);
 static void NEXUS_HdmiOutput_P_FireHotplugCallbacks(NEXUS_HdmiOutputHandle hdmiOutput)
 {
     /* notify HDR module */
-    NEXUS_HdmiOutput_P_DrmInfoFrameConnectionChanged(hdmiOutput);
-#if NEXUS_DBV_SUPPORT
-    NEXUS_HdmiOutput_P_DbvConnectionChanged(hdmiOutput);
-#endif
+    NEXUS_HdmiOutput_Dynrng_P_ConnectionChanged(hdmiOutput);
 
     /* notify application of hotplug status change */
     NEXUS_TaskCallback_Fire(hdmiOutput->hotplugCallback);
-
-    if (hdmiOutput->cecHotplugEvent)
-    {
-        BKNI_SetEvent(hdmiOutput->cecHotplugEvent);
-    }
 }
 
 static void NEXUS_HdmiOutput_P_SetRxState(NEXUS_HdmiOutputHandle hdmiOutput, NEXUS_HdmiOutputState state)
@@ -154,18 +146,22 @@ void NEXUS_HdmiOutput_P_SetDisconnectedState(NEXUS_HdmiOutputHandle hdmiOutput)
 #if NEXUS_HAS_SECURITY
     {
         BERR_Code errCode;
-        errCode = NEXUS_HdmiOutput_DisableHdcpAuthentication(hdmiOutput);
+        errCode = NEXUS_HdmiOutput_P_DisableHdcpAuthentication(hdmiOutput);
         if (errCode) { errCode = BERR_TRACE(errCode) ; }
     }
 #endif
 
+    hdmiOutput->displaySettings.valid = false;
+
     /* notify Nexus Display of the cable removal to disable the HDMI Output */
-    hdmiOutput->formatChangeUpdate = true ;
-    NEXUS_TaskCallback_Fire(hdmiOutput->notifyDisplay) ;
+    NEXUS_HdmiOutput_P_NotifyDisplay(hdmiOutput);
 
     NEXUS_HdmiOutput_P_SetRxState(hdmiOutput, NEXUS_HdmiOutputState_eDisconnected);
     NEXUS_HdmiOutput_P_HdcpPowerDown(hdmiOutput);
-    NEXUS_HdmiOutput_P_FireHotplugCallbacks(hdmiOutput);
+    /* if HdmiOutput disconnects from Display, don't fire callbacks */
+    if (hdmiOutput->notifyDisplayEvent) {
+        NEXUS_HdmiOutput_P_FireHotplugCallbacks(hdmiOutput);
+    }
 }
 
 /*
@@ -236,8 +232,8 @@ static void NEXUS_HdmiOutput_P_SetConnectedState(NEXUS_HdmiOutputHandle hdmiOutp
             NEXUS_HdmiOutput_P_SetTmdsSignalData(hdmiOutput, true);
             NEXUS_HdmiOutput_P_SetRxState(hdmiOutput, NEXUS_HdmiOutputState_ePoweredOn);
             /* notify Nexus Display of the cable insertion to re-enable HDMI Output */
-            hdmiOutput->formatChangeUpdate = true ;
-            NEXUS_TaskCallback_Fire(hdmiOutput->notifyDisplay);
+            hdmiOutput->displaySettings.valid = false ;
+            NEXUS_HdmiOutput_P_NotifyDisplay(hdmiOutput);
 
             if (hdmiOutput->notifyAudioEvent)
             {
@@ -356,6 +352,8 @@ static BERR_Code NEXUS_HdmiOutput_P_ReadEdid(NEXUS_HdmiOutputHandle hdmiOutput)
         BDBG_ERR(("Error determining Rx Device type")) ;
         goto done ;
     }
+
+    NEXUS_HdmiOutput_TriggerCecCallback_priv(hdmiOutput);
 
 done:
     BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, &hdmiStatus) ;

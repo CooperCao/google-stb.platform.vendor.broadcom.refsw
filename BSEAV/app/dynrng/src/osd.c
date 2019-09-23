@@ -709,6 +709,7 @@ void osd_set_usage_mode(OsdHandle osd, PlatformUsageMode usageMode, unsigned lay
 void osd_label_p_update_dynrng(BWT_LabelHandle label, PlatformDynamicRange dynrng)
 {
     assert(label);
+    if (dynrng == PlatformDynamicRange_eLegacy) dynrng = PlatformDynamicRange_eSdr; /* for display purposes, always use SDR */
     BWT_Label_SetText(label, platform_get_dynamic_range_name(dynrng));
 }
 

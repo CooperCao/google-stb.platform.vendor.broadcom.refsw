@@ -455,7 +455,8 @@ BERR_Code BHDM_EDID_GetNthBlock(
    const BHDM_Handle hHDMI,   /* [in] HDMI handle */
    uint8_t BlockNumber, /* [in] EDID Block Number to read */
    uint8_t *pBuffer,    /* [out] pointer to input buffer */
-   uint16_t uiBufSize    /* [in] Size of input buffer to write EDID to */
+   uint16_t uiBufSize,   /* [in] Size of input buffer to write EDID to */
+   bool *pbChecksumError
 )
 {
 	BERR_Code rc = BERR_SUCCESS ;
@@ -465,6 +466,8 @@ BERR_Code BHDM_EDID_GetNthBlock(
 	uint8_t validChecksum = 0 ;
 
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
+
+	*pbChecksumError = false ;
 
 	/* make sure HDMI Cable is connected to something... */
 	BHDM_CHECK_RC(rc, BHDM_RxDeviceAttached(hHDMI, &RxDeviceAttached));
@@ -583,15 +586,16 @@ BERR_Code BHDM_EDID_GetNthBlock(
 	/* report invalid checksum */
 	if (!validChecksum)
 	{
-		BDBG_WRN(("Checksum Error for EDID Block #%d Ignored", BlockNumber)) ;
-		rc = BERR_TRACE(BHDM_EDID_CHECKSUM_ERROR) ;
+		*pbChecksumError = true ;
 
-		/* only issue appears to be a checksum error, which has a BERR_TRACE */
-		/* return BERR_SUCCESS */
+		/* report checksum error, but do not consider an error */
+		BDBG_WRN(("Checksum Error for EDID Block #%d Ignored", BlockNumber)) ;
+		BERR_TRACE(BHDM_EDID_CHECKSUM_ERROR) ;
 		rc = BERR_SUCCESS ;
 	}
 
 	hHDMI->AttachedEDID.lastBlockRead = BlockNumber;
+	hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eOK;
 
 done:
 
@@ -611,10 +615,13 @@ BERR_Code BHDM_EDID_ReadNthBlock(
 )
 {
 	BERR_Code rc = BERR_SUCCESS ;
+	bool bChecksumError ;
+
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	rc = BHDM_EDID_GetNthBlock(hHDMI, BlockNumber, pBuffer, uiBufSize) ;
+	rc = BHDM_EDID_GetNthBlock(hHDMI, BlockNumber, pBuffer, uiBufSize, &bChecksumError) ;
 	if (rc) {rc = BERR_TRACE(rc) ;}
+
 	return rc ;
 }
 
@@ -1203,8 +1210,9 @@ BERR_Code BHDM_EDID_GetDetailTiming(
 	/* Search EDID Extension blocks for additional timing descriptors */
 	for (i = 1 ; i <= extensions; i++)
 	{
+		bool bChecksumError ;
 		/* read the next 128 Byte EDID block */
-		BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI, i, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE)) ;
+		BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI, i, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError)) ;
 
 		/* check Extension Tag type for Timing Data */
 		offset = 0 ;
@@ -1456,6 +1464,7 @@ done:
 --- BHDM_EDID: 2 VICn: 6; BCM_Fmt: 26; Monitor Native Format: 0
 */
 
+
 #if !B_REFSW_MINIMAL
 /******************************************************************************
 BERR_Code BHDM_EDID_GetDescriptor
@@ -1474,6 +1483,7 @@ BERR_Code BHDM_EDID_GetDescriptor(
 	uint8_t extensions ;
 	uint8_t MaxDescriptors ;
 	uint8_t RxDeviceAttached ;
+	bool bChecksumError ;
 
 	BERR_Code rc = BERR_SUCCESS ;
 
@@ -1550,7 +1560,7 @@ BERR_Code BHDM_EDID_GetDescriptor(
 
 	/* read the 1st EDID Block */
 	BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI,
-		0, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE)) ;
+		0, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError)) ;
 
 	/* Check the four Descriptor Blocks in the initial 128 EDID  bytes */
 	for (i = 0 ; i < 4; i++)   /* 1-4 Detailed Timing Descriptor */
@@ -1587,7 +1597,7 @@ BERR_Code BHDM_EDID_GetDescriptor(
 	{
 		/* read the next 128 Byte EDID block */
 		BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI,
-			i, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE)) ;
+			i, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError)) ;
 
 
 		/* check Extension Tag type for Timing Data */
@@ -1637,7 +1647,6 @@ done:
 	return rc ;
 } /* end BHDM_EDID_GetDescriptor */
 #endif
-
 
 
 static BERR_Code BHDM_EDID_P_ParseMonitorRange(const BHDM_Handle hHDMI, uint8_t offset)
@@ -1993,6 +2002,7 @@ BERR_Code BHDM_EDID_CheckRxHdmiVideoSupport(
 		EdidVideoIDCode ;
 
 	uint8_t RxDeviceAttached ;
+	bool bChecksumError ;
 
 	BDBG_ENTER(BHDM_EDID_CheckRxHdmiVideoSupport) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
@@ -2029,7 +2039,7 @@ BERR_Code BHDM_EDID_CheckRxHdmiVideoSupport(
 		if (hHDMI->DeviceStatus.edidState != BHDM_EDID_STATE_eOK)
 		{
 			BHDM_CHECK_RC(rc,
-				BHDM_EDID_GetNthBlock(hHDMI, i, (uint8_t *) &hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE)) ;
+				BHDM_EDID_GetNthBlock(hHDMI, i, (uint8_t *) &hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError)) ;
 		}
 
 		/* check for Timing Data Extension */
@@ -4090,6 +4100,7 @@ static BERR_Code BHDM_EDID_P_ProcessBlockMap (const BHDM_Handle hHDMI)
 	BERR_Code rc = BERR_SUCCESS;
 	uint8_t block_map[BHDM_EDID_BLOCKSIZE];
 	uint8_t i, index;
+	bool bChecksumError ;
 
 	index = hHDMI->AttachedEDID.lastBlockRead;
 
@@ -4100,7 +4111,7 @@ static BERR_Code BHDM_EDID_P_ProcessBlockMap (const BHDM_Handle hHDMI)
 
 	i = 1;
 	while((i < (BHDM_EDID_BLOCKSIZE-1)) && (block_map[i])){
-		BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI, (i + index), hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE)) ;
+		BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI, (i + index), hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError)) ;
 		BHDM_EDID_P_ProcessExtensionBlock (hHDMI);
 		i++;
 	}
@@ -4138,8 +4149,8 @@ BERR_Code BHDM_EDID_Initialize(
 	uint8_t i; /* indexes */
 
 	uint8_t RxDeviceAttached ;
-	static const uint8_t ucEdidHeader[BHDM_EDID_HEADER_SIZE] =
-		{ 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00} ;
+	bool bChecksumError ;
+	uint8_t uiChecksumErrors = 0 ;
 
 	BHDM_EDID_DetailTiming DetailTiming ;
 	BHDM_EDID_P_VideoDescriptor *pVideoDescriptor ;
@@ -4215,14 +4226,19 @@ BERR_Code BHDM_EDID_Initialize(
 	/* incorrectly implemented Hot Plug signals sometimes cause a problem */
 	hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eNotInitialized;
 
-	rc = BHDM_EDID_GetNthBlock(hHDMI, 0, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE) ;
-	if (rc)  /* error reading/getting EDID block */
-	{
+	rc = BHDM_EDID_GetNthBlock(hHDMI, 0, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError) ;
+
 	/* check/warn if the EDID HEADER is INVALID */
+	/*     i.e. not 00 FF FF FF FF FF FF 00     */
+	/* the Block 0 EDID header has no valid information; it is just a marker */
+	{
+		static const uint8_t ucEdidHeader[BHDM_EDID_HEADER_SIZE] =
+			{ 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00} ;
+
 		if (BKNI_Memcmp(&ucEdidHeader[0], &hHDMI->AttachedEDID.Block[0],
 			BHDM_EDID_HEADER_SIZE))
 		{
-			BDBG_WRN(("Invalid/Missing EDID Header %02X %02X %02X %02X %02X %02X %02X %02X... ignoring",
+			BDBG_WRN(("Invalid EDID Header %02X %02X %02X %02X %02X %02X %02X %02X... ignoring",
 				hHDMI->AttachedEDID.Block[0], hHDMI->AttachedEDID.Block[1],
 				hHDMI->AttachedEDID.Block[2], hHDMI->AttachedEDID.Block[3],
 				hHDMI->AttachedEDID.Block[4], hHDMI->AttachedEDID.Block[5],
@@ -4230,39 +4246,28 @@ BERR_Code BHDM_EDID_Initialize(
 		}
 	}
 
-
 	/* check if the EDID Version, Revision, or number of extensions is valid */
 	hHDMI->AttachedEDID.BasicData.EdidVersion = hHDMI->AttachedEDID.Block[BHDM_EDID_VERSION] ;
 	hHDMI->AttachedEDID.BasicData.EdidRevision = hHDMI->AttachedEDID.Block[BHDM_EDID_REVISION] ;
 	hHDMI->AttachedEDID.BasicData.Extensions = hHDMI->AttachedEDID.Block[BHDM_EDID_EXTENSION] ;
 
-	if ((hHDMI->AttachedEDID.BasicData.EdidVersion == 0xFF)
-	||  (hHDMI->AttachedEDID.BasicData.EdidRevision	== 0xFF)
-	||  (hHDMI->AttachedEDID.BasicData.Extensions == 0xFF)
-	|| ( (hHDMI->AttachedEDID.BasicData.EdidVersion == 0x00) &&
-		(hHDMI->AttachedEDID.BasicData.EdidRevision == 0x00) &&
-		(hHDMI->AttachedEDID.BasicData.Extensions == 0x00) ))
+	if ((hHDMI->AttachedEDID.BasicData.EdidVersion != 0x1)
+	|| (hHDMI->AttachedEDID.BasicData.EdidRevision != 0x3)
+	||  (hHDMI->AttachedEDID.BasicData.Extensions > BHDM_EDID_MAX_EXTENSIONS_SUPPORTED))
 	{
-		/* probably read all 0xFF or 0x00; invalid EDID */
-		BDBG_ERR(("EDID returns possible all 0xFF or 0x00 values. Invalid EDID information"));
+		BDBG_ERR(("EDID Ver: %d.%d and Num Exts: %d is INVALID; EDID is corrupted",
+			hHDMI->AttachedEDID.BasicData.EdidVersion,
+			hHDMI->AttachedEDID.BasicData.EdidRevision,
+			hHDMI->AttachedEDID.BasicData.Extensions)) ;
 		hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eInvalid;
 		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
 		goto done ;
 	}
 
-	if (rc == BHDM_EDID_CHECKSUM_ERROR)
+	if (bChecksumError)
 	{
-		BDBG_WRN(("EDID Ver: %d.%d and Num Exts: %d is probably OK; checksum error will be ignored",
-			hHDMI->AttachedEDID.BasicData.EdidVersion,
-			hHDMI->AttachedEDID.BasicData.EdidRevision,
-			hHDMI->AttachedEDID.BasicData.Extensions)) ;
-
-		for (i=0; i<BHDM_EDID_P_MAX_NUMBER_OF_EDID_BLOCK; i++)
-		{
-			BKNI_EnterCriticalSection();
-			hHDMI->AttachedEDID.bBlockCached[i] = false ;
-			BKNI_LeaveCriticalSection();
-		}
+		uiChecksumErrors++ ;
+		BDBG_WRN(("EDID checksum error will be ignored")) ;
 		rc = BERR_SUCCESS ;
 	}
 
@@ -4442,7 +4447,8 @@ BERR_Code BHDM_EDID_Initialize(
 	}
 
 	/* Read the 2nd block (EDID Block 1) and parse to see if its a block map or an extension block(extensions count should be 1). */
-	BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI, 1, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE)) ;
+	BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI, 1, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError)) ;
+	if (bChecksumError) { uiChecksumErrors++ ; }
 
 	if(hHDMI->AttachedEDID.BasicData.Extensions == 1) {
 		rc = BHDM_EDID_P_ProcessExtensionBlock(hHDMI);
@@ -4453,7 +4459,8 @@ BERR_Code BHDM_EDID_Initialize(
 		/* If the number of extension blocks are more than 127, the standard needs  one more block map to accomodate their extension tags. */
 		if(hHDMI->AttachedEDID.BasicData.Extensions >= BHDM_EDID_BLOCKSIZE){
 			/* Read the 128th EDID Block which should be a block map. */
-			BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI, 128, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE));
+			BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI, 128, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError));
+			if (bChecksumError) { uiChecksumErrors++ ; }
 
 			if(hHDMI->AttachedEDID.Block[0] == BHDM_EDID_EXT_BLOCK_MAP){
 				rc = BHDM_EDID_P_ProcessBlockMap(hHDMI);
@@ -4498,8 +4505,20 @@ BERR_Code BHDM_EDID_Initialize(
 	hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eOK;
 
 done:
+	/* clear all cached blocks if an Invalid EDID is detected */
+	if ((hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
+	||  (uiChecksumErrors))
 	{
+		for (i=0; i<BHDM_EDID_P_MAX_NUMBER_OF_EDID_BLOCK; i++)
+		{
+			BKNI_EnterCriticalSection();
+			hHDMI->AttachedEDID.bBlockCached[i] = false ;
+			BKNI_LeaveCriticalSection();
+		}
+	}
+
 #if BDBG_DEBUG_BUILD
+	{
 	    BDBG_Level level ;
 	    /* save the current debug level */
 	    BDBG_GetModuleLevel("BHDM_EDID", &level) ;
@@ -4507,9 +4526,10 @@ done:
 		{
 			BHDM_EDID_DEBUG_PrintData(hHDMI) ;
 		}
-#endif
-		BDBG_LEAVE(BHDM_EDID_Initialize) ;
 	}
+#endif
+
+	BDBG_LEAVE(BHDM_EDID_Initialize) ;
 	return rc ;
 } /* BHDM_EDID_Initialize */
 
@@ -4559,13 +4579,12 @@ done:
 } /* end BHDM_EDID_GetMonitorName */
 
 
-BERR_Code BHDM_EDID_GetPreferredColorimetry(
+void BHDM_EDID_GetPreferredColorimetry(
 	BHDM_Handle hHDMI,
 	const BHDM_EDID_ColorimetryParams *parameters,
-	BAVC_MatrixCoefficients *eColorimetry)
+	BAVC_MatrixCoefficients *eColorimetry /* out only, every path writes this without using it as an input first */
+)
 {
-	BERR_Code rc = BERR_SUCCESS ;
-
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
 	if (hHDMI->DeviceSettings.BypassEDIDChecking)
@@ -4574,27 +4593,27 @@ BERR_Code BHDM_EDID_GetPreferredColorimetry(
 			*eColorimetry = BAVC_MatrixCoefficients_eItu_R_BT_709 ;
 		else
 			*eColorimetry = BAVC_MatrixCoefficients_eHdmi_RGB ;
-		goto done ;
+		return ;
 	}
 
+    /* Whether or not the EDID is valid; HDMI requires all devices to support full range RGB */
+    /* Default to Full range RGB */
 	*eColorimetry = BAVC_MatrixCoefficients_eDvi_Full_Range_RGB;
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
 
-		/* Whether or not the EDID is valid; HDMI requires all devices to support full range RGB */
-		/* Default to Full range RGB */
-		goto done ;
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
+		return ;
 	}
 
 	if (!hHDMI->AttachedEDID.RxHasHdmiSupport)
 	{
-		goto done ;
+		return ;
 	}
 
 	if (hHDMI->DeviceSettings.overrideDefaultColorimetry)
 	{
 		BDBG_MSG(("Use non default colorimetry: %d", hHDMI->DeviceSettings.eColorimetry)) ;
 		*eColorimetry = hHDMI->DeviceSettings.eColorimetry ;
-		goto done ;
+		return ;
 	}
 
 	if (! BFMT_IS_UHD(parameters->eVideoFmt)) /* if not UHD */
@@ -4637,9 +4656,6 @@ BERR_Code BHDM_EDID_GetPreferredColorimetry(
 	{
 		*eColorimetry = BAVC_MatrixCoefficients_eItu_R_BT_709 ;
 	}
-
-done:
-	return rc  ;
 }
 
 
@@ -4947,6 +4963,8 @@ void BHDM_EDID_DEBUG_PrintData(BHDM_Handle hHDMI)
 	uint8_t i, j ;
 	static char const ucDataBlockHeaderFormat[] = "[%s Data Block]" ;
 	static char const ucDataBlockSeparator[] = "_______________________________________" ;
+	char ManufName[4] ;
+	unsigned ManufNameCompressedASCII ;
 
 	BDBG_LOG(("EDID Information from Rx <%s>  (%s %d)",
 		hHDMI->AttachedEDID.MonitorName,
@@ -4980,15 +4998,23 @@ void BHDM_EDID_DEBUG_PrintData(BHDM_Handle hHDMI)
 	** Information for Display Purposes only
 	** Add to EDID Data structure if desired...
 	*/
-	BDBG_LOG(("Manufacture Week / Year: %d / %d",
-		hHDMI->AttachedEDID.BasicData.ManufWeek,
-		hHDMI->AttachedEDID.BasicData.ManufYear + 1990)) ;
+	ManufNameCompressedASCII =
+		  hHDMI->AttachedEDID.BasicData.VendorID[0] << 8
+		| hHDMI->AttachedEDID.BasicData.VendorID[1] ;
+	ManufName[0] = ((ManufNameCompressedASCII >> 10) & 0x1f) + 'A' - 1 ;
+	ManufName[1] = ((ManufNameCompressedASCII >>  5) & 0x1f) + 'A' - 1 ;
+	ManufName[2] =  (ManufNameCompressedASCII & 0x1f) + 'A' - 1 ;
+	ManufName[3] = 0 ;
+	BDBG_LOG(("ID Manufacturer Name: %s", ManufName)) ;
 
 	/* Serial Number may also be placed in a Descriptor Tag */
-	BDBG_LOG(("Serial Number: %02X %02X %02X %02X",
+	BDBG_LOG(("ID Serial Number: %02X %02X %02X %02X",
 		hHDMI->AttachedEDID.BasicData.SerialNum[3], hHDMI->AttachedEDID.BasicData.SerialNum[2],
 		hHDMI->AttachedEDID.BasicData.SerialNum[1], hHDMI->AttachedEDID.BasicData.SerialNum[0])) ;
 
+	BDBG_LOG(("Manufacture Week / Year: %d / %d",
+		hHDMI->AttachedEDID.BasicData.ManufWeek,
+		hHDMI->AttachedEDID.BasicData.ManufYear + 1990)) ;
 
 	{
 		 static const char * const DisplayType[] =

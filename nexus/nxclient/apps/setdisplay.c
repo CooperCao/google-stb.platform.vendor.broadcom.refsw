@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "nexus_platform_client.h"
 #include "nxclient.h"
@@ -97,12 +100,11 @@ static void print_usage(void)
         "  -composite {on|off}\n"
         "  -rfm {3|4}\n"
         "  -hdmi {on|off}\n"
-        "  -dolby {auto|on|off}           set dolby vision display mode\n"
-        "  -priority {auto|video|gfx} set dolby vision display priority mode\n"
         "  -3d {on|lr|ou|off}        enable stereoscopic (3D) video\n"
         "  -color CONTRAST,SATURATION,HUE,BRIGHTNESS   graphics color. values range between -32767 and 32768.\n"
         "  -backgroundColor          ARGB888 hex value for graphics background\n"
         );
+    print_list_option("priority",g_displayPriorityModeStrs);
     print_list_option("ar",g_displayAspectRatioStrs);
     printf(
         "  -sar X,Y                  Set sample aspect ratio with X:Y dimensions\n"
@@ -119,42 +121,12 @@ static void print_usage(void)
         "  -dropFrame {enable|disable|track} \tHD display is drop frame (default), non-drop frame or tracks source\n"
         );
     print_list_option("macrovision",g_macrovisionStrs);
-    print_list_option("eotf",g_videoEotfStrs);
     print_list_option("matrixCoeffs",g_matrixCoeffStrs);
+    print_list_option("dynrng",g_dynamicRangeModeStrs);
     printf(
-        "  -cll MAX_CLL         max content light level, units 1 cd/m^2, -1 means from input\n"
-        "  -fal MAX_FAL         max frame average light level, units 1 cd/m^2, -1 means from input\n"
-    );
-    printf(
-        "  -mdcv.red X,Y        red chromaticity coordinate, range 0 to 50000, maps to 0.0 to 1.0, -1 means from input\n"
-        "  -mdcv.green X,Y      green chromaticity coordinate, range 0 to 50000, maps to 0.0 to 1.0, -1 means from input\n"
-        "  -mdcv.blue X,Y       blue chromaticity coordinate, range 0 to 50000, maps to 0.0 to 1.0, -1 means from input\n"
-        "  -mdcv.white X,Y      chromaticity white point, range 0 to 50000, maps to 0.0 to 1.0, -1 means from input\n"
-    );
-    printf(
-        "  -mdcv.luma.max MAX   units 1 cd / m^2, -1 means from input\n"
-        "  -mdcv.luma.min MIN   units 0.0001 cd / m^2, -1 means from input\n"
         "  -graphics {on|off}\n"
     );
 }
-
-static bool drm_configured(const NEXUS_HdmiDynamicRangeMasteringInfoFrame *pInfo)
-{
-    return (int)pInfo->metadata.typeSettings.type1.contentLightLevel.max != -1 ||
-        (int)pInfo->metadata.typeSettings.type1.contentLightLevel.maxFrameAverage != -1 ||
-        pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.redPrimary.x != -1 ||
-        pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.redPrimary.y != -1 ||
-        pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.greenPrimary.x != -1 ||
-        pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.greenPrimary.y != -1 ||
-        pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.bluePrimary.x != -1 ||
-        pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.bluePrimary.y != -1 ||
-        pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.whitePoint.x != -1 ||
-        pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.whitePoint.y != -1 ||
-        (int)pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.luminance.max != -1 ||
-        (int)pInfo->metadata.typeSettings.type1.masteringDisplayColorVolume.luminance.min != -1;
-}
-
-#include "hdmi_output_status.inc"
 
 static void print_settings(const NxClient_DisplaySettings *pSettings, const NxClient_PictureQualitySettings *pqSettings)
 {
@@ -188,25 +160,6 @@ static void print_settings(const NxClient_DisplaySettings *pSettings, const NxCl
     }
     if (pSettings->hdmiPreferences.enabled) {
         n += snprintf(&buf[n], sizeof(buf)-n, " hdmi");
-        if (drm_configured(&pSettings->hdmiPreferences.drmInfoFrame)) {
-            n += snprintf(&buf[n], sizeof(buf)-n, "DRM{dbv %s,%s,mdcv{rgbw=(%d,%d),(%d,%d),(%d,%d),(%d,%d),luma=(%d,%d)},cll={%d,%d}}",
-            lookup_name(g_dolbyVisionModeStrs, pSettings->hdmiPreferences.dolbyVision.outputMode),
-            lookup_name(g_videoEotfStrs, pSettings->hdmiPreferences.drmInfoFrame.eotf),
-            pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.contentLightLevel.max,
-            pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.contentLightLevel.maxFrameAverage,
-            pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.redPrimary.x,
-            pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.redPrimary.y,
-            pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.greenPrimary.x,
-            pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.greenPrimary.y,
-            pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.bluePrimary.x,
-            pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.bluePrimary.y,
-            pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.whitePoint.x,
-            pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.whitePoint.y,
-            pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.luminance.max,
-            pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.luminance.min);
-        }
-        print_hdmi_status();
-
     }
     printf("%s\n", buf);
 
@@ -480,69 +433,17 @@ int main(int argc, char **argv)  {
         else if (!strcmp(argv[curarg], "-macrovision") && curarg+1<argc) {
             macrovision = lookup(g_macrovisionStrs, argv[++curarg]);
         }
-        else if (!strcmp(argv[curarg], "-eotf") && argc>curarg+1) {
+        else if (!strcmp(argv[curarg], "-dynrng") && argc>curarg+1) {
             change = true;
-            displaySettings.hdmiPreferences.drmInfoFrame.eotf = lookup(g_videoEotfStrs, argv[++curarg]);
-        }
-        else if (!strcmp(argv[curarg], "-dolby") && argc>curarg+1) {
-            change = true;
-            displaySettings.hdmiPreferences.dolbyVision.outputMode = lookup(g_dolbyVisionModeStrs, argv[++curarg]);
+            displaySettings.hdmiPreferences.dynamicRangeMode = lookup(g_dynamicRangeModeStrs, argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-priority") && argc>curarg+1) {
             change = true;
-            displaySettings.hdmiPreferences.dolbyVision.priorityMode = lookup(g_dbvPriorityModeStrs, argv[++curarg]);
+            displaySettings.priority = lookup(g_displayPriorityModeStrs, argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-matrixCoeffs") && argc>curarg+1) {
             change = true;
             displaySettings.hdmiPreferences.matrixCoefficients = lookup(g_matrixCoeffStrs, argv[++curarg]);
-        }
-        else if (!strcmp(argv[curarg], "-mdcv.red") && argc>curarg+1) {
-            int x,y;
-            if (sscanf(argv[++curarg], "%d,%d", &x, &y) == 2) {
-                displaySettings.hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.redPrimary.x = x;
-                displaySettings.hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.redPrimary.y = y;
-                change = true;
-            }
-        }
-        else if (!strcmp(argv[curarg], "-mdcv.green") && argc>curarg+1) {
-            int x,y;
-            if (sscanf(argv[++curarg], "%d,%d", &x, &y) == 2) {
-                displaySettings.hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.greenPrimary.x = x;
-                displaySettings.hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.greenPrimary.y = y;
-                change = true;
-            }
-        }
-        else if (!strcmp(argv[curarg], "-mdcv.blue") && argc>curarg+1) {
-            int x,y;
-            if (sscanf(argv[++curarg], "%d,%d", &x, &y) == 2) {
-                displaySettings.hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.bluePrimary.x = x;
-                displaySettings.hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.bluePrimary.y = y;
-                change = true;
-            }
-        }
-        else if (!strcmp(argv[curarg], "-mdcv.white") && argc>curarg+1) {
-            int x,y;
-            if (sscanf(argv[++curarg], "%d,%d", &x, &y) == 2) {
-                displaySettings.hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.whitePoint.x = x;
-                displaySettings.hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.whitePoint.y = y;
-                change = true;
-            }
-        }
-        else if (!strcmp(argv[curarg], "-mdcv.luma.max") && argc>curarg+1) {
-            change = true;
-            displaySettings.hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.luminance.max = atoi(argv[++curarg]);
-        }
-        else if (!strcmp(argv[curarg], "-mdcv.luma.min") && argc>curarg+1) {
-            change = true;
-            displaySettings.hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.luminance.min = atoi(argv[++curarg]);
-        }
-        else if (!strcmp(argv[curarg], "-cll") && argc>curarg+1) {
-            change = true;
-            displaySettings.hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.contentLightLevel.max = atoi(argv[++curarg]);
-        }
-        else if (!strcmp(argv[curarg], "-fal") && argc>curarg+1) {
-            change = true;
-            displaySettings.hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.contentLightLevel.maxFrameAverage = atoi(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-secure") && argc>curarg+1) {
             change = true;

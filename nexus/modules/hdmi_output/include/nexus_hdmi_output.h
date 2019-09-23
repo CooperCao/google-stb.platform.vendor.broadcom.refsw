@@ -374,6 +374,7 @@ typedef struct NEXUS_HdmiOutputStatus
     NEXUS_AspectRatio aspectRatio;
     NEXUS_ColorSpace colorSpace;
     unsigned colorDepth;
+    NEXUS_MatrixCoefficients matrixCoefficients;
 
     NEXUS_AudioCodec audioFormat;
     unsigned audioSamplingRate; /* in units of Hz */
@@ -409,7 +410,7 @@ typedef struct NEXUS_HdmiOutputStatus
     uint8_t physicalAddressD;          /* Physical Address for HDMI node D */
 
     NEXUS_HdmiOutputAutoLipsyncInfo autoLipsyncInfo;
-    NEXUS_VideoEotf eotf;
+    NEXUS_VideoEotf eotf; /* only applies to dynamic range modes that use an EOTF defined by NEXUS_VideoEotf */
 } NEXUS_HdmiOutputStatus;
 
 /**

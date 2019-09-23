@@ -67,7 +67,8 @@ NEXUS_HDMI_OUTPUT_SOURCES :=  \
                              $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_format_validation.c \
                              $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_control.c \
                              $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_extra.c \
-                             $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_drm.c \
+                             $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_drmif.c \
+                             $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_dynrng.c \
                              $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_debug.c
 
 # thunk layer
@@ -139,4 +140,7 @@ ifeq ($(NEXUS_DBV_SUPPORT),y)
 NEXUS_HDMI_OUTPUT_DEFINES += NEXUS_DBV_SUPPORT=1
 NEXUS_HDMI_OUTPUT_PUBLIC_INCLUDES += $(NEXUS_TOP)/modules/hdmi_output/include/dbv
 NEXUS_HDMI_OUTPUT_SOURCES += $(NEXUS_TOP)/modules/hdmi_output/src/nexus_hdmi_output_dbv.c
+ifeq ($(NEXUS_DBV_CONFORMANCE_MODE),y)
+NEXUS_HDMI_OUTPUT_DEFINES += NEXUS_DBV_CONFORMANCE_MODE=1
+endif
 endif

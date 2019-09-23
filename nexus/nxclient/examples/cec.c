@@ -51,18 +51,30 @@ BDBG_MODULE(cec);
 
 #define appHdmiOutputHpCbId 0
 
-static NEXUS_CecHandle hCec;
-static NEXUS_HdmiOutputHandle g_hdmiOutput;
+#define TV_ADDR 0x00                    /* logical address of the TV */
 
-static bool deviceReady = false;
+
+
+enum lastReqCmdStatus {
+    NonePending,
+    Pending
+};
+
+static NEXUS_CecHandle hCec;
+
 static bool messageReceived = false;
+static unsigned lastReqCmd = 0;
+static enum lastReqCmdStatus lastReqCmdProcessed = NonePending;
+
 
 void deviceReady_callback(void *context, int param)
 {
     NEXUS_CecStatus status;
 
     BSTD_UNUSED(param);
-    BKNI_SetEvent((BKNI_EventHandle)context);
+    BKNI_SetEvent(context) ;
+
+    /* print informative information */
     NEXUS_Cec_GetStatus(hCec, &status);
 
     BDBG_WRN(("BCM%d Logical Address <%d> Acquired",
@@ -76,11 +88,6 @@ void deviceReady_callback(void *context, int param)
         (status.physicalAddress[1] & 0xF0) >> 4,
         (status.physicalAddress[1] & 0x0F)));
 
-    if ((status.physicalAddress[0] != 0xFF) && (status.physicalAddress[1] != 0xFF))
-    {
-        BDBG_WRN(("CEC Device Ready!"));
-        deviceReady = true;
-    }
 }
 
 static void msgReceived_callback(void *context, int param)
@@ -92,6 +99,7 @@ static void msgReceived_callback(void *context, int param)
     char msgBuffer[3*(NEXUS_CEC_MESSAGE_DATA_SIZE +1)];
 
     BSTD_UNUSED(param);
+
     BKNI_SetEvent((BKNI_EventHandle)context);
     NEXUS_Cec_GetStatus(hCec, &status);
 
@@ -115,14 +123,64 @@ static void msgReceived_callback(void *context, int param)
         (status.physicalAddress[0] & 0xF0) >> 4, (status.physicalAddress[0] & 0x0F),
         (status.physicalAddress[1] & 0xF0) >> 4, (status.physicalAddress[1] & 0x0F),
         status.logicalAddress));
+
+    if(lastReqCmdProcessed == NonePending)
+    {
+        char *cmdMesg;
+        bool gotReply = false;
+
+        switch(lastReqCmd)
+        {
+            case NEXUS_CEC_OpGivePhysicalAddress:
+                cmdMesg = "Physical Addr";
+                if(receivedMessage.data.buffer[0] == NEXUS_CEC_OpReportPhysicalAddress)
+                {
+                    gotReply = true;
+                }
+                break;
+            case NEXUS_CEC_OpGiveDeviceVendorID:
+                cmdMesg = "Vendor ID";
+                if(receivedMessage.data.buffer[0] == NEXUS_CEC_OpDeviceVendorID)
+                {
+                    gotReply = true;
+                }
+                break;
+            case NEXUS_CEC_OpGetCECVersion:
+                cmdMesg = "CEC Version";
+                if(receivedMessage.data.buffer[0] == NEXUS_CEC_OpCECVersion)
+                {
+                    gotReply = true;
+                }
+                break;
+            default:
+                /* don't care message */
+                goto done;
+                break;
+        }
+        BDBG_LOG(("-------------------------"));
+        if(gotReply == true)
+        {
+            /* First three characters in msgBuffer is command ID, which has been process in the above switch-case statement */
+            BDBG_LOG(("deviceAddr=0x%02X reports %s: %s ", receivedMessage.data.initiatorAddr, cmdMesg, &msgBuffer[3]));
+            lastReqCmdProcessed = Pending;
+        }
+        else
+        {
+            BDBG_LOG(("deviceAddr=0x%02X didn't reply to %s Request", TV_ADDR, cmdMesg));
+        }
+        BDBG_LOG(("-------------------------"));
+    }
+done:
+    return;
 }
 
 static void msgTransmitted_callback(void *context, int param)
 {
     NEXUS_CecStatus status;
 
+    BSTD_UNUSED(context);
     BSTD_UNUSED(param);
-    BKNI_SetEvent((BKNI_EventHandle)context);
+
     NEXUS_Cec_GetStatus(hCec, &status);
 
     BDBG_WRN(("Msg Xmit Status for Phys/Logical Addrs: %X.%X.%X.%X / %d",
@@ -132,14 +190,16 @@ static void msgTransmitted_callback(void *context, int param)
 
     BDBG_WRN(("Xmit Msg Acknowledged: %s",
         status.transmitMessageAcknowledged ? "Yes" : "No"));
-    BDBG_WRN(("Xmit Msg Pending: %s",
+    BDBG_LOG(("---->Xmit Msg Pending: %s",
         status.messageTransmitPending ? "Yes" : "No"));
+
 }
 
 int main(void)
 {
     NEXUS_Error rc;
     BKNI_EventHandle event;
+    BKNI_EventHandle cecDeviceReadyEvent;
     unsigned loops;
     NEXUS_CecSettings cecSettings;
     NEXUS_CecStatus cecStatus;
@@ -149,6 +209,7 @@ int main(void)
     if (rc) return rc;
 
     BKNI_CreateEvent(&event);
+    BKNI_CreateEvent(&cecDeviceReadyEvent) ;
 
     /* nxserver does not open CEC, so a client may. */
     NEXUS_Cec_GetDefaultSettings(&cecSettings);
@@ -158,19 +219,15 @@ int main(void)
         return -1;
     }
 
-    /* nxserver opens HDMI output, so a client can only open as a read-only alias. */
-    g_hdmiOutput = NEXUS_HdmiOutput_Open(0 + NEXUS_ALIAS_ID, NULL);
-
-    rc = NEXUS_Cec_SetHdmiOutput(hCec, g_hdmiOutput);
-    BDBG_ASSERT(!rc);
-
     NEXUS_Cec_GetSettings(hCec, &cecSettings);
-    cecSettings.messageReceivedCallback.callback = msgReceived_callback;
-    cecSettings.messageReceivedCallback.context = event;
-    cecSettings.messageTransmittedCallback.callback = msgTransmitted_callback;
-    cecSettings.messageTransmittedCallback.context = event;
-    cecSettings.logicalAddressAcquiredCallback.callback = deviceReady_callback;
-    cecSettings.logicalAddressAcquiredCallback.context = event;
+        cecSettings.messageReceivedCallback.callback = msgReceived_callback;
+        cecSettings.messageReceivedCallback.context = event;
+
+        cecSettings.messageTransmittedCallback.callback = msgTransmitted_callback;
+        cecSettings.messageTransmittedCallback.context = event;
+
+        cecSettings.logicalAddressAcquiredCallback.callback = deviceReady_callback;
+        cecSettings.logicalAddressAcquiredCallback.context = cecDeviceReadyEvent;
     rc = NEXUS_Cec_SetSettings(hCec, &cecSettings);
     BDBG_ASSERT(!rc);
 
@@ -180,14 +237,19 @@ int main(void)
     rc = NEXUS_Cec_SetSettings(hCec, &cecSettings);
     BDBG_ASSERT(!rc);
 
-    BDBG_WRN(("*************************"));
-    BDBG_WRN(("Wait for logical address before starting test..."));
-    BDBG_WRN(("*************************"));
-    for (loops = 0; loops < 10; loops++) {
-        if (deviceReady)
-            break;
-        BKNI_Sleep(1000);
+    BDBG_LOG(("*************************"));
+    BDBG_LOG(("Wait for logical address before starting test..."));
+    BDBG_LOG(("*************************"));
+
+    rc = BKNI_WaitForEvent(cecDeviceReadyEvent, 10 * 1000);
+    if (rc)
+    {
+        BDBG_ERR(("Error waiting for CEC..."));
+        goto done;
     }
+
+
+    NEXUS_Cec_GetStatus(hCec, &cecStatus);
 
     if (cecStatus.logicalAddress == 0xFF)
     {
@@ -197,32 +259,64 @@ int main(void)
 
     transmitMessage.destinationAddr = 0;
     transmitMessage.length = 1;
+    BDBG_LOG(("*************************"));
+    BDBG_LOG(("Start Communication with device at logical addr:0x%02X (logical addr=0x00 is TV)",TV_ADDR));
+    BDBG_LOG(("*************************"));
 
-    BDBG_WRN(("*************************"));
-    BDBG_WRN(("Make sure TV is turned ON"));
-    BDBG_WRN(("Send <Image View On> message")); /* this is needed in case TV was already powered off */
-    BDBG_WRN(("*************************"));
-    transmitMessage.buffer[0] = 0x04;
+    BDBG_LOG((" "));
+    BDBG_LOG(("*************************"));
+    BDBG_LOG(("Request Device Physical Addr, (cmd=0x%02x)", NEXUS_CEC_OpGivePhysicalAddress));
+    BDBG_LOG(("*************************"));
+    transmitMessage.buffer[0] = lastReqCmd = NEXUS_CEC_OpGivePhysicalAddress;
+    lastReqCmdProcessed = NonePending; /* get ready process request command */
+
+    rc = NEXUS_Cec_TransmitMessage(hCec, &transmitMessage);
+    BDBG_ASSERT(!rc);
+    nxapp_prompt("continue");
+
+    BDBG_LOG(("*************************"));
+    BDBG_LOG(("Request Device Vendor ID (cmd=0x%02x)", NEXUS_CEC_OpGiveDeviceVendorID));
+    BDBG_LOG(("*************************"));
+    transmitMessage.buffer[0] = lastReqCmd = NEXUS_CEC_OpGiveDeviceVendorID;
+    lastReqCmdProcessed = NonePending; /* get ready process request command */
+    rc = NEXUS_Cec_TransmitMessage(hCec, &transmitMessage);
+    BDBG_ASSERT(!rc);
+    nxapp_prompt("continue");
+
+    BDBG_LOG(("*************************"));
+    BDBG_LOG(("Request Device CEC Version (cmd=0x%02x)", NEXUS_CEC_OpGetCECVersion));
+    BDBG_LOG(("*************************"));
+    transmitMessage.buffer[0] = lastReqCmd = NEXUS_CEC_OpGetCECVersion;
+    lastReqCmdProcessed = NonePending; /* get ready process request command */
+    rc = NEXUS_Cec_TransmitMessage(hCec, &transmitMessage);
+    BDBG_ASSERT(!rc);
+    nxapp_prompt("continue");
+
+    BDBG_LOG(("*************************"));
+    BDBG_LOG(("Make sure TV is turned ON (cmd=0x%02X)", NEXUS_CEC_OpImageViewOn));
+    BDBG_LOG(("Send <Image View On> message")); /* this is needed in case TV was already powered off */
+    BDBG_LOG(("*************************"));
+    transmitMessage.buffer[0] = lastReqCmd = NEXUS_CEC_OpImageViewOn;
     rc = NEXUS_Cec_TransmitMessage(hCec, &transmitMessage);
     BDBG_ASSERT(!rc);
     nxapp_prompt("continue");
 
 
-    BDBG_WRN(("*************************"));
-    BDBG_WRN(("Now Turn the TV OFF "));
-    BDBG_WRN(("Send <Standby> message "));
-    BDBG_WRN(("*************************"));
-    transmitMessage.buffer[0] = 0x36;
+    BDBG_LOG(("*************************"));
+    BDBG_LOG(("Now Turn the TV OFF (cmd=0x%02X)", NEXUS_CEC_OpStandby));
+    BDBG_LOG(("Send <Standby> message "));
+    BDBG_LOG(("*************************"));
+    transmitMessage.buffer[0] = lastReqCmd = NEXUS_CEC_OpStandby;
     rc = NEXUS_Cec_TransmitMessage(hCec, &transmitMessage);
     BDBG_ASSERT(!rc);
     nxapp_prompt("continue");
 
 
-    BDBG_WRN(("*************************"));
-    BDBG_WRN(("Turn the TV back ON"));
-    BDBG_WRN(("Send <Image View On> message"));
-    BDBG_WRN(("*************************"));
-    transmitMessage.buffer[0] = 0x04;
+    BDBG_LOG(("*************************"));
+    BDBG_LOG(("Turn the TV back ON (cmd=0x%02X)", NEXUS_CEC_OpImageViewOn));
+    BDBG_LOG(("Send <Image View On> message"));
+    BDBG_LOG(("*************************"));
+    transmitMessage.buffer[0] = lastReqCmd = NEXUS_CEC_OpImageViewOn;
     rc = NEXUS_Cec_TransmitMessage(hCec, &transmitMessage);
     if (rc) {
         BDBG_WRN(("Error Transmitting <Image View On> Message %d", rc));

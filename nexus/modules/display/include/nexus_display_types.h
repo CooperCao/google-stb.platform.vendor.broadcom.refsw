@@ -65,6 +65,22 @@ typedef enum NEXUS_DisplayAspectRatio
 
 /**
 Summary:
+Display priority
+Description:
+This flag is used by various display technologies to emphasize either the
+graphics or the video present on the display. What "emphasize" means depends
+on the technology interpreting this flag.
+**/
+typedef enum NEXUS_DisplayPriority
+{
+    NEXUS_DisplayPriority_eAuto, /* automatically emphasize video or graphics based on usage */
+    NEXUS_DisplayPriority_eVideo, /* video should be emphasized */
+    NEXUS_DisplayPriority_eGraphics, /* graphics should be emphasized */
+    NEXUS_DisplayPriority_eMax
+} NEXUS_DisplayPriority;
+
+/**
+Summary:
 DAC's available for the analog outputs
 **/
 typedef enum NEXUS_VideoDac

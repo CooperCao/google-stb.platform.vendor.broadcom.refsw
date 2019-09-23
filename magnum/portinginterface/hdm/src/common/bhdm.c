@@ -878,7 +878,8 @@ BERR_Code BHDM_GetDefaultSettings(
 	return rc ;
 }
 
-void BHDM_P_EnableInterrupts(const BHDM_Handle hHDMI)
+
+void BHDM_P_EnableInterrupts_isr(const BHDM_Handle hHDMI)
 {
 	BERR_Code rc ;
 	uint8_t i ;
@@ -914,7 +915,7 @@ void BHDM_P_EnableInterrupts(const BHDM_Handle hHDMI)
 			continue ;
 #endif
 
-		rc = BINT_EnableCallback( hHDMI->hCallback[i]) ;
+		rc = BINT_EnableCallback_isr( hHDMI->hCallback[i]) ;
 		if (rc) {rc = BERR_TRACE(rc) ; }
 	}
 
@@ -942,7 +943,7 @@ void BHDM_P_EnableInterrupts(const BHDM_Handle hHDMI)
 		if (!pInterrupts[i].enable)
 			continue ;
 
-		rc = BINT_EnableCallback( hHDMI->hHAECallback[i]) ;
+		rc = BINT_EnableCallback_isr( hHDMI->hHAECallback[i]) ;
 		if (rc) {rc = BERR_TRACE(rc) ; }
 	}
 
@@ -1356,6 +1357,11 @@ BERR_Code BHDM_Open(
 		/* check if something is connected and stored */
 		BHDM_P_RxDeviceAttached_isr(hHDMI, &hHDMI->RxDeviceAttached) ;
 
+#if BHDM_CONFIG_HAS_HDCP22
+		/* reset the Auto I2c hardware */
+		BHDM_AUTO_I2C_Reset_isr(hHDMI) ;
+ #endif
+
 		/* Initialize/Reset HDCP Settings */
 		BHDM_HDCP_P_ResetSettings_isr(hHDMI) ;
 	BKNI_LeaveCriticalSection() ;
@@ -1469,14 +1475,13 @@ HDCP 2.2 Events
 #endif
 
 	/* enable all interrupts */
-	BHDM_P_EnableInterrupts(hHDMI) ;
-
-#ifndef BHDM_FOR_BOOTUPDATER
-	/* Update audio channel map based on MAI_FORMAT */
 	BKNI_EnterCriticalSection();
-	BHDM_P_HandleMaiFormatUpdate_isr(hHDMI);
-	BKNI_LeaveCriticalSection();
+		BHDM_P_EnableInterrupts_isr(hHDMI) ;
+#ifndef BHDM_FOR_BOOTUPDATER
+		/* Update audio channel map based on MAI_FORMAT */
+		BHDM_P_HandleMaiFormatUpdate_isr(hHDMI);
 #endif /* #ifndef BHDM_FOR_BOOTUPDATER */
+	BKNI_LeaveCriticalSection();
 
 /* turn off HDMI Phy until needed */
 	BHDM_DisableDisplay(hHDMI) ;
@@ -2158,24 +2163,6 @@ ConfigureHdmiPackets:
 		BHDM_CHECK_RC(rc, BHDM_SetDRMInfoFramePacket(hHDMI,
 			&hHDMI->DeviceSettings.stDRMInfoFrame)) ;
 	}
-
-#ifdef BCHP_HDMI_HDR_CFG
-	{
-		uint32_t reg;
-		reg = BREG_Read32(hHDMI->hRegister, BCHP_HDMI_HDR_CFG);
-		if(hHDMI->DeviceSettings.stVendorSpecificInfoFrame.bDolbyVisionEnabled)
-		{
-			/* set to Dolby MD mode */
-			BCHP_SET_FIELD_DATA(reg, HDMI_HDR_CFG, HDR_RAM_ENABLE, 1);
-			BCHP_SET_FIELD_DATA(reg, HDMI_HDR_CFG, MODE, 1); /* DOLBY */
-		} else {
-			/* set to Dolby MD mode */
-			BCHP_SET_FIELD_DATA(reg, HDMI_HDR_CFG, HDR_RAM_ENABLE, 0);
-			BCHP_SET_FIELD_DATA(reg, HDMI_HDR_CFG, MODE, 0);
-		}
-		BREG_Write32(hHDMI->hRegister, BCHP_HDMI_HDR_CFG, reg);
-	}
-#endif
 
 	/* recenter/initialize the FIFO only if the video format has changed */
 	if (HdmiVideoFormatChange || hHDMI->DeviceSettings.bForceEnableDisplay)
@@ -3622,7 +3609,7 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 		BREG_Write32(hRegister, BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0 + ulOffset, Register) ;
 #endif
 
-		/* stop timer and reset reauth_rew counter */
+		/* stop timer and reset reauth_req counter */
 		if (hHDMI->TimerHdcp22StableLink) {
 			BTMR_StopTimer_isr(hHDMI->TimerHdcp22StableLink);
 		}
@@ -3681,6 +3668,9 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 		BREG_Write32(hRegister, BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0 + ulOffset, Register) ;
 #endif
 #endif
+
+		/* abort any pending HDCP requests */
+		BHDM_HDCP_P_ResetSettings_isr(hHDMI) ;
 
 		BHDM_MONITOR_P_HpdChanges_isr(hHDMI) ;
 	}
@@ -3813,9 +3803,6 @@ void BHDM_P_HandleHAEInterrupt_isr(
 
 					errCode = BHDM_HDCP_AssertSimulatedHpd_isr(hHDMI, true, false);
 					if (errCode) { BERR_TRACE(errCode); }
-
-					errCode = BTMR_StartTimer_isr(hHDMI->TimerForcedTxHotplug, BHDM_P_MILLISECOND * BHDM_HDCP_FORCE_HPD_PULSE_WIDTH) ;
-					if (errCode) { errCode = BERR_TRACE(errCode); }
 				}
 			}
 		}
@@ -4796,9 +4783,12 @@ void BHDM_P_FreeTimers(const BHDM_Handle hHDMI)
 	BHDM_CHECK_RC(rc, BHDM_P_DestroyTimer(hHDMI, &hHDMI->TimerHotPlug, BHDM_P_TIMER_eHotPlug));
 	BHDM_MONITOR_P_DestroyTimers(hHDMI) ;
 
-#if BHDM_CONFIG_HAS_HDCP22
+#if BHDM_HAS_HDMI_20_SUPPORT
 	BHDM_CHECK_RC(rc, BHDM_P_DestroyTimer(hHDMI, &hHDMI->TimerScdcStatus, BHDM_P_TIMER_eScdcStatus));
 	BHDM_CHECK_RC(rc, BHDM_P_DestroyTimer(hHDMI, &hHDMI->TimerTxScramble, BHDM_P_TIMER_eTxScramble));
+#endif
+
+#if BHDM_CONFIG_HAS_HDCP22
 	BHDM_CHECK_RC(rc, BHDM_P_DestroyTimer(hHDMI, &hHDMI->TimerHdcp22StableLink, BHDM_P_TIMER_eHdcp22TxStableLink));
 #endif
 
@@ -4807,6 +4797,23 @@ void BHDM_P_FreeTimers(const BHDM_Handle hHDMI)
 
 done:
 	(void) BERR_TRACE(rc);
+}
+
+
+void BHDM_P_StopTimers_isr(const BHDM_Handle hHDMI)
+{
+	/* stop any timers that may be running  */
+	BTMR_StopTimer_isr(hHDMI->TimerHotPlug) ;
+	BTMR_StopTimer_isr(hHDMI->TimerForcedTxHotplug) ;
+
+#if BHDM_HAS_HDMI_20_SUPPORT
+	BTMR_StopTimer_isr(hHDMI->TimerTxScramble) ;
+	BTMR_StopTimer_isr(hHDMI->TimerScdcStatus) ;
+#endif
+
+#if BHDM_CONFIG_HAS_HDCP22
+	BTMR_StopTimer_isr(hHDMI->TimerHdcp22StableLink) ;
+#endif
 }
 #endif
 
@@ -5204,4 +5211,23 @@ BERR_Code BHDM_GetTxSupportStatus(
 
 	BKNI_Memcpy(pstTxSupport, &hHDMI->TxSupport, sizeof(BHDM_TxSupport)) ;
 	return BERR_SUCCESS ;
+}
+
+BERR_Code BHDM_SetHdrRamMode(BHDM_Handle hHDMI, BHDM_HdrRamMode mode)
+{
+#ifdef BCHP_HDMI_HDR_CFG
+    uint32_t reg;
+	BDBG_OBJECT_ASSERT(hHDMI, HDMI);
+
+    reg = BREG_Read32(hHDMI->hRegister, BCHP_HDMI_HDR_CFG);
+    BDBG_MSG(("SetHdrRamMode: %u -> %u", BCHP_GET_FIELD_DATA(reg, HDMI_HDR_CFG, MODE), mode));
+    BCHP_SET_FIELD_DATA(reg, HDMI_HDR_CFG, HDR_RAM_ENABLE, 1); /* always leave HDR_RAM powered, until usage modes are clearer */
+    BCHP_SET_FIELD_DATA(reg, HDMI_HDR_CFG, MODE, mode);
+    BREG_Write32(hHDMI->hRegister, BCHP_HDMI_HDR_CFG, reg);
+	return BERR_SUCCESS;
+#else
+    BSTD_UNUSED(hHDMI);
+    BSTD_UNUSED(mode);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+#endif
 }

@@ -1,40 +1,44 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "atlas.h"
 #include "convert.h"
@@ -1007,33 +1011,89 @@ bool CDisplay::isStandardDef()
     return(bSD);
 }
 
-eDynamicRange CDisplay::getOutputDynamicRange()
+eDynamicRange CDisplay::getDynamicRange(void)
 {
-    COutputHdmi * pOutput      = (COutputHdmi *)getOutput(eBoardResource_outputHdmi);
-    eDynamicRange dynamicRange = eDynamicRange_Unknown;
+    eRet                   ret          = eRet_Ok;
+    NEXUS_Error            nerror       = NEXUS_SUCCESS;
+    eDynamicRange          dynamicRange = eDynamicRange_Unknown;
+    NEXUS_DisplayStatus status;
 
-    if (NULL != pOutput)
+    nerror = NEXUS_Display_GetStatus(getDisplay(), &status);
+    CHECK_NEXUS_ERROR_GOTO("unable to get Display status", ret, nerror, error);
+
+    switch (status.dynamicRangeMode)
     {
-        dynamicRange = pOutput->getDynamicRange();
+    case NEXUS_VideoDynamicRangeMode_eLegacy:
+    case NEXUS_VideoDynamicRangeMode_eSdr:
+        dynamicRange = eDynamicRange_SDR;
+        break;
+    case NEXUS_VideoDynamicRangeMode_eHlg:
+        dynamicRange = eDynamicRange_HLG;
+        break;
+    case NEXUS_VideoDynamicRangeMode_eHdr10:
+        dynamicRange = eDynamicRange_HDR10;
+        break;
+    default:
+        dynamicRange = eDynamicRange_Unknown;
+        break;
     }
 
+error:
     return(dynamicRange);
+} /* getDynamicRange */
+
+eRet CDisplay::setDynamicRange(eDynamicRange dynamicRange)
+{
+    eRet                          ret    = eRet_Ok;
+    NEXUS_Error                   nerror = NEXUS_SUCCESS;
+    NEXUS_DisplaySettings settings;
+
+    BDBG_ASSERT(eDynamicRange_Unknown != dynamicRange);
+    BDBG_ASSERT(eDynamicRange_Max != dynamicRange);
+
+    NEXUS_Display_GetSettings(getDisplay(), &settings);
+
+    switch (dynamicRange)
+    {
+    case eDynamicRange_HDR10:
+        settings.dynamicRangeMode = NEXUS_VideoDynamicRangeMode_eHdr10;
+        break;
+
+    case eDynamicRange_HLG:
+        settings.dynamicRangeMode = NEXUS_VideoDynamicRangeMode_eHlg;
+        break;
+
+    case eDynamicRange_DolbyVision:
+        settings.dynamicRangeMode = NEXUS_VideoDynamicRangeMode_eDolbyVision;
+        break;
+
+    case eDynamicRange_SDR:
+        settings.dynamicRangeMode = NEXUS_VideoDynamicRangeMode_eSdr;
+        break;
+
+    default:
+        settings.dynamicRangeMode = NEXUS_VideoDynamicRangeMode_eLegacy;
+        break;
+    } /* switch */
+
+    nerror = NEXUS_Display_SetSettings(getDisplay(), &settings);
+    CHECK_NEXUS_ERROR_GOTO("unable to set Display settings", ret, nerror, error);
+error:
+    return(ret);
+} /* setDynamicRange */
+
+eDynamicRange CDisplay::getOutputDynamicRange()
+{
+    return getDynamicRange();
 }
 
 eRet CDisplay::setOutputDynamicRange(eDynamicRange dynamicRange)
 {
     eRet          ret     = eRet_Ok;
-    COutputHdmi * pOutput = (COutputHdmi *)getOutput(eBoardResource_outputHdmi);
-
-    if (NULL != pOutput)
-    {
-        ret = pOutput->setDynamicRange(dynamicRange);
-        CHECK_ERROR_GOTO("unable to set hdmi output dynamic range", ret, error);
-
-        waitForDisplaySettingsApply();
-        _pModel->setLastDynamicRange(dynamicRange);
-    }
-
+    ret = setDynamicRange(dynamicRange);
+    CHECK_ERROR_GOTO("unable to set hdmi output dynamic range", ret, error);
+    waitForDisplaySettingsApply();
+    _pModel->setLastDynamicRange(dynamicRange);
 error:
     return(ret);
 } /* setOutputDynamicRange */

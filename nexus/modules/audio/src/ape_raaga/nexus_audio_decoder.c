@@ -1129,10 +1129,6 @@ err_channel_change_report_event_handler:
 err_channel_change_report_event:
     NEXUS_UnregisterEvent(handle->sampleRateCallback);
 err_sample_rate_callback:
-    for ( j = 0; j < NEXUS_AudioConnectorType_eMax; j++ )
-    {
-        NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &handle->connectors[j], Close);
-    }
     BKNI_DestroyEvent(handle->sampleRateEvent);
 err_sample_rate_event:
     for ( j = 0; j < NEXUS_AudioConnectorType_eMax; j++ )

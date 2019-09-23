@@ -41,6 +41,9 @@
  ******************************************************************************/
 
 #include "nexus_hdmi_output_module.h"
+#if NEXUS_DBV_SUPPORT
+#include "nexus_hdmi_output_dbv_impl.h"
+#endif
 #include "priv/nexus_hdmi_output_priv.h"
 #include "priv/nexus_i2c_priv.h"
 #include "priv/nexus_core_video.h"
@@ -433,7 +436,7 @@ static void NEXUS_HdmiOutput_PrintEotfSupport(void)
 
         for (j = 0; j < BAVC_HDMI_DRM_EOTF_eMax; j++)
         {
-            if (hdmiOutput->drm.hdrdb.bEotfSupport[j] && (j == BAVC_HDMI_DRM_EOTF_eHDR))
+            if (hdmiOutput->dynrng.drmif.hdrdb.bEotfSupport[j] && (j == BAVC_HDMI_DRM_EOTF_eHDR))
                 continue ;  /* leave HDR(gamma) out */
 
             strOffset += BKNI_Snprintf(pchEotfSupport+strOffset,
@@ -450,13 +453,38 @@ static void NEXUS_HdmiOutput_PrintEotfSupport(void)
 
         BDBG_LOG(("   EDID Supported Luminance:")) ;
         BDBG_LOG(("      Min=%d, MinValid=%d, Avg=%d, AvgValid=%d, Max=%d, MaxValid=%d",
-            hdmiOutput->drm.hdrdb.MinLuminance, hdmiOutput->drm.hdrdb.MinLuminanceValid,
-            hdmiOutput->drm.hdrdb.AverageLuminance, hdmiOutput->drm.hdrdb.AverageLuminanceValid,
-            hdmiOutput->drm.hdrdb.MaxLuminance, hdmiOutput->drm.hdrdb.MaxLuminanceValid)) ;
+            hdmiOutput->dynrng.drmif.hdrdb.MinLuminance, hdmiOutput->dynrng.drmif.hdrdb.MinLuminanceValid,
+            hdmiOutput->dynrng.drmif.hdrdb.AverageLuminance, hdmiOutput->dynrng.drmif.hdrdb.AverageLuminanceValid,
+            hdmiOutput->dynrng.drmif.hdrdb.MaxLuminance, hdmiOutput->dynrng.drmif.hdrdb.MaxLuminanceValid)) ;
     }
 #endif
 }
 
+static const char * NEXUS_HdmiOutput_P_DynamicRangeModeToStr(NEXUS_VideoDynamicRangeMode dynrng)
+{
+    static const char * dynrngNames[NEXUS_VideoDynamicRangeMode_eMax] =
+    {
+        "default",
+        "auto-select", /* automatic mode selection based on Broadcom rules for best user experience */
+        "track-input", /* automatic mode selection based on following the input mode for full-screen video */
+        "legacy", /* SDR with no explicit signaling (no DRMIF packet sent) */
+        "SDR", /* SDR with DRMIF signaling */
+        "HDR10", /* SMPTE ST 2084 PQ */
+        "HLG", /* BT.2100 HLG */
+        "HDR10+", /* HDR10+ */
+        "Dolby Vision" /* Dolby Vision */
+    };
+    static const char * unknown = "UNKNOWN";
+
+    if (dynrng >= NEXUS_VideoDynamicRangeMode_eMax)
+    {
+        return unknown;
+    }
+    else
+    {
+        return dynrngNames[dynrng];
+    }
+}
 
 void NEXUS_HdmiOutputModule_Print(void)
 {
@@ -568,21 +596,37 @@ void NEXUS_HdmiOutputModule_Print(void)
 
         if (hdmiOutputStatus->connected)
         {
+            NEXUS_ColorSpace colorSpace;
+            NEXUS_MatrixCoefficients colorimetry;
+            NEXUS_ColorRange colorRange;
+            unsigned colorDepth;
+
             BDBG_LOG(("HDMI Settings:")) ;
-            BDBG_LOG(("  ColorSpace: %s",
-                NEXUS_HdmiOutput_P_ColorSpace_ToText(hdmiOutput->displaySettings.colorSpace))) ;
+            if (hdmiOutput->displaySettings.valid)
+            {
+                colorSpace = hdmiOutput->displaySettings.settings.colorSpace;
+                colorDepth = hdmiOutput->displaySettings.settings.colorDepth;
+                colorimetry = hdmiOutput->displaySettings.settings.colorimetry;
+                colorRange = hdmiOutput->displaySettings.settings.colorRange;
+            }
+            else
+            {
+                colorSpace = NEXUS_ColorSpace_eMax;
+                colorDepth = 0;
+                colorimetry = NEXUS_MatrixCoefficients_eUnknown;
+                colorRange = NEXUS_ColorRange_eMax;
+            }
 
-            BDBG_LOG(("  ColorDepth: %d ", hdmiOutput->displaySettings.colorDepth)) ;
-
+            BDBG_LOG(("  ColorSpace: %s", NEXUS_HdmiOutput_P_ColorSpace_ToText(colorSpace))) ;
+            BDBG_LOG(("  ColorDepth: %d ", colorDepth)) ;
             BDBG_LOG(("  Matrix Coefficient ID: %d  Override: %s",
-                hdmiOutput->displaySettings.eColorimetry,
-                hdmiOutput->displaySettings.overrideMatrixCoefficients ? "Yes" : "No")) ;
-
+                colorimetry,
+                hdmiOutput->settings.overrideMatrixCoefficients ? "Yes" : "No")) ;
             BDBG_LOG(("  Color Range: %s  Override: %s",
-                hdmiOutput->displaySettings.colorRange ? "Limited"
-                : (hdmiOutput->displaySettings.colorRange ==  NEXUS_ColorRange_eFull) ? "Full"
+                (colorRange == NEXUS_ColorRange_eLimited) ? "Limited"
+                : (colorRange ==  NEXUS_ColorRange_eFull) ? "Full"
                 : "Unknown",
-                hdmiOutput->displaySettings.overrideColorRange ? "Yes" : "No")) ;
+                hdmiOutput->settings.overrideColorRange ? "Yes" : "No")) ;
 
 # if BHDM_HAS_HDMI_20_SUPPORT
             BHDM_SCDC_GetStatusControlData(hdmHandle, scdcControlData) ;
@@ -653,6 +697,8 @@ void NEXUS_HdmiOutputModule_Print(void)
             BDBG_LOG(("    ReAuth Requests Valid: %d  Invalid: %d",
                 hdmiOutput->hdcpMonitor.hdcp22.validReauthReqCounter,
                 hdmiOutput->hdcpMonitor.hdcp22.invalidReauthReqCounter)) ;
+            BDBG_LOG(("    AKE_Send_Cert timeouts: %d",
+                hdmiOutput->hdcpMonitor.hdcp22.akeSendCertFailures)) ;
             BDBG_LOG(("    Watchdog Counter: %d",
                 hdmiOutput->hdcpMonitor.hdcp22.watchdogCounter)) ;
             BDBG_LOG(("    Timeout Counter: %d",
@@ -664,7 +710,7 @@ void NEXUS_HdmiOutputModule_Print(void)
             /* Display Packet - DRM (displayed if DRM Static Metadata Block exists */
             /* DRM Packets are transmitted to HDR Capable TVs Only */
 
-            if (!hdmiOutput->drm.hdrdb.valid)
+            if (!hdmiOutput->dynrng.drmif.hdrdb.valid)
             {
                 BDBG_LOG(("   Attached Rx <%s> does not support HDR",
                     hdmiOutputStatus->monitorName)) ;
@@ -687,24 +733,20 @@ void NEXUS_HdmiOutputModule_Print(void)
 
  #if NEXUS_DBV_SUPPORT
                 BDBG_LOG(("   Dolby Vision Supported: %c",
-                    hdmiOutput->dbv.supported ? 'Y' : 'N')) ;
-
-                /* Output Dolby Vision */
-                if (hdmiOutput->dbv.state == NEXUS_HdmiOutputDbvState_eEnabled || hdmiOutput->dbv.state == NEXUS_HdmiOutputDbvState_eEnabling)
-                {
-                    strOffset += BKNI_Snprintf(pchOutputString+strOffset,
-                        sizeof (pchOutputString) - strOffset, "<Dolby Vision>") ;
-                    BDBG_LOG(("%s", pchOutputString)) ;
-                }
-                /* Output Dynamic Range */
-                else
+                    hdmiOutput->dynrng.dbv.supported ? 'Y' : 'N')) ;
  #else
                 BDBG_LOG(("   Dolby Vision Supported: N"));
+ #endif
+ #if NEXUS_HDR10PLUS_SUPPORT
+                BDBG_LOG(("   HDR10Plus Supported: %c",
+                    hdmiOutput->dynrng.hdr10Plus.supported ? 'Y' : 'N')) ;
+ #else
+                BDBG_LOG(("   HDR10Plus Supported: N"));
  #endif
                 {
                     strOffset += BKNI_Snprintf(pchOutputString+strOffset,
                         sizeof (pchOutputString) - strOffset, "<%s>",
-                        BAVC_HDMI_DRMInfoFrame_EOTFToStr(dynamicRangeMetadataInfoFrame.eEOTF)) ;
+                        NEXUS_HdmiOutput_P_DynamicRangeModeToStr(hdmiOutput->dynrng.outputMode)) ;
 
                     BDBG_LOG(("%s", pchOutputString)) ;
 

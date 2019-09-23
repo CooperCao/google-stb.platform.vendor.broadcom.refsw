@@ -1,39 +1,43 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2019 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -1277,7 +1281,7 @@ BERR_Code BSCD_P_FDAdjust(
         BERR_Code errCode = BERR_SUCCESS;
         uint32_t ulClkCmd=0;
 #ifndef SMARTCARD_32_BIT_REGISTER
-	uint32_t ulClkCmd2=0;
+    uint32_t ulClkCmd2=0;
 #endif
 
         BDBG_ENTER(BSCD_P_FDAdjust);
@@ -1316,17 +1320,17 @@ BERR_Code BSCD_P_FDAdjust(
                         ulClkCmd = BCHP_SCA_SC_CLK_CMD_clk_en_MASK |
                                 BSCD_P_MapScClkDivToMaskValue(1 ) |
                                 ((in_channelHandle->currentChannelSettings.ucEtuClkDiv - 1) << 1)  ;
-		#ifdef SMARTCARD_32_BIT_REGISTER
-			ulClkCmd |= BCHP_SCA_CLK_CMD_sc_clkdiv3_MASK;
-		#else
-			ulClkCmd2 = BCHP_SCA_SC_CLK_CMD_2_sc_clkdiv_MASK | BREG_Read32(
-			in_channelHandle->moduleHandle->regHandle,
-			(in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2));
-			BREG_Write32(
-			in_channelHandle->moduleHandle->regHandle,
-			(in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2),
-			ulClkCmd2);
-		#endif
+        #ifdef SMARTCARD_32_BIT_REGISTER
+            ulClkCmd |= BCHP_SCA_CLK_CMD_sc_clkdiv3_MASK;
+        #else
+            ulClkCmd2 = BCHP_SCA_SC_CLK_CMD_2_sc_clkdiv_MASK | BREG_Read32(
+            in_channelHandle->moduleHandle->regHandle,
+            (in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2));
+            BREG_Write32(
+            in_channelHandle->moduleHandle->regHandle,
+            (in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2),
+            ulClkCmd2);
+        #endif
                 }
         }
         else {
@@ -1342,14 +1346,14 @@ BERR_Code BSCD_P_FDAdjust(
                         ((in_channelHandle->currentChannelSettings.ucEtuClkDiv - 1) << 1)  |
                                 BCHP_SCA_SC_CLK_CMD_bauddiv_MASK;
                 #ifdef SMARTCARD_32_BIT_REGISTER
-			ulClkCmd |= BCHP_SCA_CLK_CMD_sc_clkdiv3_MASK;
-		#else
-			ulClkCmd2 = BCHP_SCA_SC_CLK_CMD_2_sc_clkdiv_MASK | BREG_Read32(
-			in_channelHandle->moduleHandle->regHandle,
-			(in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2));
-			BREG_Write32(
-			in_channelHandle->moduleHandle->regHandle,
-			(in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2),
+            ulClkCmd |= BCHP_SCA_CLK_CMD_sc_clkdiv3_MASK;
+        #else
+            ulClkCmd2 = BCHP_SCA_SC_CLK_CMD_2_sc_clkdiv_MASK | BREG_Read32(
+            in_channelHandle->moduleHandle->regHandle,
+            (in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2));
+            BREG_Write32(
+            in_channelHandle->moduleHandle->regHandle,
+            (in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2),
                                 ulClkCmd2);
                     #endif
 
@@ -1909,13 +1913,13 @@ BERR_Code BSCD_Channel_P_WaitForRcv(
 
 
             if ((ulIntrStatus1 & BCHP_SCA_SC_INTR_STAT_1_timer_intr_MASK) ==  BCHP_SCA_SC_INTR_STAT_1_timer_intr_MASK ) {
-		                    BKNI_EnterCriticalSection();
-		                    in_channelHandle->channelStatus.ulStatus1  |= BSCD_RX_TIMEOUT;
-		                    BKNI_LeaveCriticalSection();
-		                    /* This could be a good error if the caller specify a length larger than that of  the actual one. */
-		                    BDBG_MSG(("ScardDeviceWaitForRcv: SC_TIMER_INTR error "));
-		                    errCode = BSCD_STATUS_TIME_OUT;
-		                    goto BSCD_P_DONE_LABEL;
+                            BKNI_EnterCriticalSection();
+                            in_channelHandle->channelStatus.ulStatus1  |= BSCD_RX_TIMEOUT;
+                            BKNI_LeaveCriticalSection();
+                            /* This could be a good error if the caller specify a length larger than that of  the actual one. */
+                            BDBG_MSG(("ScardDeviceWaitForRcv: SC_TIMER_INTR error "));
+                            errCode = BSCD_STATUS_TIME_OUT;
+                            goto BSCD_P_DONE_LABEL;
                 }
 
                 /* BSYT???:  Obsolete ??? */
@@ -2343,7 +2347,7 @@ else{
 #endif
 
         /* Enable 2 interrupts with callback */
-	BKNI_EnterCriticalSection();
+    BKNI_EnterCriticalSection();
 
         BSCD_P_CHECK_ERR_CODE_FUNC_CriSec(errCode,
                                 BSCD_Channel_EnableIntrCallback_isr (
@@ -2354,7 +2358,7 @@ else{
                                 BSCD_Channel_EnableIntrCallback_isr (
                                 in_channelHandle, BSCD_IntType_eRcvInt,
                                 BSCD_Channel_P_RcvCB_isr));
-	BKNI_LeaveCriticalSection();
+    BKNI_LeaveCriticalSection();
         /* Set BCM to get ATR packet.       */
         ulVal =  BREG_Read32(
                 in_channelHandle->moduleHandle->regHandle,
@@ -4603,15 +4607,15 @@ static BERR_Code BSCD_Channel_P_ConfigEvent1Timer_isrsafe(
                     in_channelHandle->moduleHandle->regHandle,
                     (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT1_CMD_2),
                     inp_timer->timerMode.eEventTimerMode->incr_event);
-			            /* reset event src */
+                        /* reset event src */
             BREG_Write32(
                     in_channelHandle->moduleHandle->regHandle,
                     (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT1_CMD_1),
                     inp_timer->timerMode.eEventTimerMode->reset_event);
 #else
-	ulTimerCmdVal |= inp_timer->timerMode.eEventTimerMode->start_event<<BCHP_SCA_EVENT1_CMD_start_event_src_SHIFT;
-	ulTimerCmdVal |= inp_timer->timerMode.eEventTimerMode->incr_event<<BCHP_SCA_EVENT1_CMD_increment_event_src_SHIFT;
-	ulTimerCmdVal |= inp_timer->timerMode.eEventTimerMode->reset_event;
+    ulTimerCmdVal |= inp_timer->timerMode.eEventTimerMode->start_event<<BCHP_SCA_EVENT1_CMD_start_event_src_SHIFT;
+    ulTimerCmdVal |= inp_timer->timerMode.eEventTimerMode->incr_event<<BCHP_SCA_EVENT1_CMD_increment_event_src_SHIFT;
+    ulTimerCmdVal |= inp_timer->timerMode.eEventTimerMode->reset_event;
         BREG_Write32(
                     in_channelHandle->moduleHandle->regHandle,
                     (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT1_CMD_1),
@@ -4753,16 +4757,16 @@ static BERR_Code BSCD_Channel_P_ConfigEvent2Timer_isrsafe(
                 in_channelHandle->moduleHandle->regHandle,
                 (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT2_CMD_2),
                 inp_timer->timerMode.eEventTimerMode->incr_event);
-		/* reset event src */
+        /* reset event src */
         BREG_Write32(
                 in_channelHandle->moduleHandle->regHandle,
                 (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT2_CMD_1),
                 inp_timer->timerMode.eEventTimerMode->reset_event);
 #else
-	ulTimerCmdVal |= inp_timer->timerMode.eEventTimerMode->start_event<<BCHP_SCA_EVENT2_CMD_start_event_src_SHIFT;
-	ulTimerCmdVal |= inp_timer->timerMode.eEventTimerMode->incr_event<<BCHP_SCA_EVENT2_CMD_increment_event_src_SHIFT;
-	ulTimerCmdVal |= inp_timer->timerMode.eEventTimerMode->reset_event;
-		/* start event src */
+    ulTimerCmdVal |= inp_timer->timerMode.eEventTimerMode->start_event<<BCHP_SCA_EVENT2_CMD_start_event_src_SHIFT;
+    ulTimerCmdVal |= inp_timer->timerMode.eEventTimerMode->incr_event<<BCHP_SCA_EVENT2_CMD_increment_event_src_SHIFT;
+    ulTimerCmdVal |= inp_timer->timerMode.eEventTimerMode->reset_event;
+        /* start event src */
         BREG_Write32(
                 in_channelHandle->moduleHandle->regHandle,
                 (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT2_CMD_1),
@@ -5193,10 +5197,10 @@ BERR_Code BSCD_Channel_P_SetSrcClock(
 
         BERR_Code               errCode = BERR_SUCCESS;
         uint32_t         ulVal;
-		uint32_t ulReg;
+        uint32_t ulReg;
 
         BDBG_ENTER(BSCD_Channel_P_SetSrcClock);
-		BSTD_UNUSED(ulReg);
+        BSTD_UNUSED(ulReg);
 if(inp_sSettings->srcClkFreqInHz){
 
         BDBG_MSG(("Set smartcard source clock..%ld.", inp_sSettings->srcClkFreqInHz));
@@ -5211,7 +5215,7 @@ ulVal &=~ BCHP_SCA_SC_CLK_CMD_clk_en_MASK;
 
          if(inp_sSettings->srcClkFreqInHz){
                 in_channelHandle->moduleHandle->currentSettings.moduleClkFreq.ulClkFreq =  inp_sSettings->srcClkFreqInHz;
-		switch(inp_sSettings->srcClkFreqInHz){
+        switch(inp_sSettings->srcClkFreqInHz){
                         case 27000000:
                                 in_channelHandle->currentChannelSettings.eSrcClkFreq = BSCD_ClockFreq_e27MHZ;
                                 break;
@@ -5226,7 +5230,7 @@ ulVal &=~ BCHP_SCA_SC_CLK_CMD_clk_en_MASK;
                                 break;
                         case 108000000:
                                 in_channelHandle->currentChannelSettings.eSrcClkFreq = BSCD_ClockFreq_e108MHZ;
-				break;
+                break;
                         case 40000000:
                                 in_channelHandle->currentChannelSettings.eSrcClkFreq = BSCD_ClockFreq_e40MHZ;
                                 break;
@@ -5674,85 +5678,85 @@ else if(in_channelHandle->currentChannelSettings.eSrcClkFreq == BSCD_ClockFreq_e
 
 #endif
 #if 1
-	{
-		unsigned char nDiv, mDiv;
-		unsigned int nDiv_Frac;
+    {
+        unsigned char nDiv, mDiv;
+        unsigned int nDiv_Frac;
 
-		ulReg = (in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_RDB_MACRO_CTRL:BCHP_CLKGEN_PLL_SC0_RDB_MACRO_CTRL;
-		ulVal = 0;
-		BREG_Write32(
+        ulReg = (in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_RDB_MACRO_CTRL:BCHP_CLKGEN_PLL_SC0_RDB_MACRO_CTRL;
+        ulVal = 0;
+        BREG_Write32(
                    in_channelHandle->moduleHandle->regHandle,
                         ulReg, ulVal);
-		switch(in_channelHandle->currentChannelSettings.eSrcClkFreq ){
-			case BSCD_ClockFreq_e27MHZ:
-				nDiv = 48;
-				mDiv = 48;
-				nDiv_Frac=0;
-				break;
-			case BSCD_ClockFreq_e108MHZ:
-				nDiv = 48;
-				mDiv = 12;
-				nDiv_Frac=0;
-				break;
-			case BSCD_ClockFreq_e24MHZ:
-				nDiv = 48;
-				mDiv = 54;
-				nDiv_Frac=0;
-				break;
-			case BSCD_ClockFreq_e36P864MHZ:
-				nDiv = 48;
-				mDiv = 36;
-				nDiv_Frac=159384;
-				break;
-			case BSCD_ClockFreq_e36MHZ:
-				nDiv = 48;
-				mDiv = 36;
-				nDiv_Frac=0;
-				break;
-			case BSCD_ClockFreq_e7P14MHZ:
-				nDiv = 119;
-				mDiv = 225;
-				nDiv_Frac=0;
-				break;
-			case BSCD_ClockFreq_e40MHZ:
-				nDiv = 40;
-				mDiv = 27;
-				nDiv_Frac=0;
-				break;
-			default:
-				nDiv = 48;
-				mDiv = 48;
-				nDiv_Frac=0;
-				break;
-		}
-		ulReg = (in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_PLL_DIV:BCHP_CLKGEN_PLL_SC0_PLL_DIV;
+        switch(in_channelHandle->currentChannelSettings.eSrcClkFreq ){
+            case BSCD_ClockFreq_e27MHZ:
+                nDiv = 48;
+                mDiv = 48;
+                nDiv_Frac=0;
+                break;
+            case BSCD_ClockFreq_e108MHZ:
+                nDiv = 48;
+                mDiv = 12;
+                nDiv_Frac=0;
+                break;
+            case BSCD_ClockFreq_e24MHZ:
+                nDiv = 48;
+                mDiv = 54;
+                nDiv_Frac=0;
+                break;
+            case BSCD_ClockFreq_e36P864MHZ:
+                nDiv = 48;
+                mDiv = 36;
+                nDiv_Frac=159384;
+                break;
+            case BSCD_ClockFreq_e36MHZ:
+                nDiv = 48;
+                mDiv = 36;
+                nDiv_Frac=0;
+                break;
+            case BSCD_ClockFreq_e7P14MHZ:
+                nDiv = 119;
+                mDiv = 225;
+                nDiv_Frac=0;
+                break;
+            case BSCD_ClockFreq_e40MHZ:
+                nDiv = 40;
+                mDiv = 27;
+                nDiv_Frac=0;
+                break;
+            default:
+                nDiv = 48;
+                mDiv = 48;
+                nDiv_Frac=0;
+                break;
+        }
+        ulReg = (in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_PLL_DIV:BCHP_CLKGEN_PLL_SC0_PLL_DIV;
                 ulVal = BREG_Read32(
                                 in_channelHandle->moduleHandle->regHandle,
                                 ulReg) ;
                 ulVal &= ~BCHP_CLKGEN_PLL_SC0_PLL_DIV_NDIV_INT_MASK;
-		ulVal |= nDiv<<BCHP_CLKGEN_PLL_SC0_PLL_DIV_NDIV_INT_SHIFT;
-		BREG_Write32(
+        ulVal |= nDiv<<BCHP_CLKGEN_PLL_SC0_PLL_DIV_NDIV_INT_SHIFT;
+        BREG_Write32(
                                 in_channelHandle->moduleHandle->regHandle,
                                 ulReg, ulVal);
 
-		ulReg =(in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_PLL_CHANNEL_CTRL_CH_0:BCHP_CLKGEN_PLL_SC0_PLL_CHANNEL_CTRL_CH_0;;
+        ulReg =(in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_PLL_CHANNEL_CTRL_CH_0:BCHP_CLKGEN_PLL_SC0_PLL_CHANNEL_CTRL_CH_0;;
                 ulVal = BREG_Read32(
                                 in_channelHandle->moduleHandle->regHandle,
                                 ulReg) ;
                 ulVal &= ~BCHP_CLKGEN_PLL_SC0_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_MASK;
-		ulVal |= mDiv<<BCHP_CLKGEN_PLL_SC0_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_SHIFT;
-		BREG_Write32(
+        ulVal |= mDiv<<BCHP_CLKGEN_PLL_SC0_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_SHIFT;
+        BREG_Write32(
                                 in_channelHandle->moduleHandle->regHandle,
                                 ulReg, ulVal);
 
-		ulReg = (in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_PLL_FRAC:BCHP_CLKGEN_PLL_SC0_PLL_FRAC;
+        ulReg = (in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_PLL_FRAC:BCHP_CLKGEN_PLL_SC0_PLL_FRAC;
                 BREG_Write32(
                                 in_channelHandle->moduleHandle->regHandle,
                                 ulReg, nDiv_Frac);
 
-		ulReg = (in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_PLL_RESET:BCHP_CLKGEN_PLL_SC0_PLL_RESET;
+        ulReg = (in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_PLL_RESET:BCHP_CLKGEN_PLL_SC0_PLL_RESET;
 
-#if (BCHP_CHIP==7278)
+#if (BCHP_CHIP==7278) || (BCHP_CHIP==7260)
                 ulVal |= 1<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_SHIFT;
                 ulVal |= 1<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_SHIFT;
                         BREG_Write32(
@@ -5767,52 +5771,52 @@ else if(in_channelHandle->currentChannelSettings.eSrcClkFreq == BSCD_ClockFreq_e
 
 #else
 
-		BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
-			ulReg,BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_MASK,
-			1<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_SHIFT);
-		BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
-			ulReg,BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_MASK,
-			1<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_SHIFT);
+        BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
+            ulReg,BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_MASK,
+            1<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_SHIFT);
+        BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
+            ulReg,BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_MASK,
+            1<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_SHIFT);
 
-		BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
-			ulReg,BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_MASK,
-			0<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_SHIFT);
-		BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
-			ulReg,BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_MASK,
-			0<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_SHIFT);
+        BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
+            ulReg,BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_MASK,
+            0<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETD_SHIFT);
+        BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle,
+            ulReg,BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_MASK,
+            0<<BCHP_CLKGEN_PLL_SC0_PLL_RESET_RESETA_SHIFT);
 #endif
-	}
+    }
 #else
 
-		ulReg = (in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_RDB_MACRO_CTRL:BCHP_CLKGEN_PLL_SC0_RDB_MACRO_CTRL;
-		ulVal = 0;
-		switch(in_channelHandle->currentChannelSettings.eSrcClkFreq ){
-			case BSCD_ClockFreq_e27MHZ:
-				ulVal = 0;
-				break;
-			case BSCD_ClockFreq_e108MHZ:
-				ulVal = 1;
-				break;
-			case BSCD_ClockFreq_e24MHZ:
-				ulVal = 2;
-				break;
-			case BSCD_ClockFreq_e36P864MHZ:
-				ulVal = 3;
-				break;
-			case BSCD_ClockFreq_e36MHZ:
-				ulVal = 4;
-				break;
-			case BSCD_ClockFreq_e7P14MHZ:
-				ulVal = 6;
-				break;
-			case BSCD_ClockFreq_e40MHZ:
-				ulVal = 8;
-				break;
-			default:
-				ulVal =0;
-				break;
-		}
-		 BREG_Write32(
+        ulReg = (in_channelHandle->ucChannelNumber)?BCHP_CLKGEN_PLL_SC1_RDB_MACRO_CTRL:BCHP_CLKGEN_PLL_SC0_RDB_MACRO_CTRL;
+        ulVal = 0;
+        switch(in_channelHandle->currentChannelSettings.eSrcClkFreq ){
+            case BSCD_ClockFreq_e27MHZ:
+                ulVal = 0;
+                break;
+            case BSCD_ClockFreq_e108MHZ:
+                ulVal = 1;
+                break;
+            case BSCD_ClockFreq_e24MHZ:
+                ulVal = 2;
+                break;
+            case BSCD_ClockFreq_e36P864MHZ:
+                ulVal = 3;
+                break;
+            case BSCD_ClockFreq_e36MHZ:
+                ulVal = 4;
+                break;
+            case BSCD_ClockFreq_e7P14MHZ:
+                ulVal = 6;
+                break;
+            case BSCD_ClockFreq_e40MHZ:
+                ulVal = 8;
+                break;
+            default:
+                ulVal =0;
+                break;
+        }
+         BREG_Write32(
                    in_channelHandle->moduleHandle->regHandle,
                         ulReg, ulVal);
 #endif
@@ -6387,8 +6391,8 @@ BERR_Code BSCD_Channel_P_SetFreq(
         }
         BDBG_MSG(("ucBaudDiv = %d", in_channelHandle->currentChannelSettings.ucBaudDiv));
 
-		if(!in_channelHandle->currentChannelSettings.ucScClkDiv || !in_channelHandle->currentChannelSettings.ucEtuClkDiv|| !in_channelHandle->currentChannelSettings.ucBaudDiv)
-			BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED, true);
+        if(!in_channelHandle->currentChannelSettings.ucScClkDiv || !in_channelHandle->currentChannelSettings.ucEtuClkDiv|| !in_channelHandle->currentChannelSettings.ucBaudDiv)
+            BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED, true);
         /* Set ICC CLK Freq */
         in_channelHandle->currentChannelSettings.currentICCClkFreq =
                         in_channelHandle->moduleHandle->currentSettings.moduleClkFreq.ulClkFreq  /
@@ -6728,5 +6732,3 @@ void BSCD_Channel_P_PrintDebug(
    }
 }
 #endif
-
-

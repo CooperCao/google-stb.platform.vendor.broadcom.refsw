@@ -38,49 +38,35 @@
  *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
  *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
  *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- **************************************************************************/
-#ifndef NEXUS_DISPLAY_PRIVATE_H__
-#define NEXUS_DISPLAY_PRIVATE_H__
+ *****************************************************************************/
+#ifndef NEXUS_HDMI_OUTPUT_DRM_IMPL_H
+#define NEXUS_HDMI_OUTPUT_DRM_IMPL_H
 
-#include "nexus_display.h"
 #include "nexus_hdmi_types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void NEXUS_Display_GetIndex_driver(
-    NEXUS_DisplayHandle display,
-    unsigned *pDisplayIndex
-    );
-
-typedef struct NEXUS_DisplayPrivateStatus
+typedef struct NEXUS_HdmiOutputDrmifData
 {
-    NEXUS_HdmiDynamicRangeMasteringInfoFrame infoFrame;
-} NEXUS_DisplayPrivateStatus;
+    NEXUS_HdmiDynamicRangeMasteringInfoFrame inputInfoFrame;
+    NEXUS_HdmiDynamicRangeMasteringInfoFrame outputInfoFrame;
+    BHDM_EDID_HDRStaticDB hdrdb ; /* last one, compared to current one */
+    NEXUS_TimerHandle offTimer;
+} NEXUS_HdmiOutputDrmifData;
 
-typedef struct NEXUS_DisplayPrivateSettings
-{
-    NEXUS_CallbackDesc hdrInfoChanged; /* private hdrInfoChanged callback; same semantics as public one */
-} NEXUS_DisplayPrivateSettings;
-
-void NEXUS_Display_GetPrivateSettings(
-    NEXUS_DisplayHandle display,
-    NEXUS_DisplayPrivateSettings *pSettings
-    );
-
-NEXUS_Error NEXUS_Display_SetPrivateSettings(
-    NEXUS_DisplayHandle display,
-    const NEXUS_DisplayPrivateSettings *pSettings
-    );
-
-void NEXUS_Display_GetPrivateStatus(
-    NEXUS_DisplayHandle display,
-    NEXUS_DisplayPrivateStatus *pStatus
-    );
+void NEXUS_HdmiOutput_Drmif_P_Init(NEXUS_HdmiOutputHandle hdmiOutput);
+NEXUS_Error NEXUS_HdmiOutput_Drmif_P_Set(NEXUS_HdmiOutputHandle hdmiOutput, const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame);
+void NEXUS_HdmiOutput_Drmif_P_SetInput(NEXUS_HdmiOutputHandle hdmiOutput, const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame);
+void NEXUS_HdmiOutput_Drmif_P_ApplyInput(NEXUS_HdmiOutputHandle hdmiOutput, NEXUS_HdmiDynamicRangeMasteringInfoFrame * pTargetDrmInfoFrame);
+void NEXUS_HdmiOutput_Drmif_P_SetSource(NEXUS_HdmiOutputHandle hdmiOutput, NEXUS_HdmiDynamicRangeMasteringInfoFrame * pTargetDrmInfoFrame);
+bool NEXUS_HdmiOutput_Drmif_P_ConnectionChanged(NEXUS_HdmiOutputHandle output, bool force);
+void NEXUS_HdmiOutput_Drmif_P_UpdateModeStatus(NEXUS_HdmiOutputHandle output, NEXUS_VideoDynamicRangeMode * pMode);
+NEXUS_VideoEotf NEXUS_HdmiOutput_Drmif_P_GetOutputEotf(NEXUS_HdmiOutputHandle hdmiOutput);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* NEXUS_DISPLAY_PRIVATE_H__ */
+#endif /* NEXUS_HDMI_OUTPUT_DRM_IMPL_H */

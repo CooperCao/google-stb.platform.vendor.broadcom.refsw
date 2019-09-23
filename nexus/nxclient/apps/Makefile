@@ -84,6 +84,7 @@ BASIC_BUILD_APPS = \
 	sd_video_override \
 	setaudio \
 	setdisplay \
+	setdrmif \
 	sethdcp \
 	set_wifi_region \
 	simpleplay \

@@ -1,39 +1,43 @@
 /***************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2019 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ***************************************************************************/
 /*
    Title: calcDelay
@@ -350,11 +354,11 @@ BVCE_FW_P_CalcVideoA2Pdelay(
 
     if ((MaxAllowedGopStruct == ENCODING_GOP_STRUCT_IBP) ||
         (MaxAllowedGopStruct == ENCODING_GOP_STRUCT_IBBP) ||
-        (MaxAllowedGopStruct == ENCODING_GOP_STRUCT_IBBP_B_REF) ||
+		(MaxAllowedGopStruct == ENCODING_GOP_STRUCT_IBBP_B_REF) ||
         (MaxAllowedGopStruct == ENCODING_GOP_STRUCT_IBBBP) ||
-        (MaxAllowedGopStruct == ENCODING_GOP_STRUCT_IBBBBBP) ||
-        (MaxAllowedGopStruct == ENCODING_GOP_STRUCT_IBBBBBBBP)
-        )
+		(MaxAllowedGopStruct == ENCODING_GOP_STRUCT_IBBBBBP) ||
+		(MaxAllowedGopStruct == ENCODING_GOP_STRUCT_IBBBBBBBP)
+		)
     {
         /* Offset between PTS and DTS when B pictures allowed */
         ptsDtsDelayOffset = maxPictureIntervalIn27MhzTicks;
@@ -911,7 +915,7 @@ static uint8_t bvceEpmCalcWidthInStripes(uint32_t PictureWidthInPels,uint32_t Dr
     }
     else /* DramStripeWidth==256 */
     {
-        WidthInStripes = DIV256_ROUNDUP(PictureWidthInPels);
+	    WidthInStripes = DIV256_ROUNDUP(PictureWidthInPels);
     }
 
     return(WidthInStripes);
@@ -1060,21 +1064,13 @@ static uint32_t bvceEpmCalcStripeBufferSize(uint32_t PictureWidthInPels , uint32
       BuffereHeightInPels = PictureHeightInPels;
     }
 
-
-      Nmby = bvceEpmCalcNMBY(DIV16_ROUNDUP(BuffereHeightInPels) , X , Y);
-
-
+    Nmby = bvceEpmCalcNMBY(DIV16_ROUNDUP(BuffereHeightInPels) , X , Y);
 
     BuffSize = bvceEpmAlignJword( bvceEpmCalcWidthInStripes(BufferWidthInPels,StripeWidth) * StripeWidth * MULT16(Nmby) );
     BuffSize = ((BuffSize+4095) & 0xfffff000);
 
-
-
     return(BuffSize);
-
 }
-
-
 
 /* ==============   MEMORY CALCULATIONS   ================== */
 
@@ -1137,31 +1133,31 @@ void BVCE_FW_P_GetDefaultNonSecureMemSettings( const BVCE_FW_P_CoreSettings_t *p
 
     if ( pstCoreSettings->eVersion >= BVCE_FW_P_COREVERSION_V3_0_0_2)
     {
-    uint32_t ProgressiveDramBuffSize;
-    uint32_t InterlaceDramBuffSize;
+	uint32_t ProgressiveDramBuffSize;
+	uint32_t InterlaceDramBuffSize;
 
         pstMemSettings->DramStripeWidth = 256;
         pstMemSettings->X = 32;
         pstMemSettings->Y = 12;
         pstMemSettings->DcxvEnable = 1;
-        pstMemSettings->NewBvnMailboxEnable = 0;
-        pstMemSettings->PageSize = 2;
+	pstMemSettings->NewBvnMailboxEnable = 0;
+	    pstMemSettings->PageSize = 2;
 
         pstMemSettings->InputType = ENCODER_INPUT_TYPE_INTERLACED;
-        pstMemSettings->MaxGopStructure = ENCODING_GOP_STRUCT_IBBBP;
+		pstMemSettings->MaxGopStructure = ENCODING_GOP_STRUCT_IBBBP;
 
         InterlaceDramBuffSize= BVCE_FW_P_CalcNonSecureMem( pstCoreSettings, pstMemSettings );
 
         pstMemSettings->InputType = ENCODER_INPUT_TYPE_PROGRESSIVE;
-        pstMemSettings->MaxGopStructure = ENCODING_GOP_STRUCT_IBBBBBBBP;
+		pstMemSettings->MaxGopStructure = ENCODING_GOP_STRUCT_IBBBBBBBP;
 
-        ProgressiveDramBuffSize= BVCE_FW_P_CalcNonSecureMem( pstCoreSettings, pstMemSettings );
+		ProgressiveDramBuffSize= BVCE_FW_P_CalcNonSecureMem( pstCoreSettings, pstMemSettings );
 
-        if (InterlaceDramBuffSize > ProgressiveDramBuffSize)
-        {
+		if (InterlaceDramBuffSize > ProgressiveDramBuffSize)
+		{
         pstMemSettings->InputType = ENCODER_INPUT_TYPE_INTERLACED;
-        pstMemSettings->MaxGopStructure = ENCODING_GOP_STRUCT_IBBBP;
-        }
+		pstMemSettings->MaxGopStructure = ENCODING_GOP_STRUCT_IBBBP;
+		}
 
 
     }
@@ -1171,9 +1167,9 @@ void BVCE_FW_P_GetDefaultNonSecureMemSettings( const BVCE_FW_P_CoreSettings_t *p
         pstMemSettings->X = 32;
         pstMemSettings->Y = 12;
         pstMemSettings->DcxvEnable = 1;
-    pstMemSettings->NewBvnMailboxEnable = 0;
-    pstMemSettings->PageSize = 2;
-        pstMemSettings->MaxGopStructure = ENCODING_GOP_STRUCT_IBBP;
+	pstMemSettings->NewBvnMailboxEnable = 0;
+	pstMemSettings->PageSize = 2;
+		pstMemSettings->MaxGopStructure = ENCODING_GOP_STRUCT_IBBP;
     }
     else
     {
@@ -1181,9 +1177,9 @@ void BVCE_FW_P_GetDefaultNonSecureMemSettings( const BVCE_FW_P_CoreSettings_t *p
         pstMemSettings->X = 16;
         pstMemSettings->Y = 6;
         pstMemSettings->DcxvEnable = 0;
-    pstMemSettings->NewBvnMailboxEnable = 0;
-    pstMemSettings->PageSize = 2;
-        pstMemSettings->MaxGopStructure = ENCODING_GOP_STRUCT_IBBP;
+	pstMemSettings->NewBvnMailboxEnable = 0;
+	pstMemSettings->PageSize = 2;
+		pstMemSettings->MaxGopStructure = ENCODING_GOP_STRUCT_IBBP;
     }
 }
 
@@ -1245,13 +1241,13 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
     uint8_t EPM_NUMBER_OF_RECONSTRUCTED_PICTURE_QUEUES;
 
 
-    if ( pstCoreSettings->eVersion >= BVCE_FW_P_COREVERSION_V3_0_0_2)
-    {
-    uint32_t DramBuffSize;
+	if ( pstCoreSettings->eVersion >= BVCE_FW_P_COREVERSION_V3_0_0_2)
+	{
+	uint32_t DramBuffSize;
 
-    DramBuffSize = BVCE_FW_P_CalcV3NonSecureMem ( pstCoreSettings, pstMemSettings );
-    return(DramBuffSize);
-    }
+	DramBuffSize = BVCE_FW_P_CalcV3NonSecureMem ( pstCoreSettings, pstMemSettings );
+	return(DramBuffSize);
+	}
 
 
 
@@ -1334,8 +1330,8 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
         size_of_csc_buffer=bvceEpmAlignJword(6*max_horizontal_size_in_mbs*max_vertical_size_in_mbs);
         size_of_csc_buffer = ((size_of_csc_buffer+4095) & 0xfffff000);
 
-        size_of_reconstructed_luma = bvceEpmCalcStripeBufferSize( max_horizontal_size_in_pels , max_vertical_size_in_pels , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
-        size_of_reconstructed_chroma = bvceEpmCalcStripeBufferSize( max_horizontal_size_in_pels , DIV2_ROUND(max_vertical_size_in_pels)  , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
+        size_of_reconstructed_luma = bvceEpmCalcStripeBufferSize( max_horizontal_size_in_pels , ((max_vertical_size_in_pels + 63) & 0xffffffc0) , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
+        size_of_reconstructed_chroma = bvceEpmCalcStripeBufferSize( max_horizontal_size_in_pels , (((max_vertical_size_in_pels >> 1) + 63) & 0xffffffc0)  , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
 
 
         #define WORKAROUND_HW_ISSUE_VICE2_196_210_MAX_NON_DCXV_WIDTH 1024
@@ -1457,8 +1453,8 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
         size_of_csc_buffer=bvceEpmAlignJword(6*max_horizontal_size_in_mbs*max_vertical_size_in_mbs);
         size_of_csc_buffer = ((size_of_csc_buffer+4095) & 0xfffff000);
 
-        size_of_reconstructed_luma = bvceEpmCalcStripeBufferSize( max_horizontal_size_in_pels , max_vertical_size_in_pels , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
-        size_of_reconstructed_chroma = bvceEpmCalcStripeBufferSize( max_horizontal_size_in_pels , DIV2_ROUND(max_vertical_size_in_pels)  , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
+        size_of_reconstructed_luma = bvceEpmCalcStripeBufferSize( max_horizontal_size_in_pels , ((max_vertical_size_in_pels + 63) & 0xffffffc0) , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
+        size_of_reconstructed_chroma = bvceEpmCalcStripeBufferSize( max_horizontal_size_in_pels ,(((max_vertical_size_in_pels >> 1) + 63) & 0xffffffc0)  , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
 
 
 
@@ -1538,8 +1534,8 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
         size_of_csc_buffer=bvceEpmAlignJword(6*max_horizontal_size_in_mbs*max_vertical_size_in_mbs);
         size_of_csc_buffer = ((size_of_csc_buffer+4095) & 0xfffff000);
 
-        size_of_reconstructed_luma = bvceEpmCalcStripeBufferSize( max_horizontal_size_in_pels , max_vertical_size_in_pels , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
-        size_of_reconstructed_chroma = bvceEpmCalcStripeBufferSize( max_horizontal_size_in_pels , DIV2_ROUND(max_vertical_size_in_pels)  , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
+        size_of_reconstructed_luma = bvceEpmCalcStripeBufferSize( max_horizontal_size_in_pels , ((max_vertical_size_in_pels + 63) & 0xffffffc0) , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
+        size_of_reconstructed_chroma = bvceEpmCalcStripeBufferSize( max_horizontal_size_in_pels , (((max_vertical_size_in_pels >> 1) + 63) & 0xffffffc0)  , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
 
 
 
@@ -1653,8 +1649,8 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
         size_of_csc_buffer=bvceEpmAlignJword(6*max_horizontal_size_in_mbs*max_vertical_size_in_mbs);
         size_of_csc_buffer = ((size_of_csc_buffer+4095) & 0xfffff000);
 
-        size_of_reconstructed_luma = bvceEpmCalcStripeBufferSize( max_horizontal_size_in_pels , max_vertical_size_in_pels , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
-        size_of_reconstructed_chroma = bvceEpmCalcStripeBufferSize( max_horizontal_size_in_pels , DIV2_ROUND(max_vertical_size_in_pels)  , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
+        size_of_reconstructed_luma = bvceEpmCalcStripeBufferSize( max_horizontal_size_in_pels , ((max_vertical_size_in_pels + 63) & 0xffffffc0) , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
+        size_of_reconstructed_chroma = bvceEpmCalcStripeBufferSize( max_horizontal_size_in_pels , (((max_vertical_size_in_pels >> 1) + 63) & 0xffffffc0)  , NonDCXVBuffer , InputType , DramStripeWidth , X , Y);
 
 
 
@@ -1745,48 +1741,48 @@ uint32_t BVCE_FW_P_CalcNonSecureMem ( const BVCE_FW_P_CoreSettings_t *pstCoreSet
 #endif /* defined(BCHP_CHIP) || defined(CEB2APP) || defined(VICE_FW_CMODEL_APP) */
 
 /* Progressive */
-#define     IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE    5
-#define     IP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE               7
+#define    	IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE    5
+#define		IP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE               7
 
-#define     I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE  6
-#define     I1BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE             8
+#define		I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE  6
+#define		I1BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE             8
 
-#define     I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE 7
-#define     I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE            9
+#define		I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE 7
+#define		I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE            9
 
-#define     I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE   7
-#define     I2BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE              9
+#define		I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE   7
+#define		I2BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE              9
 
-#define     I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE   8
-#define     I3BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE              10
+#define		I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE   8
+#define		I3BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE              10
 
-#define     I5BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE   10
-#define     I5BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE              12
+#define		I5BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE   10
+#define		I5BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE              12
 
-#define     I7BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE   12
-#define     I7BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE              14
+#define		I7BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE   12
+#define		I7BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE              14
 
 
 /* Interlace */
-#define     IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE     (5)*2
-#define     IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE  (5)
-#define     IP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE                (7)*2
+#define    	IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE     (5)*2
+#define    	IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE  (5)
+#define    	IP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE                (7)*2
 
-#define     I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE    (6)*2
-#define     I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE (6)
-#define     I1BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE               (8)*2
+#define		I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE    (6)*2
+#define		I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE (6)
+#define		I1BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE               (8)*2
 
-#define     I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE    (7)*2
-#define     I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE (7)
-#define     I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE               (9)*2
+#define		I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE    (7)*2
+#define		I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE (7)
+#define		I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE               (9)*2
 
-#define     I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE                (7)*2
-#define     I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE             (7)
-#define     I2BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE                           (9)*2
+#define		I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE                (7)*2
+#define		I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE             (7)
+#define		I2BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE                           (9)*2
 
-#define     I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE                (8)*2
-#define     I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE             (8)
-#define     I3BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE                           (10)*2
+#define		I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE                (8)*2
+#define		I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE             (8)
+#define		I3BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE                           (10)*2
 
 
 #if defined(BCHP_CHIP) || defined(CEB2APP) || defined (VICE_FW_CMODEL_APP)
@@ -1843,10 +1839,10 @@ uint8_t DramConfigPageSize;
 uint8_t DcxvEnable;
 uint32_t X,Y;
 
-    DramConfigPageSize = pstMemSettings->PageSize -1;
-    CurrAddr = 0x2000; /* add 4k due to alignment */
-    IsProgressive = !pstMemSettings->InputType;
-    StripeWidth = pstMemSettings->DramStripeWidth;
+	DramConfigPageSize = pstMemSettings->PageSize -1;
+	CurrAddr = 0x2000; /* add 4k due to alignment */
+	IsProgressive = !pstMemSettings->InputType;
+	StripeWidth = pstMemSettings->DramStripeWidth;
     X = pstMemSettings->X;
     Y = pstMemSettings->Y;
     MaxWidthInPel = pstMemSettings->MaxPictureWidthInPels;
@@ -1854,77 +1850,77 @@ uint32_t X,Y;
     DcxvEnable = pstMemSettings->DcxvEnable;
 
 
-        MaxWidthInMbs = DIV16_ROUNDUP(MaxWidthInPel);
-        MaxHeightInMbs = DIV16_ROUNDUP(MaxHeightInPel);
+		MaxWidthInMbs = DIV16_ROUNDUP(MaxWidthInPel);
+		MaxHeightInMbs = DIV16_ROUNDUP(MaxHeightInPel);
 
-        CscBuffSize = 4 * MaxWidthInMbs*MaxHeightInMbs;
-        CscBuffSize = ALIGN12BIT32(CscBuffSize);
-
-
-
-        ReconstructedLumaBuffSize = bvceV3EpmCalcStripeBufferSize(MaxWidthInPel , MaxHeightInPel , NonDCXVBuffer , !IsProgressive , StripeWidth , X , Y, DramConfigPageSize);
-        ReconstructedLumaBuffSize = ALIGN12BIT32(ReconstructedLumaBuffSize);
-        ReconstructedChromaBuffSize =         bvceV3EpmCalcStripeBufferSize(MaxWidthInPel , DIV2_ROUND(MaxHeightInPel) , NonDCXVBuffer , !IsProgressive , StripeWidth , X , Y, DramConfigPageSize);
-        ReconstructedChromaBuffSize = ALIGN12BIT32(ReconstructedChromaBuffSize);
-
-        /* Allocated stack of buffers for the CSC */
-
-        CscFreeBuffersQueueMaxNumOfRefs = (2 << (!IsProgressive)); /* 4 CME refs for interlace. 2 for progressive */
-
-        BuffSize = CscBuffSize*CscFreeBuffersQueueMaxNumOfRefs;
-
-        /* save start address and buffer size for on the fly address calculation */
-
-        CurrAddr = ALIGN12BIT64(CurrAddr);
-
-        CscFreeBuffersQueueNumOfBuff = V3_EPM_MAX_NUMBER_OF_CSC_QUEUES;
-
-        for (WrPtr = 0; WrPtr < CscFreeBuffersQueueNumOfBuff; WrPtr++)
-        {
-            CurrAddr = ALIGN12BIT64(CurrAddr);
-            CurrAddr = CurrAddr + BuffSize;
-        }
-
-
-        /* Allocate stack of buffers for the Reconstructed */
-
-        CurrAddr = ALIGN12BIT64(CurrAddr);
-        BuffSize = ReconstructedLumaBuffSize + ReconstructedChromaBuffSize;
-        if (
-            (pstMemSettings->MaxGopStructure == ENCODING_GOP_STRUCT_IBBBBBP) ||
-            (pstMemSettings->MaxGopStructure == ENCODING_GOP_STRUCT_IBBBBBBBP)
-            )
-            ReconstructedFreeBuffersQueueNumOfBuff = V3_I5BP_EPM_MAX_NUMBER_OF_RECONSTRUCTED_PICTURE_QUEUES;
-        else
-            ReconstructedFreeBuffersQueueNumOfBuff = V3_IBBBP_EPM_MAX_NUMBER_OF_RECONSTRUCTED_PICTURE_QUEUES;
+		CscBuffSize = 4 * MaxWidthInMbs*MaxHeightInMbs;
+		CscBuffSize = ALIGN12BIT32(CscBuffSize);
 
 
 
-        for (WrPtr = 0; WrPtr < ReconstructedFreeBuffersQueueNumOfBuff; WrPtr++)
-        {
-            CurrAddr = ALIGN12BIT64(CurrAddr);
-            CurrAddr = CurrAddr + BuffSize;
-        }
+		ReconstructedLumaBuffSize = bvceV3EpmCalcStripeBufferSize(MaxWidthInPel , ((MaxHeightInPel + 63) & 0xffffffc0)  , NonDCXVBuffer , !IsProgressive , StripeWidth , X , Y, DramConfigPageSize);
+		ReconstructedLumaBuffSize = ALIGN12BIT32(ReconstructedLumaBuffSize);
+		ReconstructedChromaBuffSize =         bvceV3EpmCalcStripeBufferSize(MaxWidthInPel , (((MaxHeightInPel >> 1) + 63) & 0xffffffc0) , NonDCXVBuffer , !IsProgressive , StripeWidth , X , Y, DramConfigPageSize);
+		ReconstructedChromaBuffSize = ALIGN12BIT32(ReconstructedChromaBuffSize);
 
-        /* allocate collocated buffer */
+		/* Allocated stack of buffers for the CSC */
 
-        CurrAddr = ALIGN12BIT64(CurrAddr);
-        CollocatedFreeBuffersQueueNumOfBuff = ReconstructedFreeBuffersQueueNumOfBuff;
+		CscFreeBuffersQueueMaxNumOfRefs = (2 << (!IsProgressive)); /* 4 CME refs for interlace. 2 for progressive */
 
-        codedHeight = (MaxHeightInPel + 63) & 0xFFC0;
-        mvHeight = codedHeight / 8;
-        PictureWidthInMBs = DIV16_ROUNDUP(MaxWidthInPel);
-        tmvpPitch = (12 * ((PictureWidthInMBs + 3) >> 2));
-        CollocatedBuffSize = (32 * tmvpPitch)*mvHeight;
+		BuffSize = CscBuffSize*CscFreeBuffersQueueMaxNumOfRefs;
 
-        CollocatedBuffSize = ALIGN12BIT32(CollocatedBuffSize);
-        CurrAddr = CurrAddr + CollocatedBuffSize * CollocatedFreeBuffersQueueNumOfBuff;
+		/* save start address and buffer size for on the fly address calculation */
 
-        CurrAddr = ALIGN12BIT64(CurrAddr);
+		CurrAddr = ALIGN12BIT64(CurrAddr);
+
+		CscFreeBuffersQueueNumOfBuff = V3_EPM_MAX_NUMBER_OF_CSC_QUEUES;
+
+		for (WrPtr = 0; WrPtr < CscFreeBuffersQueueNumOfBuff; WrPtr++)
+		{
+			CurrAddr = ALIGN12BIT64(CurrAddr);
+			CurrAddr = CurrAddr + BuffSize;
+		}
 
 
-        if (!pstMemSettings->NewBvnMailboxEnable)
-        {
+		/* Allocate stack of buffers for the Reconstructed */
+
+		CurrAddr = ALIGN12BIT64(CurrAddr);
+		BuffSize = ReconstructedLumaBuffSize + ReconstructedChromaBuffSize;
+		if (
+		    (pstMemSettings->MaxGopStructure == ENCODING_GOP_STRUCT_IBBBBBP) ||
+		    (pstMemSettings->MaxGopStructure == ENCODING_GOP_STRUCT_IBBBBBBBP)
+			)
+			ReconstructedFreeBuffersQueueNumOfBuff = V3_I5BP_EPM_MAX_NUMBER_OF_RECONSTRUCTED_PICTURE_QUEUES;
+		else
+			ReconstructedFreeBuffersQueueNumOfBuff = V3_IBBBP_EPM_MAX_NUMBER_OF_RECONSTRUCTED_PICTURE_QUEUES;
+
+
+
+		for (WrPtr = 0; WrPtr < ReconstructedFreeBuffersQueueNumOfBuff; WrPtr++)
+		{
+			CurrAddr = ALIGN12BIT64(CurrAddr);
+			CurrAddr = CurrAddr + BuffSize;
+		}
+
+		/* allocate collocated buffer */
+
+		CurrAddr = ALIGN12BIT64(CurrAddr);
+		CollocatedFreeBuffersQueueNumOfBuff = ReconstructedFreeBuffersQueueNumOfBuff;
+
+		codedHeight = (MaxHeightInPel + 63) & 0xFFC0;
+		mvHeight = codedHeight / 8;
+		PictureWidthInMBs = DIV16_ROUNDUP(MaxWidthInPel);
+		tmvpPitch = (12 * ((PictureWidthInMBs + 3) >> 2));
+		CollocatedBuffSize = (32 * tmvpPitch)*mvHeight;
+
+		CollocatedBuffSize = ALIGN12BIT32(CollocatedBuffSize);
+		CurrAddr = CurrAddr + CollocatedBuffSize * CollocatedFreeBuffersQueueNumOfBuff;
+
+		CurrAddr = ALIGN12BIT64(CurrAddr);
+
+
+		if (!pstMemSettings->NewBvnMailboxEnable)
+		{
 
 
 uint8_t Ptr;
@@ -1954,229 +1950,229 @@ uint8_t NumberOfOriginalPictureBuff;
 uint8_t NumberOfDecimatedPictureBuff;
 uint8_t NumberOfShiftedChromaPictureBuff;
 
-        if (IsProgressive == 1)
-        {
+		if (IsProgressive == 1)
+		{
 
-        switch (pstMemSettings->MaxGopStructure)
-        {
-        case    ENCODING_GOP_STRUCT_I:
-        case    ENCODING_GOP_STRUCT_IP:
-        case    ENCODING_GOP_STRUCT_INFINITE_IP:
-            NumberOfOriginalPictureBuff = IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
-            NumberOfDecimatedPictureBuff = IP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE;
-            break;
-        case    ENCODING_GOP_STRUCT_IBP:
-            NumberOfOriginalPictureBuff = I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
-            NumberOfDecimatedPictureBuff = I1BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE;
-            break;
-        case    ENCODING_GOP_STRUCT_IBBP:
-            NumberOfOriginalPictureBuff = I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
-            NumberOfDecimatedPictureBuff = I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE;
-            break;
-        case    ENCODING_GOP_STRUCT_IBBP_B_REF:
-            NumberOfOriginalPictureBuff = I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
-            NumberOfDecimatedPictureBuff = I2BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE;
-            break;
-        case    ENCODING_GOP_STRUCT_IBBBP:
-            NumberOfOriginalPictureBuff = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
-            NumberOfDecimatedPictureBuff = I3BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE;
-            break;
-        case    ENCODING_GOP_STRUCT_IBBBBBP:
-            NumberOfOriginalPictureBuff = I5BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
-            NumberOfDecimatedPictureBuff = I5BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE;
-            break;
-        case    ENCODING_GOP_STRUCT_IBBBBBBBP:
-            NumberOfOriginalPictureBuff = I7BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
-            NumberOfDecimatedPictureBuff = I7BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE;
-                break;
-        default:
-            NumberOfOriginalPictureBuff = I7BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
-            NumberOfDecimatedPictureBuff = I7BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE;
-            break;
-        }
+		switch (pstMemSettings->MaxGopStructure)
+		{
+		case	ENCODING_GOP_STRUCT_I:
+		case	ENCODING_GOP_STRUCT_IP:
+		case	ENCODING_GOP_STRUCT_INFINITE_IP:
+			NumberOfOriginalPictureBuff = IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+			NumberOfDecimatedPictureBuff = IP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE;
+			break;
+		case	ENCODING_GOP_STRUCT_IBP:
+			NumberOfOriginalPictureBuff = I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+			NumberOfDecimatedPictureBuff = I1BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE;
+			break;
+		case	ENCODING_GOP_STRUCT_IBBP:
+			NumberOfOriginalPictureBuff = I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+			NumberOfDecimatedPictureBuff = I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE;
+			break;
+		case	ENCODING_GOP_STRUCT_IBBP_B_REF:
+			NumberOfOriginalPictureBuff = I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+			NumberOfDecimatedPictureBuff = I2BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE;
+			break;
+		case	ENCODING_GOP_STRUCT_IBBBP:
+			NumberOfOriginalPictureBuff = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+			NumberOfDecimatedPictureBuff = I3BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE;
+			break;
+		case	ENCODING_GOP_STRUCT_IBBBBBP:
+			NumberOfOriginalPictureBuff = I5BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+			NumberOfDecimatedPictureBuff = I5BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE;
+			break;
+		case	ENCODING_GOP_STRUCT_IBBBBBBBP:
+			NumberOfOriginalPictureBuff = I7BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+			NumberOfDecimatedPictureBuff = I7BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE;
+				break;
+		default:
+			NumberOfOriginalPictureBuff = I7BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+			NumberOfDecimatedPictureBuff = I7BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_PROGRESSIVE;
+			break;
+		}
 
-            FreeBuffersQueueORIGINAL_LUMANumOfBuff = NumberOfOriginalPictureBuff;
-            FreeBuffersQueueORIGINAL_CHROMANumOfBuff = NumberOfOriginalPictureBuff;
-            FreeBuffersQueueORIGINAL_SHIFTED_CHROMANumOfBuff = 0;
-            FreeBuffersQueueDECIMATED_1VNumOfBuff = NumberOfDecimatedPictureBuff;
-            FreeBuffersQueueDECIMATED_2VNumOfBuff = NumberOfDecimatedPictureBuff;
+			FreeBuffersQueueORIGINAL_LUMANumOfBuff = NumberOfOriginalPictureBuff;
+			FreeBuffersQueueORIGINAL_CHROMANumOfBuff = NumberOfOriginalPictureBuff;
+			FreeBuffersQueueORIGINAL_SHIFTED_CHROMANumOfBuff = 0;
+			FreeBuffersQueueDECIMATED_1VNumOfBuff = NumberOfDecimatedPictureBuff;
+			FreeBuffersQueueDECIMATED_2VNumOfBuff = NumberOfDecimatedPictureBuff;
 
-            FreeBuffersQueueORIGINAL_LUMADcxvEn = DcxvEnable;
-            FreeBuffersQueueORIGINAL_CHROMADcxvEn = DcxvEnable;
-            FreeBuffersQueueDECIMATED_1VDcxvEn = DcxvEnable;
-            FreeBuffersQueueDECIMATED_2VDcxvEn = DcxvEnable;
+			FreeBuffersQueueORIGINAL_LUMADcxvEn = DcxvEnable;
+			FreeBuffersQueueORIGINAL_CHROMADcxvEn = DcxvEnable;
+			FreeBuffersQueueDECIMATED_1VDcxvEn = DcxvEnable;
+			FreeBuffersQueueDECIMATED_2VDcxvEn = DcxvEnable;
 
-            if (pstCoreSettings->eVersion <= BVCE_FW_P_COREVERSION_V3_0_0_2)
-            {
-                        FreeBuffersQueueDECIMATED_1VDcxvEn = 0;
-                        FreeBuffersQueueDECIMATED_2VDcxvEn = 0;
-            }
-
-
-            LumaBuffSize = bvceV3EpmCalcStripeBufferSize(MaxWidthInPel , MaxHeightInPel , FreeBuffersQueueORIGINAL_LUMADcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
-            ChromaBuffSize = bvceV3EpmCalcStripeBufferSize(MaxWidthInPel , DIV2_ROUNDUP(MaxHeightInPel) , FreeBuffersQueueORIGINAL_CHROMADcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
-
-            Decimated1h1vBufferSize = bvceV3EpmCalcStripeBufferSize(MAX_1H1V_WIDTH , MAX_1H1V_HEIGHT , FreeBuffersQueueDECIMATED_1VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
-            Decimated2h1vBufferSize = bvceV3EpmCalcStripeBufferSize(DIV2_ROUNDUP(MaxWidthInPel) , MaxHeightInPel , FreeBuffersQueueDECIMATED_1VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
-
-
-            Decimated1h2vBufferSize = bvceV3EpmCalcStripeBufferSize(MAX_1H1V_WIDTH , DIV2_ROUNDUP(MAX_1H1V_HEIGHT) , FreeBuffersQueueDECIMATED_1VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
-            Decimated2h2vBufferSize = bvceV3EpmCalcStripeBufferSize(DIV2_ROUNDUP(MaxWidthInPel) , DIV2_ROUNDUP(MaxHeightInPel) , FreeBuffersQueueDECIMATED_2VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
-
-            Decimated1vBufferSize = MAX(Decimated2h1vBufferSize, Decimated1h1vBufferSize);
-            Decimated2vBufferSize = MAX(Decimated2h2vBufferSize, Decimated1h2vBufferSize);
-
-
-
-            /* Allocate Luma Buffers */
-            for (Ptr = 0; Ptr < FreeBuffersQueueORIGINAL_LUMANumOfBuff; Ptr++)
-            {
-                CurrAddr = ALIGN12BIT64(CurrAddr);
-                CurrAddr = CurrAddr + LumaBuffSize;
-            }
-
-
-
-            /* Allocate Chroma Buffers */
-            for (Ptr = 0; Ptr < FreeBuffersQueueORIGINAL_CHROMANumOfBuff; Ptr++)
-            {
-                CurrAddr = ALIGN12BIT64(CurrAddr);
-                CurrAddr = CurrAddr + ChromaBuffSize;
-            }
-
-
-            /* Allocate Decimated 1V Buffers */
-            for (Ptr = 0; Ptr < FreeBuffersQueueDECIMATED_1VNumOfBuff; Ptr++)
-            {
-                CurrAddr = ALIGN12BIT64(CurrAddr);
-                CurrAddr = CurrAddr + Decimated1vBufferSize;
-            }
-
-
-            /* Allocate Decimated 2V Buffers */
-            for (Ptr = 0; Ptr < FreeBuffersQueueDECIMATED_2VNumOfBuff; Ptr++)
-            {
-                CurrAddr = ALIGN12BIT64(CurrAddr);
-                CurrAddr = CurrAddr + Decimated2vBufferSize;
-            }
-        }
-        else
-        {
-
-
-
-        switch (pstMemSettings->MaxGopStructure)
-        {
-        case    ENCODING_GOP_STRUCT_I:
-        case    ENCODING_GOP_STRUCT_IP:
-        case    ENCODING_GOP_STRUCT_INFINITE_IP:
-            NumberOfOriginalPictureBuff = IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE;
-            NumberOfDecimatedPictureBuff = IP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE;
-            NumberOfShiftedChromaPictureBuff = IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE;
-            break;
-        case    ENCODING_GOP_STRUCT_IBP:
-            NumberOfOriginalPictureBuff = I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE;
-            NumberOfDecimatedPictureBuff = I1BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE;
-            NumberOfShiftedChromaPictureBuff = I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE;
-            break;
-        case    ENCODING_GOP_STRUCT_IBBP:
-            NumberOfOriginalPictureBuff = I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE;
-            NumberOfDecimatedPictureBuff = I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE;
-            NumberOfShiftedChromaPictureBuff = I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE;
-            break;
-        case    ENCODING_GOP_STRUCT_IBBP_B_REF:
-            NumberOfOriginalPictureBuff = I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE;
-            NumberOfDecimatedPictureBuff = I2BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE;
-            NumberOfShiftedChromaPictureBuff = I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE;
-            break;
-        case    ENCODING_GOP_STRUCT_IBBBP:
-            NumberOfOriginalPictureBuff = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE;
-            NumberOfDecimatedPictureBuff = I3BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE;
-            NumberOfShiftedChromaPictureBuff = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE;
-            break;
-
-        default:
-            NumberOfOriginalPictureBuff = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE;
-            NumberOfDecimatedPictureBuff = I3BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE;
-            NumberOfShiftedChromaPictureBuff = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE;
-            break;
-        }
-
-
-            FreeBuffersQueueORIGINAL_LUMANumOfBuff = NumberOfOriginalPictureBuff;
-            FreeBuffersQueueORIGINAL_CHROMANumOfBuff = NumberOfOriginalPictureBuff;
-            FreeBuffersQueueORIGINAL_SHIFTED_CHROMANumOfBuff = NumberOfShiftedChromaPictureBuff;
-            FreeBuffersQueueDECIMATED_1VNumOfBuff = NumberOfDecimatedPictureBuff;
-            FreeBuffersQueueDECIMATED_2VNumOfBuff = NumberOfDecimatedPictureBuff;
-
-            FreeBuffersQueueORIGINAL_LUMADcxvEn = DcxvEnable;
-            FreeBuffersQueueORIGINAL_CHROMADcxvEn = 0;
-            FreeBuffersQueueDECIMATED_1VDcxvEn = DcxvEnable;
-            FreeBuffersQueueDECIMATED_2VDcxvEn = DcxvEnable;
-            if (pstCoreSettings->eVersion <= BVCE_FW_P_COREVERSION_V3_0_0_2)
-            {
-                        FreeBuffersQueueDECIMATED_1VDcxvEn = 0;
-                        FreeBuffersQueueDECIMATED_2VDcxvEn = 0;
-            }
+		    if (pstCoreSettings->eVersion <= BVCE_FW_P_COREVERSION_V3_0_0_2)
+			{
+						FreeBuffersQueueDECIMATED_1VDcxvEn = 0;
+			            FreeBuffersQueueDECIMATED_2VDcxvEn = 0;
+			}
 
 
             LumaBuffSize = bvceV3EpmCalcStripeBufferSize(MaxWidthInPel , MaxHeightInPel , FreeBuffersQueueORIGINAL_LUMADcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
-            ChromaBuffSize = bvceV3EpmCalcStripeBufferSize(MaxWidthInPel , DIV2_ROUNDUP(MaxHeightInPel) , FreeBuffersQueueORIGINAL_CHROMADcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+			ChromaBuffSize = bvceV3EpmCalcStripeBufferSize(MaxWidthInPel , DIV2_ROUNDUP(MaxHeightInPel) , FreeBuffersQueueORIGINAL_CHROMADcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
 
-            Decimated1h1vBufferSize = bvceV3EpmCalcStripeBufferSize(MAX_1H1V_WIDTH , MAX_1H1V_HEIGHT , FreeBuffersQueueDECIMATED_1VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
-            Decimated2h1vBufferSize = bvceV3EpmCalcStripeBufferSize(DIV2_ROUNDUP(MaxWidthInPel) , MaxHeightInPel , FreeBuffersQueueDECIMATED_1VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
-
-            Decimated1h2vBufferSize = bvceV3EpmCalcStripeBufferSize(MAX_1H1V_WIDTH , DIV2_ROUNDUP(MAX_1H1V_HEIGHT) , FreeBuffersQueueDECIMATED_1VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
-            Decimated2h2vBufferSize = bvceV3EpmCalcStripeBufferSize(DIV2_ROUNDUP(MaxWidthInPel) , DIV2_ROUNDUP(MaxHeightInPel) , FreeBuffersQueueDECIMATED_2VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
-
-            Decimated1vBufferSize = MAX(Decimated2h1vBufferSize, Decimated1h1vBufferSize);
-            Decimated2vBufferSize = MAX(Decimated2h2vBufferSize, Decimated1h2vBufferSize);
+			Decimated1h1vBufferSize = bvceV3EpmCalcStripeBufferSize(MAX_1H1V_WIDTH , MAX_1H1V_HEIGHT , FreeBuffersQueueDECIMATED_1VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+			Decimated2h1vBufferSize = bvceV3EpmCalcStripeBufferSize(DIV2_ROUNDUP(MaxWidthInPel) , MaxHeightInPel , FreeBuffersQueueDECIMATED_1VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
 
 
+			Decimated1h2vBufferSize = bvceV3EpmCalcStripeBufferSize(MAX_1H1V_WIDTH , DIV2_ROUNDUP(MAX_1H1V_HEIGHT) , FreeBuffersQueueDECIMATED_1VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+			Decimated2h2vBufferSize = bvceV3EpmCalcStripeBufferSize(DIV2_ROUNDUP(MaxWidthInPel) , DIV2_ROUNDUP(MaxHeightInPel) , FreeBuffersQueueDECIMATED_2VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
 
-            /* Allocate Luma Buffers */
-            for (Ptr = 0; Ptr < FreeBuffersQueueORIGINAL_LUMANumOfBuff; Ptr += 2)
-            {
-                CurrAddr = ALIGN12BIT64(CurrAddr);
-                CurrAddr = CurrAddr + LumaBuffSize;
-            }
+			Decimated1vBufferSize = MAX(Decimated2h1vBufferSize, Decimated1h1vBufferSize);
+			Decimated2vBufferSize = MAX(Decimated2h2vBufferSize, Decimated1h2vBufferSize);
 
 
-            /* Allocate Chroma Buffers */
-            for (Ptr = 0; Ptr < FreeBuffersQueueORIGINAL_CHROMANumOfBuff; Ptr += 2)
-            {
-                CurrAddr = ALIGN12BIT64(CurrAddr);
-                CurrAddr = CurrAddr + ChromaBuffSize;
-            }
+
+			/* Allocate Luma Buffers */
+			for (Ptr = 0; Ptr < FreeBuffersQueueORIGINAL_LUMANumOfBuff; Ptr++)
+			{
+				CurrAddr = ALIGN12BIT64(CurrAddr);
+				CurrAddr = CurrAddr + LumaBuffSize;
+			}
 
 
-            /* Allocate Shifted Chroma Buffers */
-            for (Ptr = 0; Ptr < FreeBuffersQueueORIGINAL_SHIFTED_CHROMANumOfBuff; Ptr++)
-            {
-                CurrAddr = ALIGN12BIT64(CurrAddr);
-                CurrAddr = CurrAddr + ChromaBuffSize;
-            }
+
+			/* Allocate Chroma Buffers */
+			for (Ptr = 0; Ptr < FreeBuffersQueueORIGINAL_CHROMANumOfBuff; Ptr++)
+			{
+				CurrAddr = ALIGN12BIT64(CurrAddr);
+				CurrAddr = CurrAddr + ChromaBuffSize;
+			}
 
 
-            /* Allocate Decimated 1V Buffers */
-            for (Ptr = 0; Ptr < FreeBuffersQueueDECIMATED_1VNumOfBuff; Ptr += 2)
-            {
-                CurrAddr = ALIGN12BIT64(CurrAddr);
-                CurrAddr = CurrAddr + Decimated1vBufferSize;
-            }
+			/* Allocate Decimated 1V Buffers */
+			for (Ptr = 0; Ptr < FreeBuffersQueueDECIMATED_1VNumOfBuff; Ptr++)
+			{
+				CurrAddr = ALIGN12BIT64(CurrAddr);
+				CurrAddr = CurrAddr + Decimated1vBufferSize;
+			}
 
 
-            /* Allocate Decimated 2V Buffers */
-            for (Ptr = 0; Ptr < FreeBuffersQueueDECIMATED_2VNumOfBuff; Ptr += 2)
-            {
-                CurrAddr = ALIGN12BIT64(CurrAddr);
-                CurrAddr = CurrAddr + Decimated2vBufferSize;
-            }
-        }
+			/* Allocate Decimated 2V Buffers */
+			for (Ptr = 0; Ptr < FreeBuffersQueueDECIMATED_2VNumOfBuff; Ptr++)
+			{
+				CurrAddr = ALIGN12BIT64(CurrAddr);
+				CurrAddr = CurrAddr + Decimated2vBufferSize;
+			}
+		}
+		else
+		{
 
-        }
 
-        return (uint32_t) CurrAddr;
+
+		switch (pstMemSettings->MaxGopStructure)
+		{
+		case	ENCODING_GOP_STRUCT_I:
+		case	ENCODING_GOP_STRUCT_IP:
+		case	ENCODING_GOP_STRUCT_INFINITE_IP:
+			NumberOfOriginalPictureBuff = IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE;
+			NumberOfDecimatedPictureBuff = IP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE;
+			NumberOfShiftedChromaPictureBuff = IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE;
+			break;
+		case	ENCODING_GOP_STRUCT_IBP:
+			NumberOfOriginalPictureBuff = I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE;
+			NumberOfDecimatedPictureBuff = I1BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE;
+			NumberOfShiftedChromaPictureBuff = I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE;
+			break;
+		case	ENCODING_GOP_STRUCT_IBBP:
+			NumberOfOriginalPictureBuff = I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE;
+			NumberOfDecimatedPictureBuff = I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE;
+			NumberOfShiftedChromaPictureBuff = I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE;
+			break;
+		case	ENCODING_GOP_STRUCT_IBBP_B_REF:
+			NumberOfOriginalPictureBuff = I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE;
+			NumberOfDecimatedPictureBuff = I2BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE;
+			NumberOfShiftedChromaPictureBuff = I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE;
+			break;
+		case	ENCODING_GOP_STRUCT_IBBBP:
+			NumberOfOriginalPictureBuff = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE;
+			NumberOfDecimatedPictureBuff = I3BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE;
+			NumberOfShiftedChromaPictureBuff = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE;
+			break;
+
+		default:
+			NumberOfOriginalPictureBuff = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE;
+			NumberOfDecimatedPictureBuff = I3BP_PREPROCESSOR_NUMBER_OF_DECIMATED_PICTURE_BUFF_INTERLACE;
+			NumberOfShiftedChromaPictureBuff = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_SHIFTED_CHROMA_INTERLACE;
+			break;
+		}
+
+
+			FreeBuffersQueueORIGINAL_LUMANumOfBuff = NumberOfOriginalPictureBuff;
+			FreeBuffersQueueORIGINAL_CHROMANumOfBuff = NumberOfOriginalPictureBuff;
+			FreeBuffersQueueORIGINAL_SHIFTED_CHROMANumOfBuff = NumberOfShiftedChromaPictureBuff;
+			FreeBuffersQueueDECIMATED_1VNumOfBuff = NumberOfDecimatedPictureBuff;
+			FreeBuffersQueueDECIMATED_2VNumOfBuff = NumberOfDecimatedPictureBuff;
+
+			FreeBuffersQueueORIGINAL_LUMADcxvEn = DcxvEnable;
+			FreeBuffersQueueORIGINAL_CHROMADcxvEn = 0;
+			FreeBuffersQueueDECIMATED_1VDcxvEn = DcxvEnable;
+			FreeBuffersQueueDECIMATED_2VDcxvEn = DcxvEnable;
+		    if (pstCoreSettings->eVersion <= BVCE_FW_P_COREVERSION_V3_0_0_2)
+			{
+						FreeBuffersQueueDECIMATED_1VDcxvEn = 0;
+			            FreeBuffersQueueDECIMATED_2VDcxvEn = 0;
+			}
+
+
+			LumaBuffSize = bvceV3EpmCalcStripeBufferSize(MaxWidthInPel , MaxHeightInPel , FreeBuffersQueueORIGINAL_LUMADcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+			ChromaBuffSize = bvceV3EpmCalcStripeBufferSize(MaxWidthInPel , DIV2_ROUNDUP(MaxHeightInPel) , FreeBuffersQueueORIGINAL_CHROMADcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+
+			Decimated1h1vBufferSize = bvceV3EpmCalcStripeBufferSize(MAX_1H1V_WIDTH , MAX_1H1V_HEIGHT , FreeBuffersQueueDECIMATED_1VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+			Decimated2h1vBufferSize = bvceV3EpmCalcStripeBufferSize(DIV2_ROUNDUP(MaxWidthInPel) , MaxHeightInPel , FreeBuffersQueueDECIMATED_1VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+
+			Decimated1h2vBufferSize = bvceV3EpmCalcStripeBufferSize(MAX_1H1V_WIDTH , DIV2_ROUNDUP(MAX_1H1V_HEIGHT) , FreeBuffersQueueDECIMATED_1VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+			Decimated2h2vBufferSize = bvceV3EpmCalcStripeBufferSize(DIV2_ROUNDUP(MaxWidthInPel) , DIV2_ROUNDUP(MaxHeightInPel) , FreeBuffersQueueDECIMATED_2VDcxvEn , !IsProgressive , StripeWidth , X , Y , DramConfigPageSize);
+
+			Decimated1vBufferSize = MAX(Decimated2h1vBufferSize, Decimated1h1vBufferSize);
+			Decimated2vBufferSize = MAX(Decimated2h2vBufferSize, Decimated1h2vBufferSize);
+
+
+
+			/* Allocate Luma Buffers */
+			for (Ptr = 0; Ptr < FreeBuffersQueueORIGINAL_LUMANumOfBuff; Ptr += 2)
+			{
+				CurrAddr = ALIGN12BIT64(CurrAddr);
+				CurrAddr = CurrAddr + LumaBuffSize;
+			}
+
+
+			/* Allocate Chroma Buffers */
+			for (Ptr = 0; Ptr < FreeBuffersQueueORIGINAL_CHROMANumOfBuff; Ptr += 2)
+			{
+				CurrAddr = ALIGN12BIT64(CurrAddr);
+				CurrAddr = CurrAddr + ChromaBuffSize;
+			}
+
+
+			/* Allocate Shifted Chroma Buffers */
+			for (Ptr = 0; Ptr < FreeBuffersQueueORIGINAL_SHIFTED_CHROMANumOfBuff; Ptr++)
+			{
+				CurrAddr = ALIGN12BIT64(CurrAddr);
+				CurrAddr = CurrAddr + ChromaBuffSize;
+			}
+
+
+			/* Allocate Decimated 1V Buffers */
+			for (Ptr = 0; Ptr < FreeBuffersQueueDECIMATED_1VNumOfBuff; Ptr += 2)
+			{
+				CurrAddr = ALIGN12BIT64(CurrAddr);
+				CurrAddr = CurrAddr + Decimated1vBufferSize;
+			}
+
+
+			/* Allocate Decimated 2V Buffers */
+			for (Ptr = 0; Ptr < FreeBuffersQueueDECIMATED_2VNumOfBuff; Ptr += 2)
+			{
+				CurrAddr = ALIGN12BIT64(CurrAddr);
+				CurrAddr = CurrAddr + Decimated2vBufferSize;
+			}
+		}
+
+		}
+
+		return (uint32_t) CurrAddr;
 }
 
 /************************************************************************
@@ -2196,9 +2192,9 @@ uint8_t NumberOfShiftedChromaPictureBuff;
 static uint64_t bvceV3EpmAlignJword(uint64_t UnalignedNumber)
 {
 
-    uint64_t AlignedNumber;
-    AlignedNumber = MASK64_59MSB(UnalignedNumber + 31);
-    return(AlignedNumber);
+	uint64_t AlignedNumber;
+	AlignedNumber = MASK64_59MSB(UnalignedNumber + 31);
+	return(AlignedNumber);
 }
 
 /************************************************************************
@@ -2215,20 +2211,20 @@ static uint64_t bvceV3EpmAlignJword(uint64_t UnalignedNumber)
 ************************************************************************/
 static uint8_t bvceV3EpmCalcNMBY(uint32_t PictureHeightInMbs, uint32_t X, uint32_t Y, uint32_t DramConfigPageSize, uint16_t StripeWidth)
 {
-    uint16_t n;
-    uint16_t VertMbsPerPage;
-    uint16_t PageSize;
+	uint16_t n;
+	uint16_t VertMbsPerPage;
+	uint16_t PageSize;
 
-    n = 0;
-    PageSize = (1 << (DramConfigPageSize + 11));
-    VertMbsPerPage = MAX(1, ((PageSize / StripeWidth) >> 4));
+	n = 0;
+	PageSize = (1 << (DramConfigPageSize + 11));
+	VertMbsPerPage = MAX(1, ((PageSize / StripeWidth) >> 4));
 
-    while (1)
-    {
-        n++;
-        if (((X * (uint32_t)n + Y) * VertMbsPerPage) >= PictureHeightInMbs)
-            return(((X * (uint32_t)n + Y) * VertMbsPerPage));
-    }
+	while (1)
+	{
+		n++;
+		if (((X * (uint32_t)n + Y) * VertMbsPerPage) >= PictureHeightInMbs)
+			return(((X * (uint32_t)n + Y) * VertMbsPerPage));
+	}
 }
 
 
@@ -2257,51 +2253,6 @@ static uint8_t bvceV3EpmCalcNMBY(uint32_t PictureHeightInMbs, uint32_t X, uint32
 #define V3_DCXVBuffer                1
 #define V3_NonDCXVBuffer             0
 
-#if 0
-static uint8_t bvceV3EpmCalcDcxvNMBY(uint32_t PictureHeightInMbs, uint32_t IsDcxvBuf, uint32_t IsInterlace, uint32_t IsChroma, uint32_t X, uint32_t Y, uint32_t DramConfigPageSize, uint16_t StripeWidth)
-{
-    uint8_t Nmby;
-    uint32_t DcxvPaddingHeight;
-    uint32_t BuffereHeightInPels;
-    uint32_t PictureHeightInPels;
-
-    PictureHeightInPels = MULT16(PictureHeightInMbs);
-    if (IsChroma == 1)
-        PictureHeightInPels = DIV2_ROUNDUP(PictureHeightInPels);
-
-
-    if (IsInterlace == 1)
-    {
-        DcxvPaddingHeight = V3_DCXV_PADDED_LINE * 2;
-    }
-    else
-    {
-        DcxvPaddingHeight = V3_DCXV_PADDED_LINE;
-    }
-
-    if (IsDcxvBuf == 1)
-    {
-        BuffereHeightInPels = PictureHeightInPels + DcxvPaddingHeight;
-    }
-    else
-    {
-        BuffereHeightInPels = PictureHeightInPels;
-    }
-
-    if (
-        (IsInterlace == 1) &&
-        (IsChroma == 1)
-        )
-    {
-        BuffereHeightInPels = PictureHeightInPels;
-    }
-
-
-    Nmby = bvceV3EpmCalcNMBY(DIV16_ROUNDUP(BuffereHeightInPels), X, Y, DramConfigPageSize, StripeWidth);
-    return(Nmby);
-}
-#endif
-
 /************************************************************************
 * Function: EpmV3CalcStripeBufferSize
 *
@@ -2317,45 +2268,45 @@ static uint8_t bvceV3EpmCalcDcxvNMBY(uint32_t PictureHeightInMbs, uint32_t IsDcx
 ************************************************************************/
 static uint32_t bvceV3EpmCalcStripeBufferSize(uint32_t PictureWidthInPels, uint32_t PictureHeightInPels, uint32_t IsDcxvBuf, uint32_t IsInterlace, uint32_t StripeWidth, uint32_t X, uint32_t Y, uint8_t DramConfigPageSize)
 {
-    uint32_t BufferWidthInPels, BuffereHeightInPels;
-    uint32_t BuffSize;
-    uint32_t DcxvPaddingWidth, DcxvPaddingHeight;
-    uint16_t Nmby;
+	uint32_t BufferWidthInPels, BuffereHeightInPels;
+	uint32_t BuffSize;
+	uint32_t DcxvPaddingWidth, DcxvPaddingHeight;
+	uint16_t Nmby;
 
-    DcxvPaddingWidth = ((PictureWidthInPels + V3_DCXV_STRIPE_WIDTH - 1) / V3_DCXV_STRIPE_WIDTH) * V3_DCXV_STRIPE_WIDTH - PictureWidthInPels;
+	DcxvPaddingWidth = ((PictureWidthInPels + V3_DCXV_STRIPE_WIDTH - 1) / V3_DCXV_STRIPE_WIDTH) * V3_DCXV_STRIPE_WIDTH - PictureWidthInPels;
 
-    if (IsInterlace == 1)
-    {
-        DcxvPaddingHeight = V3_DCXV_PADDED_LINE * 2;
-    }
-    else
-    {
-        DcxvPaddingHeight = V3_DCXV_PADDED_LINE;
-    }
+	if (IsInterlace == 1)
+	{
+		DcxvPaddingHeight = V3_DCXV_PADDED_LINE * 2;
+	}
+	else
+	{
+		DcxvPaddingHeight = V3_DCXV_PADDED_LINE;
+	}
 
-    if (IsDcxvBuf == 1)
-    {
-        BufferWidthInPels = PictureWidthInPels + DcxvPaddingWidth;
-        BufferWidthInPels = BufferWidthInPels / V3_DCXV_COMP_RATIO;
-        BuffereHeightInPels = PictureHeightInPels + DcxvPaddingHeight;
-    }
-    else
-    {
-        BufferWidthInPels = PictureWidthInPels;
-        BuffereHeightInPels = PictureHeightInPels;
-    }
-
-
-
-    Nmby = bvceV3EpmCalcNMBY(DIV16_ROUNDUP(BuffereHeightInPels), X, Y, DramConfigPageSize, StripeWidth);
-
-
-    BuffSize = (uint32_t) bvceV3EpmAlignJword(bvceEpmCalcWidthInStripes(BufferWidthInPels, StripeWidth) * StripeWidth * MULT16(Nmby));
-    BuffSize = ((BuffSize + 4095) & 0xfffff000);
+	if (IsDcxvBuf == 1)
+	{
+		BufferWidthInPels = PictureWidthInPels + DcxvPaddingWidth;
+		BufferWidthInPels = BufferWidthInPels / V3_DCXV_COMP_RATIO;
+		BuffereHeightInPels = PictureHeightInPels + DcxvPaddingHeight;
+	}
+	else
+	{
+		BufferWidthInPels = PictureWidthInPels;
+		BuffereHeightInPels = PictureHeightInPels;
+	}
 
 
 
-    return(BuffSize);
+	Nmby = bvceV3EpmCalcNMBY(DIV16_ROUNDUP(BuffereHeightInPels), X, Y, DramConfigPageSize, StripeWidth);
+
+
+	BuffSize = (uint32_t) bvceV3EpmAlignJword(bvceEpmCalcWidthInStripes(BufferWidthInPels, StripeWidth) * StripeWidth * MULT16(Nmby));
+	BuffSize = ((BuffSize + 4095) & 0xfffff000);
+
+
+
+	return(BuffSize);
 
 
 
@@ -2475,59 +2426,59 @@ BVCE_FW_P_Compute_EncodeDelayIn27MHzTicks(
     {
       switch (MaxAllowedGopStruct)
       {
-      case  ENCODING_GOP_STRUCT_I:
-      case  ENCODING_GOP_STRUCT_IP:
-      case  ENCODING_GOP_STRUCT_INFINITE_IP:
-    numOrigPicBuffs = IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
-    break;
-      case  ENCODING_GOP_STRUCT_IBP:
-    numOrigPicBuffs = I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
-    break;
-      case  ENCODING_GOP_STRUCT_IBBP:
-    numOrigPicBuffs = I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
-    break;
-      case  ENCODING_GOP_STRUCT_IBBP_B_REF:
-    numOrigPicBuffs = I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
-    break;
-      case  ENCODING_GOP_STRUCT_IBBBP:
-    numOrigPicBuffs = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
-    break;
-      case  ENCODING_GOP_STRUCT_IBBBBBP:
-    numOrigPicBuffs = I5BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
-    break;
-      case  ENCODING_GOP_STRUCT_IBBBBBBBP:
-    numOrigPicBuffs = I7BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
-    break;
+      case	ENCODING_GOP_STRUCT_I:
+      case	ENCODING_GOP_STRUCT_IP:
+      case	ENCODING_GOP_STRUCT_INFINITE_IP:
+	numOrigPicBuffs = IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+	break;
+      case	ENCODING_GOP_STRUCT_IBP:
+	numOrigPicBuffs = I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+	break;
+      case	ENCODING_GOP_STRUCT_IBBP:
+	numOrigPicBuffs = I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+	break;
+      case	ENCODING_GOP_STRUCT_IBBP_B_REF:
+	numOrigPicBuffs = I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+	break;
+      case	ENCODING_GOP_STRUCT_IBBBP:
+	numOrigPicBuffs = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+	break;
+      case	ENCODING_GOP_STRUCT_IBBBBBP:
+	numOrigPicBuffs = I5BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+	break;
+      case	ENCODING_GOP_STRUCT_IBBBBBBBP:
+	numOrigPicBuffs = I7BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+	break;
       default:
-    numOrigPicBuffs = I7BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
-    break;
+	numOrigPicBuffs = I7BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_PROGRESSIVE;
+	break;
       }
     }
     else
     { /* Interlaced input */
       switch (MaxAllowedGopStruct)
       {
-      case  ENCODING_GOP_STRUCT_I:
-      case  ENCODING_GOP_STRUCT_IP:
-      case  ENCODING_GOP_STRUCT_INFINITE_IP:
-    /* Divide by 2 to get per frame */
-    numOrigPicBuffs = IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE >> 1;
-    break;
-      case  ENCODING_GOP_STRUCT_IBP:
-    numOrigPicBuffs = I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE >> 1;
-    break;
-      case  ENCODING_GOP_STRUCT_IBBP:
-    numOrigPicBuffs = I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE >> 1;
-    break;
-      case  ENCODING_GOP_STRUCT_IBBP_B_REF:
-    numOrigPicBuffs = I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE >> 1;
-    break;
-      case  ENCODING_GOP_STRUCT_IBBBP:
-    numOrigPicBuffs = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE >> 1;
-    break;
+      case	ENCODING_GOP_STRUCT_I:
+      case	ENCODING_GOP_STRUCT_IP:
+      case	ENCODING_GOP_STRUCT_INFINITE_IP:
+	/* Divide by 2 to get per frame */
+	numOrigPicBuffs = IP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE >> 1;
+	break;
+      case	ENCODING_GOP_STRUCT_IBP:
+	numOrigPicBuffs = I1BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE >> 1;
+	break;
+      case	ENCODING_GOP_STRUCT_IBBP:
+	numOrigPicBuffs = I2BP_NO_B_REF_B_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE >> 1;
+	break;
+      case	ENCODING_GOP_STRUCT_IBBP_B_REF:
+	numOrigPicBuffs = I2BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE >> 1;
+	break;
+      case	ENCODING_GOP_STRUCT_IBBBP:
+	numOrigPicBuffs = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE >> 1;
+	break;
       default:
-    numOrigPicBuffs = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE >> 1;
-    break;
+	numOrigPicBuffs = I3BP_PREPROCESSOR_NUMBER_OF_ORIGINAL_PICTURE_BUFF_LUMA_CHROMA_INTERLACE >> 1;
+	break;
       }
     }
 

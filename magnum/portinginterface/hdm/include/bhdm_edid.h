@@ -222,11 +222,12 @@ extern "C" {
 	#define EDID_DESC_TIMING_FORMULA      0x0A
 
 #define BHDM_EDID_EXTENSION               0x7E
+	#define BHDM_EDID_MAX_EXTENSIONS_SUPPORTED  0x4
 #define BHDM_EDID_CHECKSUM                0x7F   /* Checksum 7F */
 
 #define BHDM_EDID_EXT_TAG            0x00
 	#define BHDM_EDID_EXT_LCD_TIMINGS          0x01
-	#define BHDM_EDID_EXT_TIMING_DATA 	       0x02
+	#define BHDM_EDID_EXT_TIMING_DATA          0x02
 	#define BHDM_EDID_EXT_EDID_2_0             0x20
 	#define BHDM_EDID_EXT_COLOR_INFO           0x30
 	#define BHDM_EDID_EXT_DVI_FEATURE          0x40
@@ -837,6 +838,7 @@ Input:
 Output:
 	pBuffer - pointer to previously allocated 128 byte buffer to hold the
 	128-byte EDID block
+	bChecksumError - pointer to checksum status
 
 Returns:
 	BERR_SUCCESS              - EDID block retrieved
@@ -855,7 +857,8 @@ BERR_Code BHDM_EDID_GetNthBlock(
    BHDM_Handle hHDMI,  /* [in] HDMI handle */
    uint8_t iNthBlock, /* [in] EDID Block Number to retrieve */
    uint8_t *pBuffer,   /* [out] pointer to input buffer */
-   uint16_t iBufSize   /* [in] Size of input buffer to write EDID to */
+   uint16_t iBufSize,   /* [in] Size of input buffer to write EDID to */
+   bool *bChecksumError /* [out] checksum error status */
 ) ;
 
 
@@ -1592,7 +1595,7 @@ See Also:
 
 
 *******************************************************************************/
-BERR_Code BHDM_EDID_GetPreferredColorimetry(
+void BHDM_EDID_GetPreferredColorimetry(
 	BHDM_Handle hHDMI,
 	const BHDM_EDID_ColorimetryParams *parameters,
 	BAVC_MatrixCoefficients *eColorimetry) ;

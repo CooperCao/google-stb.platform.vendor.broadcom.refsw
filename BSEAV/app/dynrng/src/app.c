@@ -59,7 +59,7 @@ static void app_p_usage_protection(AppHandle app);
 
 PlatformDynamicRange app_p_compute_output_dynamic_range(AppHandle app, PlatformDynamicRange requested)
 {
-    PlatformDynamicRange output = PlatformDynamicRange_eSdr;
+    PlatformDynamicRange output = PlatformDynamicRange_eLegacy;
 
     assert(app);
 
@@ -78,8 +78,12 @@ PlatformDynamicRange app_p_compute_output_dynamic_range(AppHandle app, PlatformD
         {
             output = PlatformDynamicRange_eHlg;
         }
+        else if (platform_hdmi_receiver_supports_dynamic_range(app->platform.rx, PlatformDynamicRange_eSdr) == PlatformCapability_eSupported)
+        {
+            output = PlatformDynamicRange_eSdr;
+        }
     }
-    else if (requested <= PlatformDynamicRange_eInvalid)
+    else if (requested <= PlatformDynamicRange_eDolbyVision)
     {
         output = requested;
     }
@@ -194,8 +198,10 @@ void app_p_update_out_model(AppHandle app)
     /* copy user requested info to local */
     memcpy(&localInfo, pRequestedInfo, sizeof(localInfo));
 
+#if 0
     /* override user requested dynrng if auto */
     localInfo.dynrng = app_p_compute_output_dynamic_range(app, pRequestedInfo->dynrng);
+#endif
 
     if (memcmp(&localInfo, pModelInfo, sizeof(*pModelInfo))) /* compare local info with model */
     {
@@ -260,6 +266,7 @@ static void app_p_resolve_picture_info(AppHandle app, const PlatformPictureInfo 
 static PlatformTriState app_p_get_processing(PlatformDynamicRangeProcessingMode mode, PlatformDynamicRange in, PlatformDynamicRange out)
 {
     PlatformTriState result = PlatformTriState_eInactive;
+    if (out == PlatformDynamicRange_eLegacy) out = PlatformDynamicRange_eSdr; /* for processing, legacy == sdr is true */
     if (in != out
         || in == PlatformDynamicRange_eDolbyVision
         || out == PlatformDynamicRange_eDolbyVision

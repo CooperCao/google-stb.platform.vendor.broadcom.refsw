@@ -1104,7 +1104,7 @@ void BVDC_P_GetMaxMosaicDeinterlacerInfo
 {
     bool                         bValid = false;
     uint32_t                     i, ulSize, ulMaxSize = 0;
-    uint32_t                     ulWidth, ulHeight, ulCount;
+    uint32_t                     ulWidth=0, ulHeight=0, ulCount=0;
     const BVDC_WindowClassLimits      *pWinClass;
     const BBOX_Vdc_PictureSizeLimits  *pDeinterlacer;
 

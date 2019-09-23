@@ -133,10 +133,6 @@ BCHP_CHIP==7342 || BCHP_CHIP==7340 || BCHP_CHIP==7468 || BCHP_CHIP ==7125 || BCH
 #include "nexus_hdmi_output.h"
 #endif
 
-#if NEXUS_DBV_SUPPORT
-#include "nexus_display_dbv_impl.h"
-#endif
-
 #if !defined NEXUS_HAS_HDMI_INPUT
 #undef NEXUS_NUM_HDMI_INPUTS
 #endif
@@ -299,6 +295,7 @@ struct NEXUS_Display {
     BVDC_Compositor_Handle compositor;
     BVDC_Display_Handle displayVdc;
     BFMT_VideoInfo *customFormatInfo;
+    BFMT_VideoInfo *oldCustomFormatInfo;
 #if NEXUS_VBI_SUPPORT
     struct {
         BVBI_Encode_Handle enc_core; /* must be NULL if not created */
@@ -347,8 +344,9 @@ struct NEXUS_Display {
     struct
     {
 #if NEXUS_NUM_HDMI_OUTPUTS
-        NEXUS_CallbackHandler outputNotifyDisplay;
-        /* NEXUS_HdmiOutputHandle */ void *outputNotify;
+        BKNI_EventHandle notifyDisplayEvent;
+        NEXUS_EventCallbackHandle notifyDisplayHandler;
+        NEXUS_HdmiOutputHandle outputNotify;
         void (*rateChangeCb_isr)(NEXUS_DisplayHandle display, void *pParam);
         void (*vsync_isr)(void *pParam);
         void *pCbParam;
@@ -364,6 +362,7 @@ struct NEXUS_Display {
         } hdrInfoChange;
 #endif
         NEXUS_VideoFormat outputFormat;
+        BVDC_Display_HdmiSettings vdcSettings;
     } hdmi;
 
     struct
@@ -433,9 +432,6 @@ struct NEXUS_Display {
 #endif
 #endif
     unsigned lastVsyncTime;
-#if NEXUS_DBV_SUPPORT
-    NEXUS_DisplayDbvState dbv;
-#endif
 };
 
 /*

@@ -49,9 +49,7 @@
 #include "nexus_hdmi_types.h"
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
-#include "nexus_hdmi_output_extra.h"
 #include "nexus_hdmi_output_hdcp.h"
-#include "nexus_hdmi_output_extra.h"
 #endif
 #if NEXUS_HAS_AUDIO
 #include "nexus_audio_processing_types.h"
@@ -349,6 +347,7 @@ typedef struct NxClient_DisplaySettings
     NxClient_GraphicsSettings graphicsSettings;
     bool secure;
     NEXUS_TristateEnable dropFrame;
+    NEXUS_DisplayPriority priority; /* see NEXUS_DisplaySettings.priority */
 
     struct {
         NxClient_SlaveDisplayMode mode;
@@ -373,10 +372,46 @@ typedef struct NxClient_DisplaySettings
         NxClient_HdcpVersion version;
         NEXUS_ColorSpace colorSpace;
         unsigned colorDepth;
-        struct {
-            NEXUS_HdmiOutputDolbyVisionMode outputMode; /* whether to enable Dolby Vision output or not */
-            NEXUS_HdmiOutputDolbyVisionPriorityMode priorityMode;
-        } dolbyVision;
+
+        /* Sets the dynamic range mode of the video at the HDMI output. See NEXUS_DisplaySettings.dynamicRangeMode comments. */
+        NEXUS_VideoDynamicRangeMode dynamicRangeMode;
+        /*
+         * DEPRECATED. The dynamicRangeMode member will take precedence over
+         * this setting, unless dynamicRangeMode is set to NEXUS_HdmiDynamicRangeMode_eAuto
+         * and drmInfoFrame.eotf is not set to NEXUS_VideoEotf_eMax.
+         *
+         * New dynamic range modes are only available via the use of the NEXUS_HdmiDynamicRangeMode
+         * enum member dynamicRangeMode below. In addition, the metadata contained in
+         * NEXUS_HdmiDynamicRangeMasteringInfoFrame should only be set for debug
+         * purposes, as setting the metadata using the NxClient_setDisplaySettings
+         * call is not frame-synchronous.
+         *
+         * The following table explains how the deprecated and new APIs work together.
+         *
+         * "Forced" means that the output mode will be forced even if the TV doesn't support it.
+         * NEXUS_VideoEotf is set via the NEXUS_HdmiDynamicRangeMasteringInfoFrame.eotf field below (the DEPRECATED API).
+         * NEXUS_HdmiDynamicRangeMode is set via the dynamicRangeMode field above (the new API).
+         * DRMIF - Yes means the DRMIF is transmitted; No means it is not.
+         * "xxx" means that it doesn't matter what the given column is set to
+         * "Auto" will try to select the best mode based on Broadcom usage rules
+         *
+         * Usage        DRMIF  Deprecated  Forced  NEXUS_VideoEotf            NEXUS_HdmiDynamicRangeMode
+         * ------------ ------ ----------- ------- -------------------------- ---------------------------------------
+         * Legacy SDR   No     Yes         Yes     NEXUS_VideoEotf_eInvalid   NEXUS_HdmiDynamicRangeMode_eAuto
+         * Legacy SDR   No     No          No      xxx                        NEXUS_HdmiDynamicRangeMode_eLegacy
+         * SDR          Yes    Yes         Yes     NEXUS_VideoEotf_eSdr       NEXUS_HdmiDynamicRangeMode_eAuto
+         * SDR          Yes    No          No      xxx                        NEXUS_HdmiDynamicRangeMode_eSdr
+         * HDR10/PQ     Yes    Yes         Yes     NEXUS_VideoEotf_eHdr10/Pq  NEXUS_HdmiDynamicRangeMode_eAuto
+         * HDR10/PQ     Yes    No          No      xxx                        NEXUS_HdmiDynamicRangeMode_eHdr10
+         * HLG          Yes    Yes         Yes     NEXUS_VideoEotf_eHlg       NEXUS_HdmiDynamicRangeMode_eAuto
+         * HLG          Yes    No          No      xxx                        NEXUS_HdmiDynamicRangeMode_eHlg
+         * Dolby Vision No     No          No      xxx                        NEXUS_HdmiDynamicRangeMode_eDolbyVision
+         * HDR10+       Yes    No          No      xxx                        NEXUS_HdmiDynamicRangeMode_eHdr10Plus
+         * Track Input  *      No          No      xxx                        NEXUS_HdmiDynamicRangeMode_eTrackInput
+         * Auto         *      No          No      NEXUS_VideoEotf_eMax       NEXUS_HdmiDynamicRangeMode_eAuto
+         *
+         * Also see NEXUS_HdmiOutputExtraSettings.overrideDynamicRangeMasteringInfoFrame
+         */
         NEXUS_HdmiDynamicRangeMasteringInfoFrame drmInfoFrame;
         NEXUS_MatrixCoefficients matrixCoefficients;
     } hdmiPreferences;
@@ -426,6 +461,7 @@ typedef struct NxClient_DisplayStatus
         NEXUS_HdmiOutputHdcpError lastHdcpError; /* NxClient does an automatic retry. If authentication fails,
             hdcp.hdcpError may return 0, but lastHdcpError will record the last error. lastHdcpError will
             be 0 if HDCP is authenticated or disabled. */
+        NEXUS_VideoDynamicRangeMode dynamicRangeMode;
     } hdmi;
 } NxClient_DisplayStatus;
 

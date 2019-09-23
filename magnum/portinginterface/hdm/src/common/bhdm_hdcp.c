@@ -2014,6 +2014,7 @@ BERR_Code BHDM_HDCP_CheckForRepeater(
 {
     BERR_Code   rc = BERR_SUCCESS;
     uint8_t RxCaps ;
+    *uiRepeater = 0 ;
 
     BDBG_ENTER(BHDM_HDCP_CheckForRepeater) ;
     BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
@@ -3088,16 +3089,18 @@ BERR_Code BHDM_HDCP_GetHdcpVersion(const BHDM_Handle hHDMI, BHDM_HDCP_Version *e
 					BDBG_ERR(("I2C read failure %d when reading HDCP2Version register", rc)) ;
 					break ;
 				}
+				BDBG_MSG(("HDCP Version Byte Read [%d]: %x",
+					uiSamplesRead, ucHdcp2VersionByte)) ;
 
 				/* WRN of any incorrect HDCP2VERSION reads */
 				if ((ucPreviousHdcp2VersionByte != 0x0)  /* 0x00 = HDCP 1.x */
 				&&  (ucPreviousHdcp2VersionByte != 0x4)) /* 0x04 = HDCP 2.2 */
 				{
-					BDBG_WRN(("Invalid HDCP2VERSION (%d) : 0x%02x",
-						uiSamplesRead+1, ucHdcp2VersionByte)) ;
+					BDBG_WRN(("Invalid HDCP2VERSION (%d) : 0x%02x; Previous HDCP2VERSION 0x%02x",
+						uiSamplesRead+1, ucHdcp2VersionByte, ucPreviousHdcp2VersionByte)) ;
 				}
 
-				if (!uiReadAttempts) /* first sample read */
+				if (!uiSamplesRead) /* first sample read */
 				{
 					ucPreviousHdcp2VersionByte = ucHdcp2VersionByte ;
 				}
@@ -3122,8 +3125,8 @@ BERR_Code BHDM_HDCP_GetHdcpVersion(const BHDM_Handle hHDMI, BHDM_HDCP_Version *e
 			}
 
 			ucPreviousHdcp2VersionByte = ucHdcp2VersionByte ;
-
-			BDBG_WRN(("Read invalid HDCP2Version: 0x%02x; <%s> is not HDCP compliant",
+			BDBG_WRN(("Read Samples attempt %d inconsistent HDCP2Version: 0x%02x; <%s> is not HDCP compliant",
+				uiReadAttempts,
 				ucHdcp2VersionByte, hHDMI->AttachedEDID.MonitorName)) ;
 			hHDMI->stMonitorTxHwStatusExtra.ui2cHdcp2VersionDataFailures++ ;
 	    }
@@ -3206,6 +3209,7 @@ BERR_Code BHDM_HDCP_AssertSimulatedHpd_isr(const BHDM_Handle hHDMI, bool enable,
 	hRegister = hHDMI->hRegister;
 	ulOffset = hHDMI->ulOffset;
 
+	BDBG_MSG(("Simulate a Hot Plug on the Tx side only...")) ;
 	Register = BREG_Read32(hRegister, BCHP_AON_HDMI_TX_HDMI_HOTPLUG_CONTROL + ulOffset) ;
 		Register &= ~BCHP_MASK(AON_HDMI_TX_HDMI_HOTPLUG_CONTROL, OVERRIDE_HOTPLUG_IN) ;
 		Register |= BCHP_FIELD_DATA(AON_HDMI_TX_HDMI_HOTPLUG_CONTROL, OVERRIDE_HOTPLUG_IN, enable) ;
@@ -3222,6 +3226,22 @@ BERR_Code BHDM_HDCP_AssertSimulatedHpd_isr(const BHDM_Handle hHDMI, bool enable,
 		hHDMI->MonitorStatus.hdcp1x.R0ConsecutiveMismatches = 0;
 		hHDMI->MonitorStatus.hdcp1x.RiConsecutiveMismatches = 0;
 		hHDMI->MonitorStatus.hdcp2x.ConsecutiveReauthReqCounts = 0;
+	}
+
+	/* start timer to assert HPD signal after the required pulse time */
+	if (!bAssertSimulatedHpd)
+	{
+		rc = BTMR_StartTimer_isr(hHDMI->TimerForcedTxHotplug, BHDM_P_MILLISECOND * BHDM_HDCP_FORCE_HPD_PULSE_WIDTH) ;
+		if (rc) { rc = BERR_TRACE(rc); }
+
+		/* notify nexus for the immediate disconnected state */
+		if (hHDMI->pfHotplugChangeCallback)
+		{
+			/* local SW state is ok because Nexus will force the disconnected state, regardless of HW state */
+			bool deviceAttached = false;
+			hHDMI->pfHotplugChangeCallback(hHDMI->pvHotplugChangeParm1,
+				hHDMI->iHotplugChangeParm2, &deviceAttached) ;
+		}
 	}
 
 #else

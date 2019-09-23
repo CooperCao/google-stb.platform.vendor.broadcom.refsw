@@ -1,40 +1,44 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include "output.h"
 #include "atlas_os.h"
@@ -1154,156 +1158,6 @@ eRet COutputHdmi::connect(NEXUS_AudioInput input)
 error:
     return(ret);
 }
-
-eDynamicRange COutputHdmi::getDynamicRange(void)
-{
-    eRet                   ret          = eRet_Ok;
-    NEXUS_Error            nerror       = NEXUS_SUCCESS;
-    eDynamicRange          dynamicRange = eDynamicRange_Unknown;
-    NEXUS_HdmiOutputStatus status;
-
-    nerror = NEXUS_HdmiOutput_GetStatus(getOutput(), &status);
-    CHECK_NEXUS_ERROR_GOTO("unable to get HDMI status", ret, nerror, error);
-
-    if (NEXUS_VideoEotf_eHdr10 == status.eotf)
-    {
-        dynamicRange = eDynamicRange_HDR10;
-    }
-    else
-    if (NEXUS_VideoEotf_eHlg == status.eotf)
-    {
-        dynamicRange = eDynamicRange_HLG;
-    }
-    else
-    {
-        dynamicRange = eDynamicRange_SDR;
-    }
-
-error:
-    return(dynamicRange);
-} /* getDynamicRange */
-
-#define SMD_TO_SMPTE_ST2086(X)  (int)((X)/0.00002)
-
-static const NEXUS_HdmiDynamicRangeMasteringStaticMetadata SMD_ZERO =
-{
-    NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1,
-    {                                                          /* typeSettings */
-        {                                                      /* Type1 */
-            {                                                  /* MasteringDisplayColorVolume */
-                { 0,                                     0  }, /* redPrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { 0,                                     0  }, /* greenPrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { 0,                                     0  }, /* bluePrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { 0,                                     0  }, /* whitePoint (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { 0,                                     0  }, /* displayLuminance (max, min) units of 1 cd / m2 and 0.0001 cd / m2 respectively */
-            },
-            {      /* ContentLightLevel */
-                0, /* maxContentLightLevel units of 1 cd/m2 */
-                0  /* maxFrameAverageLightLevel units of 1 cd/m2 */
-            }
-        }
-    }
-};
-
-static const NEXUS_HdmiDynamicRangeMasteringStaticMetadata SMD_BT709 =
-{
-    NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1,
-    {                                                                                    /* typeSettings */
-        {                                                                                /* Type1 */
-            {                                                                            /* MasteringDisplayColorVolume */
-                { SMD_TO_SMPTE_ST2086(0.64),             SMD_TO_SMPTE_ST2086(0.33)    }, /* redPrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { SMD_TO_SMPTE_ST2086(0.30),             SMD_TO_SMPTE_ST2086(0.60)    }, /* greenPrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { SMD_TO_SMPTE_ST2086(0.15),             SMD_TO_SMPTE_ST2086(0.06)    }, /* bluePrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { SMD_TO_SMPTE_ST2086(0.3127),           SMD_TO_SMPTE_ST2086(0.3290)  }, /* whitePoint (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { 0,                                     0                            }, /* displayMasteringLuminance (max, min) units of 1 cd / m2 and 0.0001 cd / m2 respectively */
-            },
-            {      /* ContentLightLevel */
-                0, /* maxContentLightLevel units of 1 cd/m2 */
-                0  /* maxFrameAverageLightLevel units of 1 cd/m2 */
-            }
-        }
-    }
-};
-
-static const NEXUS_HdmiDynamicRangeMasteringStaticMetadata SMD_BT2020 =
-{
-    NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1,
-    {                                                                                    /* typeSettings */
-        {                                                                                /* Type1 */
-            {                                                                            /* MasteringDisplayColorVolume */
-                { SMD_TO_SMPTE_ST2086(0.708),            SMD_TO_SMPTE_ST2086(0.292)   }, /* redPrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { SMD_TO_SMPTE_ST2086(0.170),            SMD_TO_SMPTE_ST2086(0.797)   }, /* greenPrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { SMD_TO_SMPTE_ST2086(0.131),            SMD_TO_SMPTE_ST2086(0.046)   }, /* bluePrimary (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { SMD_TO_SMPTE_ST2086(0.3127),           SMD_TO_SMPTE_ST2086(0.3290)  }, /* whitePoint (x,y) values 0 to 0xc350 represent 0 to 1.000 in steps of 0.00002 */
-                { 0,                                     0                            }, /* displayMasteringLuminance (max, min) units of 1 cd / m2 and 0.0001 cd / m2 respectively */
-            },
-            {      /* ContentLightLevel */
-                0, /* maxContentLightLevel units of 1 cd/m2 */
-                0  /* maxFrameAverageLightLevel units of 1 cd/m2 */
-            }
-        }
-    }
-};
-
-#include "nexus_hdmi_output_extra.h"
-eRet COutputHdmi::setDynamicRange(eDynamicRange dynamicRange)
-{
-    eRet                          ret    = eRet_Ok;
-    NEXUS_Error                   nerror = NEXUS_SUCCESS;
-    NEXUS_HdmiOutputExtraSettings settings;
-
-    BDBG_ASSERT(eDynamicRange_Unknown != dynamicRange);
-    BDBG_ASSERT(eDynamicRange_Max != dynamicRange);
-
-    NEXUS_HdmiOutput_GetExtraSettings(getOutput(), &settings);
-
-    settings.overrideDynamicRangeMasteringInfoFrame = (eDynamicRange_DolbyVision == dynamicRange) ? false : true;
-    settings.dolbyVision.outputMode                 =
-        (dynamicRange == eDynamicRange_DolbyVision) ? NEXUS_HdmiOutputDolbyVisionMode_eEnabled : NEXUS_HdmiOutputDolbyVisionMode_eDisabled;
-
-    switch (dynamicRange)
-    {
-    case eDynamicRange_HDR10:
-        settings.dynamicRangeMasteringInfoFrame.eotf = NEXUS_VideoEotf_eHdr10;
-        BKNI_Memcpy(&settings.dynamicRangeMasteringInfoFrame.metadata,
-                &SMD_BT2020,
-                sizeof(settings.dynamicRangeMasteringInfoFrame.metadata));
-        break;
-
-    case eDynamicRange_HLG:
-        settings.dynamicRangeMasteringInfoFrame.eotf = NEXUS_VideoEotf_eHlg;
-        BKNI_Memcpy(&settings.dynamicRangeMasteringInfoFrame.metadata,
-                &SMD_ZERO,
-                sizeof(settings.dynamicRangeMasteringInfoFrame.metadata));
-        break;
-
-    case eDynamicRange_DolbyVision:
-        settings.dynamicRangeMasteringInfoFrame.eotf = NEXUS_VideoEotf_eInvalid;
-        BKNI_Memcpy(&settings.dynamicRangeMasteringInfoFrame.metadata,
-                &SMD_ZERO,
-                sizeof(settings.dynamicRangeMasteringInfoFrame.metadata));
-        break;
-
-    case eDynamicRange_SDR:
-        settings.dynamicRangeMasteringInfoFrame.eotf = NEXUS_VideoEotf_eSdr;
-        BKNI_Memcpy(&settings.dynamicRangeMasteringInfoFrame.metadata,
-                &SMD_ZERO,
-                sizeof(settings.dynamicRangeMasteringInfoFrame.metadata));
-        break;
-
-    default:
-        settings.dynamicRangeMasteringInfoFrame.eotf = NEXUS_VideoEotf_eInvalid;
-        BKNI_Memcpy(&settings.dynamicRangeMasteringInfoFrame.metadata,
-                &SMD_ZERO,
-                sizeof(settings.dynamicRangeMasteringInfoFrame.metadata));
-        break;
-    } /* switch */
-
-    nerror = NEXUS_HdmiOutput_SetExtraSettings(getOutput(), &settings);
-    CHECK_NEXUS_ERROR_GOTO("unable to set HDMI extra settings", ret, nerror, error);
-error:
-    return(ret);
-} /* setDynamicRange */
 
 void COutputHdmi::dump(bool bForce)
 {

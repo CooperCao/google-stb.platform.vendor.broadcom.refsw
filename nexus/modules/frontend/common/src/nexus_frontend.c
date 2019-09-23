@@ -1385,15 +1385,15 @@ NEXUS_Error NEXUS_Frontend_ReapplyTransportSettings(NEXUS_FrontendHandle handle)
                 return NEXUS_Frontend_ReapplyTransportSettings(handle->pParentFrontend);
             }
             else {
-                return BERR_TRACE(BERR_SUCCESS);
+                return BERR_SUCCESS;
             }
         }
         else {
             return handle->reapplyTransportSettings(handle->pDeviceHandle);
         }
     } else {
-        BDBG_ERR(("Skipping reapply transport settings, as the Frontend is not locked"));
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
+        BDBG_WRN(("Skipping reapply transport settings, as the Frontend is not locked"));
+        return BERR_SUCCESS;
     }
 }
 

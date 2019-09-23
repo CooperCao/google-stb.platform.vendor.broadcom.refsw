@@ -74,6 +74,7 @@ typedef void *NEXUS_VideoDecoderCapabilities;
 #include "nexus_hdmi_output.h"
 #include "nexus_hdmi_output_extra.h"
 #include "nexus_hdmi_output_hdcp.h"
+#include "nxserverlib_dynrng_impl.h"
 #else
 typedef void *NEXUS_HdmiOutputHdcpVersion;
 #endif
@@ -242,45 +243,8 @@ struct b_connect {
     unsigned windowIndex;
 };
 
-#if NEXUS_HAS_HDMI_OUTPUT
-enum b_hdmi_drm_source {
-    b_hdmi_drm_source_input,
-    b_hdmi_drm_source_user,
-    b_hdmi_drm_source_max
-};
-
-struct b_hdmi_drm_selector
-{
-    struct
-    {
-        enum b_hdmi_drm_source outputMode;
-        enum b_hdmi_drm_source priorityMode;
-    } dolbyVision;
-    enum b_hdmi_drm_source eotf;
-    struct
-    {
-        enum b_hdmi_drm_source max;
-        enum b_hdmi_drm_source maxFrameAverage;
-    } cll;
-    struct
-    {
-        struct
-        {
-            enum b_hdmi_drm_source red;
-            enum b_hdmi_drm_source green;
-            enum b_hdmi_drm_source blue;
-        } primaries;
-        enum b_hdmi_drm_source whitePoint;
-        struct
-        {
-            enum b_hdmi_drm_source max;
-            enum b_hdmi_drm_source min;
-        } luminance;
-    } mdcv;
-};
-#endif
-
 typedef struct nxserver_cec_ir_input *nxserver_cec_ir_input_t;
+struct nxserver_bmon_ir_input;
 
 /**
 A session is either local (with a display) or streaming (with an encoder)
@@ -329,29 +293,14 @@ struct b_session {
         nxclient_t crc_client;
         NEXUS_SurfaceHandle graphic; /* for NxClient_SlaveDisplayMode_eGraphics */
         bool graphicsOnly;
+        NEXUS_DisplayPriority priority;
     } display[NXCLIENT_MAX_DISPLAYS];
     NxClient_PictureQualitySettings pictureQualitySettings;
 #if NEXUS_HAS_HDMI_OUTPUT
     NEXUS_HdmiOutputHandle hdmiOutput;
     struct
     {
-        struct
-        {
-            struct b_hdmi_drm_selector selector;
-            bool eotfValid;
-            bool smdValid;
-            NEXUS_HdmiDynamicRangeMasteringInfoFrame input;
-#if NEXUS_HAS_VIDEO_DECODER
-            NEXUS_VideoDecoderDynamicRangeMetadataType dynamicMetadataType;
-#endif
-            struct
-            {
-                NEXUS_HdmiOutputDolbyVisionMode outputMode;
-                NEXUS_HdmiOutputDolbyVisionPriorityMode priorityMode;
-            } dolbyVision;
-            NEXUS_HdmiOutputEdidRxHdrdb hdrdb;
-            NEXUS_VideoEotf lastInputEotf;
-        } drm;
+        struct b_video_dynrng dynrng;
         struct {
             nxclient_t client;
         } repeater;
@@ -642,7 +591,6 @@ void uninit_input_devices(struct b_session *session);
 nxserverlib.c API
 ************/
 bool nxserverlib_p_native_3d_active(struct b_session *session);
-bool nxserverlib_p_dolby_vision_active(struct b_session *session);
 void inc_id(nxserver_t server, enum b_resource r);
 bool is_transcode_connect(const struct b_connect *connect);
 bool is_transcode_audiodec_request(const struct b_connect *connect);
@@ -666,6 +614,10 @@ NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_
 #if NEXUS_HAS_HDMI_OUTPUT
 void nxserverlib_p_apply_hdmi_drm(const struct b_session * session, const NxClient_DisplaySettings * pSettings, bool rxChanged);
 #endif
+
+int b_connect_acquire(nxclient_t client, struct b_connect *connect);
+void b_connect_release(nxclient_t client, struct b_connect *connect);
+NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_session *session, const NxClient_DisplaySettings *pSettings);
 
 /* get the index into req->handles.XXXX[] that matches the id */
 typedef unsigned (*get_req_id_func)(struct b_req *req, unsigned i);
@@ -691,5 +643,14 @@ NEXUS_Error nxserver_get_thermal_status(nxclient_t client, NxClient_ThermalStatu
 void nxserver_get_thermal_configuration_list(nxclient_t client, NxClient_ThermalConfigurationList *pConfigList);
 NEXUS_Error nxserver_get_thermal_configuration(nxclient_t client, unsigned tempThreshold, NxClient_ThermalConfiguration *pConfig);
 NEXUS_Error nxserver_set_thermal_configuration(nxclient_t client, unsigned tempThreshold, const NxClient_ThermalConfiguration *pConfig);
+
+/***********
+ * API used by nxserverlib_dynrng.c
+ */
+nxserver_t nxserverlib_session_p_get_server(struct b_session * session);
+NEXUS_DisplayHandle nxserverlib_session_p_get_primary_display(struct b_session * session);
+NEXUS_HdmiOutputHandle nxserverlib_session_p_get_hdmi_output(struct b_session * session);
+void nxserver_p_lock(nxserver_t server);
+void nxserver_p_unlock(nxserver_t server);
 
 #endif /* NXSERVERLIB_IMPL_H__ */

@@ -57,8 +57,8 @@ BERR_Code BHDM_SetVendorSpecificInfoFrame(
 	uint8_t PacketType ;
 	uint8_t PacketVersion ;
 	uint8_t PacketLength ;
-
 	uint8_t packetByte5 ;
+    uint32_t reg;
 
 	BHDM_Packet PhysicalHdmiRamPacketId = BHDM_Packet_eVendorSpecific_ID ;
 	BAVC_HDMI_VSInfoFrame_HDMIVideoFormat eHdmiVideoFormat ;
@@ -193,9 +193,18 @@ done:
 	BKNI_Memcpy(&hHDMI->DeviceSettings.stVendorSpecificInfoFrame, &NewVSI,
 		sizeof(BAVC_HDMI_VendorSpecificInfoFrame)) ;
 
-	BHDM_P_WritePacket(
-		hHDMI, PhysicalHdmiRamPacketId,
-		PacketType, PacketVersion, PacketLength, hHDMI->PacketBytes) ;
+#ifdef BCHP_HDMI_HDR_CFG
+    reg = BREG_Read32(hHDMI->hRegister, BCHP_HDMI_HDR_CFG);
+    reg = BCHP_GET_FIELD_DATA(reg, HDMI_HDR_CFG, MODE);
+    if (reg != BHDM_HdrRamMode_eMetadataPacket) /* don't write VSIF if already using HDR_RAM in metadata packet transmission mode */
+#else
+    BSTD_UNUSED(reg);
+#endif
+    {
+        BHDM_P_WritePacket(
+            hHDMI, PhysicalHdmiRamPacketId,
+            PacketType, PacketVersion, PacketLength, hHDMI->PacketBytes) ;
+    }
 
 #if BDBG_DEBUG_BUILD
 	{

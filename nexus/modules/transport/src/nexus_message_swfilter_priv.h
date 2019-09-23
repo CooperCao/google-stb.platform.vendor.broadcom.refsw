@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2018 Broadcom.
+ *  Copyright (C) 2019 Broadcom.
  *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -50,7 +50,8 @@
 Summary:
 Callback, called when complete message is received.
 ***************************************************************************/
-typedef void * (*NEXUS_SwFilter_Msg_P_callback_t)(void * context, size_t NEXUS_SwFilter_Msg_P_size);
+typedef void * (*NEXUS_SwFilter_Msg_P_callback_t) (void * context, size_t NEXUS_SwFilter_Msg_P_size);
+typedef void   (*NEXUS_SwFilter_Msg_P_callback_tc)(void * context, uint32_t crc);
 
 struct NEXUS_SwFilter_FilterState;
 
@@ -68,6 +69,8 @@ typedef struct NEXUS_SwFilter_MsgParams
     bool disable_crc_check;
     NEXUS_SwFilter_Msg_P_callback_t callback; 
     void * context;
+    NEXUS_SwFilter_Msg_P_callback_tc callback_crcErr;
+    void * context_crcErr;
 } NEXUS_SwFilter_MsgParams_t;
 
 /***************************************************************************

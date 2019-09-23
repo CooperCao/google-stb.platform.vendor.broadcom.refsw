@@ -355,7 +355,7 @@ const std::string kCpClientAuth = "";
 
 // Google Play license server data
 const std::string kGpLicenseServer =
-"http://dash-mse-test.appspot.com/api/drm/";
+"https://dash-mse-test.appspot.com/api/drm/";
 //    "http://license.uat.widevine.com/getlicense/widevine_test";
 //    "https://jmt17.google.com/video/license/GetCencLicense";
 

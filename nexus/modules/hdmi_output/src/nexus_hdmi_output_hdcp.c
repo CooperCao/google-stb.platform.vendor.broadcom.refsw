@@ -100,7 +100,6 @@ static void NEXUS_HdmiOutput_P_SageResponseCallback_isr(
 #define LOCK_SECURITY() NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.security)
 #define UNLOCK_SECURITY() NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.security)
 
-
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
 static NEXUS_Error NEXUS_HdmiOutput_P_InitHdcp2x(NEXUS_HdmiOutputHandle output)
 {
@@ -476,11 +475,6 @@ void NEXUS_HdmiOutput_P_UninitHdcp(NEXUS_HdmiOutputHandle output)
         NEXUS_CancelTimer(output->hdcpTimer);
         output->hdcpTimer = NULL;
     }
-    if ( output->hdcpFailedStartTimer )
-    {
-        NEXUS_CancelTimer(output->hdcpFailedStartTimer);
-        output->hdcpFailedStartTimer = NULL;
-    }
 
     if (output->eHdcpVersion == BHDM_HDCP_Version_e2_2) {
         (void)NEXUS_HdmiOutput_DisableHdcpEncryption(output);
@@ -521,7 +515,7 @@ void NEXUS_HdmiOutput_P_UninitHdcp(NEXUS_HdmiOutputHandle output)
 #endif
     }
     else {
-       (void)NEXUS_HdmiOutput_DisableHdcpAuthentication(output);
+       (void)NEXUS_HdmiOutput_P_DisableHdcpAuthentication(output);
     }
 
     if (output->pjCallback != NULL) {
@@ -699,10 +693,10 @@ static void NEXUS_HdmiOutput_P_Hdcp2xReAuthRequestCallback(void *pContext)
     BDBG_OBJECT_ASSERT(output, NEXUS_HdmiOutput);
 
     BDBG_MSG(("%s: Received ReAuth Request from downstream HDCP2.x receiver", BSTD_FUNCTION));
-
     if (output->hdcpStarted == true)
     {
         output->hdcpMonitor.hdcp22.validReauthReqCounter++ ;
+
         /* Restart HDCP 2.x authentication */
         rc = NEXUS_HdmiOutput_StartHdcpAuthentication(output);
         if (rc != BERR_SUCCESS)
@@ -781,6 +775,9 @@ static void NEXUS_HdmiOutput_P_Hdcp2xAuthenticationStatusUpdate(void *pContext)
             output->hdcpMonitor.hdcp22.auth.failCounter++ ;
         }
     }
+
+    output->hdcpMonitor.hdcp22.akeSendCertFailures =
+        stAuthenticationStatus.totalAkeSendCertFailures ;
 
     /* fire stateChange call back */
     NEXUS_TaskCallback_Fire(output->hdcpStateChangedCallback);
@@ -1345,7 +1342,7 @@ NEXUS_Error NEXUS_HdmiOutput_P_SetHdcpVersion(
         }
 
         if (hdcpState > NEXUS_HdmiOutputHdcpState_eUnauthenticated) {
-            errCode = NEXUS_HdmiOutput_DisableHdcpAuthentication(handle);
+            errCode = NEXUS_HdmiOutput_P_DisableHdcpAuthentication(handle);
             if (errCode)
                 errCode = BERR_TRACE(errCode);
         }
@@ -1405,7 +1402,6 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
     NEXUS_HdmiOutputHandle handle)
 {
     NEXUS_Error errCode = NEXUS_SUCCESS ;
-    bool linkAuthenticated = false;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
     if (IS_ALIAS(handle))
@@ -1414,7 +1410,14 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
         goto done ;
     }
 
-    handle->hdcpRequiredPostFormatChange = false;
+    /* Check post timer to detect whether we're in the middle of a format change */
+    if (handle->postFormatChangeTimer)
+    {
+    	 BDBG_LOG(("%s: Going through format change, authentication will be started once format change completed", BSTD_FUNCTION));
+    	 handle->hdcpRequiredPostFormatChange = true;
+    	 errCode = NEXUS_NOT_AVAILABLE;
+    	 goto done;
+    }
 
     /* Check for device */
     if (! NEXUS_HdmiOutput_P_IsRxPowered_isrsafe(handle))
@@ -1424,55 +1427,41 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
         goto done ;
     }
 
-    errCode = BHDM_HDCP_IsLinkAuthenticated(handle->hdmHandle, &linkAuthenticated);
-    if (errCode != BERR_SUCCESS)
-    {
-        BDBG_ERR(("Error checking HDCP link status"));
-        errCode = BERR_TRACE(errCode);
+    if (handle->hdcpStarted) {
+       NEXUS_HdmiOutput_P_DisableHdcpAuthentication(handle);
     }
 
     if (handle->eHdcpVersion == BHDM_HDCP_Version_e2_2) {
-        /******************/
-        /**** HDCP 2.x ****/
-        /******************/
-#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+#if defined(NEXUS_HAS_HDCP_2X_SUPPORT)
         handle->hdcpMonitor.hdcp22.auth.attemptCounter++ ;
 #endif
-        if (linkAuthenticated)
+#if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+        if (BHDCPlib_IsCstChange(handle->hdcpHandle))
         {
-            errCode = NEXUS_HdmiOutput_DisableHdcpEncryption(handle);
-            if (errCode != BERR_SUCCESS) {
-                BDBG_ERR(("Error disabling HDCP 2.x encryption"));
-                errCode = BERR_TRACE(errCode);
-                goto done ;
+            BDBG_WRN(("Toggle TMDS data/clock lines for HDCP 2.2 CST change")) ;
+            (void) NEXUS_HdmiOutput_P_SetTmdsSignalData(handle, false) ;
+            (void) NEXUS_HdmiOutput_P_SetTmdsSignalClock(handle, false) ;
+
+            BKNI_Sleep(100) ;
+
+            (void) NEXUS_HdmiOutput_P_SetTmdsSignalClock(handle, true) ;
+            (void) NEXUS_HdmiOutput_P_SetTmdsSignalData(handle, true) ;
+
+            BHDCPlib_ClearCstChange(handle->hdcpHandle) ;
+        }
+#endif
             }
-
-            /* delay start of HDCP Authentication */
-            BDBG_MSG(("Delay HDCP Auth Start (allow DisableEncryption to complete)")) ;
-            BKNI_Sleep(50);
-        }
-
-    }
-    else
-	{
+    else {
         handle->hdcpMonitor.hdcp1x.auth.attemptCounter++ ;
-        /******************/
-        /**** HDCP 1.x ****/
-        /******************/
-        /* Clean up any pending state */
-        errCode = NEXUS_HdmiOutput_DisableHdcpAuthentication(handle) ;
-        if (errCode)
-        {
-            BDBG_ERR(("Unable to Disable HDCP Authentication")) ;
-        }
-
-        /* delay start of HDCP Authentication */
-        BDBG_MSG(("Delay HDCP Auth Start (allow DisableHdcpAuthentication to complete)")) ;
-        BKNI_Sleep(50);
     }
 
-    BDBG_MSG(("Starting HDCP %s Authentication",
-        handle->eHdcpVersion == BHDM_HDCP_Version_e2_2 ? "2.2" : "1.x"));
+
+    if (BHDM_CheckForValidVideo(handle->hdmHandle))
+    {
+        BDBG_WRN(("Video is not ready; unable to start HDCP "));
+        errCode = BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        goto done ;
+    }
 
     /* Reset Auth State */
     errCode = BHDCPlib_StartAuthentication(handle->hdcpHandle);
@@ -1506,20 +1495,15 @@ done:
 /**
 Summary:
 Terminate HDCP authentication
+Internal function. Does not stop "keep alive timer" from user.
 **/
-NEXUS_Error NEXUS_HdmiOutput_DisableHdcpAuthentication(
+NEXUS_Error NEXUS_HdmiOutput_P_DisableHdcpAuthentication(
     NEXUS_HdmiOutputHandle handle
     )
 {
     NEXUS_Error errCode;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-
-    handle->hdcpStarted = false;
-
-    /* clear hdcp Required flag */
-    handle->hdcpRequiredPostFormatChange = false ;
 
     /* Clean up any pending timers */
     if ( NULL != handle->hdcpTimer )
@@ -1527,12 +1511,8 @@ NEXUS_Error NEXUS_HdmiOutput_DisableHdcpAuthentication(
         NEXUS_CancelTimer(handle->hdcpTimer);
         handle->hdcpTimer = NULL;
     }
-    if ( handle->hdcpFailedStartTimer )
-    {
-        NEXUS_CancelTimer(handle->hdcpFailedStartTimer);
-        handle->hdcpFailedStartTimer = NULL;
-    }
 
+    handle->hdcpStarted = false;
     errCode = BHDCPlib_DisableAuthentication(handle->hdcpHandle);
     if ( errCode )
     {
@@ -1546,6 +1526,23 @@ NEXUS_Error NEXUS_HdmiOutput_DisableHdcpAuthentication(
     return BERR_SUCCESS;
 }
 
+NEXUS_Error NEXUS_HdmiOutput_DisableHdcpAuthentication(
+    NEXUS_HdmiOutputHandle handle
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
+    if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+
+    /* Do not restart HDCP after formatChange since application wants to disable HDCP */
+    handle->hdcpRequiredPostFormatChange = false ;
+
+    if ( handle->hdcpFailedStartTimer )
+    {
+        NEXUS_CancelTimer(handle->hdcpFailedStartTimer);
+        handle->hdcpFailedStartTimer = NULL;
+    }
+    return NEXUS_HdmiOutput_P_DisableHdcpAuthentication(handle);
+}
 
 NEXUS_Error NEXUS_HdmiOutput_EnableHdcpEncryption(
     NEXUS_HdmiOutputHandle handle
@@ -1590,7 +1587,7 @@ NEXUS_Error NEXUS_HdmiOutput_DisableHdcpEncryption(
     if ((handle->eHdcpVersion == BHDM_HDCP_Version_e1_1)
     || (handle->eHdcpVersion == BHDM_HDCP_Version_e1_1_Optional_Features))
     {
-        return NEXUS_HdmiOutput_DisableHdcpAuthentication(handle);
+        return NEXUS_HdmiOutput_P_DisableHdcpAuthentication(handle);
     }
 
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
@@ -1644,9 +1641,11 @@ static void NEXUS_HdmiOutput_P_HdcpFailedStartCallback(void *pContext)
     /* if authenticated, no need to continue monitoring. if not, fire callback and schedule again. */
     rc = NEXUS_HdmiOutput_GetHdcpStatus(handle, &status);
     if (!rc && status.hdcpState == NEXUS_HdmiOutputHdcpState_eEncryptionEnabled) {
+       BDBG_LOG(("Already Authenticated... NO Restart of HDCP Authentication")) ;
         return;
     }
 
+    BDBG_MSG(("Schedule restart of HDCP Authentication")) ;
     NEXUS_TaskCallback_Fire(handle->hdcpFailureCallback);
     NEXUS_TaskCallback_Fire(handle->hdcpStateChangedCallback);
     handle->hdcpFailedStartTimer = NEXUS_ScheduleTimer(2000, NEXUS_HdmiOutput_P_HdcpFailedStartCallback, handle);
@@ -1700,7 +1699,7 @@ static void NEXUS_HdmiOutput_P_HdcpTimerCallback(void *pContext)
     else
     {
         BDBG_WRN(("HDCP recommended no wait time.   Disabling Hdcp Authentication."));
-        NEXUS_HdmiOutput_DisableHdcpAuthentication(output);
+        NEXUS_HdmiOutput_P_DisableHdcpAuthentication(output);
     }
 }
 

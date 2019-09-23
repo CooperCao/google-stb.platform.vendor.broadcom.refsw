@@ -43,7 +43,7 @@
 #include "bhdm.h"
 #include "bhdm_edid.h"
 
-BDBG_MODULE(nexus_hdmi_output_drm);
+BDBG_MODULE(nexus_hdmi_output_drmif);
 
 static BAVC_HDMI_DRM_DescriptorId NEXUS_P_HdmiOutputDrmStaticMetadataType_ToMagnum_isrsafe(NEXUS_HdmiDynamicRangeMasteringStaticMetadataType type)
 {
@@ -70,7 +70,7 @@ static const char * metadataTypeStrings[] =
     NULL
 };
 
-static void NEXUS_HdmiOutput_P_PrintType1DrmStaticMetadata(const NEXUS_StaticHdrMetadata * pMetadata)
+static void NEXUS_HdmiOutput_Drmif_P_PrintType1StaticMetadata(const NEXUS_HdmiType1DynamicRangeMasteringStaticMetadata * pMetadata)
 {
     const NEXUS_MasteringDisplayColorVolume * pMdcv;
     const NEXUS_ContentLightLevel * pCll;
@@ -87,7 +87,7 @@ static void NEXUS_HdmiOutput_P_PrintType1DrmStaticMetadata(const NEXUS_StaticHdr
     BDBG_LOG(("      fal: %d", pCll->maxFrameAverage));
 }
 
-static void NEXUS_HdmiOutput_P_PrintType1DrmStaticMetadataChanges(const NEXUS_StaticHdrMetadata * pOldMetadata, const NEXUS_StaticHdrMetadata * pNewMetadata)
+static void NEXUS_HdmiOutput_Drmif_P_PrintType1StaticMetadataChanges(const NEXUS_HdmiType1DynamicRangeMasteringStaticMetadata * pOldMetadata, const NEXUS_HdmiType1DynamicRangeMasteringStaticMetadata * pNewMetadata)
 {
     const NEXUS_MasteringDisplayColorVolume * pOldMdcv;
     const NEXUS_ContentLightLevel * pOldCll;
@@ -122,7 +122,7 @@ static void NEXUS_HdmiOutput_P_PrintType1DrmStaticMetadataChanges(const NEXUS_St
         pNewCll->maxFrameAverage));
 }
 
-static void NEXUS_HdmiOutput_P_PrintDrmInfoFrameChanges(const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pOldInfoFrame, const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pNewInfoFrame)
+static void NEXUS_HdmiOutput_Drmif_P_PrintChanges(const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pOldInfoFrame, const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pNewInfoFrame)
 {
     BDBG_LOG(("    DRMInfoFrame")) ;
     BDBG_LOG(("      eotf: %s -> %s",
@@ -137,7 +137,7 @@ static void NEXUS_HdmiOutput_P_PrintDrmInfoFrameChanges(const NEXUS_HdmiDynamicR
         switch (pOldInfoFrame->metadata.type)
         {
             case NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1:
-                NEXUS_HdmiOutput_P_PrintType1DrmStaticMetadata(&pOldInfoFrame->metadata.typeSettings.type1);
+                NEXUS_HdmiOutput_Drmif_P_PrintType1StaticMetadata(&pOldInfoFrame->metadata.typeSettings.type1);
                 break;
             default:
                 break;
@@ -146,7 +146,7 @@ static void NEXUS_HdmiOutput_P_PrintDrmInfoFrameChanges(const NEXUS_HdmiDynamicR
         switch (pNewInfoFrame->metadata.type)
         {
             case NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1:
-                NEXUS_HdmiOutput_P_PrintType1DrmStaticMetadata(&pNewInfoFrame->metadata.typeSettings.type1);
+                NEXUS_HdmiOutput_Drmif_P_PrintType1StaticMetadata(&pNewInfoFrame->metadata.typeSettings.type1);
                 break;
             default:
                 break;
@@ -157,7 +157,7 @@ static void NEXUS_HdmiOutput_P_PrintDrmInfoFrameChanges(const NEXUS_HdmiDynamicR
         switch (pNewInfoFrame->metadata.type)
         {
             case NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1:
-                NEXUS_HdmiOutput_P_PrintType1DrmStaticMetadataChanges(
+                NEXUS_HdmiOutput_Drmif_P_PrintType1StaticMetadataChanges(
                     &pOldInfoFrame->metadata.typeSettings.type1,
                     &pNewInfoFrame->metadata.typeSettings.type1);
                 break;
@@ -168,7 +168,7 @@ static void NEXUS_HdmiOutput_P_PrintDrmInfoFrameChanges(const NEXUS_HdmiDynamicR
 }
 #endif
 
-static void NEXUS_HdmiOutput_P_DrmInfoFrame_ToMagnum(const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pNexus, BAVC_HDMI_DRMInfoFrame * pMagnum)
+static void NEXUS_HdmiOutput_Drmif_P_ToMagnum(const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pNexus, BAVC_HDMI_DRMInfoFrame * pMagnum)
 {
     pMagnum->eEOTF = NEXUS_P_VideoEotf_ToMagnum_isrsafe(pNexus->eotf);
     pMagnum->eDescriptorId = NEXUS_P_HdmiOutputDrmStaticMetadataType_ToMagnum_isrsafe(pNexus->metadata.type);
@@ -184,27 +184,37 @@ static void NEXUS_HdmiOutput_P_DrmInfoFrame_ToMagnum(const NEXUS_HdmiDynamicRang
 }
 
 #if NEXUS_DBV_SUPPORT
-static void NEXUS_HdmiOutput_P_DrmInfoFrameDisable(NEXUS_HdmiOutputHandle output)
+static void NEXUS_HdmiOutput_Drmif_P_Disable(NEXUS_HdmiOutputHandle hdmiOutput)
 {
+    BERR_Code rc = BERR_SUCCESS;
     BAVC_HDMI_DRMInfoFrame stDRMInfoFrame ;
-    output->drm.outputInfoFrame.eotf = NEXUS_VideoEotf_eInvalid;
-    BHDM_GetDRMInfoFramePacket(output->hdmHandle, &stDRMInfoFrame) ;
-    NEXUS_HdmiOutput_P_DrmInfoFrame_ToMagnum(&output->drm.outputInfoFrame, &stDRMInfoFrame);
-    BHDM_SetDRMInfoFramePacket(output->hdmHandle, &stDRMInfoFrame) ;
-    /* notify display that we've changed drminfoframe */
-    NEXUS_TaskCallback_Fire(output->notifyDisplay);  /* NEXUS_VideoOutput_P_SetHdmiSettings */
+    NEXUS_VideoEotf oldEotf;
+    oldEotf = hdmiOutput->dynrng.drmif.outputInfoFrame.eotf;
+    BDBG_LOG(("    DRMInfoFrame")) ;
+    BDBG_LOG(("      eotf: %s -> %s",
+        eotfStrings[oldEotf],
+        eotfStrings[NEXUS_VideoEotf_eInvalid]));
+    hdmiOutput->dynrng.drmif.outputInfoFrame.eotf = NEXUS_VideoEotf_eInvalid;
+    BHDM_GetDRMInfoFramePacket(hdmiOutput->hdmHandle, &stDRMInfoFrame) ;
+    NEXUS_HdmiOutput_Drmif_P_ToMagnum(&hdmiOutput->dynrng.drmif.outputInfoFrame, &stDRMInfoFrame);
+    rc = BHDM_SetDRMInfoFramePacket(hdmiOutput->hdmHandle, &stDRMInfoFrame) ;
+    if (rc) { BERR_TRACE(rc); hdmiOutput->dynrng.drmif.outputInfoFrame.eotf = oldEotf; }
+
+    /* notify display that we've changed drminfoframe, but only call this if called from timer below */
+    hdmiOutput->displaySettings.valid = false;
+    NEXUS_HdmiOutput_P_NotifyDisplay(hdmiOutput);
 }
 
-static void NEXUS_HdmiOutput_P_DrmInfoFrameDisableTimerExpiration(void * pContext)
+static void NEXUS_HdmiOutput_Drmif_P_DisableTimerExpiration(void * pContext)
 {
-    NEXUS_HdmiOutputHandle output = pContext;
-    if (!output->drm.offTimer) return; /* someone canceled early */
-    BDBG_LOG(("DRMIF disable timer expired; disabling DRMIF"));
-    output->drm.offTimer = NULL;
-    NEXUS_HdmiOutput_P_DrmInfoFrameDisable(output);
+    NEXUS_HdmiOutputHandle hdmiOutput = pContext;
+    if (!hdmiOutput->dynrng.drmif.offTimer) return; /* someone canceled early */
+    BDBG_LOG(("DRMIF disable timer expired"));
+    hdmiOutput->dynrng.drmif.offTimer = NULL;
+    NEXUS_HdmiOutput_Drmif_P_Disable(hdmiOutput);
 }
 
-static const NEXUS_HdmiDynamicRangeMasteringInfoFrame DRM_ZERO =
+static const NEXUS_HdmiDynamicRangeMasteringInfoFrame DRMIF_ZERO =
 {
     0,
     {
@@ -225,12 +235,12 @@ static const NEXUS_HdmiDynamicRangeMasteringInfoFrame DRM_ZERO =
 };
 #endif
 
-static NEXUS_Error NEXUS_HdmiOutput_P_SetDrmInfoFrame(NEXUS_HdmiOutputHandle output, const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame)
+NEXUS_Error NEXUS_HdmiOutput_Drmif_P_Set(NEXUS_HdmiOutputHandle hdmiOutput, const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame)
 {
     BERR_Code rc = BERR_SUCCESS;
     BAVC_HDMI_DRMInfoFrame stDRMInfoFrame ;
 
-    if (BKNI_Memcmp(&output->drm.outputInfoFrame, pDrmInfoFrame, sizeof(output->drm.outputInfoFrame)))
+    if (BKNI_Memcmp(&hdmiOutput->dynrng.drmif.outputInfoFrame, pDrmInfoFrame, sizeof(hdmiOutput->dynrng.drmif.outputInfoFrame)))
     {
         if (pDrmInfoFrame->eotf != NEXUS_VideoEotf_eSdr && pDrmInfoFrame->eotf != NEXUS_VideoEotf_eInvalid)
         {
@@ -238,11 +248,11 @@ static NEXUS_Error NEXUS_HdmiOutput_P_SetDrmInfoFrame(NEXUS_HdmiOutputHandle out
              * the first time we see a non-SDR, non-Invalid eotf set to this
              * output, we set this flag and print changes from then on
              */
-            output->drm.printDrmInfoFrameChanges = true;
+            hdmiOutput->dynrng.printDynrngChanges = true;
         }
 
 #if NEXUS_DBV_SUPPORT
-        if (pDrmInfoFrame->eotf == NEXUS_VideoEotf_eInvalid && output->drm.outputInfoFrame.eotf != NEXUS_VideoEotf_eInvalid)
+        if (pDrmInfoFrame->eotf == NEXUS_VideoEotf_eInvalid && hdmiOutput->dynrng.drmif.outputInfoFrame.eotf != NEXUS_VideoEotf_eInvalid)
         {
             /*
              * NOTE: The HDMI 2.1 spec requires that when we disable the DRMIF
@@ -257,43 +267,40 @@ static NEXUS_Error NEXUS_HdmiOutput_P_SetDrmInfoFrame(NEXUS_HdmiOutputHandle out
              * HDMI spec, we enable spec-compliant behavior for any Dolby Vision
              * capable receiver.
              */
-            if (output->dbv.supported)
+            if (hdmiOutput->dynrng.dbv.supported)
             {
                 BDBG_LOG(("Disabling DRMIF requires 2 seconds of transmittal with zeroes"));
-                output->drm.offTimer = NEXUS_ScheduleTimer(2000, NEXUS_HdmiOutput_P_DrmInfoFrameDisableTimerExpiration, output);
-                pDrmInfoFrame = &DRM_ZERO;
+                hdmiOutput->dynrng.drmif.offTimer = NEXUS_ScheduleTimer(2000, NEXUS_HdmiOutput_Drmif_P_DisableTimerExpiration, hdmiOutput);
+                pDrmInfoFrame = &DRMIF_ZERO;
             }
         }
-        else if (pDrmInfoFrame->eotf != NEXUS_VideoEotf_eInvalid && output->drm.offTimer)
+        else if (pDrmInfoFrame->eotf != NEXUS_VideoEotf_eInvalid && hdmiOutput->dynrng.drmif.offTimer)
         {
-            NEXUS_CancelTimer(output->drm.offTimer);
-            output->drm.offTimer = NULL;
+            NEXUS_CancelTimer(hdmiOutput->dynrng.drmif.offTimer);
+            hdmiOutput->dynrng.drmif.offTimer = NULL;
         }
 #endif
 
 #if !BDBG_NO_LOG
-        if (output->drm.printDrmInfoFrameChanges)
+        if (hdmiOutput->dynrng.printDynrngChanges)
         {
             BDBG_LOG(("NEXUS_HdmiOutput_P_SetDrmInfoFrame")) ;
-            NEXUS_HdmiOutput_P_PrintDrmInfoFrameChanges(&output->drm.outputInfoFrame, pDrmInfoFrame);
+            NEXUS_HdmiOutput_Drmif_P_PrintChanges(&hdmiOutput->dynrng.drmif.outputInfoFrame, pDrmInfoFrame);
         }
 #endif
-        BKNI_Memcpy(&output->drm.outputInfoFrame, pDrmInfoFrame, sizeof(output->drm.outputInfoFrame));
+        BKNI_Memcpy(&hdmiOutput->dynrng.drmif.outputInfoFrame, pDrmInfoFrame, sizeof(hdmiOutput->dynrng.drmif.outputInfoFrame));
 
-        BHDM_GetDRMInfoFramePacket(output->hdmHandle, &stDRMInfoFrame) ;
-        NEXUS_HdmiOutput_P_DrmInfoFrame_ToMagnum(pDrmInfoFrame, &stDRMInfoFrame);
-        rc = BHDM_SetDRMInfoFramePacket(output->hdmHandle, &stDRMInfoFrame) ;
+        BHDM_GetDRMInfoFramePacket(hdmiOutput->hdmHandle, &stDRMInfoFrame) ;
+        NEXUS_HdmiOutput_Drmif_P_ToMagnum(pDrmInfoFrame, &stDRMInfoFrame);
+        rc = BHDM_SetDRMInfoFramePacket(hdmiOutput->hdmHandle, &stDRMInfoFrame) ;
         if (rc) { BERR_TRACE(rc); goto error; }
-
-        /* notify display that we've changed drminfoframe */
-        NEXUS_TaskCallback_Fire(output->notifyDisplay);  /* NEXUS_VideoOutput_P_SetHdmiSettings */
     }
 
 error:
     return rc;
 }
 
-static NEXUS_VideoEotf NEXUS_HdmiOutput_P_ComputeEotf(
+static NEXUS_VideoEotf NEXUS_HdmiOutput_Drmif_P_ComputeEotf(
     NEXUS_VideoEotf preferredEotf,
     const BHDM_EDID_HDRStaticDB * pHdrDataBlock,
     bool plmSupported)
@@ -333,18 +340,18 @@ static NEXUS_VideoEotf NEXUS_HdmiOutput_P_ComputeEotf(
     return eotf;
 }
 
-static void NEXUS_HdmiOutput_P_DrmInfoFrame_ApplyEdid(NEXUS_HdmiOutputHandle output, NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame)
+static void NEXUS_HdmiOutput_Drmif_P_ApplyEdid(NEXUS_HdmiOutputHandle hdmiOutput, NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame)
 {
     /* for now, we only modify the eotf */
-    pDrmInfoFrame->eotf = NEXUS_HdmiOutput_P_ComputeEotf(pDrmInfoFrame->eotf, &output->drm.hdrdb,
-        output->drm.processingCaps.typesSupported[NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_ePlm]);
+    pDrmInfoFrame->eotf = NEXUS_HdmiOutput_Drmif_P_ComputeEotf(pDrmInfoFrame->eotf, &hdmiOutput->dynrng.drmif.hdrdb,
+        hdmiOutput->dynrng.processingCaps.typesSupported[NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_ePlm]);
     if (pDrmInfoFrame->eotf == NEXUS_VideoEotf_eSdr)
     {
         BKNI_Memset(&pDrmInfoFrame->metadata, 0, sizeof(pDrmInfoFrame->metadata)) ;
     }
 }
 
-static void NEXUS_HdmiOutput_P_BuildDrmInfoFrame(NEXUS_HdmiDynamicRangeMasteringInfoFrame * pTargetDrmInfoFrame, const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pSourceDrmInfoFrame)
+static void NEXUS_HdmiOutput_Drmif_P_Build(NEXUS_HdmiDynamicRangeMasteringInfoFrame * pTargetDrmInfoFrame, const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pSourceDrmInfoFrame)
 {
     BKNI_Memset(pTargetDrmInfoFrame, 0, sizeof(*pTargetDrmInfoFrame));
     if (pSourceDrmInfoFrame->eotf != NEXUS_VideoEotf_eSdr)
@@ -353,185 +360,122 @@ static void NEXUS_HdmiOutput_P_BuildDrmInfoFrame(NEXUS_HdmiDynamicRangeMastering
     }
 }
 
-static NEXUS_Error NEXUS_HdmiOutput_P_ApplyInputDrmInfoFrame(NEXUS_HdmiOutputHandle output)
+void NEXUS_HdmiOutput_Drmif_P_ApplyInput(NEXUS_HdmiOutputHandle hdmiOutput, NEXUS_HdmiDynamicRangeMasteringInfoFrame * pTargetDrmInfoFrame)
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    NEXUS_HdmiDynamicRangeMasteringInfoFrame drmInfoFrame;
-
-    if (output->drm.inputInfoFrame.eotf != NEXUS_VideoEotf_eInvalid)
+    if (hdmiOutput->dynrng.drmif.inputInfoFrame.eotf != NEXUS_VideoEotf_eInvalid)
     {
-        NEXUS_HdmiOutput_P_BuildDrmInfoFrame(&drmInfoFrame, &output->drm.inputInfoFrame);
+        NEXUS_HdmiOutput_Drmif_P_Build(pTargetDrmInfoFrame, &hdmiOutput->dynrng.drmif.inputInfoFrame);
 
         /* check compat with EDID -> modify as necessary and print debug */
-        NEXUS_HdmiOutput_P_DrmInfoFrame_ApplyEdid(output, &drmInfoFrame);
+        NEXUS_HdmiOutput_Drmif_P_ApplyEdid(hdmiOutput, pTargetDrmInfoFrame);
 
 #if NEXUS_DBV_SUPPORT
-        NEXUS_HdmiOutput_P_DbvUpdateDrmInfoFrame(output, &drmInfoFrame);
+        NEXUS_HdmiOutput_Dbv_P_UpdateDrmInfoFrame(hdmiOutput, pTargetDrmInfoFrame);
 #endif
-
-        /* then set */
-        rc = NEXUS_HdmiOutput_P_SetDrmInfoFrame(output, &drmInfoFrame);
-        if (rc) { BERR_TRACE(rc); goto error; }
     }
     else
     {
         BDBG_MSG(("No input; Use override to apply HDR settings sans input."));
     }
-
-error:
-    return rc;
 }
 
-NEXUS_Error NEXUS_HdmiOutput_P_ApplyDrmInfoFrameSource(NEXUS_HdmiOutputHandle output)
+void NEXUS_HdmiOutput_Drmif_P_SetSource(NEXUS_HdmiOutputHandle hdmiOutput, NEXUS_HdmiDynamicRangeMasteringInfoFrame * pTargetDrmInfoFrame)
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
+    BDBG_ASSERT(hdmiOutput);
 
-    BDBG_ASSERT(output);
-
-    if (output->drm.connected)
+    if (hdmiOutput->extraSettings.overrideDynamicRangeMasteringInfoFrame) /* means we listen to what user wants and ignore edid */
     {
-        if (output->extraSettings.overrideDynamicRangeMasteringInfoFrame) /* means we listen to what user wants and ignore edid */
-        {
-            NEXUS_HdmiDynamicRangeMasteringInfoFrame drmInfoFrame;
-            NEXUS_HdmiOutput_P_BuildDrmInfoFrame(&drmInfoFrame, &output->extraSettings.dynamicRangeMasteringInfoFrame);
-            /*
-             * extra settings drmif always uses units of 1 nit for max luma, but
-             * internally we use units of 100 micronits where we can, so
-             * convert to 100 micronits units from 1 nit units
-             */
-            drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.luminance.max *= 10000;
-#if NEXUS_DBV_SUPPORT
-            NEXUS_HdmiOutput_P_DbvUpdateDrmInfoFrame(output, &drmInfoFrame);
-#endif
-            rc = NEXUS_HdmiOutput_P_SetDrmInfoFrame(output, &drmInfoFrame);
-            if (rc) { BERR_TRACE(rc); goto error; }
-        }
-        else
-        {
-            rc = NEXUS_HdmiOutput_P_ApplyInputDrmInfoFrame(output);
-            if (rc) { BERR_TRACE(rc); goto error; }
-        }
+        NEXUS_HdmiOutput_Drmif_P_Build(pTargetDrmInfoFrame, &hdmiOutput->extraSettings.dynamicRangeMasteringInfoFrame);
+        /*
+         * extra settings drmif always uses units of 1 nit for max luma, but
+         * internally we use units of 100 micronits where we can, so
+         * convert to 100 micronits units from 1 nit units
+         */
+        pTargetDrmInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume.luminance.max *= 10000;
     }
     else
     {
-        BDBG_MSG(("No receiver connected. HDR irrelevant."));
+        NEXUS_HdmiOutput_Drmif_P_ApplyInput(hdmiOutput, pTargetDrmInfoFrame);
     }
-
-error:
-    return rc;
 }
 
-void NEXUS_HdmiOutput_P_DrmInfoFrameConnectionChanged(NEXUS_HdmiOutputHandle output)
+static void NEXUS_HdmiOutput_Drmif_P_UpdateRxCaps(NEXUS_HdmiOutputHandle hdmiOutput)
+{
+    hdmiOutput->extraStatus.dynamicRangeModeSupported[NEXUS_VideoDynamicRangeMode_eSdr].rx = hdmiOutput->dynrng.drmif.hdrdb.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eSDR];
+    hdmiOutput->extraStatus.dynamicRangeModeSupported[NEXUS_VideoDynamicRangeMode_eHlg].rx = hdmiOutput->dynrng.drmif.hdrdb.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eHLG];
+    hdmiOutput->extraStatus.dynamicRangeModeSupported[NEXUS_VideoDynamicRangeMode_eHdr10].rx = hdmiOutput->dynrng.drmif.hdrdb.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eSMPTESt2084];
+}
+
+bool NEXUS_HdmiOutput_Drmif_P_ConnectionChanged(NEXUS_HdmiOutputHandle hdmiOutput, bool force)
 {
     BERR_Code rc = BERR_SUCCESS;
     bool changed = false;
-    bool connected = false;
 
-    connected = output->rxState >= NEXUS_HdmiOutputState_eRxSenseCheck;
+    BDBG_MSG(("NEXUS_HdmiOutput_Drmif_P_ConnectionChanged: %s", hdmiOutput->dynrng.connected ? "connected" : "disconnected"));
 
-    if (output->drm.connected != connected)
-    {
-        output->drm.connected = connected;
-        changed = true;
-    }
-
-    BDBG_MSG(("NEXUS_HdmiOutput_P_DrmInfoFrameConnectionChanged: %s", connected ? "connected" : "disconnected"));
-
-    if (connected)
+    if (hdmiOutput->dynrng.connected)
     {
         BHDM_EDID_HDRStaticDB hdrdb;
-        rc = BHDM_EDID_GetHdrStaticMetadatadb(output->hdmHandle, &hdrdb);
+        rc = BHDM_EDID_GetHdrStaticMetadatadb(hdmiOutput->hdmHandle, &hdrdb);
         if (rc) { BERR_TRACE(rc); goto error; }
-        if (BKNI_Memcmp(&output->drm.hdrdb, &hdrdb, sizeof(output->drm.hdrdb)))
+        if (BKNI_Memcmp(&hdmiOutput->dynrng.drmif.hdrdb, &hdrdb, sizeof(hdmiOutput->dynrng.drmif.hdrdb)))
         {
-            BKNI_Memcpy(&output->drm.hdrdb, &hdrdb, sizeof(output->drm.hdrdb));
+            BKNI_Memcpy(&hdmiOutput->dynrng.drmif.hdrdb, &hdrdb, sizeof(hdmiOutput->dynrng.drmif.hdrdb));
             changed = true;
         }
     }
     else
     {
-        BKNI_Memset(&output->drm.hdrdb, 0, sizeof(output->drm.hdrdb));
+        BKNI_Memset(&hdmiOutput->dynrng.drmif.hdrdb, 0, sizeof(hdmiOutput->dynrng.drmif.hdrdb));
     }
 
-    if (changed)
+    if (force || changed)
     {
-        rc = NEXUS_HdmiOutput_P_ApplyDrmInfoFrameSource(output);
-        if (rc) { BERR_TRACE(rc); goto error; }
+        NEXUS_HdmiOutput_Drmif_P_UpdateRxCaps(hdmiOutput);
     }
 
 error:
-    return;
+    return changed || force;
 }
 
-NEXUS_Error NEXUS_HdmiOutput_SetInputDrmInfoFrame_priv(NEXUS_HdmiOutputHandle output,
+void NEXUS_HdmiOutput_Drmif_P_Init(NEXUS_HdmiOutputHandle hdmiOutput)
+{
+    /* set DRM InfoFrame eotf to invalid, so DRM InfoFrame will be updated at least once */
+    hdmiOutput->dynrng.drmif.inputInfoFrame.eotf = NEXUS_VideoEotf_eInvalid ;
+    hdmiOutput->dynrng.drmif.outputInfoFrame.eotf = NEXUS_VideoEotf_eInvalid ;
+}
+
+NEXUS_VideoEotf NEXUS_HdmiOutput_Drmif_P_GetOutputEotf(NEXUS_HdmiOutputHandle hdmiOutput)
+{
+    return hdmiOutput->dynrng.drmif.outputInfoFrame.eotf;
+}
+
+void NEXUS_HdmiOutput_Drmif_P_UpdateModeStatus(NEXUS_HdmiOutputHandle output, NEXUS_VideoDynamicRangeMode * pMode)
+{
+    switch (output->dynrng.drmif.outputInfoFrame.eotf)
+    {
+    default:
+    case NEXUS_VideoEotf_eInvalid:
+        *pMode = NEXUS_VideoDynamicRangeMode_eLegacy;
+        break;
+    case NEXUS_VideoEotf_eSdr:
+        *pMode = NEXUS_VideoDynamicRangeMode_eSdr;
+        break;
+    case NEXUS_VideoEotf_eHlg:
+        *pMode = NEXUS_VideoDynamicRangeMode_eHlg;
+        break;
+    case NEXUS_VideoEotf_ePq:
+        *pMode = NEXUS_VideoDynamicRangeMode_eHdr10;
+        break;
+    }
+}
+
+void NEXUS_HdmiOutput_Drmif_P_SetInput(NEXUS_HdmiOutputHandle hdmiOutput,
     const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame)
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    bool changed = false;
-
-    if (BKNI_Memcmp(&output->drm.inputInfoFrame, pDrmInfoFrame, sizeof(output->drm.inputInfoFrame)))
+    if (BKNI_Memcmp(&hdmiOutput->dynrng.drmif.inputInfoFrame, pDrmInfoFrame, sizeof(hdmiOutput->dynrng.drmif.inputInfoFrame)))
     {
-        BKNI_Memcpy(&output->drm.inputInfoFrame, pDrmInfoFrame, sizeof(output->drm.inputInfoFrame));
-        changed = true;
+        BKNI_Memcpy(&hdmiOutput->dynrng.drmif.inputInfoFrame, pDrmInfoFrame, sizeof(hdmiOutput->dynrng.drmif.inputInfoFrame));
+        hdmiOutput->displaySettings.valid = false;
     }
-
-    if (changed)
-    {
-        rc = NEXUS_HdmiOutput_P_ApplyDrmInfoFrameSource(output);
-        if (rc) { BERR_TRACE(rc); goto error; }
-    }
-
-error:
-    return rc;
-}
-
-NEXUS_Error NEXUS_HdmiOutput_SetDisplayDynamicRangeProcessingCapabilities_priv(NEXUS_HdmiOutputHandle output,
-    const NEXUS_HdmiOutputDisplayDynamicRangeProcessingCapabilities * pCaps)
-{
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    bool changed = false;
-
-    if (BKNI_Memcmp(&output->drm.processingCaps, pCaps, sizeof(output->drm.processingCaps)))
-    {
-        BKNI_Memcpy(&output->drm.processingCaps, pCaps, sizeof(output->drm.processingCaps));
-        changed = true;
-    }
-
-    if (changed)
-    {
-        rc = NEXUS_HdmiOutput_P_ApplyDrmInfoFrameSource(output);
-        if (rc) { BERR_TRACE(rc); goto error; }
-    }
-
-error:
-    return rc;
-}
-
-bool NEXUS_HdmiOutput_GetEotf_priv(
-    NEXUS_HdmiOutputHandle hdmiOutput,
-    NEXUS_VideoEotf *pEotf
-)
-{
-    if (hdmiOutput->drm.outputInfoFrame.eotf == NEXUS_VideoEotf_eInvalid)
-    {
-        /* output invalid means user has requested to turn off packet transmission or we are in init state */
-        if (!hdmiOutput->drm.processingCaps.typesSupported[NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_ePlm]
-            && hdmiOutput->drm.inputInfoFrame.eotf != NEXUS_VideoEotf_eInvalid)
-        {
-            /* if input is valid, tell display that output is input (no conversion on non-plm chips) */
-            *pEotf = hdmiOutput->drm.inputInfoFrame.eotf;
-        }
-        else
-        {
-            /* otherwise just use SDR */
-            *pEotf = NEXUS_VideoEotf_eSdr;
-        }
-    }
-    else
-    {
-        /* grab normal computed output eotf */
-        *pEotf = hdmiOutput->drm.outputInfoFrame.eotf;
-    }
-
-    return true;
 }

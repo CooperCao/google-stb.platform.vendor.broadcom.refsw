@@ -2773,16 +2773,6 @@ int main(int argc, const char *argv[])
             else if (strstr(buf, "hdmi_eotf") == buf) {
                 hdmi_drm_do_cmd(&hdmiDrmContext, buf);
             }
-            else if (strstr(buf, "hdmi_dolby") == buf) {
-                NEXUS_HdmiOutputExtraSettings settings;
-                NEXUS_HdmiOutput_GetExtraSettings(platformConfig.outputs.hdmi[0], &settings);
-                if (!strcmp(buf, "hdmi_dolby(on)")) {
-                    settings.dolbyVision.outputMode = NEXUS_HdmiOutputDolbyVisionMode_eEnabled;
-                } else if (!strcmp(buf, "hdmi_dolby(off)")) {
-                    settings.dolbyVision.outputMode = NEXUS_HdmiOutputDolbyVisionMode_eDisabled;
-                }
-                NEXUS_HdmiOutput_SetExtraSettings(platformConfig.outputs.hdmi[0], &settings);
-            }
 #endif
             else if (strstr(buf, "display_format") == buf) {
                 NEXUS_HdmiOutputStatus hdmiOutputStatus ;

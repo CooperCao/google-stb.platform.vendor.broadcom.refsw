@@ -41,9 +41,6 @@
  ******************************************************************************/
 #include "nexus_base.h"
 #include "nexus_display_module.h"
-#if NEXUS_HAS_HDMI_OUTPUT
-#include "nexus_hdmi_output_hdcp.h"
-#endif
 BDBG_MODULE(nexus_video_output);
 
 #if NEXUS_HAS_RFM
@@ -69,16 +66,6 @@ static BERR_Code NEXUS_ComponentOutput_P_Connect(void *output,  NEXUS_DisplayHan
 static BERR_Code NEXUS_CompositeOutput_P_Connect(void *output,  NEXUS_DisplayHandle display);
 static BERR_Code NEXUS_SvideoOutput_P_Connect(void *output,  NEXUS_DisplayHandle display);
 static BERR_Code NEXUS_Ccir656Output_P_Connect(void *output,  NEXUS_DisplayHandle display);
-
-#if NEXUS_HAS_HDMI_OUTPUT
-static void NEXUS_VideoOutputs_P_HdmiCfcHeap(BVDC_Display_HdmiSettings *pSettings)
-{
-    /* cfc LUT heap */
-    if(NEXUS_MAX_HEAPS != g_NEXUS_DisplayModule_State.moduleSettings.cfc.vecHeapIndex[pSettings->ulPortId-BVDC_Hdmi_0]) {
-        pSettings->hCfcHeap = g_pCoreHandles->heap[g_NEXUS_DisplayModule_State.moduleSettings.cfc.vecHeapIndex[pSettings->ulPortId-BVDC_Hdmi_0]].mma;
-    }
-}
-#endif
 
 void
 NEXUS_VideoOutputs_P_Init(void)
@@ -188,12 +175,12 @@ static BERR_Code NEXUS_VideoOutput_P_SetHdmiDvoFormat(void *output, NEXUS_Displa
     return 0;
 }
 
-static NEXUS_Error NEXUS_VideoOutput_P_HdmiDvoFormatChange(void *output, NEXUS_DisplayHandle display, NEXUS_VideoFormat format, NEXUS_DisplayAspectRatio aspectRatio, bool _3dOrientationChange)
+static NEXUS_Error NEXUS_VideoOutput_P_HdmiDvoFormatChange(void *output, const NEXUS_VideoOutput_P_FormatChangeParams * pParams)
 {
     NEXUS_Error errCode= NEXUS_SUCCESS;
 	BSTD_UNUSED(_3dOrientationChange);
     BDBG_MSG(("> NEXUS_VideoOutput_P_HdmiDvoFormatChange"));
-    (void)NEXUS_VideoOutput_P_SetHdmiDvoFormat(output, display, format, aspectRatio);
+    (void)NEXUS_VideoOutput_P_SetHdmiDvoFormat(output, pParams->display, pParams->format, pParams->aspectRatio);
     BDBG_MSG(("< NEXUS_VideoOutput_P_HdmiDvoFormatChange"));
     return errCode;
 }
@@ -245,9 +232,11 @@ NEXUS_VideoOutput_P_OpenHdmiDvo(NEXUS_VideoOutputHandle output)
     BDBG_MSG(("> NEXUS_VideoOutput_P_OpenHdmiDvo"));
     NEXUS_OBJECT_ASSERT(NEXUS_VideoOutput, output);
     BDBG_ASSERT(output->type == NEXUS_VideoOutputType_eHdmiDvo);
+    BKNI_Memset(&iface, 0, sizeof(iface));
     iface.connect = NEXUS_HdmiDvo_P_Connect;
     iface.disconnect = NEXUS_HdmiDvo_P_Disconnect;
     iface.formatChange = NEXUS_VideoOutput_P_HdmiDvoFormatChange;
+    iface.checkSettings = NULL;
     BDBG_MSG(("< NEXUS_VideoOutput_P_OpenHdmiDvo"));
     link = NEXUS_VideoOutput_P_CreateLink(output, &iface, false);
     if (link) {
@@ -1065,9 +1054,11 @@ NEXUS_VideoOutput_P_OpenComposite(NEXUS_VideoOutputHandle output)
     NEXUS_CompositeOutputHandle compositeOutput = (NEXUS_CompositeOutputHandle)output->source;
 
     NEXUS_OBJECT_ASSERT(NEXUS_CompositeOutput, compositeOutput);
+    BKNI_Memset(&iface, 0, sizeof(iface));
     iface.connect = NEXUS_CompositeOutput_P_Connect;
     iface.disconnect = NEXUS_CompositeOutput_P_Disconnect;
     iface.formatChange = NULL;
+    iface.checkSettings = NULL;
     link = NEXUS_VideoOutput_P_CreateLink(output, &iface, true);
     if (link) {
         link->displayOutput = BVDC_DisplayOutput_eComposite;
@@ -1082,9 +1073,11 @@ NEXUS_VideoOutput_P_OpenSvideo(NEXUS_VideoOutputHandle output)
     NEXUS_VideoOutput_P_Iface iface;
 
     NEXUS_OBJECT_ASSERT(NEXUS_SvideoOutput, (NEXUS_SvideoOutputHandle)output->source);
+    BKNI_Memset(&iface, 0, sizeof(iface));
     iface.connect = NEXUS_SvideoOutput_P_Connect;
     iface.disconnect = NEXUS_SvideoOutput_P_Disconnect;
     iface.formatChange = NULL;
+    iface.checkSettings = NULL;
     link = NEXUS_VideoOutput_P_CreateLink(output, &iface, true);
     if (link) {
         link->displayOutput = BVDC_DisplayOutput_eSVideo;
@@ -1099,9 +1092,11 @@ NEXUS_VideoOutput_P_OpenComponent(NEXUS_VideoOutputHandle output)
     NEXUS_VideoOutput_P_Iface iface;
 
     NEXUS_OBJECT_ASSERT(NEXUS_ComponentOutput, (NEXUS_ComponentOutputHandle)output->source);
+    BKNI_Memset(&iface, 0, sizeof(iface));
     iface.connect = NEXUS_ComponentOutput_P_Connect;
     iface.disconnect = NEXUS_ComponentOutput_P_Disconnect;
     iface.formatChange = NULL;
+    iface.checkSettings = NULL;
     link = NEXUS_VideoOutput_P_CreateLink(output, &iface, false);
     if (link) {
         link->displayOutput = BVDC_DisplayOutput_eComponent;
@@ -1115,645 +1110,17 @@ NEXUS_VideoOutput_P_OpenCcir656(NEXUS_VideoOutputHandle output)
     NEXUS_VideoOutput_P_Link *link;
     NEXUS_VideoOutput_P_Iface iface;
     NEXUS_OBJECT_ASSERT(NEXUS_Ccir656Output, (NEXUS_Ccir656OutputHandle)output->source);
+    BKNI_Memset(&iface, 0, sizeof(iface));
     iface.connect = NEXUS_Ccir656Output_P_Connect;
     iface.disconnect = NEXUS_Ccir656Output_P_Disconnect;
     iface.formatChange = NULL;
+    iface.checkSettings = NULL;
     link = NEXUS_VideoOutput_P_CreateLink(output, &iface, true);
     if (link) {
         link->displayOutput = BVDC_DisplayOutput_e656;
     }
     return link;
 }
-
-#if NEXUS_HAS_HDMI_OUTPUT
-#include "priv/nexus_hdmi_output_priv.h"
-
-static void
-NEXUS_VideoOutput_P_HdmiRateChange_isr(NEXUS_DisplayHandle display, void *pParam)
-{
-    NEXUS_HdmiOutputHandle hdmi = pParam;
-    BDBG_ASSERT(NULL != hdmi);
-    NEXUS_HdmiOutput_VideoRateChange_isr(hdmi, &display->hdmi.rateInfo);
-}
-
-static BERR_Code
-NEXUS_VideoOutput_P_HdmiNum_ToMagnum(unsigned index, uint32_t *ulHdmi)
-{
-    BERR_Code rc = BERR_SUCCESS;
-    switch(index) {
-    case 0: *ulHdmi = BVDC_Hdmi_0; break;
-#if NEXUS_NUM_HDMI_OUTPUTS > 1
-    case 1: *ulHdmi = BVDC_Hdmi_1; break;
-#endif
-    default: rc = BERR_TRACE(BERR_INVALID_PARAMETER); break;
-    }
-    return rc;
-}
-
-
-/* Set HDMI settings to a legal default configuration; avoids errors due to changed formats */
-static void NEXUS_VideoOutput_P_SetDefaultHdmiSettings(NEXUS_DisplayHandle display)
-{
-    BVDC_Display_HdmiSettings displayHdmiSettings ;
-    BERR_Code rc ;
-    const NEXUS_DisplayModule_State *video= &g_NEXUS_DisplayModule_State;
-
-    BVDC_Display_GetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
-    /* disable data to HDMI core */
-    displayHdmiSettings.ulPortId      = display->hdmi.vdcIndex;
-    displayHdmiSettings.eMatrixCoeffs = BAVC_MatrixCoefficients_eUnknown;
-
-    /* color depth */
-    rc = BVDC_Display_SetHdmiColorDepth(display->displayVdc, BAVC_HDMI_BitsPerPixel_e24bit) ;
-    if (rc) {
-        BERR_TRACE(rc) ;
-        (void)BVDC_AbortChanges(video->vdc) ;
-        goto done ;
-    }
-
-    /* color space */
-    displayHdmiSettings.eColorComponent = BAVC_Colorspace_eYCbCr444 ;
-
-    /* cfc LUT heap */
-    NEXUS_VideoOutputs_P_HdmiCfcHeap(&displayHdmiSettings);
-    rc = BVDC_Display_SetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
-    if (rc) {
-        BERR_TRACE(rc) ;
-        (void)BVDC_AbortChanges(video->vdc) ;
-        goto done ;
-    }
-
-    rc = BVDC_ApplyChanges(video->vdc);
-
-done:
-    return ;
-}
-
-
-void NEXUS_VideoOutput_P_SetHdrSettings(void *output,
-    const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pInputDrmInfoFrame)
-{
-    NEXUS_HdmiOutputHandle hdmiOutput = output;
-    NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-    NEXUS_HdmiOutput_SetInputDrmInfoFrame_priv(hdmiOutput, pInputDrmInfoFrame);
-    NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-}
-
-
-static void NEXUS_P_DynamicRangeProcessingCapabilitiesFromMagnum(const BVDC_Window_Capabilities * pVdc, NEXUS_HdmiOutputDisplayDynamicRangeProcessingCapabilities * pNexus)
-{
-    BKNI_Memset(pNexus, 0, sizeof(*pNexus));
-    pNexus->typesSupported[NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_ePlm] = pVdc->bConvHdr10;
-    pNexus->typesSupported[NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_eDolbyVision] = pVdc->bDolby;
-    pNexus->typesSupported[NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_eTechnicolorPrime] = pVdc->bTchInput;
-}
-
-static const char * const dynrngProcessingStrings[] =
-{
-    "PLM",
-    "DBV",
-    "TCH",
-    NULL
-};
-
-NEXUS_Error NEXUS_VideoOutput_P_UpdateDisplayDynamicRangeProcessingCapabilities(NEXUS_DisplayHandle display)
-{
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    unsigned i;
-    unsigned j;
-    bool openWindows;
-    NEXUS_HdmiOutputHandle hdmiOutput = display->hdmi.outputNotify;
-    NEXUS_HdmiOutputDisplayDynamicRangeProcessingCapabilities caps;
-    NEXUS_HdmiOutputDisplayDynamicRangeProcessingCapabilities mergedCaps;
-
-    if (!hdmiOutput) return NEXUS_SUCCESS;
-
-    /* set them all supported at first */
-    for (j = 0; j < NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_eMax; j++)
-    {
-        mergedCaps.typesSupported[j] = true;
-    }
-    openWindows = false;
-
-    for (i = 0; i < NEXUS_NUM_VIDEO_WINDOWS; i++)
-    {
-        if (display->windows[i].vdcState.window)
-        {
-            openWindows = true;
-            NEXUS_P_DynamicRangeProcessingCapabilitiesFromMagnum(&display->windows[i].vdcState.caps, &caps);
-            /* if any window active on this display *doesn't* support, then mergedCaps should also not support */
-            for (j = 0; j < NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_eMax; j++)
-            {
-                BDBG_MSG(("window%d %s support: %s", i, dynrngProcessingStrings[j], caps.typesSupported[j] ? "yes" : "no"));
-                mergedCaps.typesSupported[j] = mergedCaps.typesSupported[j] && caps.typesSupported[j];
-            }
-        }
-    }
-
-    if (!openWindows)
-    {
-        BDBG_MSG(("No windows attached to this display, dynrng caps not reported"));
-        for (j = 0; j < NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_eMax; j++)
-        {
-            mergedCaps.typesSupported[j] = false;
-        }
-    }
-    else
-    {
-        for (j = 0; j < NEXUS_HdmiOutputDisplayDynamicRangeProcessingType_eMax; j++)
-        {
-            BDBG_MSG(("display %s support: %s", dynrngProcessingStrings[j], mergedCaps.typesSupported[j] ? "yes" : "no"));
-        }
-    }
-
-    NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-        rc = NEXUS_HdmiOutput_SetDisplayDynamicRangeProcessingCapabilities_priv(hdmiOutput, &mergedCaps);
-    NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-    if (rc) { BERR_TRACE(rc); goto error; }
-
-error:
-    return rc;
-}
-
-/*
-three entry points:
-1) NEXUS_HdmiOutput_SetSettings
-        where display->cfg is unchanged, called via notifyDisplay callback then NEXUS_VideoOutput_P_SetHdmiSettings
-2) NEXUS_Display_AddOutput
-        see NEXUS_VideoOutput_P_ConnectHdmi,
-        also called via NEXUS_VideoOutput_P_SetHdmiSettings but with a forced format change
-3) NEXUS_Display_SetSettings
-        where NEXUS_HdmiOutput_SetSettings is unchanged, but new format is passed as params
-*/
-static BERR_Code
-NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
-    /* the following params could be current or new display settings. only use display->cfg to test for change. */
-    NEXUS_VideoFormat format, NEXUS_DisplayAspectRatio aspectRatio, bool _3dOrientationChange)
-{
-    BERR_Code rc;
-    NEXUS_HdmiOutputHandle hdmiOutput = output;
-    NEXUS_HdmiOutputSettings settings;
-
-    BFMT_VideoFmt videoFmt, hdmiFmt;
-    BFMT_AspectRatio aspectRatioVdc;
-    bool hdmiFormatChange;
-    BVDC_Display_DvoSettings dvoSettings;
-    bool reconnect_outputs = false;
-    BAVC_MatrixCoefficients magnumMatrixCoefficients;
-    NEXUS_MatrixCoefficients nexusMatrixCoefficients;
-    BAVC_ColorRange magnumColorRange;
-    NEXUS_ColorRange nexusColorRange;
-    bool colorimetry_supported;
-    BVDC_Display_HdmiSettings displayHdmiSettings ;
-    NEXUS_VideoEotf eotf;
-    bool doneHdmiSettings = false;
-    bool postFormatChangeNeeded = false;
-
-    NEXUS_HdmiOutputVideoSettings requested ;
-    NEXUS_HdmiOutputVideoSettings preferred ;
-    bool overrideRequestedSettings = false ;
-    NEXUS_CallbackDesc notifyDisplay;
-
-    if (display->hdmi.rateChangeCb_isr == NULL)
-    {
-        BDBG_MSG(("HDMI output is disconnected from display. Settings not applied to HDMI device")) ;
-        return NEXUS_SUCCESS;
-    }
-    BDBG_ASSERT(display->hdmi.outputNotify == hdmiOutput);
-
-    NEXUS_HdmiOutput_GetSettings(hdmiOutput, &settings);
-
-    NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-        NEXUS_HdmiOutput_ReadFormatChangeStatus_priv(hdmiOutput, &hdmiFormatChange); /* read and clear */
-
-    if (display->hdmi.forceFormatChange) {
-        hdmiFormatChange = true;
-        display->hdmi.forceFormatChange = false;
-    }
-    else if (format != display->cfg.format || aspectRatio != display->cfg.aspectRatio || _3dOrientationChange) {
-        hdmiFormatChange = true;
-    }
-
-    if (settings.overrideMatrixCoefficients)
-    {
-        /* overrride supported colorimetry with requested colorimetry */
-        colorimetry_supported = true ;
-        BDBG_MSG(("User Override of default colorimetry with colorimetry matrix %d",
-            settings.matrixCoefficients)) ;
-        magnumMatrixCoefficients = NEXUS_P_MatrixCoefficients_ToMagnum_isrsafe(settings.matrixCoefficients) ;
-        if (magnumMatrixCoefficients == BAVC_MatrixCoefficients_eUnknown)
-        {
-            BDBG_ERR(("Override colorimetry %d is UNKNOWN; Default to BT 709",
-                settings.matrixCoefficients)) ;
-            magnumMatrixCoefficients = BAVC_MatrixCoefficients_eItu_R_BT_709 ;
-        }
-    }
-    else
-    {
-        NEXUS_HdmiOutputColorimetryParameters colorimetryParameters ;
-
-        BKNI_Memset(&colorimetryParameters, 0, sizeof(NEXUS_HdmiOutputColorimetryParameters)) ;
-
-        colorimetryParameters.xvYccEnabled = display->cfg.xvYccEnabled ;
-        colorimetryParameters.format = format ;
-
-        /* NEXUS_HdmiOutput_GetColorimetry_priv returns bool for connected */
-        colorimetry_supported = NEXUS_HdmiOutput_GetColorimetry_priv(hdmiOutput,
-                &colorimetryParameters, &magnumMatrixCoefficients) ;
-    }
-
-    NEXUS_HdmiOutput_GetEotf_priv(hdmiOutput, &eotf);
-
-    NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-
-    /* convert Coefficients from magnum to nexus for use in the remainder of function */
-    nexusMatrixCoefficients =
-        NEXUS_P_MatrixCoefficients_FromMagnum_isrsafe(magnumMatrixCoefficients) ;
-
-    BDBG_MSG(("hdmi Format Change: %s Colorimetry Supported: %s  Colorimetry: %d",
-        hdmiFormatChange ? "Yes" : "No",
-        colorimetry_supported ? "Yes" : "No", nexusMatrixCoefficients)) ;
-
-    if (settings.overrideColorRange)
-    {
-        /* overrride supported colorRange with requested colorRange */
-        BDBG_MSG(("User Override of default colorRange with colorRange %d", settings.colorRange)) ;
-        magnumColorRange = NEXUS_P_ColorRange_ToMagnum_isrsafe(settings.colorRange) ;
-    }
-    else
-    {
-        magnumColorRange =
-               ((magnumMatrixCoefficients == BAVC_MatrixCoefficients_eHdmi_Full_Range_YCbCr)
-            || (magnumMatrixCoefficients == BAVC_MatrixCoefficients_eDvi_Full_Range_RGB))
-            ? BAVC_ColorRange_eFull : BAVC_ColorRange_eLimited;
-    }
-    nexusColorRange = NEXUS_P_ColorRange_FromMagnum_isrsafe(magnumColorRange) ;
-
-    /* certain settings, like color depth and color space, ought to trigger a format change */
-    if (hdmiFormatChange) {
-        NEXUS_HdmiOutputStatus *hdmiOutputStatus;
-        bool contentChangeOnly;
-        bool hdmiMasterMode ;
-        hdmiOutputStatus = &g_NEXUS_DisplayModule_State.functionData.NEXUS_VideoOutput_P_SetHdmiFormat.hdmiOutputStatus;
-        rc = NEXUS_HdmiOutput_GetStatus(hdmiOutput, hdmiOutputStatus);
-        if (rc) return BERR_TRACE(rc);
-
-        /* If there is no HDMI Rx connected to the Tx; disable the HDMI Output */
-        /* reset VDC HDMI settings to values compatible with analog settings */
-
-        /* 7563[5] has a clockgen bug which requires fixed usage of displays and timing generators. */
-        /* This is handled using the DISPLAY_OPEN_REQUIRES_HDMI_OUTPUT define and g_NEXUS_DisplayModule_State.requiredOutput. */
-        /* Calling this on start up on 7563[5] causes the video window creation to fail, or errors when we pretend to remove HDMI. */
-
-        /* Also do not reset the matrixCoefficients if HDMI is in master mode */
-        hdmiMasterMode = display->timingGenerator == NEXUS_DisplayTimingGenerator_eHdmiDvo ;
-
-        if (!hdmiOutputStatus->connected
-        && !g_NEXUS_DisplayModule_State.requiredOutputSystem && !hdmiMasterMode)
-        {
-            NEXUS_VideoOutput_P_SetDefaultHdmiSettings(display) ;
-            BDBG_WRN(("No HDMI Rx connected.. settings will not be applied")) ;
-
-            /* HDMI settings will not be updated, but continue to disable data to HDMI */
-            /* new HDMI settings will be applied when Rx device is connected  */
-
-            magnumMatrixCoefficients = BAVC_MatrixCoefficients_eUnknown ;
-        }
-
-        if (hdmiOutputStatus->connected && hdmiOutputStatus->rxPowered)
-        {
-            BAVC_HDMI_BitsPerPixel colorDepth;
-            bool displaySyncOnly ;
-
-            rc = BVDC_Display_GetHdmiSyncOnly(display->displayVdc, &displaySyncOnly) ;
-            if (rc) {
-                rc = BERR_TRACE(rc);
-                /* Keep going, they asked for it... */
-            }
-
-            /* If only content (i.e. aspect ratio, displaySync) is changing and not timing,
-                 set the contentChangeOnly flag for later use in hdmi_output module*/
-
-            contentChangeOnly =
-                (((display->cfg.aspectRatio != aspectRatio) && (display->cfg.format == format) && (!_3dOrientationChange))
-                || (displaySyncOnly != settings.syncOnly)) ;
-
-            rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(format, &videoFmt);
-            if (rc) {
-                videoFmt = BFMT_VideoFmt_eNTSC; /* don't proceed with uninitialized value. */
-            }
-
-            postFormatChangeNeeded = true;
-            NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-            rc = NEXUS_HdmiOutput_P_PreFormatChange_priv(hdmiOutput, videoFmt, contentChangeOnly);
-            NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-            if (rc) {
-                rc = BERR_TRACE(rc);
-                /* Keep going, they asked for it... */
-            }
-
-            if (!colorimetry_supported)
-            {
-                BDBG_WRN(("Requested video format/colorimetry %s/%d is not supported by the attached receiver",
-                    NEXUS_P_VideoFormat_ToStr_isrsafe(format), nexusMatrixCoefficients)) ;
-                /* Keep going, they asked for it... */
-            }
-
-            /* if HDMI Output is to be scaled, */
-            /* use the scaled vs internal format to validate the requested HDMI output settings */
-            BKNI_Memset(&requested, 0, sizeof(requested));
-            requested.videoFormat = settings.outputFormat ? settings.outputFormat : format ;
-            requested.colorDepth = settings.colorDepth ;
-            requested.colorSpace = settings.colorSpace ;
-
-            NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-            rc = NEXUS_HdmiOutput_ValidateVideoSettings_priv(hdmiOutput, &requested, &preferred) ;
-            NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-            if (rc == NEXUS_NOT_INITIALIZED)
-            {
-                BDBG_MSG(("EDID not initialized; unable to validate Color Space/Color Depth Settings")) ;
-                /* keep going with requested video settings */
-            }
-            else if (rc)
-            {
-                BDBG_WRN(("Unable to validate Color Space/Color Depth Settings; No Change"))  ;
-                return rc ;
-            }
-
-            overrideRequestedSettings =
-                (requested.videoFormat != preferred.videoFormat)
-            || (requested.colorSpace != preferred.colorSpace)
-            || (requested.colorDepth != preferred.colorDepth) ;
-
-            colorDepth = NEXUS_P_HdmiColorDepth_ToMagnum_isrsafe(preferred.colorDepth);
-
-            BVDC_Display_GetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
-            displayHdmiSettings.ulPortId      = display->hdmi.vdcIndex;
-            displayHdmiSettings.eMatrixCoeffs = magnumMatrixCoefficients;
-            displayHdmiSettings.eColorComponent = NEXUS_P_ColorSpace_ToMagnum_isrsafe(preferred.colorSpace) ;
-            displayHdmiSettings.eColorRange = magnumColorRange;
-            displayHdmiSettings.eEotf = NEXUS_P_VideoEotf_ToMagnum_isrsafe(eotf);
-            NEXUS_VideoOutputs_P_HdmiCfcHeap(&displayHdmiSettings);
-#if NEXUS_DBV_SUPPORT
-            NEXUS_Display_P_DbvUpdateDisplayHdmiSettings(display, hdmiOutput, &displayHdmiSettings, &colorDepth);
-#endif
-            rc = BVDC_Display_SetHdmiColorDepth(display->displayVdc, colorDepth);
-            if (rc) return BERR_TRACE(rc);
-
-            rc = BVDC_Display_SetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
-            if (rc) return BERR_TRACE(rc);
-
-           doneHdmiSettings = true;
-        }
-    }
-
-    rc = NEXUS_P_DisplayAspectRatio_ToMagnum(aspectRatio, format, &aspectRatioVdc);
-    if (rc) {
-        aspectRatioVdc = BFMT_AspectRatio_eUnknown; /* don't proceed with uninitialized value. */
-    }
-
-    rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(format, &videoFmt);
-    if (rc) {
-        videoFmt = BFMT_VideoFmt_eNTSC; /* don't proceed with uninitialized value. */
-    }
-
-    if (!doneHdmiSettings) {
-        BVDC_Display_GetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
-        displayHdmiSettings.ulPortId      = display->hdmi.vdcIndex;
-        displayHdmiSettings.eMatrixCoeffs = magnumMatrixCoefficients;
-        displayHdmiSettings.eColorRange   = magnumColorRange;
-        displayHdmiSettings.eEotf         = NEXUS_P_VideoEotf_ToMagnum_isrsafe(eotf);
-        NEXUS_VideoOutputs_P_HdmiCfcHeap(&displayHdmiSettings);
-#if NEXUS_DBV_SUPPORT
-        NEXUS_Display_P_DbvUpdateDisplayHdmiSettings(display, hdmiOutput, &displayHdmiSettings, NULL);
-#endif
-        rc = BVDC_Display_SetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
-        if (rc) return BERR_TRACE(rc);
-    }
-
-
-    NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-    {
-        NEXUS_HdmiOutputDisplaySettings stHdmiOutputDisplaySettings ;
-        NEXUS_HdmiOutput_GetDisplaySettings_priv(hdmiOutput, &stHdmiOutputDisplaySettings) ;
-        if (overrideRequestedSettings) {
-            stHdmiOutputDisplaySettings.colorDepth = preferred.colorDepth ;
-            stHdmiOutputDisplaySettings.colorSpace = preferred.colorSpace ;
-        }
-        stHdmiOutputDisplaySettings.overrideMatrixCoefficients = settings.overrideMatrixCoefficients ;
-        stHdmiOutputDisplaySettings.eColorimetry = nexusMatrixCoefficients ;
-        stHdmiOutputDisplaySettings.overrideColorRange = settings.overrideColorRange ;
-        stHdmiOutputDisplaySettings.colorRange = nexusColorRange ;
-        NEXUS_HdmiOutput_SetDisplaySettings_priv(hdmiOutput, &stHdmiOutputDisplaySettings) ;
-    }
-    NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-
-    rc = BVDC_Display_SetHdmiSyncOnly(display->displayVdc, settings.syncOnly);
-    if (rc) {rc = BERR_TRACE(rc); goto error;}
-
-    rc = BVDC_Display_SetMpaaDecimation(display->displayVdc, BVDC_MpaaDeciIf_eHdmi, 1, settings.mpaaDecimationEnabled);
-    if (rc) {rc = BERR_TRACE(rc); goto error;}
-
-    BVDC_Display_GetDvoConfiguration(display->displayVdc, &dvoSettings);
-    dvoSettings.stSpreadSpectrum.bEnable = settings.spreadSpectrum.enable;
-    dvoSettings.stSpreadSpectrum.ulFrequency  = settings.spreadSpectrum.frequency ;
-    dvoSettings.stSpreadSpectrum.ulDelta = settings.spreadSpectrum.delta ;
-    rc = BVDC_Display_SetDvoConfiguration(display->displayVdc, &dvoSettings);
-    if (rc) {rc = BERR_TRACE(rc); goto error;}
-
-    /* Check if any hdmi upscale change or hdmi format change */
-    if (display->hdmi.outputFormat != settings.outputFormat || hdmiFormatChange) {
-        if(settings.outputFormat != NEXUS_VideoFormat_eUnknown)
-        {
-            reconnect_outputs = true;
-        }
-        nexus_display_p_disconnect_outputs(display, &display->cfg, settings.outputFormat);
-
-        rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(settings.outputFormat, &hdmiFmt);
-        if (rc) {
-            hdmiFmt = BFMT_VideoFmt_eMaxCount;
-        }
-
-        rc = BVDC_Display_SetHdmiFormat(display->displayVdc, hdmiFmt, videoFmt);
-        if (rc) {rc = BERR_TRACE(rc); goto error;}
-
-        display->hdmi.outputFormat = settings.outputFormat;
-    }
-
-    rc = BVDC_ApplyChanges(g_NEXUS_DisplayModule_State.vdc);
-    if (rc) { rc = BERR_TRACE(rc); goto error; }
-
-    if (reconnect_outputs) {
-        nexus_display_p_connect_outputs(display);
-        rc = BVDC_ApplyChanges(g_NEXUS_DisplayModule_State.vdc);
-        if (rc) { rc = BERR_TRACE(rc); goto error; }
-    }
-
-    /* if upscale, use upscale format to set HDMI instead of videoFmt */
-    if(display->hdmi.outputFormat != NEXUS_VideoFormat_eUnknown) {
-        rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(display->hdmi.outputFormat, &hdmiFmt);
-    }
-    else {
-        hdmiFmt = videoFmt;
-    }
-
-    /* post-ApplyChanges format change */
-    NEXUS_CallbackHandler_PrepareCallback(display->hdmi.outputNotifyDisplay, notifyDisplay);
-
-    NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-        (void)NEXUS_HdmiOutput_SetDisplayParams_priv(hdmiOutput, hdmiFmt, magnumMatrixCoefficients, aspectRatioVdc,
-            display->timingGenerator == NEXUS_DisplayTimingGenerator_eHdmiDvo,
-            hdmiFormatChange ? &notifyDisplay : NULL) ;
-
-        if (postFormatChangeNeeded)
-        {
-            (void)NEXUS_HdmiOutput_P_PostFormatChange_priv(hdmiOutput);
-        }
-    NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-
-    return NEXUS_SUCCESS;
-
-error:
-    NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-    NEXUS_HdmiOutput_RestorePrevSettings_priv(hdmiOutput);
-    NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-    BDBG_ASSERT(rc);
-    return rc;
-}
-
-/* called as a result of NEXUS_HdmiOutput_SetSettings */
-void NEXUS_VideoOutput_P_SetHdmiSettings(void *context)
-{
-    NEXUS_Error rc;
-    NEXUS_DisplayHandle display = context;
-    /* call NEXUS_VideoOutput_P_ApplyHdmiSettings with current display settings */
-    rc = NEXUS_VideoOutput_P_ApplyHdmiSettings(display->hdmi.outputNotify, display, display->cfg.format, display->cfg.aspectRatio, false);
-    if (rc) BERR_TRACE(rc);
-}
-
-static BERR_Code
-NEXUS_VideoOutput_P_ConnectHdmi(void *output,  NEXUS_DisplayHandle display)
-{
-    BERR_Code rc;
-    NEXUS_HdmiOutputHandle hdmi = output;
-    NEXUS_HdmiOutputStatus *hdmiOutputStatus;
-    const NEXUS_DisplayModule_State *video= &g_NEXUS_DisplayModule_State;
-
-    BDBG_ASSERT(NULL != hdmi);
-    NEXUS_OBJECT_ASSERT(NEXUS_Display, display);
-
-    if(display->hdmi.rateChangeCb_isr)
-    {
-        /* already connected */
-        return BERR_SUCCESS;
-    }
-
-    /* make sure HDMI Core is enabled; TMDS clock ON and data OFF until properly configured */
-    BDBG_MSG(("Add HDMI to nexus display...")) ;
-    NEXUS_Module_Lock(video->modules.hdmiOutput) ;
-        rc = NEXUS_HdmiOutput_Connect_priv(hdmi) ;
-    NEXUS_Module_Unlock(video->modules.hdmiOutput) ;
-    if (rc) return BERR_TRACE(rc);
-
-    hdmiOutputStatus = &g_NEXUS_DisplayModule_State.functionData.NEXUS_VideoOutput_P_SetHdmiFormat.hdmiOutputStatus;
-    rc = NEXUS_HdmiOutput_GetStatus(hdmi, hdmiOutputStatus);
-    if (rc) return BERR_TRACE(rc);
-    rc = NEXUS_VideoOutput_P_HdmiNum_ToMagnum(hdmiOutputStatus->index, &display->hdmi.vdcIndex);
-    if (rc) return BERR_TRACE(rc);
-
-    BKNI_EnterCriticalSection();
-    display->hdmi.rateChangeCb_isr = NEXUS_VideoOutput_P_HdmiRateChange_isr;
-    display->hdmi.vsync_isr = NEXUS_HdmiOutput_P_Vsync_isr;
-    display->hdmi.pCbParam = hdmi;
-    if ( display->hdmi.rateInfoValid )
-    {
-        NEXUS_VideoOutput_P_HdmiRateChange_isr(display, hdmi);
-    }
-    BKNI_LeaveCriticalSection();
-
-    /* On NEXUS_Display_AddOutput, we need to apply settings just like a NEXUS_HdmiOutput_SetSettings. */
-    BDBG_ASSERT(!display->hdmi.outputNotify);
-    display->hdmi.outputNotify = hdmi;
-    display->hdmi.forceFormatChange = true;
-NEXUS_VideoOutput_P_SetHdmiSettings(display);
-
-    return BERR_SUCCESS;
-}
-
-static BERR_Code
-NEXUS_VideoOutput_P_DisconnectHdmi(void *output, NEXUS_DisplayHandle display)
-{
-    BERR_Code rc;
-    NEXUS_HdmiOutputHandle hdmi = output;
-    NEXUS_HdmiOutputSettings settings;
-    const NEXUS_DisplayModule_State *video= &g_NEXUS_DisplayModule_State;
-
-    BDBG_ASSERT(NULL != hdmi);
-    NEXUS_OBJECT_ASSERT(NEXUS_Display, display);
-
-    if(g_NEXUS_DisplayModule_State.updateMode != NEXUS_DisplayUpdateMode_eAuto) {rc=BERR_TRACE(NEXUS_NOT_SUPPORTED);}
-
-    /* HDMI is being removed from the Display; */
-    /* reset VDC HDMI settings to values compatible with analog settings */
-    NEXUS_VideoOutput_P_SetDefaultHdmiSettings(display) ;
-
-    BKNI_EnterCriticalSection();
-        BDBG_ASSERT(NULL != display->hdmi.rateChangeCb_isr);
-        display->hdmi.rateChangeCb_isr = NULL;
-        display->hdmi.vsync_isr = NULL;
-        display->hdmi.pCbParam = NULL;
-    BKNI_LeaveCriticalSection();
-    display->hdmi.outputNotify = NULL;
-
-    (void) NEXUS_HdmiOutput_GetSettings(hdmi, &settings);
-    if (settings.mpaaDecimationEnabled) {
-        settings.mpaaDecimationEnabled = false;
-        rc = BVDC_Display_SetMpaaDecimation(display->displayVdc, BVDC_MpaaDeciIf_eHdmi, 1, settings.mpaaDecimationEnabled);
-        if (rc) {
-            rc = BERR_TRACE(rc); /* fall through */
-        }
-        else {
-            /* two ApplyChanges are required: this one and the standard one */
-            rc = BVDC_ApplyChanges(video->vdc);
-            if (rc) {rc = BERR_TRACE(rc);} /* fall through */
-        }
-    }
-
-    /* Turn off the transmitter itself */
-    BDBG_MSG(("Remove HDMI from nexus display...")) ;
-    NEXUS_Module_Lock(video->modules.hdmiOutput);
-    rc = NEXUS_HdmiOutput_Disconnect_priv(hdmi);
-    NEXUS_Module_Unlock(video->modules.hdmiOutput);
-    if (rc) {BERR_TRACE(rc);} /* fall through */
-
-    return BERR_SUCCESS;
-}
-
-static NEXUS_VideoOutput_P_Link *
-NEXUS_VideoOutput_P_OpenHdmi(NEXUS_VideoOutputHandle output)
-{
-    NEXUS_VideoOutput_P_Link *link;
-    NEXUS_VideoOutput_P_Iface iface;
-
-    NEXUS_OBJECT_ASSERT(NEXUS_VideoOutput, output);
-    BDBG_ASSERT(output->type == NEXUS_VideoOutputType_eHdmi);
-
-    iface.connect = NEXUS_VideoOutput_P_ConnectHdmi;
-    iface.disconnect = NEXUS_VideoOutput_P_DisconnectHdmi;
-    iface.formatChange = NEXUS_VideoOutput_P_ApplyHdmiSettings;
-    link = NEXUS_VideoOutput_P_CreateLink(output, &iface, false);
-    if (link) {
-        link->displayOutput = BVDC_DisplayOutput_eDvo;
-    }
-    return link;
-}
-#else
-NEXUS_Error NEXUS_VideoOutput_P_UpdateDisplayDynamicRangeProcessingCapabilities(NEXUS_DisplayHandle display)
-{
-    BSTD_UNUSED(display);
-    return NEXUS_SUCCESS;
-}
-#endif
 
 #if NEXUS_HAS_RFM
 static BERR_Code
@@ -1810,20 +1177,17 @@ NEXUS_Rfm_P_Disconnect(void *output, NEXUS_DisplayHandle display)
 }
 
 static BERR_Code
-NEXUS_Rfm_P_FormatChange(void *output, NEXUS_DisplayHandle display, NEXUS_VideoFormat format, NEXUS_DisplayAspectRatio aspectRatio, bool _3dOrientationChange)
+NEXUS_Rfm_P_FormatChange(void *output, const NEXUS_VideoOutput_P_FormatChangeParams * pParams)
 {
     NEXUS_RfmHandle rfm = output;
     NEXUS_RfmConnectionSettings rfmConnectionSettings;
     BERR_Code rc;
     const NEXUS_DisplayModule_State *video = &g_NEXUS_DisplayModule_State;
-    BSTD_UNUSED(display);
-    BSTD_UNUSED(aspectRatio);
-	BSTD_UNUSED(_3dOrientationChange);
 
     NEXUS_Module_Lock(video->modules.rfm);
     NEXUS_Rfm_GetConnectionSettings_priv(rfm, &rfmConnectionSettings);
     rfmConnectionSettings.videoEnabled = true;
-    rfmConnectionSettings.videoFormat = format;
+    rfmConnectionSettings.videoFormat = pParams->format;
     rc = NEXUS_Rfm_SetConnectionSettings_priv(rfm, &rfmConnectionSettings);
     NEXUS_Module_Unlock(video->modules.rfm);
 
@@ -1835,9 +1199,11 @@ NEXUS_VideoOutput_P_OpenRfm(NEXUS_VideoOutputHandle output)
 {
     NEXUS_VideoOutput_P_Link *link;
     NEXUS_VideoOutput_P_Iface iface;
+    BKNI_Memset(&iface, 0, sizeof(iface));
     iface.connect = NEXUS_Rfm_P_Connect;
     iface.disconnect = NEXUS_Rfm_P_Disconnect;
     iface.formatChange = NEXUS_Rfm_P_FormatChange;
+    iface.checkSettings = NULL;
     link = NEXUS_VideoOutput_P_CreateLink(output, &iface, true);
     if (link) {
         link->displayOutput = BVDC_DisplayOutput_eComposite;

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2018 Broadcom.
+ *  Copyright (C) 2019 Broadcom.
  *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -68,6 +68,17 @@ BDBG_MODULE(nexus_message);
 
 /* if you use one recpump per PES filter, you can just do HW filtering. faster and no possible SW parsing bugs */
 #define B_USE_HW_PES_FILTERING 0
+BDBG_OBJECT_ID(nexus_message_filter);
+
+struct nexus_message_filter
+{
+    BDBG_OBJECT(nexus_message_filter)
+    BLST_D_ENTRY(nexus_message_filter) link;
+    NEXUS_MessageHandle msg;
+    struct NEXUS_SwFilter_FilterState *filter;
+    void *singleMessageBuffer;
+    int filterNum;
+};
 
 /* this is the impl of NEXUS_MessageHandle */
 struct NEXUS_Message {
@@ -85,19 +96,17 @@ struct NEXUS_Message {
 
     void *allocatedBuffer; /* buffer allocated by Open if bufferSize is set. can be overridden by Start buffer. */
 
-    void *tempBuffer; /* single message buffer */
-
     unsigned lastGetBufferLength; /* last length returned by NEXUS_Message_GetBuffer. this could be from the main
                                      buffer or wrappedMessage. */
 
     bool started;
-    NEXUS_TaskCallbackHandle dataReady, overflow;
-    NEXUS_IsrCallbackHandle psiLengthError, crcError, pesLengthError, pesStartCodeError;
+    NEXUS_TaskCallbackHandle dataReady, overflow, crcError;
+    NEXUS_IsrCallbackHandle psiLengthError, pesLengthError, pesStartCodeError;
 
     struct NEXUS_SwFilterCapture *stream;
     struct NEXUS_SwFilterPid *pid;
-    struct NEXUS_SwFilter_FilterState *filter;
-    unsigned tempBufSize; /* size of tempBuffer */
+    BLST_D_HEAD(message_filters, nexus_message_filter) filters;
+    unsigned singleMessageBufferSize; /* size of nexus_message_filter.buffer */
     bool isDss;           /* true if Dss message filter */
 };
 
@@ -141,6 +150,7 @@ static void NEXUS_SwFilter_P_Close(struct NEXUS_SwFilterCapture *stream);
 static struct NEXUS_SwFilterPid *NEXUS_SwFilter_P_OpenPid(NEXUS_MessageHandle msg);
 static void NEXUS_SwFilter_P_ClosePid(struct NEXUS_SwFilterPid *pid);
 
+static void NEXUS_SwFilter_P_CrcErrorCallback( void *context, unsigned crc );
 static void * NEXUS_SwFilter_P_FilterCallback(void * context, size_t msg_size);
 static void NEXUS_SwFilter_P_DataReady(void *context);
 static void NEXUS_SwFilter_P_PollTask(void *context);
@@ -211,11 +221,11 @@ NEXUS_MessageHandle NEXUS_Message_Open(const NEXUS_MessageSettings *pSettings)
     msg->overflow = NEXUS_TaskCallback_Create(msg, NULL);
     if(!msg->overflow) { rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto error;}
 
+    msg->crcError = NEXUS_TaskCallback_Create(msg, NULL);
+    if(!msg->crcError) { rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto error;}
+
     msg->psiLengthError = NEXUS_IsrCallback_Create(msg, NULL);
     if(!msg->psiLengthError) { rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto error;}
-
-    msg->crcError = NEXUS_IsrCallback_Create(msg, NULL);
-    if(!msg->crcError) { rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto error;}
 
     msg->pesLengthError = NEXUS_IsrCallback_Create(msg, NULL);
     if(!msg->pesLengthError) { rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto error;}
@@ -244,6 +254,7 @@ static void NEXUS_Message_P_Finalizer(NEXUS_MessageHandle msg)
     if (msg->started) {
         NEXUS_Message_Stop(msg);
     }
+    BDBG_ASSERT(!BLST_D_FIRST(&msg->filters));
     /* Guaranteed no callbacks now */
 
     for (i=0;i<NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES;i++) {
@@ -262,11 +273,11 @@ static void NEXUS_Message_P_Finalizer(NEXUS_MessageHandle msg)
     if (msg->overflow) {
         NEXUS_TaskCallback_Destroy(msg->overflow);
     }
+    if (msg->crcError) {
+        NEXUS_TaskCallback_Destroy(msg->crcError);
+    }
     if (msg->psiLengthError) {
         NEXUS_IsrCallback_Destroy(msg->psiLengthError);
-    }
-    if (msg->crcError) {
-        NEXUS_IsrCallback_Destroy(msg->crcError);
     }
     if (msg->pesLengthError) {
         NEXUS_IsrCallback_Destroy(msg->pesLengthError);
@@ -276,12 +287,6 @@ static void NEXUS_Message_P_Finalizer(NEXUS_MessageHandle msg)
     }
     if (msg->allocatedBuffer) {
         NEXUS_Memory_Free(msg->allocatedBuffer);
-    }
-
-    if (msg->tempBuffer) {
-        BKNI_Free(msg->tempBuffer);
-        msg->tempBuffer  = NULL;
-        msg->tempBufSize = 0;
     }
 
     NEXUS_OBJECT_DESTROY(NEXUS_Message, msg);
@@ -302,8 +307,8 @@ NEXUS_Error NEXUS_Message_SetSettings( NEXUS_MessageHandle msg, const NEXUS_Mess
 
     NEXUS_TaskCallback_Set(msg->dataReady, &pSettings->dataReady);
     NEXUS_TaskCallback_Set(msg->overflow, &pSettings->overflow);
+    NEXUS_TaskCallback_Set(msg->crcError, &pSettings->crcError);
     NEXUS_IsrCallback_Set(msg->psiLengthError, &pSettings->psiLengthError);
-    NEXUS_IsrCallback_Set(msg->crcError, &pSettings->crcError);
     NEXUS_IsrCallback_Set(msg->pesLengthError, &pSettings->pesLengthError);
     NEXUS_IsrCallback_Set(msg->pesStartCodeError, &pSettings->pesStartCodeError);
     NEXUS_Transport_P_SetInterrupts();
@@ -323,6 +328,147 @@ void NEXUS_Message_GetDefaultStartSettings(NEXUS_MessageHandle msg, NEXUS_Messag
     pStartSettings->bank = -1;
     NEXUS_Message_GetDefaultFilter(&pStartSettings->filter);
     pStartSettings->filterGroup = false;
+}
+
+static void nexus_message_p_removefilter(struct nexus_message_filter *filter)
+{
+    if (filter->filter) {
+        if (filter->msg->startSettings.format == NEXUS_MessageFormat_ePsi) {
+            NEXUS_SwFilter_Msg_P_RemoveFilter(filter->msg->stream->handle, filter->filter);
+        }
+        else {
+            NEXUS_SwFilter_Msg_P_RemovePesFilter(filter->msg->stream->handle, filter->filter);
+        }
+        filter->filter = NULL;
+    }
+}
+
+static void nexus_message_p_deletefilter(struct nexus_message_filter *f)
+{
+    BDBG_OBJECT_ASSERT(f, nexus_message_filter);
+    BLST_D_REMOVE(&f->msg->filters, f, link);
+    nexus_message_p_removefilter(f);
+    if (f->singleMessageBuffer) {
+        BKNI_Free(f->singleMessageBuffer);
+    }
+    BDBG_OBJECT_DESTROY(f, nexus_message_filter);
+    BKNI_Free(f);
+}
+
+static NEXUS_Error nexus_message_p_setfilter( struct nexus_message_filter *filter, const NEXUS_MessageFilter *pFilter )
+{
+    NEXUS_Error rc;
+    NEXUS_SwFilter_MsgParams_t m_params;
+    NEXUS_MessageHandle msg = filter->msg;
+
+    BKNI_Memset(&m_params, 0, sizeof(m_params));
+    m_params.pid = msg->startSettings.pidChannel->hwPidChannel->status.pid;
+    BKNI_Memcpy(m_params.filt.coefficient, pFilter->coefficient, NEXUS_MESSAGE_FILTER_SIZE);
+    BKNI_Memcpy(m_params.filt.mask, pFilter->mask, NEXUS_MESSAGE_FILTER_SIZE);
+    BKNI_Memcpy(m_params.filt.exclusion, pFilter->exclusion, NEXUS_MESSAGE_FILTER_SIZE);
+
+    m_params.buffer_size = msg->singleMessageBufferSize;
+    if (!filter->singleMessageBuffer) {
+        filter->singleMessageBuffer = BKNI_Malloc(m_params.buffer_size);
+        if (!filter->singleMessageBuffer) {
+            rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+            goto err_malloc;
+        }
+    }
+    m_params.buffer = filter->singleMessageBuffer;
+    m_params.disable_crc_check = msg->startSettings.psiCrcDisabled;
+    m_params.callback = NEXUS_SwFilter_P_FilterCallback;
+    m_params.context = filter;
+    m_params.callback_crcErr = NEXUS_SwFilter_P_CrcErrorCallback;
+    m_params.context_crcErr  = filter;
+    /* On UpdateFilter, if we removefilter then fail to setfilter we are left in a bad state. very unlikely. */
+    nexus_message_p_removefilter(filter);
+    if (msg->stream->format == NEXUS_MessageFormat_ePsi) {
+        if ( msg->isDss ) {
+            filter->filter = NEXUS_SwFilter_Msg_P_SetDssFilter(msg->stream->handle, &m_params,msg->startSettings.dssMessageType, msg->startSettings.dssMessageMptFlags);
+            if (!filter->filter) {rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_setfilter;}
+        }
+        else
+        {
+            filter->filter = NEXUS_SwFilter_Msg_P_SetFilter(msg->stream->handle, &m_params);
+            if (!filter->filter) {rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_setfilter;}
+        }
+    }
+    else {
+        filter->filter = NEXUS_SwFilter_Msg_P_SetPesFilter(msg->stream->handle, &m_params);
+        if (!filter->filter) {rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_setfilter;}
+    }
+    return NEXUS_SUCCESS;
+
+err_setfilter:
+    BKNI_Free(filter->singleMessageBuffer);
+    filter->singleMessageBuffer = NULL;
+err_malloc:
+    return rc;
+}
+
+NEXUS_Error NEXUS_Message_AddFilter( NEXUS_MessageHandle msg, const NEXUS_MessageFilter *pFilter, unsigned *pFilterNum )
+{
+    struct nexus_message_filter *filter, *f;
+    NEXUS_Error rc;
+
+    BDBG_OBJECT_ASSERT(msg, NEXUS_Message);
+    filter = BKNI_Malloc(sizeof(*filter));
+    if (!filter) {
+        return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    }
+    BKNI_Memset(filter, 0, sizeof(*filter));
+    BDBG_OBJECT_SET(filter, nexus_message_filter);
+    filter->msg = msg;
+    BDBG_MSG(("add filter %p to msg %p", (void*)filter, (void*)msg));
+
+    /* find avail filterNum by doing max+1 (not packed). skip 0. */
+    filter->filterNum = -1; /* first filter num */
+    for (f=BLST_D_FIRST(&msg->filters); f; f=BLST_D_NEXT(f, link)) {
+        if (f->filterNum >= filter->filterNum) {
+            filter->filterNum = (f->filterNum == -1) ? 1 : (f->filterNum+1);
+        }
+    }
+
+    rc = nexus_message_p_setfilter(filter, pFilter);
+    if (rc) {BERR_TRACE(rc); goto err_setfilter;}
+
+    BLST_D_INSERT_HEAD(&msg->filters, filter, link);
+    *pFilterNum = (unsigned)filter->filterNum;
+    return NEXUS_SUCCESS;
+
+err_setfilter:
+    BKNI_Free(filter);
+    return rc;
+}
+
+NEXUS_Error NEXUS_Message_RemoveFilter( NEXUS_MessageHandle msg, unsigned filterNum )
+{
+    struct nexus_message_filter *f;
+    BDBG_OBJECT_ASSERT(msg, NEXUS_Message);
+    for (f=BLST_D_FIRST(&msg->filters); f; f=BLST_D_NEXT(f, link)) {
+        if (f->filterNum == (int)filterNum) {
+            BDBG_MSG(("remove filter %p from msg %p", (void*)f, (void*)f->msg));
+            nexus_message_p_deletefilter(f);
+            return NEXUS_SUCCESS;
+        }
+    }
+    return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+}
+
+NEXUS_Error NEXUS_Message_UpdateFilter( NEXUS_MessageHandle msg, unsigned filterNum, const NEXUS_MessageFilter *pFilter )
+{
+    struct nexus_message_filter *f;
+    BDBG_OBJECT_ASSERT(msg, NEXUS_Message);
+    for (f=BLST_D_FIRST(&msg->filters); f; f=BLST_D_NEXT(f, link)) {
+        if (f->filterNum == (int)filterNum) {
+            NEXUS_Error rc;
+            rc = nexus_message_p_setfilter(f, pFilter);
+            if (rc) return BERR_TRACE(rc);
+            return NEXUS_SUCCESS;
+        }
+    }
+    return BERR_TRACE(NEXUS_INVALID_PARAMETER);
 }
 
 NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStartSettings *pStartSettings)
@@ -420,61 +566,26 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
 
     BDBG_MSG(("Start(%p, recpump %d): pid %#x", (void *)msg, msg->stream->recpumpIndex, hwPidChannel->status.pid));
 
+    if (msg->stream->format == NEXUS_MessageFormat_ePsi) {
+        msg->singleMessageBufferSize = 4*1024; /* max PSI length */
+    }
+    else {
+        msg->singleMessageBufferSize = 64*1024; /* max PES length */
+    }
+
 #if B_USE_HW_PES_FILTERING
     if (pStartSettings->format == NEXUS_MessageFormat_ePsi) {
 #else
     if ((pStartSettings->format == NEXUS_MessageFormat_ePsi) || (pStartSettings->format == NEXUS_MessageFormat_ePes)) {
 #endif
-        /* filtered formats */
-        NEXUS_SwFilter_MsgParams_t m_params;
-
-        BKNI_Memset(&m_params, 0, sizeof(m_params));
-        m_params.pid = hwPidChannel->status.pid;
-        BKNI_Memcpy(m_params.filt.coefficient, msg->startSettings.filter.coefficient, NEXUS_MESSAGE_FILTER_SIZE);
-        BKNI_Memcpy(m_params.filt.mask, msg->startSettings.filter.mask, NEXUS_MESSAGE_FILTER_SIZE);
-        BKNI_Memcpy(m_params.filt.exclusion, msg->startSettings.filter.exclusion, NEXUS_MESSAGE_FILTER_SIZE);
-
-        if ( msg->tempBuffer && msg->stream->format != NEXUS_MessageFormat_ePsi && msg->tempBufSize != (64*1024) ) {
-            /* de-allocate so we can get a right sized buffer */
-            BKNI_Free(msg->tempBuffer);
-            msg->tempBuffer = NULL;
+        unsigned num;
+        rc = NEXUS_Message_AddFilter(msg, &pStartSettings->filter, &num);
+        if (rc) {
+            BERR_TRACE(rc);
+            goto err_addfilter;
         }
-
-        if (msg->stream->format == NEXUS_MessageFormat_ePsi) {
-            m_params.buffer_size = 4*1024; /* max PSI length */
-        }
-        else {
-            m_params.buffer_size = 64*1024; /* max PES length */
-        }
-
-        if ( msg->tempBuffer == NULL) {
-            /* m_params.buffer is a temporary, single message buffer */
-            msg->tempBuffer = BKNI_Malloc(m_params.buffer_size);
-            if (!msg->tempBuffer) {
-                rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
-                goto err_malloc;
-            }
-            msg->tempBufSize = m_params.buffer_size;
-        }
-        m_params.buffer = msg->tempBuffer;
-        m_params.disable_crc_check = msg->startSettings.psiCrcDisabled;
-        m_params.callback = NEXUS_SwFilter_P_FilterCallback;
-        m_params.context = msg;
-        if (msg->stream->format == NEXUS_MessageFormat_ePsi) {
-            if ( msg->isDss ) {
-                msg->filter = NEXUS_SwFilter_Msg_P_SetDssFilter(msg->stream->handle, &m_params,msg->startSettings.dssMessageType, msg->startSettings.dssMessageMptFlags);
-                if (!msg->filter) {rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_setfilter;}
-            }
-            else
-            {
-                msg->filter = NEXUS_SwFilter_Msg_P_SetFilter(msg->stream->handle, &m_params);
-                if (!msg->filter) {rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_setfilter;}
-            }
-        }
-        else {
-            msg->filter = NEXUS_SwFilter_Msg_P_SetPesFilter(msg->stream->handle, &m_params);
-            if (!msg->filter) {rc = BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_setfilter;}
-        }
+        /* if it's the first, then it must be MAIN */
+        BDBG_ASSERT(num == NEXUS_MESSAGE_MAIN_FILTER_NUM);
 
         msg->rptr = msg->wptr = msg->wrapptr = 0;
     }
@@ -488,9 +599,7 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
     NEXUS_OBJECT_ACQUIRE(msg, NEXUS_PidChannel, pStartSettings->pidChannel);
     return 0;
 
-err_setfilter:
-    BKNI_Free(msg->tempBuffer);
-err_malloc:
+err_addfilter:
     NEXUS_SwFilter_P_ClosePid(msg->pid);
 err_openpid:
     NEXUS_SwFilter_P_Close(msg->stream);
@@ -500,6 +609,7 @@ err_open:
 
 void NEXUS_Message_Stop(NEXUS_MessageHandle msg)
 {
+    struct nexus_message_filter *f;
 
     BDBG_OBJECT_ASSERT(msg, NEXUS_Message);
     if (!msg->started) {
@@ -518,14 +628,8 @@ void NEXUS_Message_Stop(NEXUS_MessageHandle msg)
 #endif
 
     NEXUS_OBJECT_RELEASE(msg, NEXUS_PidChannel, msg->startSettings.pidChannel);
-    if (msg->filter){
-        if (msg->startSettings.format == NEXUS_MessageFormat_ePsi) {
-            NEXUS_SwFilter_Msg_P_RemoveFilter(msg->stream->handle, msg->filter);
-        }
-        else {
-            NEXUS_SwFilter_Msg_P_RemovePesFilter(msg->stream->handle, msg->filter);
-        }
-        msg->filter = NULL;
+    while ((f=BLST_D_FIRST(&msg->filters))) {
+        nexus_message_p_deletefilter(f);
     }
     NEXUS_SwFilter_P_ClosePid(msg->pid);
     NEXUS_SwFilter_P_Close(msg->stream);
@@ -544,7 +648,7 @@ NEXUS_Error NEXUS_Message_GetBuffer(NEXUS_MessageHandle msg, const void **buffer
         return NEXUS_UNKNOWN; /* fail silently */
     }
 
-    if (msg->filter) {
+    if (BLST_D_FIRST(&msg->filters)) {
         if (msg->wrapptr) {
             BDBG_ASSERT(msg->wptr <= msg->rptr);
             *length = msg->wrapptr - msg->rptr;
@@ -553,7 +657,7 @@ NEXUS_Error NEXUS_Message_GetBuffer(NEXUS_MessageHandle msg, const void **buffer
             BDBG_ASSERT(msg->wptr >= msg->rptr);
             *length = msg->wptr - msg->rptr;
         }
-        BDBG_ASSERT(*length < msg->bufferSize);
+        BDBG_ASSERT(*length <= msg->bufferSize);
         if (*length) {
             *buffer = &msg->buffer[msg->rptr];
         }
@@ -604,7 +708,7 @@ NEXUS_Error NEXUS_Message_ReadComplete(NEXUS_MessageHandle msg, size_t amount_co
         }
     }
 
-    if (msg->filter) {
+    if (BLST_D_FIRST(&msg->filters)) {
         msg->rptr += amount_consumed;
         BDBG_ASSERT(msg->wrapptr ? msg->rptr <= msg->wrapptr : msg->rptr <= msg->wptr);
         if (msg->rptr == msg->wrapptr) {
@@ -755,7 +859,7 @@ static struct NEXUS_SwFilterCapture *NEXUS_SwFilter_P_Open(NEXUS_MessageHandle m
         goto err_recpump_setsettings;
     }
 
-    if (msg->filter) {
+    if (BLST_D_FIRST(&msg->filters)) {
         st->parseDataTimer = NEXUS_ScheduleTimer(SM_POLL_INTERVAL, NEXUS_SwFilter_P_PollTask, st);
     }
 
@@ -780,9 +884,12 @@ static void NEXUS_SwFilter_P_Close(struct NEXUS_SwFilterCapture *st)
     BDBG_OBJECT_ASSERT(st, NEXUS_SwFilterCapture);
     if (--st->refcnt == 0) {
 #if B_CALLBACK_HANDLER_SUPPORT
-        NEXUS_CallbackHandler_Shutdown(st->dataReadyCallbackHandler);
+        NEXUS_CallbackHandler_Stop(st->dataReadyCallbackHandler);
 #endif
         NEXUS_Recpump_Close(st->recpump);
+#if B_CALLBACK_HANDLER_SUPPORT
+        NEXUS_CallbackHandler_Shutdown(st->dataReadyCallbackHandler);
+#endif
         BLST_S_REMOVE(&g_swfilter_state_list, st, NEXUS_SwFilterCapture, link);
 
         if (st->parseDataTimer) {
@@ -817,7 +924,7 @@ static struct NEXUS_SwFilterPid *NEXUS_SwFilter_P_OpenPid(NEXUS_MessageHandle ms
     BKNI_Memset(pid, 0, sizeof(*pid));
     BDBG_OBJECT_SET(pid, NEXUS_SwFilterPid);
     pid->playpump = hwPidChannel->playpump;
-    pid->pidChannel = NEXUS_PidChannel_P_Create(hwPidChannel);
+    pid->pidChannel = msg->startSettings.pidChannel;
     if (!pid->pidChannel) {
         goto err_openpidchannel;
     }
@@ -843,12 +950,6 @@ static struct NEXUS_SwFilterPid *NEXUS_SwFilter_P_OpenPid(NEXUS_MessageHandle ms
 err_start:
     NEXUS_Recpump_RemovePidChannel(msg->stream->recpump, pid->pidChannel);
 err_addpidchannel:
-    if (!pid->playpump) {
-        NEXUS_PidChannel_Close(pid->pidChannel);
-    }
-    else {
-        NEXUS_Playpump_ClosePidChannel(pid->playpump, pid->pidChannel);
-    }
 err_openpidchannel:
     BDBG_OBJECT_DESTROY(pid, NEXUS_SwFilterPid);
     BKNI_Free(pid);
@@ -864,45 +965,59 @@ static void NEXUS_SwFilter_P_ClosePid(struct NEXUS_SwFilterPid *pid)
         if (!BLST_S_FIRST(&pid->stream->pids)) {
             NEXUS_Recpump_Stop(pid->stream->recpump);
         }
-        if (!pid->playpump) {
-            NEXUS_PidChannel_Close(pid->pidChannel);
-        }
-        else {
-            NEXUS_Playpump_ClosePidChannel(pid->playpump, pid->pidChannel);
-        }
         BDBG_OBJECT_DESTROY(pid, NEXUS_SwFilterPid);
         BKNI_Free(pid);
     }
     return;
 }
 
-static void *NEXUS_SwFilter_P_FilterCallback(void *context, size_t msg_size)
+static void NEXUS_SwFilter_P_CrcErrorCallback( void *context, unsigned crc )
 {
-    NEXUS_MessageHandle msg = context;
-    uint8_t last_4bytes[4]={0x55,0x55,0x55,0x55}; /* XPT HW pads with 0x55 */
-    unsigned mod4=0;
+    struct nexus_message_filter *filter = context;
+    NEXUS_MessageHandle msg;
 
     NEXUS_ASSERT_MODULE();
+    BDBG_OBJECT_ASSERT(filter, nexus_message_filter);
+    msg = filter->msg;
+    BDBG_OBJECT_ASSERT(msg, NEXUS_Message);
+
+    BDBG_MSG(("CrcError, crc=0x%8x" , crc ));
+    /* fire crc error event */
+    NEXUS_TaskCallback_Fire(msg->crcError);
+
+    return;
+}
+
+static void *NEXUS_SwFilter_P_FilterCallback(void *context, size_t msg_size)
+{
+    struct nexus_message_filter *filter = context;
+    NEXUS_MessageHandle msg;
+
+    NEXUS_ASSERT_MODULE();
+    BDBG_OBJECT_ASSERT(filter, nexus_message_filter);
+    msg = filter->msg;
     BDBG_OBJECT_ASSERT(msg, NEXUS_Message);
     BDBG_ASSERT(msg->started);
 
-    BDBG_MSG_TRACE(("FilterCallback(%p,%#x) size=%d", (void *)msg, msg->startSettings.pidChannel->hwPidChannel->status.pid, msg_size));
+    BDBG_MSG(("msg %p FilterCallback(%p,%#x) size=%d", (void *)msg, (void*)filter, msg->startSettings.pidChannel->hwPidChannel->status.pid, (unsigned)msg_size));
 
     /* For PSI/PES data, is size isn't a multiple of 4, pad it */
     /* first copy the %4 data. then copy the last 4 padded bytes */
-    if (msg->filter) {
+    {
+        uint8_t last_4bytes[4]={0x55,0x55,0x55,0x55}; /* XPT HW pads with 0x55 */
+        unsigned mod4;
         mod4 = msg_size % 4;
         if (mod4) {
             unsigned i;
             BDBG_MSG_TRACE(("  padding %d bytes to align", (4-mod4)));
             for (i=0; i<mod4; i ++)
             {
-                last_4bytes[i] = * (int8_t *)((uintptr_t)msg->tempBuffer + msg_size - mod4 + i);
+                last_4bytes[i] = * (int8_t *)((uintptr_t)filter->singleMessageBuffer + msg_size - mod4 + i);
             }
             msg_size -= (mod4); /* take just the multiple of 4 */
         }
         if (mod4) { /* copy last 4 padded bytes */
-            BKNI_Memcpy((uint8_t *)(uintptr_t)msg->tempBuffer + msg_size, last_4bytes, 4);
+            BKNI_Memcpy((uint8_t *)(uintptr_t)filter->singleMessageBuffer + msg_size, last_4bytes, 4);
             msg_size += 4;
         }
     }
@@ -922,7 +1037,7 @@ static void *NEXUS_SwFilter_P_FilterCallback(void *context, size_t msg_size)
         goto overflow;
     }
     else {
-        BKNI_Memcpy(&msg->buffer[msg->wptr], msg->tempBuffer, msg_size);
+        BKNI_Memcpy(&msg->buffer[msg->wptr], filter->singleMessageBuffer, msg_size);
         msg->wptr += msg_size;
         BDBG_ASSERT(msg->wptr <= msg->bufferSize);
         BDBG_ASSERT(msg->wrapptr ? msg->wptr <= msg->rptr : msg->wptr > msg->rptr);
@@ -933,12 +1048,12 @@ static void *NEXUS_SwFilter_P_FilterCallback(void *context, size_t msg_size)
         NEXUS_TaskCallback_Fire(msg->dataReady);
     }
 
-    return msg->tempBuffer; /* reuse buffer */
+    return filter->singleMessageBuffer; /* reuse buffer */
 
 overflow:
 /*    BDBG_MSG(("msg overflow" )); */
     NEXUS_TaskCallback_Fire(msg->overflow);
-    return msg->tempBuffer; /* reuse buffer */
+    return filter->singleMessageBuffer; /* reuse buffer */
 }
 
 static void NEXUS_SwFilter_P_PollTask(void *context)
@@ -1001,27 +1116,4 @@ void NEXUS_Message_GetDefaultFilter(NEXUS_MessageFilter *pFilter)
     BKNI_Memset(pFilter, 0, sizeof(*pFilter));
     BKNI_Memset(pFilter->mask, 0xFF, sizeof(pFilter->mask));
     BKNI_Memset(pFilter->exclusion, 0xFF, sizeof(pFilter->exclusion));
-}
-
-NEXUS_Error NEXUS_Message_AddFilter( NEXUS_MessageHandle msg, const NEXUS_MessageFilter *pFilter, unsigned *pFilterNum )
-{
-    BDBG_OBJECT_ASSERT(msg, NEXUS_Message);
-    BSTD_UNUSED(pFilter);
-    BSTD_UNUSED(pFilterNum);
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-}
-
-NEXUS_Error NEXUS_Message_RemoveFilter( NEXUS_MessageHandle msg, unsigned filterNum )
-{
-    BDBG_OBJECT_ASSERT(msg, NEXUS_Message);
-    BSTD_UNUSED(filterNum);
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-}
-
-NEXUS_Error NEXUS_Message_UpdateFilter( NEXUS_MessageHandle msg, unsigned filterNum, const NEXUS_MessageFilter *pFilter )
-{
-    BDBG_OBJECT_ASSERT(msg, NEXUS_Message);
-    BSTD_UNUSED(filterNum);
-    BSTD_UNUSED(pFilter);
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 }

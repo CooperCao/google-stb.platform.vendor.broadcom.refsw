@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bhdcplib.h"
@@ -554,11 +558,7 @@ static void BHDCPlib_P_Hdcp2x_AutoI2cTimerExpiration_isr (BHDCPlib_Handle hHDCPl
 		/* reset HW core */
 		BDBG_WRN(("%s: Reset AutoI2C core to reset stuck HW timers - current State [%s] ", BSTD_FUNCTION,
 			BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
-		rc = BHDM_AUTO_I2C_Reset_isr(hHDCPlib->stDependencies.hHdm);
-		if (rc) {
-			rc = BERR_TRACE(rc);
-			goto done;
-		}
+		BHDM_AUTO_I2C_Reset_isr(hHDCPlib->stDependencies.hHdm);
 	}
 
 	/* reset state to unauthenticated if currently blocking */
@@ -648,6 +648,19 @@ static void BHDCPlib_P_Hdcp2x_ReadyToEnableEncryptionTimerExpiration_isr(BHDCPli
 	BKNI_SetEvent_isr(hHDCPlib->hdcp2xIndicationEvent);
 
 	BDBG_LEAVE(BHDCPlib_P_Hdcp2x_ReadyToEnableEncryptionTimerExpiration_isr);
+}
+
+
+static void BHDCPlib_P_Hdcp2x_AKESendCertTimer_isr(BHDCPlib_Handle hHDCPlib, int parm2)
+{
+	BDBG_ENTER(BHDCPlib_P_Hdcp2x_AKESendCertTimer_isr);
+	BDBG_OBJECT_ASSERT(hHDCPlib, HDCPLIB);
+	BSTD_UNUSED(parm2);
+
+	BDBG_MSG(("AKE Send Cert Timer expired ")) ;
+	/* nothing to do here */
+
+	BDBG_LEAVE(BHDCPlib_P_Hdcp2x_AKESendCertTimer_isr);
 }
 
 
@@ -983,6 +996,101 @@ done:
 }
 
 
+BERR_Code BHDCPlib_P_CreateTimers(BHDCPlib_Handle hHandle)
+{
+	BERR_Code rc = BERR_SUCCESS ;
+
+	/* create timer to handle possible HW condition of stuck AutoI2C timers */
+	rc = BHDCPlib_P_Hdcp2x_CreateTimer(hHandle, &hHandle->hTimer,
+		(BTMR_CallbackFunc) BHDCPlib_P_Hdcp2x_AutoI2cTimerExpiration_isr, BHDCPlib_P_Timer_eAutoI2c);
+	if(rc != BERR_SUCCESS)
+	{
+		BDBG_ERR(("Error creating timer, %p", (void *) hHandle->hTmr));
+		rc = BERR_TRACE(rc);
+		goto done ;
+	}
+
+	/* create timer to use as a fail-safe - prevent blocking of authentication attempts */
+	rc = BHDCPlib_P_Hdcp2x_CreateTimer(hHandle, &hHandle->hAuthenticationTimer,
+		(BTMR_CallbackFunc) BHDCPlib_P_Hdcp2x_AuthenticationTimerExpiration_isr, BHDCPlib_P_Timer_eAuthentication);
+	if(rc != BERR_SUCCESS)
+	{
+		BDBG_ERR(("Error creating timer, %p", (void *) hHandle->hAuthenticationTimer));
+		rc = BERR_TRACE(rc);
+		goto done ;
+	}
+
+	/* create timer to countdown when to enable HDCP 2.x encryption instead of using HW interrupts */
+	rc = BHDCPlib_P_Hdcp2x_CreateTimer(hHandle, &hHandle->hReadyToEnableEncryptionTimer,
+		(BTMR_CallbackFunc) BHDCPlib_P_Hdcp2x_ReadyToEnableEncryptionTimerExpiration_isr, BHDCPlib_P_Timer_eEncryptionEnable);
+	if (rc != BERR_SUCCESS)
+	{
+		BDBG_ERR(("Error creating timer, %p", (void *) hHandle->hReadyToEnableEncryptionTimer));
+		rc = BERR_TRACE(rc);
+		goto done ;
+	}
+
+	/* create timer to count AKE_Send_Cert failures within a given amout of time */
+	rc = BHDCPlib_P_Hdcp2x_CreateTimer(hHandle, &hHandle->hAKESendCertTimer,
+		(BTMR_CallbackFunc) BHDCPlib_P_Hdcp2x_AKESendCertTimer_isr, BHDCPlib_P_Timer_eAKESendCert);
+	if (rc != BERR_SUCCESS)
+	{
+		BDBG_ERR(("Error creating timer, %p", (void *) hHandle->hAKESendCertTimer));
+		rc = BERR_TRACE(rc);
+		goto done ;
+	}
+
+done:
+	return rc ;
+}
+
+void BHDCPlib_P_DestroyTimers(BHDCPlib_Handle hHandle)
+{
+	BERR_Code rc ;
+
+	/* destroy timers */
+	if (hHandle->hTimer != NULL)
+	{
+		rc = BHDCPlib_P_Hdcp2x_DestroyTimer(hHandle, &hHandle->hTimer, BHDCPlib_P_Timer_eAutoI2c);
+		if (rc != BERR_SUCCESS)
+		{
+			BDBG_ERR(("Error destroying timer - id [%d]", BHDCPlib_P_Timer_eAutoI2c));
+			rc = BERR_TRACE(rc);
+		}
+	}
+
+	if (hHandle->hAuthenticationTimer != NULL)
+	{
+		rc = BHDCPlib_P_Hdcp2x_DestroyTimer(hHandle, &hHandle->hAuthenticationTimer, BHDCPlib_P_Timer_eAuthentication);
+		if (rc != BERR_SUCCESS)
+		{
+			BDBG_ERR(("Error destroying timer - id [%d]", BHDCPlib_P_Timer_eAuthentication));
+			rc = BERR_TRACE(rc);
+		}
+	}
+
+	if (hHandle->hReadyToEnableEncryptionTimer != NULL)
+	{
+		rc = BHDCPlib_P_Hdcp2x_DestroyTimer(hHandle, &hHandle->hReadyToEnableEncryptionTimer, BHDCPlib_P_Timer_eEncryptionEnable);
+		if (rc != BERR_SUCCESS)
+		{
+			BDBG_ERR(("Error destroying timer - id [%d]", BHDCPlib_P_Timer_eEncryptionEnable));
+			rc = BERR_TRACE(rc);
+		}
+	}
+
+	if (hHandle->hAKESendCertTimer != NULL)
+	{
+		rc = BHDCPlib_P_Hdcp2x_DestroyTimer(hHandle, &hHandle->hAKESendCertTimer, BHDCPlib_P_Timer_eAKESendCert);
+		if (rc != BERR_SUCCESS)
+		{
+			BDBG_ERR(("Error destroying timer - id [%d]", BHDCPlib_P_Timer_eAKESendCert));
+			rc = BERR_TRACE(rc);
+		}
+	}
+}
+
+
 BERR_Code BHDCPlib_P_Hdcp2x_Open(BHDCPlib_Handle *hHDCPlib, const BHDCPlib_Dependencies *pstDependencies)
 {
 	BERR_Code rc = BERR_SUCCESS;
@@ -1103,36 +1211,13 @@ BERR_Code BHDCPlib_P_Hdcp2x_Open(BHDCPlib_Handle *hHDCPlib, const BHDCPlib_Depen
 	if (pstDependencies->eCoreType == BHDCPlib_CoreType_eTx)
 	{
 		hHandle->hTmr = pstDependencies->hTmr ;
-
-		/* create timer to handle possible HW condition of stuck AutoI2C timers */
-		rc = BHDCPlib_P_Hdcp2x_CreateTimer(hHandle, &hHandle->hTimer,
-			(BTMR_CallbackFunc) BHDCPlib_P_Hdcp2x_AutoI2cTimerExpiration_isr, BHDCPlib_P_Timer_eAutoI2c);
+		rc = BHDCPlib_P_CreateTimers(hHandle) ;
 		if(rc != BERR_SUCCESS)
 		{
-			BDBG_ERR(("Error creating timer, %p", (void *) hHandle->hTmr));
-			rc = BERR_TRACE(rc);
 			goto done ;
 		}
 
-		/* create timer to use as a fail-safe - prevent blocking of authentication attempts */
-		rc = BHDCPlib_P_Hdcp2x_CreateTimer(hHandle, &hHandle->hAuthenticationTimer,
-			(BTMR_CallbackFunc) BHDCPlib_P_Hdcp2x_AuthenticationTimerExpiration_isr, BHDCPlib_P_Timer_eAuthentication);
-		if(rc != BERR_SUCCESS)
-		{
-			BDBG_ERR(("Error creating timer, %p", (void *) hHandle->hAuthenticationTimer));
-			rc = BERR_TRACE(rc);
-			goto done ;
-		}
-
-		/* create timer to countdown when to enable HDCP 2.x encryption instead of using HW interrupts */
-		rc = BHDCPlib_P_Hdcp2x_CreateTimer(hHandle, &hHandle->hReadyToEnableEncryptionTimer,
-			(BTMR_CallbackFunc) BHDCPlib_P_Hdcp2x_ReadyToEnableEncryptionTimerExpiration_isr, BHDCPlib_P_Timer_eEncryptionEnable);
-		if (rc != BERR_SUCCESS)
-		{
-			BDBG_ERR(("Error creating timer, %p", (void *) hHandle->hReadyToEnableEncryptionTimer));
-			rc = BERR_TRACE(rc);
-			goto done ;
-		}
+		hHandle->stHdcpStatus.ConsecutiveAKESendCertCount = 0 ;
 
 		/* TODO: Test HDCP 2.2 Compliance with Auto i2c disabled until Auth starts */
 #if 0
@@ -1184,27 +1269,7 @@ done:
 				hHandle->hSagelibRpcPlatformHandle = NULL;
 			}
 
-			/* destroy timers */
-			rc = BHDCPlib_P_Hdcp2x_DestroyTimer(hHandle, &hHandle->hTimer, BHDCPlib_P_Timer_eAutoI2c);
-			if (rc != BERR_SUCCESS)
-			{
-				BDBG_ERR(("Error destroying timer - id [%d]", BHDCPlib_P_Timer_eAutoI2c));
-				rc = BERR_TRACE(rc);
-			}
-
-			rc = BHDCPlib_P_Hdcp2x_DestroyTimer(hHandle, &hHandle->hAuthenticationTimer, BHDCPlib_P_Timer_eAuthentication);
-			if (rc != BERR_SUCCESS)
-			{
-				BDBG_ERR(("Error destroying timer - id [%d]", BHDCPlib_P_Timer_eAuthentication));
-				rc = BERR_TRACE(rc);
-			}
-
-			rc = BHDCPlib_P_Hdcp2x_DestroyTimer(hHandle, &hHandle->hReadyToEnableEncryptionTimer, BHDCPlib_P_Timer_eEncryptionEnable);
-			if (rc != BERR_SUCCESS)
-			{
-				BDBG_ERR(("Error destroying timer - id [%d]", BHDCPlib_P_Timer_eEncryptionEnable));
-				rc = BERR_TRACE(rc);
-			}
+			BHDCPlib_P_DestroyTimers(hHandle) ;
 
 #if BHDCPLIB_HDR_SUPPORT
 			if (pstDependencies->eCoreType == BHDCPlib_CoreType_eRx) {
@@ -1230,27 +1295,7 @@ BERR_Code BHDCPlib_P_Hdcp2x_Close(BHDCPlib_Handle hHDCPlib)
 	BDBG_ENTER(BHDCPlib_P_Hdcp2x_Close);
 	BDBG_OBJECT_ASSERT(hHDCPlib, HDCPLIB);
 
-	/* destroy timers */
-	rc = BHDCPlib_P_Hdcp2x_DestroyTimer(hHDCPlib, &hHDCPlib->hTimer, BHDCPlib_P_Timer_eAutoI2c);
-	if (rc != BERR_SUCCESS)
-	{
-		BDBG_ERR(("Error destroying timer - id [%d]", BHDCPlib_P_Timer_eAutoI2c));
-		rc = BERR_TRACE(rc);
-	}
-
-	rc = BHDCPlib_P_Hdcp2x_DestroyTimer(hHDCPlib, &hHDCPlib->hAuthenticationTimer, BHDCPlib_P_Timer_eAuthentication);
-	if (rc != BERR_SUCCESS)
-	{
-		BDBG_ERR(("Error destroying timer - id [%d]", BHDCPlib_P_Timer_eAuthentication));
-		rc = BERR_TRACE(rc);
-	}
-
-	rc = BHDCPlib_P_Hdcp2x_DestroyTimer(hHDCPlib, &hHDCPlib->hReadyToEnableEncryptionTimer, BHDCPlib_P_Timer_eEncryptionEnable);
-	if (rc != BERR_SUCCESS)
-	{
-		BDBG_ERR(("Error destroying timer - id [%d]", BHDCPlib_P_Timer_eEncryptionEnable));
-		rc = BERR_TRACE(rc);
-	}
+	BHDCPlib_P_DestroyTimers(hHDCPlib) ;
 
 	if (hHDCPlib->stDependencies.eCoreType == BHDCPlib_CoreType_eTx)
 	{
@@ -1623,6 +1668,22 @@ BERR_Code BHDCPlib_P_Hdcp2x_StartAuthentication(const BHDCPlib_Handle hHDCPlib)
 		goto done;
 	}
 
+	/* start AKE_Send_Cert timer if not already running */
+	if (hHDCPlib->hAKESendCertTimer)
+	{
+		unsigned uiRemainMicroseconds ;
+
+		rc = BTMR_ReadTimer(hHDCPlib->hAKESendCertTimer, &uiRemainMicroseconds) ;
+		if (rc) {rc = BERR_TRACE(rc); goto done ;}
+
+		if (!uiRemainMicroseconds)  /* timer is stopped/not running */
+		{
+			rc = BTMR_StartTimer(hHDCPlib->hAKESendCertTimer,
+				BHDCPLIB_P_SECOND * BHDCPLIB_HDCP2X_AKE_SEND_CERT_TIMEOUT_SECONDS);
+			if (rc) {rc = BERR_TRACE(rc); goto done ;}
+		}
+	}
+
 	/* start timer as a fail-safe mechanism to prevent system locked up */
 	if (hHDCPlib->hAuthenticationTimer) {
 		BTMR_StopTimer(hHDCPlib->hAuthenticationTimer);
@@ -1718,6 +1779,11 @@ BERR_Code BHDCPlib_P_Hdcp2x_StopAuthentication(const BHDCPlib_Handle hHDCPlib)
 	/* Stop timers */
 	if (hHDCPlib->hAuthenticationTimer) {
 		BTMR_StopTimer(hHDCPlib->hAuthenticationTimer);
+	}
+
+	if (hHDCPlib->hAKESendCertTimer) {
+		BTMR_StopTimer(hHDCPlib->hAKESendCertTimer);
+		hHDCPlib->stHdcpStatus.ConsecutiveAKESendCertCount = 0 ;
 	}
 
 	if (hHDCPlib->hTimer) {
@@ -1877,6 +1943,37 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 			case Hdcp22_AuthenticationError_eMaxDeviceExceeded:
 				hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eRxDevicesExceeded;
 				break;
+
+			case Hdcp22_AuthenticationError_eTimeoutAKESendCert:
+				/* increment AKE Send Cert Timeout counter */
+				if (hHDCPlib->hAKESendCertTimer)
+				{
+
+					hHDCPlib->stHdcpStatus.ConsecutiveAKESendCertCount++ ;
+					hHDCPlib->stHdcpStatus.TotalAKESendCertCount++ ;
+
+					BDBG_MSG(("Consecutive AKE Send Cert Timeouts = %d",
+						hHDCPlib->stHdcpStatus.ConsecutiveAKESendCertCount));
+
+					if (hHDCPlib->stHdcpStatus.ConsecutiveAKESendCertCount > BHDCPLIB_HDCP2X_MAX_AKE_SEND_CERT_TIMEOUT_THRESHOLD)
+					{
+						BTMR_StopTimer(hHDCPlib->hAKESendCertTimer) ;
+
+						BDBG_ERR(("AKE_Send_Cert timeouts (%d) exceed threshold of %d; Force TX HOTPLUG_IN",
+							hHDCPlib->stHdcpStatus.ConsecutiveAKESendCertCount,
+							BHDCPLIB_HDCP2X_MAX_AKE_SEND_CERT_TIMEOUT_THRESHOLD));
+
+						hHDCPlib->stHdcpStatus.ConsecutiveAKESendCertCount = 0 ;
+
+						BKNI_EnterCriticalSection() ;
+							rc = BHDM_HDCP_AssertSimulatedHpd_isr(hHDCPlib->stDependencies.hHdm, true, false) ;
+						BKNI_LeaveCriticalSection() ;
+						if (rc) { rc = BERR_TRACE(rc); }
+					}
+				}
+
+				hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eReceiverAuthenticationError;
+				break ;
 
 			default:
 				hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eReceiverAuthenticationError;
@@ -2168,6 +2265,12 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 				/* Stop authentication timer */
 				if (hHDCPlib->hAuthenticationTimer) {
 					BTMR_StopTimer(hHDCPlib->hAuthenticationTimer);
+				}
+
+				/* Stop AKE Send Cert timeout timer */
+				if (hHDCPlib->hAKESendCertTimer) {
+					BTMR_StopTimer(hHDCPlib->hAKESendCertTimer);
+					hHDCPlib->stHdcpStatus.ConsecutiveAKESendCertCount = 0 ;
 				}
 
 				/* fire event informing HDCP authentication result */
@@ -2810,6 +2913,7 @@ BERR_Code BHDCPlib_Hdcp2x_GetAuthenticationStatus(
 	pAuthenticationStatus->downstreamIsRepeater = hHDCPlib->stReceiverIdListData.downstreamIsRepeater > 0;
 	pAuthenticationStatus->eAuthenticationError = hHDCPlib->lastAuthenticationError;
 	pAuthenticationStatus->eContentStreamTypeFromUpstream = hHDCPlib->eContentStreamTypeReceived;
+	pAuthenticationStatus->totalAkeSendCertFailures = hHDCPlib->stHdcpStatus.TotalAKESendCertCount;
 
 	switch (hHDCPlib->currentHdcp2xState)
 	{

@@ -59,11 +59,21 @@
 #include "bkni.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "nxserverlib.h"
 #include "nxclient.h"
 #include "bgui.h"
 
 BDBG_MODULE(switched_decode);
+
+struct options_t {
+    bool videoOutputs;
+    NxClient_HdcpVersion hdcpVersion;
+    NxClient_HdcpLevel hdcpLevel;
+    char *hdcpKeysBinfile[NxClient_HdcpType_eMax];
+    bool loadHdcpKeys;
+    bool displayUsage;
+};
 
 /**
 Demostrate integration of NxClient with single-process application that has direct access to
@@ -73,7 +83,7 @@ The display and graphics are never closed. Decoders and the entire audio filter 
 and re-opened on the transition, but this should be quick and seamless.
 **/
 
-static int  start_nxserver(const NEXUS_PlatformSettings *pPlatformSettings);
+static int  start_nxserver(const NEXUS_PlatformSettings *pPlatformSettings, struct options_t *opts);
 static void stop_nxserver(void);
 static int open_decode(void);
 static void close_decode(void);
@@ -141,7 +151,91 @@ static void print_nxclient_status(void)
     BDBG_WRN(("%s", str[status.externalAppState]));
 }
 
-int main(void)
+NEXUS_Error configure_memory(NEXUS_PlatformSettings * pPlatformSettings)
+{
+    int i,j;
+    NEXUS_Error rc;
+
+    NEXUS_MemoryConfigurationSettings memConfigSettings;
+
+    NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
+    for (i=0;i<NEXUS_NUM_VIDEO_DECODERS;i++)
+    {
+        memConfigSettings.videoDecoder[i].secure = NEXUS_SecureVideo_eSecure;
+    }
+    for (i=0;i<NEXUS_NUM_DISPLAYS;i++)
+    {
+        for (j=0;j<NEXUS_NUM_VIDEO_WINDOWS;j++)
+        {
+            memConfigSettings.display[i].window[j].secure = NEXUS_SecureVideo_eSecure;
+        }
+    }
+    rc = NEXUS_Platform_MemConfigInit(pPlatformSettings, &memConfigSettings);
+    if (rc) return BERR_TRACE(rc);
+    return rc;
+}
+
+static void print_usage(void)
+{
+    printf(
+        "Usage: switched_decode OPTIONS\n"
+        "\n"
+        "OPTIONS:\n"
+        "  --help or -h for help\n"
+        "  -level {o|m} \tHDCP authentication is optional or mandatory, default none\n"
+        "  -version {auto|hdcp1x|hdcp22}\n"
+        "  -hdcp2x_keys BINFILE \tload Hdcp2.x bin file\n"
+        "  -hdcp1x_keys BINFILE \tload Hdcp1.x bin file\n"
+        "  -video_outputs \tserver library will manage video outputs\n"
+        );
+}
+
+static int parse_command_line(int argc, char **argv, struct options_t * opts)
+{
+    int err = 0;
+    int curarg = 1;
+    memset(opts, 0, sizeof(*opts));
+
+    while(curarg < argc) {
+        if (!strcmp(argv[curarg], "-video_outputs")) {
+            opts->videoOutputs = true;
+        } else if (!strcmp(argv[curarg], "-h") || !strcmp(argv[curarg], "--help")) {
+            opts->displayUsage = true;
+            break;
+        } else if (!strcmp(argv[curarg], "-level") && argc>curarg+1) {
+            curarg++;
+            opts->hdcpLevel = NxClient_HdcpLevel_eNone;
+            if (!strcmp(argv[curarg], "o")) {
+                opts->hdcpLevel = NxClient_HdcpLevel_eOptional;
+            } else if (!strcmp(argv[curarg], "m")) {
+                opts->hdcpLevel = NxClient_HdcpLevel_eMandatory;
+            }
+        } else if (!strcmp(argv[curarg], "-version") && argc>curarg+1) {
+            curarg++;
+            if (!strcmp(argv[curarg], "auto")) {
+                opts->hdcpVersion = NxClient_HdcpVersion_eAuto;
+            } else if (!strcmp(argv[curarg], "hdcp1x")) {
+                opts->hdcpVersion = NxClient_HdcpVersion_eHdcp1x;
+            } else if (!strcmp(argv[curarg], "hdcp22")) {
+                opts->hdcpVersion = NxClient_HdcpVersion_eHdcp22;
+            } else if (!strcmp(argv[curarg], "hdcp22type0")) {
+                opts->hdcpVersion = NxClient_HdcpVersion_eAutoHdcp22Type0;
+            }
+        } else if (!strcmp(argv[curarg], "-hdcp1x_keys") && curarg+1<argc) {
+            opts->hdcpKeysBinfile[NxClient_HdcpType_1x] = argv[++curarg];
+            opts->loadHdcpKeys = true;
+        } else if (!strcmp(argv[curarg], "-hdcp2x_keys") && curarg+1<argc) {
+            opts->hdcpKeysBinfile[NxClient_HdcpType_2x] = argv[++curarg];
+            opts->loadHdcpKeys = true;
+        } else {
+            err = -1;
+        }
+        curarg++;
+    }
+    return err;
+}
+
+int main(int argc, char **argv)
 {
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;
@@ -150,11 +244,21 @@ int main(void)
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_Error rc;
 #endif
+    int err;
+    struct options_t opts;
+
+    err = parse_command_line(argc, argv, &opts);
+    if ((0 != err) || (opts.displayUsage)) {
+        print_usage();
+        return err;
+    }
 
     /* Bring up all modules for a platform in a default configuration for this platform */
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
-    NEXUS_Platform_Init(&platformSettings);
+    /* NEXUS_Platform_Init is called in configure_memory */
+    rc = configure_memory(&platformSettings);
+    BDBG_ASSERT(rc == NEXUS_SUCCESS);
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
     /* Bring up display and outputs */
@@ -163,35 +267,38 @@ int main(void)
     g_app.display[0] = NEXUS_Display_Open(0, &displaySettings);
     displaySettings.format = NEXUS_VideoFormat_eNtsc;
     g_app.display[1] = NEXUS_Display_Open(1, &displaySettings);
+
+    if (!opts.videoOutputs) {
 #if NEXUS_NUM_COMPONENT_OUTPUTS
-    NEXUS_Display_AddOutput(g_app.display[0], NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
+        NEXUS_Display_AddOutput(g_app.display[0], NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
 #endif
 #if NEXUS_NUM_COMPOSITE_OUTPUTS
-    NEXUS_Display_AddOutput(g_app.display[1], NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
+        NEXUS_Display_AddOutput(g_app.display[1], NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
 #endif
 #if NEXUS_NUM_SVIDEO_OUTPUTS
-    NEXUS_Display_AddOutput(g_app.display[1], NEXUS_SvideoOutput_GetConnector(platformConfig.outputs.svideo[0]));
+        NEXUS_Display_AddOutput(g_app.display[1], NEXUS_SvideoOutput_GetConnector(platformConfig.outputs.svideo[0]));
 #endif
 #if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_Display_AddOutput(g_app.display[0], NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
-    rc = NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
-    if ( !rc && hdmiStatus.connected )
-    {
-        /* If current display format is not supported by monitor, switch to monitor's preferred format.
-           If other connected outputs do not support the preferred format, a harmless error will occur. */
-        NEXUS_Display_GetSettings(g_app.display[0], &displaySettings);
-        if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
-            displaySettings.format = hdmiStatus.preferredVideoFormat;
-            NEXUS_Display_SetSettings(g_app.display[0], &displaySettings);
+        NEXUS_Display_AddOutput(g_app.display[0], NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
+        rc = NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
+        if ( !rc && hdmiStatus.connected )
+        {
+            /* If current display format is not supported by monitor, switch to monitor's preferred format.
+               If other connected outputs do not support the preferred format, a harmless error will occur. */
+            NEXUS_Display_GetSettings(g_app.display[0], &displaySettings);
+            if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
+                displaySettings.format = hdmiStatus.preferredVideoFormat;
+                NEXUS_Display_SetSettings(g_app.display[0], &displaySettings);
+            }
         }
-    }
 #endif
+    }
 
     rc = open_decode();
     BDBG_ASSERT(!rc);
 
     /* allow graphics-only nxclient apps right away. they are never interrupted. */
-    rc = start_nxserver(&platformSettings);
+    rc = start_nxserver(&platformSettings, &opts);
     BDBG_ASSERT(!rc);
     print_nxclient_status();
 
@@ -257,7 +364,7 @@ static void free_index(void *callback_context, enum nxserverlib_index_type type,
     }
 }
 
-static int start_nxserver(const NEXUS_PlatformSettings *pPlatformSettings)
+static int start_nxserver(const NEXUS_PlatformSettings *pPlatformSettings, struct options_t *opts)
 {
     NEXUS_PlatformConfiguration platformConfig;
     struct nxserver_settings settings;
@@ -271,8 +378,8 @@ static int start_nxserver(const NEXUS_PlatformSettings *pPlatformSettings)
     nxserver_get_default_settings(&settings);
     settings.lock = g_app.lock;
 
-    index = nxserver_heap_by_type(pPlatformSettings,NEXUS_HEAP_TYPE_GRAPHICS);
-    if (index != -1) {
+    index = nxserver_heap_by_type(pPlatformSettings, NEXUS_HEAP_TYPE_GRAPHICS);
+    if (index != -1 && pPlatformSettings->heap[index].size) {
         settings.client.heap[NXCLIENT_DEFAULT_HEAP] = platformConfig.heap[index];
     }
     index = nxserver_heap_by_type(pPlatformSettings,NEXUS_HEAP_TYPE_MAIN);
@@ -283,13 +390,11 @@ static int start_nxserver(const NEXUS_PlatformSettings *pPlatformSettings)
     if (index != -1) {
         settings.client.heap[NXCLIENT_VIDEO_SECURE_HEAP] = platformConfig.heap[index];
     }
-    index = nxserver_heap_by_type(pPlatformSettings,NEXUS_HEAP_TYPE_SECONDARY_GRAPHICS);
-    if (index != -1) {
-        settings.client.heap[NXCLIENT_DEFAULT_HEAP] = platformConfig.heap[index];
-        if (settings.client.heap[NXCLIENT_SECONDARY_GRAPHICS_HEAP] == settings.client.heap[NXCLIENT_DEFAULT_HEAP]) {
-            settings.client.heap[NXCLIENT_SECONDARY_GRAPHICS_HEAP] = NULL;
-        }
+    index = nxserver_heap_by_type(pPlatformSettings, NEXUS_HEAP_TYPE_ARR);
+    if (index != -1 && pPlatformSettings->heap[index].size) {
+        settings.client.heap[NXCLIENT_ARR_HEAP] = platformConfig.heap[index];
     }
+    settings.client.heap[NXCLIENT_SECURE_GRAPHICS_HEAP] = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE);
 
     settings.externalApp.enabled = true;
     settings.externalApp.display[0].handle = g_app.display[0];
@@ -304,6 +409,15 @@ static int start_nxserver(const NEXUS_PlatformSettings *pPlatformSettings)
     settings.externalApp.allocIndex = alloc_index;
     settings.externalApp.freeIndex = free_index;
     settings.externalApp.callback_context = &g_app;
+    settings.externalApp.video_outputs = opts->videoOutputs;
+    settings.hdcp.alwaysLevel = opts->hdcpLevel;
+    settings.hdcp.versionSelect = opts->hdcpVersion;
+    if (opts->loadHdcpKeys && (NULL != opts->hdcpKeysBinfile[NxClient_HdcpType_1x])) {
+        strncpy(settings.hdcp.hdcp1xBinFile, opts->hdcpKeysBinfile[NxClient_HdcpType_1x], 128);
+    }
+    if (opts->loadHdcpKeys && (NULL != opts->hdcpKeysBinfile[NxClient_HdcpType_2x])) {
+        strncpy(settings.hdcp.hdcp2xBinFile, opts->hdcpKeysBinfile[NxClient_HdcpType_2x], 128);
+    }
 
     g_app.server = nxserverlib_init(&settings);
     if (!g_app.server) return BERR_TRACE(-1);

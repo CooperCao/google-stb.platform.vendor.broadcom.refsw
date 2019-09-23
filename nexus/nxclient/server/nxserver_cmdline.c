@@ -221,6 +221,8 @@ static void print_full_usage(void)
     );
     printf(
     "  -default_sd {ntsc,pal,secam,off}  \tAutomatically switch display0 to SD format when HDMI is disconnected. Defaults on for non-HD/SD simul systems without component.\n"
+    "  -msglevel module[,module...]\n"
+    "  -wrnlevel module[,module...]\n"
     );
 }
 
@@ -757,6 +759,39 @@ static void nx_unload_cfg(struct nx_argv *nx_argv)
     for (i=0;i<nx_argv->num_lines;i++) free(nx_argv->lines[i]);
 }
 
+static void nxserver_p_set_level(const char *modules, BDBG_Level level)
+{
+    while (modules) {
+        char buf[64];
+        const char *s = strchr(modules, ',');
+        if (s) {
+            unsigned len = s-modules;
+            if (len >= sizeof(buf)) len = sizeof(buf)-1;
+            strncpy(buf, modules, len);
+            buf[len] = 0;
+            modules = s+1;
+            s = buf;
+        }
+        else {
+            s = modules;
+            modules = NULL;
+        }
+#if NEXUS_MODE_proxy
+        {
+        FILE *f = fopen("/proc/brcm/debug", "w");
+        if (!f) {
+            BERR_TRACE(NEXUS_UNKNOWN);
+        }
+        else {
+            fprintf(f, "%s %s", s, level == BDBG_eMsg ? "msg": "wrn");
+            fclose(f);
+        }
+        }
+#endif
+        BDBG_SetModuleLevel(s, level);
+    }
+}
+
 static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_settings *settings, struct nxserver_cmdline_settings *cmdline_settings)
 {
     int curarg = 1;
@@ -1235,6 +1270,12 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
             else {
                 settings->display.defaultSdFormat = lookup(g_videoFormatStrs, argv[curarg]);
             }
+        }
+        else if (!strcmp(argv[curarg], "-msglevel") && curarg+1<argc) {
+            nxserver_p_set_level(argv[++curarg], BDBG_eMsg);
+        }
+        else if (!strcmp(argv[curarg], "-wrnlevel") && curarg+1<argc) {
+            nxserver_p_set_level(argv[++curarg], BDBG_eWrn);
         }
         else {
             fprintf(stderr,"invalid argument %s\n", argv[curarg]);

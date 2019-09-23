@@ -557,12 +557,15 @@ const namevalue_t g_audioPresentationStrs[] = {
 
 const namevalue_t g_videoEotfStrs[] = {
     {"sdr", NEXUS_VideoEotf_eSdr},
-    {"hdr10", NEXUS_VideoEotf_eHdr10},
-    {"pqhdr", NEXUS_VideoEotf_eHdr10},
-    {"smpte2084", NEXUS_VideoEotf_eHdr10},
-    {"smpte", NEXUS_VideoEotf_eHdr10},
-    {"2084", NEXUS_VideoEotf_eHdr10},
+    {"1886", NEXUS_VideoEotf_eSdr},
+    {"pq", NEXUS_VideoEotf_ePq},
+    {"hdr10", NEXUS_VideoEotf_ePq},
+    {"pqhdr", NEXUS_VideoEotf_ePq},
+    {"smpte2084", NEXUS_VideoEotf_ePq},
+    {"smpte", NEXUS_VideoEotf_ePq},
+    {"2084", NEXUS_VideoEotf_ePq},
     {"hlg", NEXUS_VideoEotf_eHlg},
+    {"2100", NEXUS_VideoEotf_eHlg},
     {"aribb67", NEXUS_VideoEotf_eHlg},
     {"arib", NEXUS_VideoEotf_eHlg},
     {"b67", NEXUS_VideoEotf_eHlg},
@@ -570,20 +573,30 @@ const namevalue_t g_videoEotfStrs[] = {
     {NULL, 0}
 };
 
-const namevalue_t g_dbvPriorityModeStrs[] = {
-#if NEXUS_HAS_HDMI_OUTPUT
-    {"auto", NEXUS_HdmiOutputDolbyVisionPriorityMode_eAuto},
-    {"video", NEXUS_HdmiOutputDolbyVisionPriorityMode_eVideo},
-    {"gfx", NEXUS_HdmiOutputDolbyVisionPriorityMode_eGraphics},
-#endif
+const namevalue_t g_displayPriorityModeStrs[] = {
+    {"auto", NEXUS_DisplayPriority_eAuto},
+    {"video", NEXUS_DisplayPriority_eVideo},
+    {"gfx", NEXUS_DisplayPriority_eGraphics},
     {NULL, 0}
 };
 
-const namevalue_t g_dolbyVisionModeStrs[] = {
+const namevalue_t g_dynamicRangeModeStrs[] = {
 #if NEXUS_HAS_HDMI_OUTPUT
-    {"auto", NEXUS_HdmiOutputDolbyVisionMode_eAuto},
-    {"on", NEXUS_HdmiOutputDolbyVisionMode_eEnabled},
-    {"off", NEXUS_HdmiOutputDolbyVisionMode_eDisabled},
+    {"auto", NEXUS_VideoDynamicRangeMode_eAuto},
+    {"input", NEXUS_VideoDynamicRangeMode_eTrackInput},
+    {"track", NEXUS_VideoDynamicRangeMode_eTrackInput},
+    {"source", NEXUS_VideoDynamicRangeMode_eTrackInput},
+    {"passthru", NEXUS_VideoDynamicRangeMode_eTrackInput},
+    {"legacy", NEXUS_VideoDynamicRangeMode_eLegacy},
+    {"sdr", NEXUS_VideoDynamicRangeMode_eSdr},
+    {"hdr10", NEXUS_VideoDynamicRangeMode_eHdr10},
+    {"hlg", NEXUS_VideoDynamicRangeMode_eHlg},
+    {"hdr10+", NEXUS_VideoDynamicRangeMode_eHdr10Plus},
+    {"hdr10Plus", NEXUS_VideoDynamicRangeMode_eHdr10Plus},
+    {"hdr10plus", NEXUS_VideoDynamicRangeMode_eHdr10Plus},
+    {"hdr10p", NEXUS_VideoDynamicRangeMode_eHdr10Plus},
+    {"dolbyVision", NEXUS_VideoDynamicRangeMode_eDolbyVision},
+    {"dbv", NEXUS_VideoDynamicRangeMode_eDolbyVision},
 #endif
     {NULL, 0}
 };

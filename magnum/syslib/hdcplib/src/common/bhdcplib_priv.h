@@ -52,6 +52,13 @@
 #include "bhdcplib_hdcp22_priv.h"
 #endif
 
+#if BHDM_OVERRIDE_DBG_MSG_LEVEL
+#undef BDBG_MSG
+#define BDBG_MSG(format) BDBG_P_PRINTMSG(BDBG_eMsg, format)
+#undef BDBG_WRN
+#define BDBG_WRN(format) BDBG_P_PRINTMSG(BDBG_eWrn, format)
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -62,10 +69,20 @@ BDBG_OBJECT_ID_DECLARE(HDCPLIB);
 #define BHDCPLIB_HDCP22_TXCAPS_VERSION 0x02
 #define BHDCPLIB_HDCP22_TXCAPS_TRANSMITTER_CAPABILITY_MASK 0x0000
 
+#define BHDCPLIB_P_MILLISECOND 1000
+#define BHDCPLIB_P_SECOND 1000000
+
 #define BHDCPLIB_HDCP2X_SAGERESPONSE_TIMEOUT 5000 /* in ms */
 #define BHDCPLIB_HDCP2X_HWAUTOI2CTIMER_VERIFICATION_TIMER 100 /* in ms */
 #define BHDCPLIB_HDCP2X_AUTHENTICATION_PROCESS_TIMEOUT 5000 /* in ms */
 #define BHDCPLIB_HDCP2X_ENABLEENCRYPTION_TIMER 200
+
+#define BHDCPLIB_HDCP2X_AKE_SEND_CERT_TIMEOUT_SECONDS 5 /* in ms */
+
+/* Maximum consecutive AKE_SendCert timeouts from attached Rx/Repeater before the HPD signal
+to the Tx is pulsed. NOTE: Attached Rx does not see this HPD signal */
+#define BHDCPLIB_HDCP2X_MAX_AKE_SEND_CERT_TIMEOUT_THRESHOLD 10
+
 
 
 typedef enum BHDCPlib_Hdcp2xState
@@ -111,7 +128,8 @@ typedef enum
 {
 	BHDCPlib_P_Timer_eAutoI2c,  /* AutoI2C HW Stuck  */
 	BHDCPlib_P_Timer_eAuthentication,   /* timer for authentication result */
-	BHDCPlib_P_Timer_eEncryptionEnable
+	BHDCPlib_P_Timer_eEncryptionEnable,
+	BHDCPlib_P_Timer_eAKESendCert
 } BHDCPlib_P_Timer ;
 #endif
 
@@ -140,6 +158,7 @@ typedef struct BHDCPlib_P_Handle
 	BKNI_EventHandle hdcp2xIndicationEvent;
 	BTMR_TimerHandle hAuthenticationTimer;
 	BTMR_TimerHandle hReadyToEnableEncryptionTimer;
+	BTMR_TimerHandle hAKESendCertTimer;
 
 	BSAGElib_RpcRemoteHandle hSagelibRpcPlatformHandle;
 	BSAGElib_RpcRemoteHandle hSagelibRpcModuleHandle;
@@ -156,6 +175,7 @@ typedef struct BHDCPlib_P_Handle
 	BHDCPlib_Hdcp2xContentStreamType eContentStreamTypeReceived;
 	uint8_t uiSageSessionId;
 	uint32_t uiSageVersionId;
+	bool bCstChange; /* Content Stream Type change */
 #endif
 } BHDCPlib_P_Handle;
 

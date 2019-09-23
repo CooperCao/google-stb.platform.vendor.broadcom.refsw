@@ -1,5 +1,5 @@
 stream[0]=World_HDR_HD_VP9.webm
 stream[1]=Geostorm_SDR_AVC.mp4
-plm.vid=2
-plm.gfx=2
+processing.vid=on
+processing.gfx=on
 usage=pip

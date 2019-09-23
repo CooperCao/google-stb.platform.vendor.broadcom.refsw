@@ -248,7 +248,7 @@ BERR_Code BHDM_AUTO_I2C_IsHdcp2xHWTimersAvailable_isrsafe(
 }
 
 
-BERR_Code BHDM_AUTO_I2C_Reset_isr(
+void BHDM_AUTO_I2C_Reset_isr(
 	const BHDM_Handle hHDMI		   /* [in] HDMI handle */
 )
 {
@@ -270,6 +270,5 @@ BERR_Code BHDM_AUTO_I2C_Reset_isr(
 	BREG_Write32(hRegister, BCHP_DVP_HT_SW_INIT + ulOffset, Register) ;
 
 	BDBG_LEAVE(BHDM_AUTO_I2C_Reset_isr);
-	return BERR_SUCCESS;
 }
 #endif

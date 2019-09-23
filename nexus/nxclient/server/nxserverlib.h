@@ -235,7 +235,8 @@ struct nxserver_settings
         char hdcp1xBinFile[128];
         NxClient_HdcpLevel alwaysLevel;
         NxClient_HdcpVersion versionSelect;
-        unsigned failureTimeout; /* in seconds */
+        unsigned immediateTimeout; /* in seconds. any reauth within this will done immediately. after this, we wait at least 2 seconds. default is 15 seconds. */
+        unsigned failureTimeout; /* in seconds. any reauth after this will not be attempted. if 0 (default), never quit. */
     } hdcp;
     struct {
         bool ignoreVideoEdid; /* use HDMI EDID for audio, but not video */
@@ -255,6 +256,7 @@ struct nxserver_settings
         struct {
             NEXUS_DisplayHandle handle; /* see NxClient.pdf for restrictions on use of display handle after passing to nxserver */
         } display[NEXUS_MAX_DISPLAYS];
+        bool video_outputs; /* nxserver will open and manage video outputs and HDCP */
 
         /* set true we must alloc index externally */
         bool enableAllocIndex[nxserverlib_index_type_max];

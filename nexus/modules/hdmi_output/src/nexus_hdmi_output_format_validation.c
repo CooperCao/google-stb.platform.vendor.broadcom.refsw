@@ -87,7 +87,7 @@ static const char * NEXUS_ColorSpace_Text[NEXUS_ColorSpace_eMax] =  {
     "YCbCr420",   /* 4 */
 } ;
 
-static void NEXUS_HdmiOutput_SelectSafeFormat_priv(
+static void NEXUS_HdmiOutput_P_SelectSafeFormat(
     NEXUS_HdmiOutputVideoSettings *preferred /* [out] */
 )
 {
@@ -98,28 +98,7 @@ static void NEXUS_HdmiOutput_SelectSafeFormat_priv(
     preferred->colorSpace = NEXUS_ColorSpace_eRgb ;
 }
 
-
-void NEXUS_HdmiOutput_RestorePrevSettings_priv(NEXUS_HdmiOutputHandle hdmiOutput)
-{
-    NEXUS_HdmiOutputSettings *previousSettings ;
-
-    previousSettings = BKNI_Malloc(sizeof(NEXUS_HdmiOutputSettings)) ;
-    if (previousSettings == NULL)
-    {
-        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY) ;
-        return ;
-    }
-
-    BDBG_WRN(("Unable to apply requested settings; restoring previous settings")) ;
-    *previousSettings = hdmiOutput->previousSettings;
-
-    hdmiOutput->formatChangeUpdate = true;
-    NEXUS_HdmiOutput_SetSettings(hdmiOutput, previousSettings);
-    BKNI_Free(previousSettings) ;
-}
-
-
-static NEXUS_Error NEXUS_HdmiOutput_SelectEdidPreferredFormat_priv(
+static NEXUS_Error NEXUS_HdmiOutput_P_SelectEdidPreferredFormat(
     NEXUS_HdmiOutputHandle hdmiOutput,
     NEXUS_HdmiOutputEdidData *edid,
     NEXUS_HdmiOutputVideoSettings *preferred /* [out] */
@@ -129,7 +108,7 @@ static NEXUS_Error NEXUS_HdmiOutput_SelectEdidPreferredFormat_priv(
     BHDM_TxSupport platformHdmiOutputSupport ;
 
     /* set default to safe mode format in case of EDID errors */
-    NEXUS_HdmiOutput_SelectSafeFormat_priv(preferred) ;
+    NEXUS_HdmiOutput_P_SelectSafeFormat(preferred) ;
 
     /* Get the Capabilities of the attached Rx */
     errCode = NEXUS_HdmiOutput_GetEdidData(hdmiOutput, edid) ;
@@ -175,38 +154,31 @@ done:
     return errCode ;
 }
 
-
-static void NEXUS_HdmiOutput_OverrideVideoSettings_priv(
+#if BDBG_DEBUG_BUILD && !BDBG_NO_MSG
+static void NEXUS_HdmiOutput_P_PrintOverridenVideoSettings(
     NEXUS_HdmiOutputHandle hdmiOutput,
     const NEXUS_HdmiOutputVideoSettings *requested,
     NEXUS_HdmiOutputVideoSettings *preferred)
 {
 
     if ((preferred->colorSpace != requested->colorSpace)
-    && (!hdmiOutput->displaySettings.overrideMatrixCoefficients))
+    && (!hdmiOutput->settings.overrideMatrixCoefficients))
     {
         BDBG_MSG(("Override requested color space of %s (%d) with %s (%d)",
             NEXUS_ColorSpace_Text[requested->colorSpace], requested->colorSpace,
             NEXUS_ColorSpace_Text[preferred->colorSpace], preferred->colorSpace)) ;
-
-        /* set override flag if the override value is different than current setting */
-        hdmiOutput->displaySettings.colorSpace = preferred->colorSpace ;
-        hdmiOutput->settings.colorSpace = preferred->colorSpace ;
     }
 
     if (preferred->colorDepth != requested->colorDepth)
     {
         BDBG_MSG(("Override requested color depth of %d with %d",
             requested->colorDepth, preferred->colorDepth)) ;
-
-        /* set override flag if the override value is different than current setting */
-        hdmiOutput->displaySettings.colorDepth = preferred->colorDepth ;
-        hdmiOutput->settings.colorDepth = preferred->colorDepth ;
     }
 }
+#endif
 
 
-static NEXUS_Error NEXUS_HdmiOutput_VideoFormatTmdsBitRate_priv(
+static NEXUS_Error NEXUS_HdmiOutput_P_VideoFormatTmdsBitRate(
     NEXUS_HdmiOutputHandle hdmiOutput,
     const NEXUS_HdmiOutputVideoSettings *videoSettings,
     uint32_t *tmdsRate  /* [out] */
@@ -274,7 +246,7 @@ Summary:
 Check if the requested 4K 50/60 Hz Video Settings are supported by both the TV and the STB.
 If not, reduce the settings to the best possible.
 **/
-static bool NEXUS_HdmiOutput_IsValid4KVideoSettings_priv(
+static bool NEXUS_HdmiOutput_P_IsValid4KVideoSettings(
     NEXUS_HdmiOutputHandle hdmiOutput,
     NEXUS_VideoFormat videoFormat,
     const NEXUS_HdmiOutput_P_VideoSettings *pEntry,
@@ -298,6 +270,7 @@ static bool NEXUS_HdmiOutput_IsValid4KVideoSettings_priv(
     errCode = NEXUS_HdmiOutput_GetVideoFormatSupport(hdmiOutput,
         videoFormat, &rxVideoFormatSupport) ;
     if (errCode) { BERR_TRACE(errCode); goto done ;}
+
 
     /*****************/
     /*  Color Space   */
@@ -333,7 +306,7 @@ static bool NEXUS_HdmiOutput_IsValid4KVideoSettings_priv(
     videoSettings.videoFormat = videoFormat ;
     videoSettings.colorSpace = pEntry->colorSpace ;
     videoSettings.colorDepth = pEntry->colorDepth ;
-    errCode = NEXUS_HdmiOutput_VideoFormatTmdsBitRate_priv(hdmiOutput, &videoSettings, &tmdsRate) ;
+    errCode = NEXUS_HdmiOutput_P_VideoFormatTmdsBitRate(hdmiOutput, &videoSettings, &tmdsRate) ;
     if ((errCode) || (!tmdsRate))
     {
         supported = false ;
@@ -440,6 +413,143 @@ done:
     return( supported );
 }
 
+#if BDBG_DEBUG_BUILD && !BDBG_NO_MSG
+static void NEXUS_HdmiOutput_P_PrintTxColorSpaceSupport(
+    BHDM_TxSupport * pPlatformHdmiOutputSupport,
+    NEXUS_ColorSpace colorSpace
+)
+{
+    switch (colorSpace)
+    {
+    case NEXUS_ColorSpace_eAuto :
+        /* User override of default colorspace */
+        /* do nothing */
+        break ;
+
+    case NEXUS_ColorSpace_eRgb :
+    case NEXUS_ColorSpace_eYCbCr444 :
+        /* all platforms support RGB 444 and YCbCr 444 output */
+        /* select colorimetry based on format */
+        break ;
+
+    case NEXUS_ColorSpace_eYCbCr422 :
+        if  (!pPlatformHdmiOutputSupport->YCbCr422)
+        {
+            BDBG_WRN(("Platform does not support YCbCr 4:2:2")) ;
+        }
+        break ;
+
+    case NEXUS_ColorSpace_eYCbCr420 :
+        if  (!pPlatformHdmiOutputSupport->YCbCr420)
+        {
+            BDBG_WRN(("Platform does not support YCbCr 4:2:0")) ;
+        }
+        break ;
+
+    default :
+        BDBG_WRN(("Unknown/Unsupported Color Space: %d", colorSpace)) ;
+        break ;
+    }
+}
+
+#define MAX_TAG_LENGTH 76
+static void NEXUS_HdmiOutput_P_PrintFormatSupport(
+    NEXUS_HdmiOutputHandle hdmiOutput,
+    NEXUS_VideoFormat format
+)
+{
+    BERR_Code errCode = BERR_SUCCESS;
+    uint8_t supported;
+    BFMT_VideoFmt magnumVideoFormat ;
+    const BFMT_VideoInfo *pVideoFormatInfo ;
+
+    errCode = NEXUS_P_VideoFormat_ToMagnum_isrsafe(format, &magnumVideoFormat) ;
+    if (errCode) {
+        magnumVideoFormat = BFMT_VideoFmt_eNTSC; /* don't proceed with uninitialized value. */
+    }
+
+    pVideoFormatInfo = BFMT_GetVideoFormatInfoPtr(magnumVideoFormat) ;
+
+    errCode = BHDM_EDID_VideoFmtSupported(hdmiOutput->hdmHandle, magnumVideoFormat, &supported) ;
+    if ( errCode )
+    {
+        char tag[MAX_TAG_LENGTH];
+        BKNI_Snprintf(tag, MAX_TAG_LENGTH, "Unable to determine if %s (%d) is supported",
+            pVideoFormatInfo->pchFormatStr, magnumVideoFormat);
+        NEXUS_HdmiOutput_P_ReportInvalidEdid(hdmiOutput, tag);
+    }
+    else
+    {
+        if (!supported)
+        {
+            BDBG_WRN(("Requested video format %s is not supported by the attached receiver",
+                NEXUS_P_VideoFormat_ToStr_isrsafe(format))) ;
+            /* Keep going, they asked for it... */
+        }
+        BDBG_MSG(("Format (%d) %s  Supported: %s", magnumVideoFormat, pVideoFormatInfo->pchFormatStr, supported ? "Yes" : "No")) ;
+    }
+}
+#endif
+
+
+static bool NEXUS_HdmiOutput_P_GetBestVideoSettings(
+    NEXUS_HdmiOutputHandle hdmiOutput,
+    const NEXUS_HdmiOutput_P_VideoSettings *priorityTable,
+    const NEXUS_HdmiOutputEdidData *rxEdidCaps,
+    const BHDM_TxSupport *txCaps,
+    const NEXUS_HdmiOutputVideoSettings *requested,
+    NEXUS_HdmiOutputVideoSettings *preferred
+)
+{
+    uint8_t idx, numEntries ;
+    bool bUhdFormat, matchFound ;
+
+    bUhdFormat =
+        ((requested->videoFormat == NEXUS_VideoFormat_e3840x2160p50hz)
+        || (requested->videoFormat == NEXUS_VideoFormat_e3840x2160p60hz)) ;
+
+    if (bUhdFormat)
+    {
+        priorityTable = uhdVideoSettingsPriorityTable ;
+        numEntries = numUhdVideoSettingsPriorityTableEntries ;
+    }
+    else
+    {
+        priorityTable = nonUhdVideoSettingsPriorityTable ;
+        numEntries = numNonUhdVideoSettingsPriorityTableEntries ;
+    }
+
+    for (idx = 0; idx < numEntries ; idx++)
+    {
+        /* skip Priority Table entries that have colorDepth that are > than requested */
+        if (priorityTable[idx].colorDepth > requested->colorDepth)
+        {
+            continue ;
+        }
+
+        /* skip Priority Table entries that have colorSpaces that were not requested */
+        if ((requested->colorSpace != NEXUS_ColorSpace_eAuto)
+        &&  (priorityTable[idx].colorSpace != requested->colorSpace))
+        {
+            continue ;
+        }
+
+        /* the first entry in the priority table with the requested colorSpace
+           should contain the best/preferred colorDepth */
+        matchFound = NEXUS_HdmiOutput_P_IsValid4KVideoSettings(hdmiOutput,
+            requested->videoFormat, &priorityTable[idx],
+            rxEdidCaps, txCaps) ;
+
+        if (matchFound)
+        {
+            BDBG_MSG(("Use Video Settings Priority Table index %d", idx)) ;
+            preferred->colorSpace = priorityTable[idx].colorSpace;
+            preferred->colorDepth = priorityTable[idx].colorDepth;
+            break ;
+        }
+    }
+    return matchFound ;
+}
 
 /**
 Summary:
@@ -449,7 +559,7 @@ NEXUS_HdmiOutputVideoSettings must be supported by both the TV and the STB.
 If not, return the best possible preferred NEXUS_HdmiOutputVideoSettings
 The validation does not include 4Kp30 and below
 **/
-static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
+static NEXUS_Error NEXUS_HdmiOutput_P_ValidateVideoSettings4K(
     NEXUS_HdmiOutputHandle hdmiOutput,
     const NEXUS_HdmiOutputVideoSettings *requested,
     NEXUS_HdmiOutputVideoSettings *preferred /* [out] */
@@ -471,7 +581,6 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
     /* make/use a copy of the requested VideoSettings for validation */
     localRequested = *requested ;
 
-
     /* Get the Capabilities of the Tx */
     rc = BHDM_GetTxSupportStatus(hdmiOutput->hdmHandle, &platformHdmiOutputSupport) ;
     if (rc) {BERR_TRACE(rc); goto done ;}
@@ -480,7 +589,7 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
     if (hdmiOutput->edidState == BHDM_EDID_STATE_eInvalid)
     {
         BDBG_ERR(("Validating 4K format against an invalid/unknown EDID; defaulting to VGA")) ;
-        NEXUS_HdmiOutput_SelectSafeFormat_priv(preferred) ;
+        NEXUS_HdmiOutput_P_SelectSafeFormat(preferred) ;
         goto overrideVideoSettings ;
     }
 
@@ -493,9 +602,15 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
 
     if (localRequested.videoFormat == NEXUS_VideoFormat_eUnknown)
     {
-        rc = NEXUS_HdmiOutput_SelectEdidPreferredFormat_priv(hdmiOutput, edid, preferred) ;
+        rc = NEXUS_HdmiOutput_P_SelectEdidPreferredFormat(hdmiOutput, edid, preferred) ;
         goto overrideVideoSettings ;
     }
+
+#if BDBG_DEBUG_BUILD && !BDBG_NO_MSG
+    /* transferred from GetColorimetry - these might no longer be necessary, but they do print useful debug */
+    NEXUS_HdmiOutput_P_PrintFormatSupport(hdmiOutput, localRequested.videoFormat);
+    NEXUS_HdmiOutput_P_PrintTxColorSpaceSupport(&platformHdmiOutputSupport, localRequested.colorSpace);
+#endif
 
     preferred->videoFormat = localRequested.videoFormat ;
 
@@ -507,7 +622,7 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
     if (bUhdFormat && !platformHdmiOutputSupport.YCbCr420)
     {
         BDBG_WRN(("Platform does not support the 422/420 Colorspace required for 4K formats; selecting a preferred/alternate format instead")) ;
-        rc = NEXUS_HdmiOutput_SelectEdidPreferredFormat_priv(hdmiOutput, edid, preferred) ;
+        rc = NEXUS_HdmiOutput_P_SelectEdidPreferredFormat(hdmiOutput, edid, preferred) ;
         goto overrideVideoSettings ;
     }
 
@@ -519,7 +634,7 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
     {
         BDBG_WRN(("Error detecting TV/EDID video format support; selecting a preferred/alternate format instead")) ;
         rc = BERR_TRACE(rc);
-        rc = NEXUS_HdmiOutput_SelectEdidPreferredFormat_priv(hdmiOutput, edid, preferred) ;
+        rc = NEXUS_HdmiOutput_P_SelectEdidPreferredFormat(hdmiOutput, edid, preferred) ;
         goto overrideVideoSettings ;
     }
 
@@ -527,7 +642,7 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
     &&  (!stRequestedVideoFormatSupport.yCbCr444rgb444))
     {
         BDBG_WRN(("HDMI Rx does not support 422/420 Colorspace required for 4K formats; selecting a preferred/alternate format instead")) ;
-        rc = NEXUS_HdmiOutput_SelectEdidPreferredFormat_priv(hdmiOutput, edid, preferred) ;
+        rc = NEXUS_HdmiOutput_P_SelectEdidPreferredFormat(hdmiOutput, edid, preferred) ;
         goto overrideVideoSettings ;
     }
 
@@ -569,18 +684,11 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
     /********************/
     /* Auto Color Space */
     /********************/
-    if (localRequested.colorSpace == NEXUS_ColorSpace_eAuto)
+    if ((localRequested.colorSpace == NEXUS_ColorSpace_eAuto)
+    && (!bUhdFormat))
     {
-        if (bUhdFormat)
-        {
-            BDBG_MSG(("For 4K p50/60, Always use best colorspace YCbCr 4:2:2")) ;
-            localRequested.colorSpace = NEXUS_ColorSpace_eYCbCr422 ;
-        }
-        else
-        {
-            BDBG_MSG(("For 4K up to p30, Always use best colorspace YCbCr 4:4:4")) ;
-            localRequested.colorSpace = NEXUS_ColorSpace_eYCbCr444 ;
-        }
+        BDBG_MSG(("For 4K up to p30, Always use best colorspace YCbCr 4:4:4")) ;
+        localRequested.colorSpace = NEXUS_ColorSpace_eYCbCr444 ;
     }
 
     /********************/
@@ -646,7 +754,7 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
             && (localRequested.colorDepth != requested->colorDepth))
             {
                 BDBG_WRN(("Attached Rx <%s> cannot support Color Space YCbCr 420 color depth %d; default to color depth %d",
-			edid->basicData.monitorName, requested->colorDepth, localRequested.colorDepth)) ;
+                    edid->basicData.monitorName, requested->colorDepth, localRequested.colorDepth)) ;
             }
         }
     }
@@ -668,7 +776,7 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
         /* application specified colorSpace and colorDepth, validate requested settings */
         videoSettings.colorSpace = localRequested.colorSpace;
         videoSettings.colorDepth = localRequested.colorDepth;
-        matchFound = NEXUS_HdmiOutput_IsValid4KVideoSettings_priv(hdmiOutput,
+        matchFound = NEXUS_HdmiOutput_P_IsValid4KVideoSettings(hdmiOutput,
             requested->videoFormat, &videoSettings, edid, &platformHdmiOutputSupport) ;
 
         if (matchFound)
@@ -677,6 +785,7 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
              preferred->colorDepth = videoSettings.colorDepth;
         }
     }
+    /* app specified colorSpace, not colorDepth, need to cycle through colorDepth */
     else if ((localRequested.colorSpace != NEXUS_ColorSpace_eAuto)
           && (localRequested.colorDepth == NEXUS_HdmiColorDepth_eAuto))
     {
@@ -685,59 +794,27 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
             NEXUS_ColorSpace_Text[localRequested.colorSpace],
             localRequested.colorSpace)) ;
 
-        /* application specified colorSpace, not colorDepth, need to cycle through colorDepth */
-        matchFound = false ;
-        for (idx = 0; idx < numEntries ; idx++)
-        {
-            /* skip entries in the priority Table that have colorSpaces that were not requested */
-            if (priorityTable[idx].colorSpace != localRequested.colorSpace)
-            {
-                continue ;
-            }
-
-            /* the first entry in the priority table with the requested colorSpace
-               should contain the best/preferred colorDepth */
-            matchFound = NEXUS_HdmiOutput_IsValid4KVideoSettings_priv(hdmiOutput,
-                requested->videoFormat, &priorityTable[idx],
-                edid, &platformHdmiOutputSupport) ;
-
-            if (matchFound)
-            {
-                BDBG_MSG(("Use Video Settings Priority Table index %d", idx)) ;
-                preferred->colorSpace = priorityTable[idx].colorSpace;
-                preferred->colorDepth = priorityTable[idx].colorDepth;
-                break ;
-            }
-        }
+        matchFound = NEXUS_HdmiOutput_P_GetBestVideoSettings(hdmiOutput, priorityTable,
+            edid, &platformHdmiOutputSupport, &localRequested, preferred) ;
     }
+    /* app specified colorDepth, not colorSpace, need to cycle through colorSpace */
     else if ((localRequested.colorSpace == NEXUS_ColorSpace_eAuto)
           && (localRequested.colorDepth != NEXUS_HdmiColorDepth_eAuto))
     {
-        /* application specified colorDepth, not colorSpace, need to cycle through colorSpace */
-        for (idx = 0; idx < numEntries ; idx++)
-        {
-            if (priorityTable[idx].colorSpace == localRequested.colorSpace)
-            {
-                matchFound = NEXUS_HdmiOutput_IsValid4KVideoSettings_priv(hdmiOutput,
-                    requested->videoFormat, &priorityTable[idx],
-                    edid, &platformHdmiOutputSupport) ;
+        BDBG_MSG(("Requested Best/Max Color Space for Color Depth: %d",
+            localRequested.colorDepth)) ;
 
-                if (matchFound)
-                {
-                    preferred->colorSpace = priorityTable[idx].colorSpace;
-                    preferred->colorDepth = priorityTable[idx].colorDepth;
-                    break ;
-                }
-            }
-        }
+        matchFound = NEXUS_HdmiOutput_P_GetBestVideoSettings(hdmiOutput, priorityTable,
+            edid, &platformHdmiOutputSupport, &localRequested, preferred) ;
     }
+
 
     if (!matchFound)
     {
-        /* now find the best available color parameter */
+        /* now find the best available settings */
         for (idx = 0; idx < numEntries; idx++)
         {
-            matchFound = NEXUS_HdmiOutput_IsValid4KVideoSettings_priv(hdmiOutput,
+            matchFound = NEXUS_HdmiOutput_P_IsValid4KVideoSettings(hdmiOutput,
                 requested->videoFormat, &priorityTable[idx],
                 edid, &platformHdmiOutputSupport) ;
 
@@ -745,8 +822,8 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
             {
                 preferred->colorSpace = priorityTable[idx].colorSpace;
                 preferred->colorDepth = priorityTable[idx].colorDepth;
-                BDBG_WRN(("Override with Priority Table index %d: Colorspace %d  ColorDepth: %d",
-                    idx, preferred->colorSpace, preferred->colorDepth)) ;
+                BDBG_WRN(("Override with Priority Table index %d: Colorspace %s  ColorDepth: %d",
+                    idx, NEXUS_ColorSpace_Text[preferred->colorSpace], preferred->colorDepth)) ;
                 break ;
             }
         }
@@ -760,7 +837,7 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
     }
 
     /* validate the requested colorspace if override not specified (overrideMatrixCoefficients) */
-    if (!hdmiOutput->displaySettings.overrideMatrixCoefficients)
+    if (!hdmiOutput->settings.overrideMatrixCoefficients)
     {
         if (!edid->hdmiVsdb.valid)  /* No VSDB... DVI support only */
         {
@@ -776,7 +853,9 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
     }
 
 overrideVideoSettings :
-    NEXUS_HdmiOutput_OverrideVideoSettings_priv(hdmiOutput, requested, preferred) ;
+#if BDBG_DEBUG_BUILD && !BDBG_NO_MSG
+    NEXUS_HdmiOutput_P_PrintOverridenVideoSettings(hdmiOutput, requested, preferred) ;
+#endif
 
 done:
     if (edid) {
@@ -795,7 +874,7 @@ This check includes HDMI 1.4 4K formats 4Kp30, 4Kp25, and 4Kp24
 NEXUS_HdmiOutputVideoSettings must be supported by both the TV and the STB.
 If not, return the best possible preferred NEXUS_HdmiOutputVideoSettings
 **/
-static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(
+static NEXUS_Error NEXUS_HdmiOutput_P_ValidateVideoSettingsNon4K(
     NEXUS_HdmiOutputHandle hdmiOutput,
     const NEXUS_HdmiOutputVideoSettings *requested,
     NEXUS_HdmiOutputVideoSettings *preferred /* [out] */
@@ -811,7 +890,7 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(
     if (requested->videoFormat == NEXUS_VideoFormat_eUnknown)
     {
         BDBG_ERR(("Validating an unknown format; defaulting to safe format")) ;
-        NEXUS_HdmiOutput_SelectSafeFormat_priv(preferred) ;
+        NEXUS_HdmiOutput_P_SelectSafeFormat(preferred) ;
         goto overrideVideoSettings ;
     }
 
@@ -822,7 +901,7 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(
     /* if EDID has not been read/initialized yet; use safe format */
     if (hdmiOutput->edidState == BHDM_EDID_STATE_eNotInitialized)
     {
-        NEXUS_HdmiOutput_SelectSafeFormat_priv(preferred) ;
+        NEXUS_HdmiOutput_P_SelectSafeFormat(preferred) ;
         goto overrideVideoSettings ;
     }
 
@@ -830,7 +909,7 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(
     if (hdmiOutput->edidState == BHDM_EDID_STATE_eInvalid)
     {
         BDBG_ERR(("Validating Non4K format against an invalid/unknown EDID; defaulting to safe format")) ;
-        NEXUS_HdmiOutput_SelectSafeFormat_priv(preferred) ;
+        NEXUS_HdmiOutput_P_SelectSafeFormat(preferred) ;
         goto overrideVideoSettings ;
     }
 
@@ -854,9 +933,15 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(
     {
         BDBG_ERR(("Error detecting TV/EDID video format support; selecting a preferred/alternate format instead")) ;
         rc = BERR_TRACE(rc);
-        rc = NEXUS_HdmiOutput_SelectEdidPreferredFormat_priv(hdmiOutput, edid, preferred) ;
+        rc = NEXUS_HdmiOutput_P_SelectEdidPreferredFormat(hdmiOutput, edid, preferred) ;
         goto overrideVideoSettings ;
     }
+
+#if BDBG_DEBUG_BUILD && !BDBG_NO_MSG
+    /* transferred from GetColorimetry - these might no longer be necessary, but they do print useful debug */
+    NEXUS_HdmiOutput_P_PrintFormatSupport(hdmiOutput, requested->videoFormat);
+    NEXUS_HdmiOutput_P_PrintTxColorSpaceSupport(&platformHdmiOutputSupport, requested->colorSpace);
+#endif
 
     preferred->videoFormat = requested->videoFormat ;
     /************/
@@ -954,7 +1039,7 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(
     }
 
     /* validate the requested colorspace if override not specified (overrideMatrixCoefficients) */
-    if (!hdmiOutput->displaySettings.overrideMatrixCoefficients)
+    if (!hdmiOutput->settings.overrideMatrixCoefficients)
    {
         if (!edid->hdmiVsdb.valid)  /* No VSDB... DVI support only */
         {
@@ -970,7 +1055,9 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(
     }
 
 overrideVideoSettings :
-    NEXUS_HdmiOutput_OverrideVideoSettings_priv(hdmiOutput, requested, preferred) ;
+#if BDBG_DEBUG_BUILD && !BDBG_NO_MSG
+    NEXUS_HdmiOutput_P_PrintOverridenVideoSettings(hdmiOutput, requested, preferred) ;
+#endif
 
 done:
     if (edid)
@@ -981,7 +1068,7 @@ done:
 }
 
 
-NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings_priv(
+NEXUS_Error NEXUS_HdmiOutput_P_ValidateVideoSettings(
     NEXUS_HdmiOutputHandle hdmiOutput,
     const NEXUS_HdmiOutputVideoSettings *requested,
     NEXUS_HdmiOutputVideoSettings *preferred /* [out] */
@@ -1008,14 +1095,14 @@ NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings_priv(
         /*****************/
         /* Validate 4K Format */
         /*****************/
-        errCode = NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(hdmiOutput, requested, preferred) ;
+        errCode = NEXUS_HdmiOutput_P_ValidateVideoSettings4K(hdmiOutput, requested, preferred) ;
     }
     else
     {
         /*********************/
         /* Validate NON 4K Format */
         /*********************/
-        errCode = NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(hdmiOutput, requested, preferred) ;
+        errCode = NEXUS_HdmiOutput_P_ValidateVideoSettingsNon4K(hdmiOutput, requested, preferred) ;
     }
 
     BDBG_MSG(("<=== Recommend Format: %s; Colorspace: (%d) %s; Colordepth: %d",

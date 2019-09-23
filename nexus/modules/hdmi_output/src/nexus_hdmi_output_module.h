@@ -57,6 +57,9 @@
 #include "priv/nexus_core_img_id.h"
 #include "priv/nexus_core_img.h"
 #include "priv/nexus_hdmi_output_priv.h"
+
+#include "nexus_hdmi_output_dynrng_impl.h"
+#include "nexus_hdmi_output_drmif_impl.h"
 #if NEXUS_DBV_SUPPORT
 #include "nexus_hdmi_output_dbv.h"
 #include "nexus_hdmi_output_dbv_impl.h"
@@ -90,6 +93,13 @@
 #define NEXUS_MODULE_NAME hdmi_output
 #define NEXUS_MODULE_SELF g_NEXUS_hdmiOutputModule
 
+#if BHDM_OVERRIDE_DBG_MSG_LEVEL
+#undef BDBG_MSG
+#define BDBG_MSG(format) BDBG_P_PRINTMSG(BDBG_eMsg, format)
+#undef BDBG_WRN
+#define BDBG_WRN(format) BDBG_P_PRINTMSG(BDBG_eWrn, format)
+#endif
+
 /* Global Types */
 
 typedef enum NEXUS_HdmiOutputState
@@ -100,12 +110,11 @@ typedef enum NEXUS_HdmiOutputState
     NEXUS_HdmiOutputState_ePoweredOn
 } NEXUS_HdmiOutputState;
 
-typedef enum NEXUS_HdmiOutputLogicalAddrSearch
+typedef struct NEXUS_HdmiOutputDisplaySettingsWrapper
 {
-    NEXUS_HdmiOutputLogicalAddrSearch_eInit,
-    NEXUS_HdmiOutputLogicalAddrSearch_eNext,
-    NEXUS_HdmiOutputLogicalAddrSearch_eReady
-} NEXUS_HdmiOutputLogicalAddrSearch;
+    NEXUS_HdmiOutputDisplaySettings settings;
+    bool valid;
+} NEXUS_HdmiOutputDisplaySettingsWrapper;
 
 
 typedef struct NEXUS_HdmiOutput
@@ -127,14 +136,14 @@ typedef struct NEXUS_HdmiOutput
     BHDM_Handle hdmHandle;
     NEXUS_HdmiOutputOpenSettings openSettings;
     NEXUS_HdmiOutputSettings settings;
-    NEXUS_HdmiOutputDisplaySettings displaySettings;
+    NEXUS_HdmiOutputDisplaySettingsWrapper displaySettings;
     NEXUS_HdmiOutputSettings previousSettings;
     NEXUS_HdmiOutputExtraSettings extraSettings;
+    NEXUS_HdmiOutputExtraStatus extraStatus;
     NEXUS_EventCallbackHandle hotplugEventCallback;
     NEXUS_EventCallbackHandle scrambleEventCallback;
     NEXUS_EventCallbackHandle avRateChangeEventCallback;
     NEXUS_TimerHandle powerTimer;
-    BKNI_EventHandle cecHotplugEvent;
     NEXUS_TimerHandle postFormatChangeTimer;
     unsigned retryPostFormatChangeCount;
 
@@ -143,7 +152,6 @@ typedef struct NEXUS_HdmiOutput
     bool formatChangeMute;
     bool avMuteSetting;
     bool hdcpStarted;
-    bool formatChangeUpdate;
     uint8_t retryScrambleCount ;
     uint32_t pixelClkRatePreFormatChange;
 
@@ -158,16 +166,13 @@ typedef struct NEXUS_HdmiOutput
     BAVC_AudioFormat audioFormat;
     unsigned audioNumChannels;    /* PCM only */
 
-    NEXUS_HdmiOutputLogicalAddrSearch searchState;
-    unsigned logAddrSearchIndex;
-
     NEXUS_TaskCallbackHandle hdcpFailureCallback;
     NEXUS_TaskCallbackHandle hdcpStateChangedCallback;
     NEXUS_TaskCallbackHandle hdcpSuccessCallback;
     NEXUS_TaskCallbackHandle hotplugCallback;
     NEXUS_TaskCallbackHandle mhlStandbyCallback;
     NEXUS_TaskCallbackHandle rxStatusCallback;
-    NEXUS_TaskCallbackHandle notifyDisplay;
+    BKNI_EventHandle notifyDisplayEvent;
     BKNI_EventHandle notifyAudioEvent;
     BKNI_EventHandle notifyHotplugEvent ;
 
@@ -237,6 +242,7 @@ typedef struct NEXUS_HdmiOutput
             unsigned invalidReauthReqCounter; /* ReAuth requests when HDCP is disabled (should not happen) */
             unsigned watchdogCounter;  /* reset of Sage */
             unsigned timeoutCounter;  /* HDCP auth step has timed out */
+            unsigned akeSendCertFailures; /* total HDCP AkeSendCert failures */
         } hdcp22;
 #endif
     } hdcpMonitor;
@@ -249,16 +255,7 @@ typedef struct NEXUS_HdmiOutput
 
     char audioConnectorName[14];   /* HDMI OUTPUT %d */
 
-    struct
-    {
-        NEXUS_HdmiDynamicRangeMasteringInfoFrame inputInfoFrame;
-        NEXUS_HdmiDynamicRangeMasteringInfoFrame outputInfoFrame;
-        BHDM_EDID_HDRStaticDB hdrdb ; /* last one, compared to current one */
-        bool connected; /* last one */
-        bool printDrmInfoFrameChanges;
-        NEXUS_HdmiOutputDisplayDynamicRangeProcessingCapabilities processingCaps;
-        NEXUS_TimerHandle offTimer;
-    } drm;
+    NEXUS_HdmiOutputDynrngData dynrng;
 
     NEXUS_HdmiVendorSpecificInfoFrame vsif;
     NEXUS_HdmiAviInfoFrame avif;
@@ -266,9 +263,6 @@ typedef struct NEXUS_HdmiOutput
     uint16_t supported3DFormats[BFMT_VideoFmt_eMaxCount];
     BHDM_EDID_AudioDescriptor supportedAudioFormats[BAVC_AudioCompressionStd_eMax];
 
-#if NEXUS_DBV_SUPPORT
-    NEXUS_HdmiOutputDbvData dbv;
-#endif
 } NEXUS_HdmiOutput;
 
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
@@ -329,8 +323,6 @@ const char * NEXUS_HdmiOutput_P_ColorSpace_ToText(NEXUS_ColorSpace colorSpace);
 /* Proxy conversion */
 #define NEXUS_P_HDMI_OUTPUT_HDCP_KSV_SIZE(num) ((num)*sizeof(NEXUS_HdmiOutputHdcpKsv))
 
-NEXUS_Error NEXUS_HdmiOutput_P_ApplyDrmInfoFrameSource(NEXUS_HdmiOutputHandle output); /* call from SetExtendedSettings */
-void NEXUS_HdmiOutput_P_DrmInfoFrameConnectionChanged(NEXUS_HdmiOutputHandle output); /* call from hotplug */
 NEXUS_Error NEXUS_HdmiOutput_P_SetVideoSettings(
     NEXUS_HdmiOutputHandle handle,
     NEXUS_HdmiOutputDisplaySettings *pstDisplaySettings
@@ -350,15 +342,40 @@ void NEXUS_HdmiOutput_P_StopTimers(NEXUS_HdmiOutputHandle hdmiOutput) ;
 void NEXUS_HdmiOutput_P_SetDisconnectedState(NEXUS_HdmiOutputHandle output);
 NEXUS_Error NEXUS_HdmiOutput_P_SetTmdsSignalData( NEXUS_HdmiOutputHandle handle, bool tmdsDataEnable);
 NEXUS_Error NEXUS_HdmiOutput_P_SetTmdsSignalClock( NEXUS_HdmiOutputHandle handle, bool tmdsClockEnable);
+void NEXUS_HdmiOutput_TriggerCecCallback_priv(NEXUS_HdmiOutputHandle hdmiOutput);
 
-#if NEXUS_DBV_SUPPORT
-void NEXUS_HdmiOutput_P_DbvConnectionChanged(NEXUS_HdmiOutputHandle output);
-NEXUS_Error NEXUS_HdmiOutput_P_SetDbvMode(NEXUS_HdmiOutputHandle output);
-NEXUS_Error NEXUS_HdmiOutput_P_SetDolbyVisionVendorSpecificInfoFrame(NEXUS_HdmiOutputHandle handle);
-void NEXUS_HdmiOutput_P_SetDolbyVisionAviInfoFrame(NEXUS_HdmiOutputHandle handle, BAVC_HDMI_AviInfoFrame * pAVIIF);
-void NEXUS_HdmiOutput_P_GetDolbyVisionAviInfoFrame(NEXUS_HdmiOutputHandle handle, BAVC_HDMI_AviInfoFrame * pAVIIF);
-void NEXUS_HdmiOutput_P_DbvUpdateDrmInfoFrame(NEXUS_HdmiOutputHandle output, NEXUS_HdmiDynamicRangeMasteringInfoFrame * pInfoFrame);
-void NEXUS_HdmiOutput_P_DbvUpdateDisplaySettings(NEXUS_HdmiOutputHandle output, NEXUS_HdmiOutputDisplaySettings * pDisplaySettings);
+void NEXUS_HdmiOutput_P_NotifyDisplay(NEXUS_HdmiOutputHandle hdmiOutput);
+
+typedef struct NEXUS_HdmiOutputColorimetryParameters
+{
+    NEXUS_VideoFormat format ;
+    bool xvYccEnabled ;
+} NEXUS_HdmiOutputColorimetryParameters ;
+
+/* Returns false if the format is not supported, true if it is */
+void NEXUS_HdmiOutput_P_GetColorimetry(
+    NEXUS_HdmiOutputHandle hdmiOutput,
+    const NEXUS_HdmiOutputColorimetryParameters *parameters,
+    NEXUS_HdmiOutputDisplaySettings * pDisplaySettings /* in/out */
+    );
+
+typedef struct NEXUS_HdmiOutputVideoSettings
+{
+    NEXUS_VideoFormat videoFormat;
+    NEXUS_ColorSpace colorSpace;
+    unsigned colorDepth;
+} NEXUS_HdmiOutputVideoSettings;
+
+NEXUS_Error NEXUS_HdmiOutput_P_ValidateVideoSettings(
+    NEXUS_HdmiOutputHandle hdmiOutput,
+    const NEXUS_HdmiOutputVideoSettings *requested,
+    NEXUS_HdmiOutputVideoSettings *preferred /* [out] */
+) ;
+
+#if BDBG_DEBUG_BUILD
+void NEXUS_HdmiOutput_P_ReportInvalidEdid(NEXUS_HdmiOutputHandle hdmiOutput, const char * tag);
 #endif
+
+NEXUS_Error NEXUS_HdmiOutput_P_DisableHdcpAuthentication( NEXUS_HdmiOutputHandle handle );
 
 #endif /* #ifndef NEXUS_HDMI_OUTPUT_MODULE_H__ */
