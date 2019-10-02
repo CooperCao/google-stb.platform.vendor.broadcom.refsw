@@ -108,7 +108,8 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplayParams_priv(
     BFMT_VideoFmt format,
     BAVC_MatrixCoefficients colorimetry,
     BFMT_AspectRatio aspectRatio,
-    bool masterMode
+    bool masterMode,
+    bool supportedFormat
     );
 
 typedef struct NEXUS_HdmiOutputAudioStatus

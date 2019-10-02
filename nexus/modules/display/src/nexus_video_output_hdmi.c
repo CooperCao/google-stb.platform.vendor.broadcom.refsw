@@ -318,6 +318,7 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, const NEXUS_VideoOutput_P_Fo
     NEXUS_HdmiOutputDisplaySettings newDisplaySettings;
     bool postFormatChangeNeeded = false;
     NEXUS_DisplayHandle display = NULL;
+    bool supportedFormat = true;
 
     display = pParams->display;
     hdmiOutputStatus = &g_NEXUS_DisplayModule_State.functionData.NEXUS_VideoOutput_P_SetHdmiFormat.hdmiOutputStatus;
@@ -375,7 +376,6 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, const NEXUS_VideoOutput_P_Fo
         NEXUS_HdmiOutput_GetDynrngEdidBytes_priv(hdmiOutput, display->hdmi.vdcSettings.aucVsvdbBytes);
 unlock:
     NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-#if 0
     if (rc) {
         /*
          * keep going, there is a condition that is not covered by above code where
@@ -383,8 +383,8 @@ unlock:
          * return here early.
          * TODO: find out exact condition required and modify 7563(5) code above to implement it
          */
+         supportedFormat = false;
     }
-#endif
 
     /* certain settings, like color depth and color space, ought to trigger a format change */
     hdmiFormatChange =
@@ -507,7 +507,7 @@ unlock:
     NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
         (void)NEXUS_HdmiOutput_SetDisplayParams_priv(hdmiOutput, hdmiFmt,
             NEXUS_P_MatrixCoefficients_ToMagnum_isrsafe(newDisplaySettings.colorimetry),
-            aspectRatioVdc, hdmiMasterMode) ;
+            aspectRatioVdc, hdmiMasterMode, supportedFormat) ;
 
         if (postFormatChangeNeeded)
         {

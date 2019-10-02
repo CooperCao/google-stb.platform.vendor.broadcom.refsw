@@ -451,9 +451,10 @@ static void NEXUS_HdmiOutput_P_PrintTxColorSpaceSupport(
         break ;
     }
 }
+#endif
 
 #define MAX_TAG_LENGTH 76
-static void NEXUS_HdmiOutput_P_PrintFormatSupport(
+static bool NEXUS_HdmiOutput_P_CheckFormatSupport(
     NEXUS_HdmiOutputHandle hdmiOutput,
     NEXUS_VideoFormat format
 )
@@ -473,10 +474,13 @@ static void NEXUS_HdmiOutput_P_PrintFormatSupport(
     errCode = BHDM_EDID_VideoFmtSupported(hdmiOutput->hdmHandle, magnumVideoFormat, &supported) ;
     if ( errCode )
     {
+#if BDBG_DEBUG_BUILD
         char tag[MAX_TAG_LENGTH];
         BKNI_Snprintf(tag, MAX_TAG_LENGTH, "Unable to determine if %s (%d) is supported",
             pVideoFormatInfo->pchFormatStr, magnumVideoFormat);
         NEXUS_HdmiOutput_P_ReportInvalidEdid(hdmiOutput, tag);
+#endif
+        supported = false;
     }
     else
     {
@@ -484,12 +488,11 @@ static void NEXUS_HdmiOutput_P_PrintFormatSupport(
         {
             BDBG_WRN(("Requested video format %s is not supported by the attached receiver",
                 NEXUS_P_VideoFormat_ToStr_isrsafe(format))) ;
-            /* Keep going, they asked for it... */
         }
         BDBG_MSG(("Format (%d) %s  Supported: %s", magnumVideoFormat, pVideoFormatInfo->pchFormatStr, supported ? "Yes" : "No")) ;
     }
+    return supported;
 }
-#endif
 
 
 static bool NEXUS_HdmiOutput_P_GetBestVideoSettings(
@@ -606,9 +609,12 @@ static NEXUS_Error NEXUS_HdmiOutput_P_ValidateVideoSettings4K(
         goto overrideVideoSettings ;
     }
 
+    if (!NEXUS_HdmiOutput_P_CheckFormatSupport(hdmiOutput, localRequested.videoFormat)) {
+        rc = BERR_NOT_SUPPORTED; /* no BERR_TRACE */
+        goto overrideVideoSettings;
+    }
 #if BDBG_DEBUG_BUILD && !BDBG_NO_MSG
     /* transferred from GetColorimetry - these might no longer be necessary, but they do print useful debug */
-    NEXUS_HdmiOutput_P_PrintFormatSupport(hdmiOutput, localRequested.videoFormat);
     NEXUS_HdmiOutput_P_PrintTxColorSpaceSupport(&platformHdmiOutputSupport, localRequested.colorSpace);
 #endif
 
@@ -937,9 +943,12 @@ static NEXUS_Error NEXUS_HdmiOutput_P_ValidateVideoSettingsNon4K(
         goto overrideVideoSettings ;
     }
 
+    if (!NEXUS_HdmiOutput_P_CheckFormatSupport(hdmiOutput, requested->videoFormat)) {
+        rc = BERR_NOT_SUPPORTED; /* no BERR_TRACE */
+        goto overrideVideoSettings;
+    }
 #if BDBG_DEBUG_BUILD && !BDBG_NO_MSG
     /* transferred from GetColorimetry - these might no longer be necessary, but they do print useful debug */
-    NEXUS_HdmiOutput_P_PrintFormatSupport(hdmiOutput, requested->videoFormat);
     NEXUS_HdmiOutput_P_PrintTxColorSpaceSupport(&platformHdmiOutputSupport, requested->colorSpace);
 #endif
 

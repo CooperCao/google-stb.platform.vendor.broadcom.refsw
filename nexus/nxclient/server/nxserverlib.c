@@ -3046,6 +3046,7 @@ static void nxserver_p_init_hdmi_output(struct b_session *session)
     hdmiSettings.hotplugCallback.context = session;
     hdmiSettings.colorDepth = session->server->settings.display.hdmiPreferences.colorDepth ;
     hdmiSettings.colorSpace = session->server->settings.display.hdmiPreferences.colorSpace ;
+    hdmiSettings.enableOnlySupportedFormats = (session->server->settings.display.hdmiPreferences.preventUnsupportedFormat && !session->server->settings.hdmi.ignoreVideoEdid);
     rc = NEXUS_HdmiOutput_SetSettings(session->hdmiOutput, &hdmiSettings);
     if (rc) rc = BERR_TRACE(rc);
 
@@ -3999,8 +4000,8 @@ NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_
     if (format_change) {
         BDBG_WRN(("session %d: changing display format %s -> %s",
             session->index,
-            lookup_name(g_videoFormatStrs, target_format.videoFormat),
-            lookup_name(g_videoFormatStrs, pSettings->format)));
+            lookup_name(g_videoFormatStrs, session->nxclient.displaySettings.format),
+            lookup_name(g_videoFormatStrs, target_format.videoFormat)));
 
         BKNI_ResetEvent(session->inactiveEvent);
         waitForInactive = true;

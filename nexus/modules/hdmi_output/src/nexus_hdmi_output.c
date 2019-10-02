@@ -358,6 +358,7 @@ NEXUS_HdmiOutputHandle NEXUS_HdmiOutput_Open( unsigned index, const NEXUS_HdmiOu
     pOutput->settings.audioDitherEnabled = true;
     pOutput->settings.audioBurstType = NEXUS_SpdifOutputBurstType_ePause;
     pOutput->settings.audioBurstPadding = 0;
+    pOutput->settings.enableOnlySupportedFormats = true;
     NEXUS_CallbackDesc_Init(&pOutput->settings.hotplugCallback);
     NEXUS_CallbackDesc_Init(&pOutput->settings.hdmiRxStatusChanged);
     BDBG_ASSERT(pSettings->spd.deviceType < NEXUS_HdmiSpdSourceDeviceType_eMax);
@@ -822,6 +823,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetSettings( NEXUS_HdmiOutputHandle output, const N
     if ((pSettings->colorSpace != output->settings.colorSpace)
         || (pSettings->colorDepth != output->settings.colorDepth)
         || (pSettings->outputFormat != output->settings.outputFormat)
+        || (pSettings->enableOnlySupportedFormats != output->settings.enableOnlySupportedFormats)
 
         || (pSettings->overrideMatrixCoefficients != output->settings.overrideMatrixCoefficients)
         || (pSettings->overrideMatrixCoefficients && (pSettings->matrixCoefficients != output->settings.matrixCoefficients))
@@ -1916,7 +1918,8 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplayParams_priv(
     BFMT_VideoFmt format,
     BAVC_MatrixCoefficients colorimetry,
     BFMT_AspectRatio aspectRatio,
-    bool masterMode
+    bool masterMode,
+    bool supportedFormat
     )
 {
     BERR_Code errCode;
@@ -1962,7 +1965,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplayParams_priv(
         /* Reset aspectRatioChangeOnly flag after checking */
         handle->contentChangeOnly = false;
     }
-    else
+    else if (supportedFormat || !handle->settings.enableOnlySupportedFormats)
     {
         BDBG_MSG(("EnableDisplay: Format= %d  ColorDepth= %d, ColorSpace= %d  eColorMatrix: %d",
             handle->hdmSettings.eInputVideoFmt,

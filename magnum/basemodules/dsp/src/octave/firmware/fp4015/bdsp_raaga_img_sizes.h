@@ -67,13 +67,13 @@
 
 
 /*INIT_ROMFS Size requirement*/
-#define BDSP_IMG_INIT_ROMFS_SIZE                                     ((uint32_t)483328)
+#define BDSP_IMG_INIT_ROMFS_SIZE                                     ((uint32_t)487424)
 
 /*SYSTEM_CODE Size requirement*/
 #define BDSP_IMG_SYSTEM_CODE_SIZE                                    ((uint32_t)471040)
 
 /*SYSTEM_LIB Size requirement*/
-#define BDSP_IMG_SYSTEM_LIB_SIZE                                     ((uint32_t)946176)
+#define BDSP_IMG_SYSTEM_LIB_SIZE                                     ((uint32_t)945152)
 /****Codec specific parameters for the host ****/
 
 
@@ -176,7 +176,7 @@
 #define BDSP_IMG_ADEC_PASSTHRU_TABLES_SIZE                           ((uint32_t)1536)
 
 /*AIDS_WAVFORMATEX Size requirement*/
-#define BDSP_IMG_AIDS_WAVFORMATEX_SIZE                               ((uint32_t)22016)
+#define BDSP_IMG_AIDS_WAVFORMATEX_SIZE                               ((uint32_t)20992)
 
 /*ADEC_PCMWAV Size requirement*/
 #define BDSP_IMG_ADEC_PCMWAV_SCRATCH_SIZE                            ((uint32_t)32768)
