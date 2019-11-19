@@ -1696,6 +1696,10 @@ NEXUS_Error NEXUS_Graphics2D_SetFrequencyScaling(unsigned percent)
     NEXUS_Error rc = NEXUS_SUCCESS;
     unsigned clkRate;
 
+#if ((BCHP_CHIP == 7260) && (BCHP_VER < BCHP_VER_B0)) /* Not available on 7260 A0 */
+    return NEXUS_SUCCESS;
+#endif
+
     if(percent > 100) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }

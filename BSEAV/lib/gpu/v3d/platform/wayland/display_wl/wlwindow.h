@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #pragma once
 
@@ -12,7 +12,7 @@
 #include <memory>
 #include <list>
 
-struct wl_egl_window;
+#include "wayland_egl/wayland_egl_priv.h"
 
 namespace wlpl
 {
@@ -36,11 +36,15 @@ public:
    void PushFreeQ(std::unique_ptr<WlBitmap> bitmap)
    {
       m_freeQ.Push(std::move(bitmap));
+      m_wlEglWindow->attached_width = 0;
+      m_wlEglWindow->attached_height = 0;
    }
 
    void PushDispQ(std::unique_ptr<DispItem<WlBitmap>> dispItem)
    {
       m_dispQ.Push(std::move(dispItem));
+      m_wlEglWindow->attached_width = 0;
+      m_wlEglWindow->attached_height = 0;
    }
 
 private:
@@ -62,13 +66,6 @@ private:
       self->Resize(egl_window);
    }
    void Resize(struct wl_egl_window *egl_window);
-
-   static void GetAttachedSizeCb(struct wl_egl_window *egl_window, void *data)
-   {
-      WlWindow *self = static_cast<WlWindow *>(data);
-      self->GetAttachedSize(egl_window);
-   }
-   void GetAttachedSize(struct wl_egl_window *egl_window);
 
    static void DestroyWindowCb(void *data)
    {
@@ -92,7 +89,6 @@ private:
    helper::Extent2D m_windowSize;
    int m_windowDx;
    int m_windowDy;
-   helper::Extent2D m_attachedSize;
 
    wlpl::WlWorker *m_worker;
 

@@ -151,7 +151,9 @@ void NEXUS_HdmiOutput_P_SetDisconnectedState(NEXUS_HdmiOutputHandle hdmiOutput)
     }
 #endif
 
-    hdmiOutput->displaySettings.valid = false;
+    /* ensure we don't make any decisions based on display settings until display updates them */
+    NEXUS_HdmiOutput_P_SetDisplaySettingsValidity(hdmiOutput, false);
+    hdmiOutput->displayEnabled = false;
 
     /* notify Nexus Display of the cable removal to disable the HDMI Output */
     NEXUS_HdmiOutput_P_NotifyDisplay(hdmiOutput);
@@ -231,8 +233,10 @@ static void NEXUS_HdmiOutput_P_SetConnectedState(NEXUS_HdmiOutputHandle hdmiOutp
                 make sure all TMDS data lines are ENABLED if under nexus control */
             NEXUS_HdmiOutput_P_SetTmdsSignalData(hdmiOutput, true);
             NEXUS_HdmiOutput_P_SetRxState(hdmiOutput, NEXUS_HdmiOutputState_ePoweredOn);
+
+            /* ensure we don't make any decisions based on display settings until display updates them */
+            NEXUS_HdmiOutput_P_SetDisplaySettingsValidity(hdmiOutput, false);
             /* notify Nexus Display of the cable insertion to re-enable HDMI Output */
-            hdmiOutput->displaySettings.valid = false ;
             NEXUS_HdmiOutput_P_NotifyDisplay(hdmiOutput);
 
             if (hdmiOutput->notifyAudioEvent)

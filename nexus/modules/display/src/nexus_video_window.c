@@ -777,6 +777,7 @@ static void NEXUS_VideoWindow_P_Callback_isr(void *data, int iParm2, void * pvVd
     if (pMask->bVsyncDelay)
     {
         window->status.delay = pCbData->ulVsyncDelay;
+        window->nonProcessVsyncDelay = pCbData->ulNonProcessVsyncDelay;
         window->syncStatus.delayValid = true;
     }
 
@@ -2550,4 +2551,17 @@ void NEXUS_VideoWindow_GetParentIndex_isrsafe(NEXUS_VideoWindowHandle window, un
 #endif
     *parentIndex = window->index;
     *mosaicIndex = -1;
+}
+
+unsigned NEXUS_VideoWindow_GetGraphicsSyncDelay_priv(NEXUS_VideoWindowHandle window)
+{
+    NEXUS_ASSERT_MODULE();
+    if (window->input && window->input->destination) {
+        NEXUS_VideoInput_P_Link *link = window->input->destination;
+        if (nexus_p_input_is_mtg(link)) {
+            BDBG_WRN(("synchronized graphics not supported with MTG on display%u window%u", window->display->index, window->index));
+        }
+    }
+    /* non-process BVN delay + user delay + SyncChannel delay */
+    return window->nonProcessVsyncDelay + window->cfg.delay + window->syncSettings.delay;
 }

@@ -34,7 +34,6 @@ static BEGL_Error WlDefaultOrientation(void *context [[gnu::unused]])
 static BEGL_SwapchainBuffer WlBufferDequeue(void *context [[gnu::unused]],
       void *platformState, BEGL_BufferFormat format, int *fd)
 {
-   auto display = static_cast<WLPL_WaylandDisplay *>(context);
    auto window = static_cast<wlpl::WlWindow *>(platformState);
    *fd = -1;
    auto bitmap = window->PopFreeQ(format);

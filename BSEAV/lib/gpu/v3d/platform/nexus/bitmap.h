@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #pragma once
 
@@ -27,16 +27,9 @@ public:
 
    ~Bitmap();
 
-   int GetBpp() const;
-
-   const BEGL_BufferSettings & GetCreateSettings() const
-   {
-      return m_settings;
-   };
-
    helper::Extent2D GetExtent2D() const
    {
-      return helper::Extent2D(m_settings.width, m_settings.height);
+      return m_extend;
    };
 
    NEXUS_SurfaceHandle GetSurface() const
@@ -70,7 +63,7 @@ public:
 private:
    nxpl::NativeWindowInfo      m_info;
    NXPL_Display               *m_data;
-   BEGL_BufferSettings         m_settings;
+   helper::Extent2D            m_extend;
    NEXUS_SurfaceHandle         m_surface;
    int                         m_vsyncCount;
 };

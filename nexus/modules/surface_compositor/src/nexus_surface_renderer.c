@@ -111,6 +111,10 @@ static void nexus_surface_compositor_p_submitframebuffer(struct NEXUS_SurfaceCom
     if(!enabled) {
         nexus_surface_compositor_p_schedule_inactive_timer(display->server);
     }
+    if (display->index == 0 && display->server->synchronizeGraphics) {
+        /* BVDC_ApplyChanges for video may be pending. */
+        NEXUS_DisplayModule_SetUpdateMode(NEXUS_DisplayUpdateMode_eAuto);
+    }
     display->stats.compose++;
 
     return;
@@ -354,7 +358,19 @@ static void nexus_surface_compositor_p_compose_release_clients(NEXUS_SurfaceComp
                     }
                     if(next_node) {
                         if (client != server->bypass_compose.client) {
-                            nexus_surface_compositor_p_recycle_push(client);
+                            unsigned graphics_delay = server->synchronizeGraphics;
+                            if (graphics_delay) {
+                                while (next_node) {
+                                    if (graphics_delay) graphics_delay--;
+                                    if (!graphics_delay) {
+                                        nexus_surface_compositor_p_recycle_push(client);
+                                    }
+                                    next_node = BLST_SQ_NEXT(next_node, link);
+                                }
+                            }
+                            else {
+                                nexus_surface_compositor_p_recycle_push(client);
+                            }
                         }
                     } else {
                         client->queue.frameFractionalTime = 0;
@@ -508,7 +524,19 @@ static bool nexus_surface_compositor_p_try_submitframebuffer(struct NEXUS_Surfac
 void nexus_surface_compositor_p_recycle_displayed_framebuffer(struct NEXUS_SurfaceCompositorDisplay *display)
 {
     struct NEXUS_SurfaceCompositorFramebuffer *framebuffer;
-    framebuffer = display->displaying;
+    if (display->index == 0 && display->server->synchronizeGraphics) {
+        framebuffer = display->displaying2;
+        display->displaying2 = display->displaying;
+    }
+    else {
+        if (display->displaying2) {
+            /* clean up from previous synchronizeGraphics */
+            framebuffer = display->displaying2;
+            display->displaying2 = NULL;
+            nexus_surface_compositor_p_return_tunnel_framebuffer(display, framebuffer);
+        }
+        framebuffer = display->displaying;
+    }
     if(framebuffer) {
         /* BDBG_ASSERT(framebuffer->state == NEXUS_SurfaceCompositorFramebufferState_eDisplaying); */
         display->displaying = NULL;

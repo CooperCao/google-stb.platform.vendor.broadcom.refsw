@@ -502,6 +502,9 @@ static void NEXUS_DisplayModule_Print(void)
             BVDC_Dbg_Window_GetDebugStatus(display->graphics.windowVdc, &winDbgInfo);
             BDBG_MODULE_LOG(display_proc, ("            vsync count=%d, line=%d, errors=%d", winDbgInfo.ulVsyncCnt, winDbgInfo.ulLineNumber, winDbgInfo.ulNumErr));
         }
+        if (display->graphics.cfg.synchronized) {
+            BDBG_MODULE_LOG(display_proc, ("            synchronized"));
+        }
 
         for (j=0;j<NEXUS_NUM_VIDEO_WINDOWS;j++) {
             NEXUS_VideoWindowHandle window = &display->windows[j];
@@ -516,7 +519,7 @@ static void NEXUS_DisplayModule_Print(void)
                 window->status.isSyncLocked?"Lock":"Slip"));
             if (window->vdcState.window) {
                 BVDC_Dbg_Window_GetDebugStatus(window->vdcState.window, &winDbgInfo);
-                BDBG_MODULE_LOG(display_proc, ("            vsync count=%d, line=%d, errors=%d", winDbgInfo.ulVsyncCnt, winDbgInfo.ulLineNumber, winDbgInfo.ulNumErr));
+                BDBG_MODULE_LOG(display_proc, ("            vsync count=%d, delay=%u, line=%d, errors=%d", winDbgInfo.ulVsyncCnt, window->status.delay, winDbgInfo.ulLineNumber, winDbgInfo.ulNumErr));
             }
 #if NEXUS_NUM_MOSAIC_DECODES
             {

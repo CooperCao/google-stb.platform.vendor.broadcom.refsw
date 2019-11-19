@@ -241,6 +241,8 @@ static void *BDSP_IMG_P_GetArray(unsigned imgId)
     /* End of video decode algorithms */
 
     /* Start of audio framesync */
+    case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_ePcmWavFrameSync):           return BDSP_IMG_pcmwav_ids;
+    case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_ePcmWavFrameSync):         return BDSP_IMG_pcmwav_ids_inter_frame;
     #ifdef BDSP_MPEG_PASSTHRU_SUPPORT
     case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eMpegFrameSync):             return BDSP_IMG_mpeg1_ids;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eMpegFrameSync):           return BDSP_IMG_mpeg1_ids_inter_frame;
@@ -290,10 +292,6 @@ static void *BDSP_IMG_P_GetArray(unsigned imgId)
     #ifdef BDSP_LPCMDVD_SUPPORT
     case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eDvdLpcmFrameSync):          return BDSP_IMG_dvdlpcm_ids;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eDvdLpcmFrameSync):        return BDSP_IMG_dvdlpcm_ids_inter_frame;
-    #endif
-    #ifdef BDSP_PCMWAV_SUPPORT
-    case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_ePcmWavFrameSync):           return BDSP_IMG_pcmwav_ids;
-    case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_ePcmWavFrameSync):         return BDSP_IMG_pcmwav_ids_inter_frame;
     #endif
 
     #ifdef  BDSP_DRA_PASSTHRU_SUPPORT

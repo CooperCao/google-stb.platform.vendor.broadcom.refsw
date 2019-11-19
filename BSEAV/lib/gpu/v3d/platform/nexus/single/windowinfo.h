@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #pragma once
 
@@ -99,8 +99,18 @@ public:
       return 0;
    }
 
+   NEXUS_SURFACECLIENTHANDLE GetVideoClient() const
+   {
+      return 0;
+   }
+
+   void AttachVideoClient(NEXUS_SURFACECLIENTHANDLE videoClient __attribute__((unused)))
+   {
+   }
+
    bool operator==(const NativeWindowInfo& rhs) const
    {
+      /* video window position ignored in single process mode */
       return ((m_info.magic == rhs.m_info.magic) &&
               (m_info.width == rhs.m_info.width) &&
               (m_info.height == rhs.m_info.height) &&

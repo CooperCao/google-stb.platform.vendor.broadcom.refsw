@@ -26,7 +26,7 @@ public:
    static void RecycleCallback(void *ctx, int param);
    void RecycleHandler();
 
-   void SetupDisplay(const nxpl::NativeWindowInfo &nw);
+   void SetupDisplay(const nxpl::NativeWindowInfo &nw, const helper::Extent2D &extent);
    void TermDisplay();
 
    void DisplayNexusSurface(NEXUS_DISPLAYHANDLE display, NEXUS_SurfaceHandle surface);

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "log.h"
 
@@ -190,7 +190,7 @@ static log_level_t get_cat_level(const char *name)
 bool log_cat_enabled_extern(struct log_cat *cat, log_level_t level)
 {
    /* Should early-out in inline functions if WANT_LOGGING is off */
-   assert(WANT_LOGGING);
+   /* assert(WANT_LOGGING); */
 
    log_level_t cat_level = log_cat_load_level(cat);
    if (cat_level == LOG_UNKNOWN)

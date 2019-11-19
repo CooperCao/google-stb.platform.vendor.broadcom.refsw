@@ -602,7 +602,7 @@ void NEXUS_HdmiOutputModule_Print(void)
             unsigned colorDepth;
 
             BDBG_LOG(("HDMI Settings:")) ;
-            if (hdmiOutput->displaySettings.valid)
+            if (NEXUS_HdmiOutput_P_AreDisplaySettingsValid(hdmiOutput))
             {
                 colorSpace = hdmiOutput->displaySettings.settings.colorSpace;
                 colorDepth = hdmiOutput->displaySettings.settings.colorDepth;

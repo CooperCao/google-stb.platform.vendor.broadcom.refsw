@@ -18,6 +18,7 @@ Worker::~Worker()
    std::unique_ptr<helper::Semaphore> sem;
    std::unique_ptr<nxpl::DispItem> dispItem(new nxpl::DispItem(std::move(bitmap), std::move(sem)));
    windowState->PushDispQ(std::move(dispItem));
+   m_vsync.notify();
    m_worker.join();
 }
 
@@ -86,7 +87,7 @@ void Worker::RecycleHandler()
    }
 }
 
-void Worker::SetupDisplay(const NativeWindowInfo &nw)
+void Worker::SetupDisplay(const NativeWindowInfo &nw, const helper::Extent2D &extent)
 {
 #ifdef NXCLIENT_SUPPORT
    NEXUS_SurfaceComposition   comp;
@@ -98,15 +99,15 @@ void Worker::SetupDisplay(const NativeWindowInfo &nw)
    {
       comp.virtualDisplay.width  = 0;
       comp.virtualDisplay.height = 0;
-      comp.position.width  = nw.GetWidth();
-      comp.position.height = nw.GetHeight();
+      comp.position.width  = extent.GetWidth();
+      comp.position.height = extent.GetHeight();
    }
    else
    {
-      comp.virtualDisplay.width  = nw.GetWidth();
-      comp.virtualDisplay.height = nw.GetHeight();
-      comp.position.width  = nw.GetWidth() - (2 * nw.GetX());
-      comp.position.height = nw.GetHeight() - (2 * nw.GetY());
+      comp.virtualDisplay.width  = extent.GetWidth();
+      comp.virtualDisplay.height = extent.GetHeight();
+      comp.position.width  = extent.GetWidth() - (2 * nw.GetX());
+      comp.position.height = extent.GetHeight() - (2 * nw.GetY());
    }
    comp.position.x = nw.GetX();
    comp.position.y = nw.GetY();
@@ -157,11 +158,11 @@ void Worker::mainThread(void)
 
       if (!m_done)
       {
-         // check if display parameters match
-         if (dispItem->m_bitmap->GetWindowInfo() != windowState->GetWindowInfo())
+         auto windowInfo = dispItem->m_bitmap->GetWindowInfo();
+         bool updateWindowCoordinates = windowInfo != windowState->GetWindowInfo();
+         if (updateWindowCoordinates)
          {
-            SetupDisplay(dispItem->m_bitmap->GetWindowInfo());
-            auto windowInfo = dispItem->m_bitmap->GetWindowInfo();
+            SetupDisplay(windowInfo, dispItem->m_bitmap->GetExtent2D());
             windowState->UpdateWindowInfo(windowInfo);
          }
 
@@ -172,13 +173,24 @@ void Worker::mainThread(void)
 
          {
             std::lock_guard<std::mutex> lock(m_displayMutex);
+            if (updateWindowCoordinates && nw->GetVideoClient())
+            {
+               NEXUS_SurfaceClientSettings clientSettings;
+               NEXUS_SurfaceClient_GetSettings(nw->GetVideoClient(), &clientSettings);
+               clientSettings.composition.position.x      = windowInfo.GetVideoX();
+               clientSettings.composition.position.y      = windowInfo.GetVideoY();
+               clientSettings.composition.position.width  = windowInfo.GetVideoWidth();
+               clientSettings.composition.position.height = windowInfo.GetVideoHeight();
+               clientSettings.synchronizeGraphics         = true;
+               NEXUS_SurfaceClient_SetSettings(nw->GetVideoClient(), &clientSettings);
+            }
             NEXUS_SurfaceClient_PushSurface(nw->GetSurfaceClient(), dispItem->m_bitmap->GetSurface(), NULL, true);
             m_withNexus.push_back(std::move(dispItem->m_bitmap));
          }
 
          m_vsync.reset();
 
-         for (int i = 0; i < dispItem->m_swapInterval; i++)
+         for (int i = 0; i < dispItem->m_swapInterval && !m_done; i++)
             m_vsync.wait();
 
          RecycleHandler();

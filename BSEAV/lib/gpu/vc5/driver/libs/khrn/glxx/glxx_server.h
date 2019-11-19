@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #ifndef GLXX_SERVER_H
 #define GLXX_SERVER_H
@@ -433,9 +433,9 @@ struct GLXX_SERVER_STATE_T_
    uint64_t pid;
 
    struct {
-      GLfloat color_value[4];
-      GLfloat depth_value;
-      GLint stencil_value;
+      float color_value[4];
+      float depth_value;
+      int stencil_value;
    } clear;
 
    GLenum cull_mode;

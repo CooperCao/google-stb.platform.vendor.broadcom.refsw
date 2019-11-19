@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include <stdio.h>
 
@@ -57,6 +57,9 @@ bool NativeWindowInfo::Init()
 void NativeWindowInfo::Term()
 {
    NEXUS_SurfaceClient_Release(m_surfaceClient);
+
+   if (m_videoClient)
+      NEXUS_SurfaceClient_Release(m_videoClient);
 
 #ifdef NXCLIENT_SUPPORT
    NxClient_Free(&m_allocResults);

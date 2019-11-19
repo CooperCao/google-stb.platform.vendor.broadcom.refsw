@@ -70,7 +70,8 @@ NEXUS_Display_P_GraphicsNext_isr(void  *disp, int unused, BAVC_Polarity  polarit
         BERR_Code rc;
         rc = BVDC_Source_GetSurface_isr(graphics->source, &pic);
         if (!rc) {
-            if (pic.pSurface == graphics->queuedPlane) {
+            /* if synchronized is true, then we always fire and rely on layer above to manage. */
+            if (pic.pSurface == graphics->queuedPlane || graphics->cfg.synchronized) {
                 graphics->queuedPlane = NULL;
                 NEXUS_IsrCallback_Fire_isr(graphics->frameBufferCallback);
             }
@@ -136,6 +137,16 @@ NEXUS_Display_P_SetGraphicsSettings(NEXUS_DisplayHandle display, const NEXUS_Gra
     const NEXUS_DisplayModule_State *video= &g_NEXUS_DisplayModule_State;
 
     force = force || video->lastUpdateFailed;
+
+    if(graphics->source)
+    {
+        BVDC_Source_Settings settings;
+        rc = BVDC_Source_GetSettings(graphics->source, &settings);
+        if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_source_cfg;}
+        settings.bRequireApply = cfg->synchronized;
+        rc = BVDC_Source_SetSettings(graphics->source, &settings);
+        if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_source_cfg;}
+    }
 
     if(force || graphics->cfg.horizontalFilter != cfg->horizontalFilter
              || graphics->cfg.verticalFilter != cfg->verticalFilter)
@@ -350,6 +361,7 @@ err_window:
 err_source_cfg:
     cleanup_rc = BVDC_Source_Destroy(graphics->source);
     if (cleanup_rc!=BERR_SUCCESS) { cleanup_rc = BERR_TRACE(cleanup_rc);}
+    graphics->source = NULL;
 err_source:
     return rc;
 
@@ -749,6 +761,7 @@ NEXUS_Display_P_InitGraphics(NEXUS_DisplayHandle display)
     graphics->cfg.destBlendFactor = NEXUS_CompositorBlendFactor_eInverseSourceAlpha;
     graphics->cfg.constantAlpha = 0xFF;
     graphics->cfg.horizontalFilter = NEXUS_GraphicsFilterCoeffs_eAuto;
+    graphics->cfg.synchronized = false;
     NEXUS_CallbackDesc_Init(&graphics->cfg.frameBufferCallback);
     graphics->frameBufferCallback = NEXUS_IsrCallback_Create(display, NULL);
     if(!graphics->frameBufferCallback) {

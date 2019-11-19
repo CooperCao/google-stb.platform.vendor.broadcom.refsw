@@ -235,7 +235,7 @@ struct nxserver_settings
         char hdcp1xBinFile[128];
         NxClient_HdcpLevel alwaysLevel;
         NxClient_HdcpVersion versionSelect;
-        unsigned immediateTimeout; /* in seconds. any reauth within this will done immediately. after this, we wait at least 2 seconds. default is 15 seconds. */
+        unsigned immediateRetries; /* # of retries to do without delay. after this, we wait at least 2 seconds. default is 25 retries. */
         unsigned failureTimeout; /* in seconds. any reauth after this will not be attempted. if 0 (default), never quit. */
     } hdcp;
     struct {

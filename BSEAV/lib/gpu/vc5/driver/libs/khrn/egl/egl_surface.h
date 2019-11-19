@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #ifndef EGL_SURFACE_H
 #define EGL_SURFACE_H
@@ -40,20 +40,19 @@ extern EGL_THREAD_T *egl_surface_get_thread(const EGL_SURFACE_T *surface);
  * shared with the client api, so make sure you have the correct lock when
  * doing operations in egl with this image;
  *( e.g : see how egl_surface_get_back_buffer is used in egl_context_gl.c) */
-extern khrn_image *egl_surface_get_back_buffer(const EGL_SURFACE_T *surface);
+extern GFX_LFMT_T egl_surface_get_back_buffer_api_fmt(
+      const EGL_SURFACE_T *surface);
+extern khrn_image *egl_surface_get_back_buffer(EGL_SURFACE_T *surface);
+
+extern GFX_LFMT_T egl_surface_get_aux_buffer_api_fmt(
+      const EGL_SURFACE_T *surface, egl_aux_buf_t which);
 extern khrn_image *egl_surface_get_aux_buffer(const EGL_SURFACE_T *surface,
       egl_aux_buf_t which);
 
 // Caller must khrn_mem_release() returned pointer
-extern khrn_image *egl_surface_get_back_buffer_with_gl_colorspace(const EGL_SURFACE_T *surface);
+extern khrn_image *egl_surface_get_back_buffer_with_gl_colorspace(EGL_SURFACE_T *surface);
 
 extern EGL_SURFACE_T *egl_surface_lock(EGLSurface handle);
 extern void egl_surface_unlock(EGL_SURFACE_T *surface); /* tolerates NULL */
-
-/*
- * Check if the surface has been resized by the platform and reallocate
- * auxiliary buffers if necessary. Returns false for no memory.
- */
-extern bool egl_surface_resize(EGL_SURFACE_T *surface);
 
 #endif /* EGL_SURFACE_H */

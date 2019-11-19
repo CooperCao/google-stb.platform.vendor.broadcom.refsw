@@ -119,18 +119,26 @@ void BDSP_Raaga_P_Analyse_CIT_Stage(
 	BDBG_MSG(("Interframe Offset   = "BDSP_MSG_FMT" Size = %d",BDSP_MSG_ARG(pStageConfig->sInterFrameInfo.BaseAddr),pStageConfig->sInterFrameInfo.Size));
 	BDBG_MSG(("LUT	Offset         = "BDSP_MSG_FMT" Size = %d",BDSP_MSG_ARG(pStageConfig->sLookUpTableInfo.BaseAddr),pStageConfig->sLookUpTableInfo.Size));
 	BDBG_MSG(("Num Input Ports     = %d", pStageConfig->sIOConfig.ui32NumInputs));
-	for(index = 0; index<pStageConfig->sIOConfig.ui32NumInputs; index++)
+	for(index = 0; index<BDSP_AF_P_MAX_IP_FORKS; index++)
 	{
-		BDBG_MSG(("--------------------"));
-		BDSP_P_Analyse_CIT_PortDetails(&pStageConfig->sIOConfig.sInputPort[index], pDescriptorMemory);
-		BDBG_MSG(("--------------------"));
+        if(pStageConfig->sIOConfig.sInputPort[index].ePortType != BDSP_AF_P_PortType_eInvalid)
+        {
+            BDBG_MSG(("--------------------"));
+            BDBG_MSG(("\t INPUT PORT INDEX         = %d", index));
+            BDSP_P_Analyse_CIT_PortDetails(&pStageConfig->sIOConfig.sInputPort[index], pDescriptorMemory);
+            BDBG_MSG(("--------------------"));
+        }
 	}
 	BDBG_MSG(("Num Output Ports    = %d", pStageConfig->sIOConfig.ui32NumOutputs));
-	for(index = 0; index<pStageConfig->sIOConfig.ui32NumOutputs; index++)
+	for(index = 0; index<BDSP_AF_P_MAX_OP_FORKS; index++)
 	{
-		BDBG_MSG(("--------------------"));
-		BDSP_P_Analyse_CIT_PortDetails(&pStageConfig->sIOConfig.sOutputPort[index], pDescriptorMemory);
-		BDBG_MSG(("--------------------"));
-	}
+        if(pStageConfig->sIOConfig.sOutputPort[index].ePortType != BDSP_AF_P_PortType_eInvalid)
+        {
+            BDBG_MSG(("--------------------"));
+            BDBG_MSG(("\t OUTPUT PORT INDEX        = %d", index));
+            BDSP_P_Analyse_CIT_PortDetails(&pStageConfig->sIOConfig.sOutputPort[index], pDescriptorMemory);
+            BDBG_MSG(("--------------------"));
+        }
+    }
 	BDBG_LEAVE(BDSP_Raaga_P_Analyse_CIT_Stage);
 }

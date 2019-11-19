@@ -211,7 +211,7 @@ GLXX_FRAMEBUFFER_T* glxx_fb_create(uint32_t name)
    return fb;
 }
 
-static glxx_att_index_t attachment_point_to_att_index(glxx_attachment_point_t att_point)
+glxx_att_index_t glxx_attachment_point_to_att_index(glxx_attachment_point_t att_point)
 {
    glxx_att_index_t att_index;
 
@@ -241,7 +241,7 @@ static GLXX_ATTACHMENT_T* get_attachment(GLXX_FRAMEBUFFER_T *fb,
 {
    glxx_att_index_t att_index;
 
-   att_index = attachment_point_to_att_index(att_point);
+   att_index = glxx_attachment_point_to_att_index(att_point);
    return &fb->attachment[att_index];
 }
 
@@ -250,7 +250,7 @@ const GLXX_ATTACHMENT_T* glxx_fb_get_attachment(const GLXX_FRAMEBUFFER_T *fb,
 {
    glxx_att_index_t att_index;
 
-   att_index = attachment_point_to_att_index(att_point);
+   att_index = glxx_attachment_point_to_att_index(att_point);
    return &fb->attachment[att_index];
 }
 
@@ -333,7 +333,7 @@ void glxx_fb_attach_renderbuffer(GLXX_FRAMEBUFFER_T *fb,
 }
 
 static void fb_attach_fb_default(GLXX_FRAMEBUFFER_T *fb,
-      glxx_attachment_point_t att_point,
+      glxx_attachment_point_t att_point, EGL_SURFACE_T *surface,
       khrn_image *img, khrn_image *ms_img, glxx_ms_mode ms_mode)
 {
    GLXX_ATTACHMENT_T *att;
@@ -349,6 +349,7 @@ static void fb_attach_fb_default(GLXX_FRAMEBUFFER_T *fb,
       att->obj_type = GL_FRAMEBUFFER_DEFAULT;
       KHRN_MEM_ASSIGN(att->obj.fb_default.img, img);
       KHRN_MEM_ASSIGN(att->obj.fb_default.ms_img, ms_img);
+      att->obj.fb_default.surface = surface;
       att->obj.fb_default.ms_mode = ms_mode;
 
       if (att_point != GL_DEPTH_STENCIL_ATTACHMENT)
@@ -363,7 +364,7 @@ static void fb_attach_fb_default(GLXX_FRAMEBUFFER_T *fb,
  * - if we multisample (aux_samples > 0), we must have a multisample image
  * - if we multimsaple, size of each aux_buffer must be aux_sample * size of color_image;
  */
-static void check_consistent_for_default_fb(const EGL_SURFACE_T *surface)
+static void check_consistent_for_default_fb(EGL_SURFACE_T *surface)
 {
 #ifndef NDEBUG
    khrn_image *color = egl_surface_get_back_buffer(surface);
@@ -406,7 +407,7 @@ static void check_consistent_for_default_fb(const EGL_SURFACE_T *surface)
 }
 
 void glxx_fb_attach_egl_surface(GLXX_FRAMEBUFFER_T *fb,
-      const EGL_SURFACE_T *surface)
+      EGL_SURFACE_T *surface)
 {
    check_consistent_for_default_fb(surface);
 
@@ -420,15 +421,15 @@ void glxx_fb_attach_egl_surface(GLXX_FRAMEBUFFER_T *fb,
    khrn_image *depth = egl_surface_get_aux_buffer(surface, AUX_DEPTH);
    khrn_image *stencil = egl_surface_get_aux_buffer(surface, AUX_STENCIL);
 
-   fb_attach_fb_default(fb, GL_COLOR_ATTACHMENT0, color, ms_color, ms_mode);
+   fb_attach_fb_default(fb, GL_COLOR_ATTACHMENT0, surface, color, ms_color, ms_mode);
 
    /* if we multisample, depth and stencil are multisampled images */
    if (depth)
-      fb_attach_fb_default(fb, GL_DEPTH_ATTACHMENT, ms ? NULL : depth,
-           ms ? depth : NULL, ms_mode);
+      fb_attach_fb_default(fb, GL_DEPTH_ATTACHMENT, surface,
+         ms ? NULL : depth, ms ? depth : NULL, ms_mode);
    if(stencil)
-      fb_attach_fb_default(fb, GL_STENCIL_ATTACHMENT, ms ? NULL : stencil,
-           ms ? stencil : NULL, ms_mode);
+      fb_attach_fb_default(fb, GL_STENCIL_ATTACHMENT, surface,
+         ms ? NULL : stencil, ms ? stencil : NULL, ms_mode);
 
    KHRN_MEM_ASSIGN(color, NULL);
 
@@ -589,11 +590,42 @@ bool glxx_attachment_acquire_image(const GLXX_ATTACHMENT_T *att,
 }
 
 
-GFX_LFMT_T glxx_attachment_get_api_fmt(const GLXX_ATTACHMENT_T *att)
+extern GFX_LFMT_T glxx_fb_get_attachment_api_fmt(const GLXX_FRAMEBUFFER_T *fb,
+      glxx_att_index_t att_index)
 {
    GFX_LFMT_T res = GFX_LFMT_NONE;
    khrn_image *img;
    bool img_ms;
+   const GLXX_ATTACHMENT_T *att;
+
+   att = glxx_fb_get_attachment_by_index(fb, att_index);
+   if (att->obj_type == GL_FRAMEBUFFER_DEFAULT)
+   {
+      switch (att_index)
+      {
+      case GLXX_COLOR0_ATT:
+         if (att->obj.fb_default.ms_mode == GLXX_NO_MS)
+            res = egl_surface_get_back_buffer_api_fmt(
+                  att->obj.fb_default.surface);
+         else
+            res = egl_surface_get_aux_buffer_api_fmt(
+                  att->obj.fb_default.surface, AUX_MULTISAMPLE);
+         break;
+      case GLXX_DEPTH_ATT:
+         res = egl_surface_get_aux_buffer_api_fmt(
+               att->obj.fb_default.surface, AUX_DEPTH);
+         break;
+      case GLXX_STENCIL_ATT:
+         res = egl_surface_get_aux_buffer_api_fmt(
+               att->obj.fb_default.surface, AUX_STENCIL);
+         break;
+      default:
+         unreachable();
+         res = GFX_LFMT_NONE;
+         break;
+      }
+      return res;
+   }
 
    /* the api_fmt is the same for multisample or downsampled image, so it
     * doesn't matter what op we use */
@@ -898,8 +930,7 @@ uint32_t glxx_fb_get_write_disable_mask(const GLXX_FRAMEBUFFER_T *fb, uint32_t c
    while (glxx_fb_iterate_valid_draw_bufs(fb, &i, &att_index))
    {
       unsigned b = att_index - GLXX_COLOR0_ATT;
-      const GLXX_ATTACHMENT_T *att = glxx_fb_get_attachment_by_index(fb, att_index);
-      GFX_LFMT_T api_fmt = glxx_attachment_get_api_fmt(att);
+      GFX_LFMT_T api_fmt = glxx_fb_get_attachment_api_fmt(fb, att_index);
       if (!gfx_lfmt_has_alpha(api_fmt))
          w_disable_mask |= 1u << ((b * 4) + 3);
    }

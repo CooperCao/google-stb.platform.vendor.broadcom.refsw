@@ -11,35 +11,21 @@
 
 #include "libs/util/gfx_util/gfx_util_rect.h"
 
-typedef enum
-{
-   EGL_RES_SUCCESS,
-   EGL_RES_NO_MEM,
-   EGL_RES_BAD_NATIVE_WINDOW,
-}egl_result_t;
-
 typedef struct
 {
    /* Get the buffer to draw to */
-   khrn_image *(*get_back_buffer)(const EGL_SURFACE_T *surface);
+   khrn_image *(*get_back_buffer)(EGL_SURFACE_T *surface);
 
    /*
     * See eglSwapbuffers. May be NULL in which case back buffer is the same.
     */
-   egl_result_t (*swap_buffers)(EGL_SURFACE_T *surface);
+   EGLint (*swap_buffers)(EGL_SURFACE_T *surface);
 
    /*
     * Set the swap interval (see eglSwapInterval). Can be NULL. It's up to the
     * implementation to clamp interval to whatever range it can support.
     */
    void (*swap_interval)(EGL_SURFACE_T *surface, int interval);
-
-   /*
-    * Initial dimensions are passed into egl_surface_base_init. If this
-    * function is not supplied, it is assumed they never change. Otherwise
-    * this is called every eglSwapBuffers.
-    */
-   void (*get_dimensions)(EGL_SURFACE_T *surface, unsigned *width, unsigned *height);
 
    /* These return an EGL error code. *value is not modified in case of error.
     * If not supplied, egl_surface_base_get_attrib is used. */
@@ -172,26 +158,27 @@ extern EGLint egl_surface_base_init_attrib(EGL_SURFACE_T *surface,
 extern EGLint egl_surface_base_set_attrib(EGL_SURFACE_T *surface,
       EGLint attrib, EGLAttribKHR value);
 
-/*
- * Assumes surface->config is already initialized. Allocates whichever
- * auxiliary buffers (depth, stencil, multisample) you need based on that
- * config or returns false for no memory.
- */
-extern bool egl_surface_base_init_aux_bufs(EGL_SURFACE_T *surface);
+/* Assumes surface->config is already initialized. */
+extern GFX_LFMT_T egl_surface_base_get_back_buffer_api_fmt(
+      const EGL_SURFACE_T *surface);
+
+/* Assumes surface->config is already initialized. */
+extern GFX_LFMT_T egl_surface_base_get_aux_buffer_api_fmt(
+      const EGL_SURFACE_T *surface, egl_aux_buf_t which);
 
 /*
- * Delete any auxiliary buffers that aren't NULL. Note that the actual pixel
- * storage of the auxiliary buffers is reference counted with khrn_resource,
- * and so may not be freed until a bit later.
+ * Check if the surface has been resized by the platform and reallocate
+ * auxiliary buffers if necessary. Returns false for no memory.
  */
-extern void egl_surface_base_delete_aux_bufs(EGL_SURFACE_T *surface);
+extern bool egl_surface_base_resize(EGL_SURFACE_T *surface,
+      unsigned width, unsigned height);
 
 extern khrn_image *egl_surface_base_get_aux_buffer(
       const EGL_SURFACE_T *surface, egl_aux_buf_t which);
 
-/* Called after swap buffers to reset per-swap state in the surface */
-extern void egl_surface_base_swap_done(EGL_SURFACE_T *surface);
+extern void egl_surface_base_update_buffer_age_heuristics(
+      EGL_SURFACE_T *surface, khrn_image *back_buffer, int age);
 
-extern void egl_surface_base_update_buffer_age_heuristics(EGL_BUFFER_AGE_DAMAGE_STATE_T *state);
+extern int egl_surface_base_query_buffer_age(EGL_SURFACE_T *surface);
 
 #endif /* EGL_SURFACE_BASE_H */

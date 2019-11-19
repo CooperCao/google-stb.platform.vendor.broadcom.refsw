@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #ifndef __DISPLAY_INTERFACE_H__
 #define __DISPLAY_INTERFACE_H__
@@ -7,6 +7,7 @@
 #include "surface_interface.h"
 #include <stdbool.h>
 #include "interface.h"
+#include "windowinfo.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -36,6 +37,7 @@ typedef struct DisplayInterface
     * render_fence but it must close it.
     */
    DisplayInterfaceResult (*display)(void *context, void *surface,
+         const WindowInfo *windowInfo,
          int render_fence, bool create_display_fence, int *display_fence);
 
    /*
@@ -66,6 +68,7 @@ typedef struct DisplayInterface
 
 DisplayInterfaceResult DisplayInterface_Display(
       const DisplayInterface *di, void *surface,
+      const WindowInfo *windowInfo,
       int render_fence, bool create_display_fence,
       int *display_fence);
 

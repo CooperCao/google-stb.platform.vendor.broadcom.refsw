@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2018 Broadcom.
+ *  Copyright (C) 2019 Broadcom.
  *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -474,6 +474,33 @@ void NEXUS_TransportModule_GetDefaultSettings(NEXUS_TransportModuleSettings *pSe
     pSettings->syncInCount = xptsettings.syncInCount;
     pSettings->syncOutCount = xptsettings.syncOutCount;
 
+    BKNI_Memset(pSettings->messageFixedBufferSize, 0, sizeof(pSettings->messageFixedBufferSize));
+#if BXPT_P_MESG_FIXED_SIZE_BUFFERS
+    pSettings->messageFixedBufferSize[0].startIndex = 0;
+    pSettings->messageFixedBufferSize[0].count = 50;
+    pSettings->messageFixedBufferSize[0].bufferSize = 2*1024;
+    pSettings->messageFixedBufferSize[1].startIndex = 50;
+    pSettings->messageFixedBufferSize[1].count = 50;
+    pSettings->messageFixedBufferSize[1].bufferSize = 4*1024;
+    pSettings->messageFixedBufferSize[2].startIndex = 100;
+    pSettings->messageFixedBufferSize[2].count = 50;
+    pSettings->messageFixedBufferSize[2].bufferSize = 8*1024;
+    pSettings->messageFixedBufferSize[3].startIndex = 150;
+    pSettings->messageFixedBufferSize[3].count = 50;
+    pSettings->messageFixedBufferSize[3].bufferSize = 16*1024;
+    pSettings->messageFixedBufferSize[4].startIndex = 200;
+    pSettings->messageFixedBufferSize[4].count = 20;
+    pSettings->messageFixedBufferSize[4].bufferSize = 32*1024;
+    pSettings->messageFixedBufferSize[5].startIndex = 220;
+    pSettings->messageFixedBufferSize[5].count = 20;
+    pSettings->messageFixedBufferSize[5].bufferSize = 64*1024;
+    pSettings->messageFixedBufferSize[6].startIndex = 240;
+    pSettings->messageFixedBufferSize[6].count = 10;
+    pSettings->messageFixedBufferSize[6].bufferSize = 128*1024;
+    pSettings->messageFixedBufferSize[7].startIndex = 250;
+    pSettings->messageFixedBufferSize[7].count = 5;
+    pSettings->messageFixedBufferSize[7].bufferSize = 512*1024;
+#endif
     return;
 }
 
@@ -1107,6 +1134,22 @@ NEXUS_Error NEXUS_TransportModule_PostInit_priv(RaveChannelOpenCB rave_regver)
     mtsif_checker_start();
 
     NEXUS_Vcxo_Init();
+
+#if BXPT_P_MESG_FIXED_SIZE_BUFFERS
+    NEXUS_Message_P_ConfigBufferSizes();
+#else
+    /* This chip doesn't use fixed sizes, so all counts must be 0. */
+    {
+       unsigned i;
+
+       for (i = 0; i < NEXUS_NUM_MESSAGE_FIXED_BUFFER_SIZE_ENTRIES; i++) {
+      if (pSettings->messageFixedBufferSize[i].count) {
+         BDBG_ERR(("Message buffer fixed sizes are not needed"));
+         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+      }
+       }
+    }
+#endif
 
 done:
     if (pXptSettings) {

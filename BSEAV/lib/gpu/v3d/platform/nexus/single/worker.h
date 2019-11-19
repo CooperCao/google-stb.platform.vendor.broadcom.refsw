@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #pragma once
 
@@ -24,7 +24,7 @@ public:
 private:
    static void VSyncCallback(void *ctx, int param);
    void VSyncHandler();
-   void SetupDisplay(const nxpl::NativeWindowInfo &nw);
+   void SetupDisplay(const nxpl::NativeWindowInfo &nw, const helper::Extent2D &extent);
    void TermDisplay();
 
 private:

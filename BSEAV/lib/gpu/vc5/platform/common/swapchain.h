@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #ifndef __SWAPCHAIN_H__
 #define __SWAPCHAIN_H__
@@ -7,6 +7,7 @@
 #include "fence_interface.h"
 #include "surface_interface.h"
 #include "queue.h"
+#include "windowinfo.h"
 
 #include <EGL/begl_displayplatform.h>
 
@@ -20,9 +21,15 @@ typedef struct SwapchainSurface
    int               age;
    int               render_fence;
    int               display_fence;
+   WindowInfo        windowInfo;
    struct list       link;
    uint8_t           native_surface[0]; /* variable size buffer */
 } SwapchainSurface;
+
+enum
+{
+   MAX_SWAP_BUFFERS = 3
+};
 
 typedef struct Swapchain
 {

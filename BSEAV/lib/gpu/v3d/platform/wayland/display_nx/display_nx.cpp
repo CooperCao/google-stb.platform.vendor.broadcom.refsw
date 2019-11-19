@@ -84,6 +84,10 @@ static BEGL_Error NxBufferQueue(void *context, void *platformState,
       std::unique_ptr<wlpl::NxBitmap> bitmap(
             static_cast<wlpl::NxBitmap*>(buffer));
 
+      // end of swap, update the display parameters are used to control presentation
+      auto nw = static_cast<wlpl::NxWindowInfo*>(windowState->GetWindowHandle());
+      bitmap->UpdateWindowInfo(*nw);
+
       std::unique_ptr<helper::Semaphore> fence;
       if (fd != -1)
          fence = std::move(std::unique_ptr<helper::Semaphore>(static_cast<helper::Semaphore*>(data->hwInterface->FenceGet(data->hwInterface->context, fd))));
@@ -104,7 +108,6 @@ static BEGL_Error NxBufferCancel(void *context, void *platformState,
 {
    if (buffer)
    {
-      auto data = static_cast<WLPL_NexusDisplay *>(context);
       auto windowState = static_cast<wlpl::NxWindowState *>(platformState);
       std::unique_ptr<wlpl::NxBitmap> bitmap(
             static_cast<wlpl::NxBitmap*>(buffer));

@@ -56,10 +56,17 @@
 BDBG_MODULE(window_move);
 
 /* the following define the input file and its characteristics -- these will vary by input file */
+#if 0
 #define FILE_NAME "videos/cnnticker.mpg"
 #define TRANSPORT_TYPE NEXUS_TransportType_eTs
 #define VIDEO_CODEC NEXUS_VideoCodec_eMpeg2
 #define VIDEO_PID 0x21
+#else
+#define FILE_NAME "videos/japan480p.mpg"
+#define TRANSPORT_TYPE NEXUS_TransportType_eTs
+#define VIDEO_CODEC NEXUS_VideoCodec_eMpeg2
+#define VIDEO_PID 0x11
+#endif
 
 static void complete(void *context, int param)
 {
@@ -122,12 +129,7 @@ int main(int argc, const char **argv)
     bool window_move = true;
     bool push = false;
     bool resize = false;
-    unsigned graphics_lag = 0;
-    NEXUS_Rect pos_queue[3];
-#define NUM_POS (sizeof(pos_queue)/sizeof(pos_queue[0]))
-    unsigned cur_pos = 0;
 
-    memset(pos_queue, 0, sizeof(pos_queue));
     while (argc > curarg) {
         if (!strcmp(argv[curarg],"-no_graphics")) {
             graphics = false;
@@ -141,15 +143,12 @@ int main(int argc, const char **argv)
         else if (!strcmp(argv[curarg],"-resize")) {
             resize = true;
         }
-        else if (!strcmp(argv[curarg],"-graphics_lag") && curarg+1 < argc) {
-            graphics_lag = atoi(argv[++curarg]);
-            if (graphics_lag >= NUM_POS) {
-                fprintf(stderr, "max graphics_lag is %u\n", NUM_POS-1);
-                return -1;
-            }
-        }
         else if (!strcmp(argv[curarg],"-inc")) {
             inc = atoi(argv[++curarg]);
+        }
+        else {
+            printf("invalid param %s\n", argv[curarg]);
+            return -1;
         }
         curarg++;
     }
@@ -252,6 +251,7 @@ int main(int argc, const char **argv)
     surfaceClientSettings.composition.position.width = 400;
     surfaceClientSettings.composition.position.height = 400/16*9;
     surfaceClientSettings.composition.contentMode = NEXUS_VideoWindowContentMode_eFull;
+    surfaceClientSettings.synchronizeGraphics = window_move;
     NEXUS_SurfaceClient_SetSettings(video_sc, &surfaceClientSettings);
 
     starttime = b_get_time();
@@ -272,16 +272,15 @@ int main(int argc, const char **argv)
             }
             surfaceClientSettings.composition.position.x += inc;
         }
-        pos_queue[cur_pos] = surfaceClientSettings.composition.position;
 
         if (graphics) {
-            unsigned pos;
-            const NEXUS_Rect *rect;
             if (push) {
-                for (cur_surface=0;cur_surface<NUM_SURFACES;cur_surface++) {
+                unsigned start = cur_surface;
+                do {
                     if (!surface[cur_surface].pushed) break;
-                }
-                BDBG_ASSERT(cur_surface<NUM_SURFACES);
+                    if (++cur_surface == NUM_SURFACES) cur_surface = 0;
+                } while (cur_surface != start);
+                BDBG_ASSERT(!surface[cur_surface].pushed);
             }
             NEXUS_Graphics2D_GetDefaultFillSettings(&fillSettings);
             fillSettings.surface = surface[cur_surface].handle;
@@ -290,34 +289,21 @@ int main(int argc, const char **argv)
             BDBG_ASSERT(!rc);
             fillSettings.color = 0x0;
             /* convert from virtual display 1920x1080 to surface 720x480 */
-            pos = cur_pos + NUM_POS - graphics_lag;
-            pos = pos % NUM_POS;
-            if (pos_queue[pos].width == 0) pos = 0;
-            rect = &pos_queue[pos];
-            fillSettings.rect.x = rect->x*720/1920;
-            fillSettings.rect.y = rect->y*480/1080;
-            fillSettings.rect.width = rect->width*720/1920;
-            fillSettings.rect.height = rect->height*480/1080;
+            fillSettings.rect.x = surfaceClientSettings.composition.position.x*720/1920;
+            fillSettings.rect.y = surfaceClientSettings.composition.position.y*480/1080;
+            fillSettings.rect.width = surfaceClientSettings.composition.position.width*720/1920;
+            fillSettings.rect.height = surfaceClientSettings.composition.position.height*480/1080;
             rc = NEXUS_Graphics2D_Fill(gfx, &fillSettings);
             BDBG_ASSERT(!rc);
 
             checkpoint(gfx, checkpointEvent);
 
+            /* required to set video before graphics to get into one ApplyChanges */
+            if (window_move) {
+                NEXUS_SurfaceClient_SetSettings(video_sc, &surfaceClientSettings);
+            }
+
             if (push) {
-                if (count > 1) {
-                    while (1) {
-                        size_t n, i;
-                        NEXUS_SurfaceHandle returned;
-                        rc = NEXUS_SurfaceClient_RecycleSurface(surfaceClient, &returned, 1, &n);
-                        BDBG_ASSERT(!rc);
-                        if (!n) break;
-                        for (i=0;surface[i].handle != returned;i++);
-                        BDBG_ASSERT(i<NUM_SURFACES);
-                        BDBG_ASSERT(surface[i].pushed);
-                        surface[i].pushed = false;
-                        BDBG_MSG(("recycle %u", i));
-                    }
-                }
                 BDBG_MSG(("push %u", cur_surface));
                 rc = NEXUS_SurfaceClient_PushSurface(surfaceClient, surface[cur_surface].handle, NULL, window_move);
                 BDBG_ASSERT(!rc);
@@ -327,10 +313,6 @@ int main(int argc, const char **argv)
                 rc = NEXUS_SurfaceClient_SetSurface(surfaceClient, surface[cur_surface].handle);
                 BDBG_ASSERT(!rc);
             }
-        }
-
-        if (window_move) {
-            NEXUS_SurfaceClient_SetSettings(video_sc, &surfaceClientSettings);
         }
 
         if (window_move && (!graphics || push)) {
@@ -344,13 +326,27 @@ int main(int argc, const char **argv)
             }
         }
 
+        if (push) {
+            while (1) {
+                size_t n, i;
+                NEXUS_SurfaceHandle returned;
+                rc = NEXUS_SurfaceClient_RecycleSurface(surfaceClient, &returned, 1, &n);
+                BDBG_ASSERT(!rc);
+                if (!n) break;
+                for (i=0;surface[i].handle != returned;i++);
+                BDBG_ASSERT(i<NUM_SURFACES);
+                BDBG_ASSERT(surface[i].pushed);
+                surface[i].pushed = false;
+                BDBG_MSG(("recycle %u", (unsigned)i));
+            }
+        }
+
         if (++count % 100 == 0) {
             /* this drives need for more than 3 buffers */
             BDBG_LOG(("%u fps", count * 1000 / ((b_get_time() - starttime))));
             count = 0;
             starttime = b_get_time();
         }
-        if (++cur_pos == NUM_POS) cur_pos = 0;
     }
 
     return 0;

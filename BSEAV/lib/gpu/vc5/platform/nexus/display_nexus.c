@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "default_nexus.h"
 #include "display_nexus.h"
@@ -40,49 +40,17 @@
 #include <pthread.h>
 #include <stdint.h>
 
-#define MAX_SWAP_BUFFERS   3
-
 enum
 {
    NATIVE_WINDOW_INFO_MAGIC = 0xABBA601D,
    PIXMAP_INFO_MAGIC        = 0x15EEB1A5
 };
 
-typedef struct PlatformState
+typedef struct WindowState
 {
-   SurfaceInterface surface_interface;
-   FenceInterface fence_interface;
-   DisplayInterface display_interface;
    NXPL_NativeWindow *native_window;
    DisplayFramework display_framework;
-} PlatformState;
-
-/* Called to determine current size of the window referenced by the opaque window handle.
- * This is needed by EGL in order to know the size of a native 'window'. */
-static BEGL_Error DispWindowGetInfo(void *context,
-                                    void *nativeWindow,
-                                    BEGL_WindowInfoFlags flags,
-                                    BEGL_WindowInfo *info)
-{
-   UNUSED(context);
-   PlatformState *state = (PlatformState *) nativeWindow;
-   NXPL_NativeWindow *nw = state->native_window;
-
-   if (nw != NULL)
-   {
-      if (flags & BEGL_WindowInfoWidth)
-         info->width = nw->windowInfo.width;
-      if (flags & BEGL_WindowInfoHeight)
-         info->height = nw->windowInfo.height;
-
-      if (flags & BEGL_WindowInfoSwapChainCount)
-         info->swapchain_count = nw->numSurfaces;
-
-      return BEGL_Success;
-   }
-
-   return BEGL_Fail;
-}
+} WindowState;
 
 static BEGL_BufferFormat DispGetPixmapFormat(void *context, void *pixmap)
 {
@@ -300,6 +268,8 @@ static BEGL_Error DispSurfaceRelease(void *context, uint32_t target,
    }
 }
 
+static_assert(sizeof(WindowInfo) == sizeof(NXPL_NativeWindowInfoEXT), "sizeof(WindowInfo) & sizeof(NXPL_NativeWindowInfoEXT) need to match");
+
 static BEGL_SwapchainBuffer DispGetNextSurface(
    void *context,
    void *nativeWindow,
@@ -310,14 +280,15 @@ static BEGL_SwapchainBuffer DispGetNextSurface(
 )
 {
    NXPL_DisplayContext *dc    = (NXPL_DisplayContext*)context;
-   PlatformState       *state = (PlatformState *)nativeWindow;
+   WindowState       *state = (WindowState *)nativeWindow;
 
    if (state == NULL)
       return NULL;
 
    uint64_t before = PerfGetTimeNow();
    NXPL_Surface *nxpl_surface = (NXPL_Surface *)DisplayFramework_GetNextSurface(
-         &state->display_framework, format, secure, age, fence);
+         &state->display_framework, format, secure, age, fence,
+         (WindowInfo *)&state->native_window->windowInfo);
    if (!nxpl_surface)
       return NULL;
 
@@ -336,7 +307,7 @@ static BEGL_Error DispDisplaySurface(void *context, void *nativeWindow,
       BEGL_SwapchainBuffer nativeSurface, int fence, int interval)
 {
    NXPL_DisplayContext *dc    = (NXPL_DisplayContext*)context;
-   PlatformState       *state = (PlatformState *) nativeWindow;
+   WindowState       *state = (WindowState *) nativeWindow;
 
    if (state && nativeSurface)
    {
@@ -347,7 +318,8 @@ static BEGL_Error DispDisplaySurface(void *context, void *nativeWindow,
       PerfAddEvent(dc->eventContext, PERF_EVENT_TRACK_QUEUE, PERF_EVENT_QUEUE, eventID, BCM_EVENT_BEGIN,
                    (uintptr_t)surface, (int32_t)fence, (int32_t)interval);
 
-      DisplayFramework_DisplaySurface(&state->display_framework, nativeSurface, fence, interval);
+      DisplayFramework_DisplaySurface(&state->display_framework, nativeSurface, fence, interval,
+         (WindowInfo *)&state->native_window->windowInfo);
 
       PerfAddEvent(dc->eventContext, PERF_EVENT_TRACK_QUEUE, PERF_EVENT_QUEUE, eventID++, BCM_EVENT_END,
                     (uintptr_t)surface, (int32_t)fence, (int32_t)interval);
@@ -362,7 +334,7 @@ static BEGL_Error DispCancelSurface(void *context, void *nativeWindow,
       BEGL_SwapchainBuffer nativeSurface, int fence)
 {
    UNUSED(context);
-   PlatformState *state = (PlatformState *) nativeWindow;
+   WindowState *state = (WindowState *) nativeWindow;
    if (state && nativeSurface)
    {
       DisplayFramework_CancelSurface(&state->display_framework, nativeSurface,
@@ -382,46 +354,47 @@ static void *DispWindowPlatformStateCreate(void *context, void *native)
 {
    NXPL_DisplayContext *ctx = (NXPL_DisplayContext *)context;
    NXPL_NativeWindow *nw = (NXPL_NativeWindow*)native;
-   PlatformState *state = NULL;
+   WindowState *state = NULL;
+   unsigned buffers = MAX_SWAP_BUFFERS;
 
+   char *val = getenv("V3D_DOUBLE_BUFFER");
+   if (val && (val[0] == 't' || val[0] == 'T' || val[0] == '1'))
+      buffers = 2;
+
+   DisplayFramework *df = NULL;
    if (ctx && nw)
    {
       state = calloc(1, sizeof(*state));
       if (state)
       {
-         InitFenceInterface(&state->fence_interface, ctx->schedIface);
-         SurfaceInterface_InitNexus(&state->surface_interface);
+         df = (DisplayFramework *)&state->display_framework;
+         InitFenceInterface(&df->fence_interface, ctx->schedIface);
+         SurfaceInterface_InitNexus(&df->surface_interface);
 
 #ifdef NXPL_PLATFORM_EXCLUSIVE
-         if (!DisplayInterface_InitNexusExclusive(&state->display_interface,
-               &state->fence_interface, &nw->windowInfo, ctx->displayType,
+         if (!DisplayInterface_InitNexusExclusive(&df->display_interface,
+               &df->fence_interface, &nw->windowInfo,
                ctx->display, &nw->bound, ctx->eventContext))
             goto error_display;
 #else
-         if (!DisplayInterface_InitNexusMulti(&state->display_interface,
-               &state->fence_interface, &nw->windowInfo, ctx->displayType,
-               nw->numSurfaces, nw->clientID, nw->surfaceClient, ctx->eventContext))
+         if (!DisplayInterface_InitNexusMulti(&df->display_interface,
+               &df->fence_interface,
+               buffers, nw, ctx->eventContext))
             goto error_display;
 #endif
 
          state->native_window = nw;
 
-         if (!DisplayFramework_Start(&state->display_framework,
-               &state->display_interface,
-               &state->fence_interface,
-               &state->surface_interface,
-               state->native_window->windowInfo.width,
-               state->native_window->windowInfo.height,
-               state->native_window->numSurfaces))
+         if (!DisplayFramework_Start(df, buffers))
             goto error_framework;
       }
    }
    return state;
 
 error_framework:
-   Interface_Destroy(&state->display_interface.base);
-   Interface_Destroy(&state->surface_interface.base);
-   Interface_Destroy(&state->fence_interface.base);
+   Interface_Destroy(&df->display_interface.base);
+   Interface_Destroy(&df->surface_interface.base);
+   Interface_Destroy(&df->fence_interface.base);
 error_display:
    free(state);
    return NULL;
@@ -430,14 +403,15 @@ error_display:
 static BEGL_Error DispWindowPlatformStateDestroy(void *context, void *windowState)
 {
    UNUSED(context);
-   PlatformState *state = (PlatformState *) windowState;
+   WindowState *state = (WindowState *) windowState;
 
    if (state)
    {
-      DisplayFramework_Stop(&state->display_framework);
-      Interface_Destroy(&state->display_interface.base);
-      Interface_Destroy(&state->surface_interface.base);
-      Interface_Destroy(&state->fence_interface.base);
+      DisplayFramework *df = (DisplayFramework *)&state->display_framework;
+      DisplayFramework_Stop(df);
+      Interface_Destroy(&df->display_interface.base);
+      Interface_Destroy(&df->surface_interface.base);
+      Interface_Destroy(&df->fence_interface.base);
 
 #ifndef NDEBUG
       /* catch some cases of use after free */
@@ -478,7 +452,6 @@ BEGL_DisplayInterface *CreateDisplayInterface(
 
          disp->context = (void*)ctx;
 
-         disp->WindowGetInfo              = DispWindowGetInfo;
          disp->GetPixmapFormat            = DispGetPixmapFormat;
          disp->SurfaceAcquire             = DispSurfaceAcquire;
          disp->SurfaceRelease             = DispSurfaceRelease;
@@ -507,17 +480,6 @@ void DestroyDisplayInterface(BEGL_DisplayInterface *disp)
    {
       memset(disp, 0, sizeof(BEGL_DisplayInterface));
       free(disp);
-   }
-}
-
-void NXPL_SetDisplayType(NXPL_PlatformHandle handle, NXPL_DisplayType type)
-{
-   NXPL_InternalPlatformHandle *data = (NXPL_InternalPlatformHandle*)handle;
-
-   if (data != NULL && data->displayInterface != NULL && data->displayInterface->context != NULL)
-   {
-      NXPL_DisplayContext *dd = (NXPL_DisplayContext*)data->displayInterface->context;
-      dd->displayType = type;
    }
 }
 
@@ -592,12 +554,6 @@ void *NXPL_CreateNativeWindowEXT(const NXPL_NativeWindowInfoEXT *info)
       NxClient_SetSurfaceClientComposition(nw->clientID, &comp);
 #endif /* NXCLIENT_SUPPORT */
 #endif /* !defined(NXPL_PLATFORM_EXCLUSIVE) */
-
-      char *val = getenv("V3D_DOUBLE_BUFFER");
-      if (val && (val[0] == 't' || val[0] == 'T' || val[0] == '1'))
-         nw->numSurfaces = 2;
-      else
-         nw->numSurfaces = MAX_SWAP_BUFFERS;
    }
 
    return nw;
@@ -637,6 +593,9 @@ void NXPL_DestroyNativeWindow(void *native)
       if (nw->surfaceClient)
          NEXUS_SurfaceClient_Release(nw->surfaceClient);
 
+      if (nw->videoClient)
+         NEXUS_SurfaceClient_Release(nw->videoClient);
+
 #ifdef NXCLIENT_SUPPORT
       NxClient_Free(&nw->allocResults);
 #endif
@@ -671,6 +630,19 @@ void NXPL_UpdateNativeWindow(void *native, const NXPL_NativeWindowInfo *info)
    }
 }
 
+void NXPL_SetDisplayType(NXPL_PlatformHandle handle __attribute__((unused)), NXPL_DisplayType type __attribute__((unused)))
+{
+   /* NOOP */
+}
+
+NXPL_EXPORT void NXPL_UpdateNativeWindowDisplayType(void *native, NXPL_DisplayType type)
+{
+   NXPL_NativeWindow *nw = (NXPL_NativeWindow*)native;
+
+   if (nw != NULL)
+      nw->windowInfo.type = type;
+}
+
 #ifndef NXPL_PLATFORM_EXCLUSIVE
 
 NEXUS_SurfaceClientHandle NXPL_CreateVideoWindowClient(void *native, unsigned windowId)
@@ -679,14 +651,25 @@ NEXUS_SurfaceClientHandle NXPL_CreateVideoWindowClient(void *native, unsigned wi
    NEXUS_SurfaceClientHandle ret = NULL;
 
    if (nw && nw->surfaceClient)
+   {
       ret = NEXUS_SurfaceClient_AcquireVideoWindow(nw->surfaceClient, windowId);
-
+      nw->videoClient = ret;
+   }
    return ret;
 }
 
 void NXPL_ReleaseVideoWindowClient(NEXUS_SurfaceClientHandle handle)
 {
    NEXUS_SurfaceClient_ReleaseVideoWindow(handle);
+}
+
+void NXPL_ReleaseVideoWindowClientEXT(void *native)
+{
+   NXPL_NativeWindow *nw = (NXPL_NativeWindow*)native;
+   NEXUS_SurfaceClientHandle videoClient = nw->videoClient;
+   nw->videoClient = NULL;
+   if (videoClient)
+      NEXUS_SurfaceClient_ReleaseVideoWindow(videoClient);
 }
 
 uint32_t NXPL_GetClientID(void *native)

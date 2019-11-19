@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #ifndef __BEGL_DISPLAYPLATFORM_H__
 #define __BEGL_DISPLAYPLATFORM_H__
@@ -34,21 +34,6 @@ typedef enum
    BEGL_Increment = 0,
    BEGL_Decrement
 } BEGL_RefCountMode;
-
-typedef enum
-{
-   BEGL_WindowInfoWidth = 1,
-   BEGL_WindowInfoHeight = 2,
-   BEGL_WindowInfoFormat = 4,
-   BEGL_WindowInfoSwapChainCount = 8
-} BEGL_WindowInfoFlags;
-
-typedef struct
-{
-   uint32_t            width;                 /* Visible width of window in pixels */
-   uint32_t            height;                /* Visible height of window in pixels */
-   uint32_t            swapchain_count;       /* Number of buffers in the swap chain, or 0 to take defaults from egl */
-} BEGL_WindowInfo;
 
 typedef struct BEGL_PixmapInfo
 {
@@ -150,12 +135,6 @@ typedef struct BEGL_DisplayInterface
    /* Context pointer - opaque to the 3d driver code, but passed out in all function pointer calls.
     * Prevents the client code needing to perform context lookups. */
    void *context;
-
-   /* Called to determine current size of the window referenced by the opaque window handle.
-    * Also fills in the number of pre-allocated swap-chain buffers, which must be > 0.
-    * Set to the number of buffers in your pre-allocated chain. See BufferGet().
-    * This is needed by EGL in order to know the size of a native 'window'. */
-   BEGL_Error (*WindowGetInfo)(void *context, void *opaqueNativeWindow, BEGL_WindowInfoFlags flags, BEGL_WindowInfo *info);
 
    /* Get pixmap format.
     *

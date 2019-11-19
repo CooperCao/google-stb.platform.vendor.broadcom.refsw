@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "display_nexus_exclusive.h"
 
@@ -20,7 +20,7 @@ typedef struct display
 {
    const FenceInterface         *fenceInterface;
    NEXUS_DISPLAYHANDLE           display;
-   NXPL_DisplayType              displayType;
+   DisplayType                   displayType;
    int                          *bound;
 
    struct buffer                 active;
@@ -30,6 +30,8 @@ typedef struct display
    void                         *vsyncEvent;
    int                           terminating;
    EventContext                 *eventContext;
+
+   NXPL_NativeWindow            *nw;
 } display;
 
 static void vsyncCallback(void *context, int param)
@@ -65,7 +67,7 @@ static void vsyncCallback(void *context, int param)
                          BCM_EVENT_END, (uintptr_t)self->active.surface);
 
             self->active.surface = NULL;
-            self->active.fence = self->fenceInterface->invalid_fence;
+            self->active.fence = INVALID_FENCE;
          }
       }
 
@@ -83,7 +85,7 @@ static void vsyncCallback(void *context, int param)
                          BCM_EVENT_BEGIN, (uintptr_t)self->pending.surface);
 
             self->pending.surface = NULL;
-            self->pending.fence = self->fenceInterface->invalid_fence;
+            self->pending.fence = INVALID_FENCE;
          }
       }
 
@@ -93,7 +95,48 @@ static void vsyncCallback(void *context, int param)
    }
 }
 
+static void SetDisplayComposition(NEXUS_DISPLAYHANDLE display,
+      const NEXUS_SurfaceStatus *status, const WindowInfo *windowInfo)
+{
+   NEXUS_GraphicsSettings  graphicsSettings;
+
+   NEXUS_Display_GetGraphicsSettings(display, &graphicsSettings);
+
+   graphicsSettings.enabled = true;
+   graphicsSettings.visible = true;
+
+   /* For size calculations use the Nexus surface size, which is the same as
+    * the window size was at the time the surface was created. */
+   if (!windowInfo->stretch)
+   {
+      graphicsSettings.position.x = windowInfo->x;
+      graphicsSettings.position.y = windowInfo->y;
+
+      graphicsSettings.position.width = status->width;
+      graphicsSettings.position.height = status->height;
+   }
+   else
+   {
+      float scaledPosX = windowInfo->x * ((float)graphicsSettings.position.width / status->width);
+      float scaledPosY = windowInfo->y * ((float)graphicsSettings.position.height / status->height);
+
+      graphicsSettings.position.x = (uint16_t)scaledPosX;
+      graphicsSettings.position.y = (uint16_t)scaledPosY;
+
+      graphicsSettings.position.width -= (2 * scaledPosX);
+      graphicsSettings.position.height -= (2 * scaledPosY);
+   }
+
+   graphicsSettings.clip.width = status->width;
+   graphicsSettings.clip.height = status->height;
+
+   NEXUS_Error err = NEXUS_Display_SetGraphicsSettings(display, &graphicsSettings);
+   if (err != NEXUS_SUCCESS)
+      FATAL_ERROR("NEXUS_Display_SetGraphicsSettings failed");
+}
+
 static DisplayInterfaceResult display_surface(void *context, void *s,
+      const WindowInfo *windowInfo,
       int render_fence, bool create_display_fence, int *display_fence)
 {
    display *self = (display *)context;
@@ -108,6 +151,15 @@ static DisplayInterfaceResult display_surface(void *context, void *s,
    {
       BKNI_ReleaseMutex(self->mutex);
       return eDisplayFailed;
+   }
+
+   NEXUS_SurfaceStatus status;
+   NEXUS_Surface_GetStatus(surface, &status);
+
+   if (windowInfo != NULL)
+   {
+      SetDisplayComposition(self->display, &status, windowInfo);
+      self->displayType = windowInfo->type;
    }
 
    NEXUS_GraphicsFramebuffer3D fb3d;
@@ -145,7 +197,7 @@ static DisplayInterfaceResult display_surface(void *context, void *s,
       FenceInterface_Create(
             self->fenceInterface, &self->pending.fence);
    else
-      self->pending.fence = self->fenceInterface->invalid_fence;
+      self->pending.fence = INVALID_FENCE;
    *display_fence = self->pending.fence;
 
    static uint32_t debugId = 0;
@@ -210,30 +262,6 @@ static void destroy(void *context)
    free(self);
 }
 
-static void SetDisplayComposition(NEXUS_DISPLAYHANDLE display,
-      const NXPL_NativeWindowInfoEXT *windowInfo)
-{
-   NEXUS_GraphicsSettings  graphicsSettings;
-
-   NEXUS_Display_GetGraphicsSettings(display, &graphicsSettings);
-
-   graphicsSettings.enabled = true;
-   graphicsSettings.visible = true;
-   graphicsSettings.position.x = windowInfo->x;
-   graphicsSettings.position.y = windowInfo->y;
-   if (!windowInfo->stretch)
-   {
-      graphicsSettings.position.width = windowInfo->width;
-      graphicsSettings.position.height = windowInfo->height;
-   }
-   graphicsSettings.clip.width = windowInfo->width;
-   graphicsSettings.clip.height = windowInfo->height;
-
-   NEXUS_Error err = NEXUS_Display_SetGraphicsSettings(display, &graphicsSettings);
-   if (err != NEXUS_SUCCESS)
-      FATAL_ERROR("NEXUS_Display_SetGraphicsSettings failed");
-}
-
 static void SetVsyncCallback(NEXUS_DISPLAYHANDLE display,
       NEXUS_Callback callback, void *context)
 {
@@ -249,7 +277,7 @@ static void SetVsyncCallback(NEXUS_DISPLAYHANDLE display,
 
 bool DisplayInterface_InitNexusExclusive(DisplayInterface *di,
       const FenceInterface *fi,
-      const NXPL_NativeWindowInfoEXT *windowInfo, NXPL_DisplayType displayType,
+      const NXPL_NativeWindowInfoEXT *windowInfo,
       NEXUS_DISPLAYHANDLE display_handle, int *bound, EventContext *eventContext)
 {
    display *self = calloc(1, sizeof(*self));
@@ -257,7 +285,7 @@ bool DisplayInterface_InitNexusExclusive(DisplayInterface *di,
    {
       self->fenceInterface = fi;
 
-      self->displayType = displayType;
+      self->displayType = NXPL_2D;
       self->bound = bound;
       self->display = display_handle;
       self->eventContext = eventContext;
@@ -271,13 +299,12 @@ bool DisplayInterface_InitNexusExclusive(DisplayInterface *di,
       self->active.debugId = 0;
       self->pending.surface = NULL;
       self->pending.debugId = 0;
-      self->active.fence = self->fenceInterface->invalid_fence;
-      self->pending.fence = self->fenceInterface->invalid_fence;
+      self->active.fence = INVALID_FENCE;
+      self->pending.fence = INVALID_FENCE;
 
       if (self->display != NULL)
       {
          __sync_fetch_and_add(self->bound, 1);
-         SetDisplayComposition(self->display, windowInfo);
          SetVsyncCallback(self->display, vsyncCallback, self);
       }
 

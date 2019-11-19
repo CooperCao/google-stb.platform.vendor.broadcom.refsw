@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #pragma once
 
@@ -18,11 +18,50 @@ namespace nxpl
 
 class NativeWindowInfo
 {
+#if __cplusplus >= 200604L // required for Delegating constructors
+private:
+   NativeWindowInfo(const NXPL_NativeWindowInfoEXT &info) :
+      m_info(info),
+#ifdef NXCLIENT_SUPPORT
+      m_allocResults(),
+#endif
+      m_clientID(0),
+      m_surfaceClient(0),
+      m_videoClient(0)
+   {}
+#endif
+
 public:
-   NativeWindowInfo() : m_info() {};
+#if __cplusplus >= 200604L // required for Delegating constructors
    NativeWindowInfo(const NXPL_NativeWindowInfoEXT *info) :
-      m_info(*info)
-   {};
+      NativeWindowInfo(*info)
+   {}
+
+   NativeWindowInfo() :
+      NativeWindowInfo(NXPL_NativeWindowInfoEXT())
+   {}
+#else
+   NativeWindowInfo(const NXPL_NativeWindowInfoEXT *info) :
+      m_info(*info),
+#ifdef NXCLIENT_SUPPORT
+      m_allocResults(),
+#endif
+      m_clientID(0),
+      m_surfaceClient(0),
+      m_videoClient(0)
+   {}
+
+   NativeWindowInfo() :
+      m_info(NXPL_NativeWindowInfoEXT()),
+#ifdef NXCLIENT_SUPPORT
+      m_allocResults(),
+#endif
+      m_clientID(0),
+      m_surfaceClient(0),
+      m_videoClient(0)
+   {}
+#endif
+
    ~NativeWindowInfo() = default;
 
    bool Init();
@@ -104,9 +143,39 @@ public:
       return m_clientID;
    }
 
+   uint32_t GetVideoWidth() const
+   {
+      return m_info.videoWidth;
+   }
+
+   uint32_t GetVideoHeight() const
+   {
+      return m_info.videoHeight;
+   }
+
+   uint32_t GetVideoX() const
+   {
+      return m_info.videoX;
+   }
+
+   uint32_t GetVideoY() const
+   {
+      return m_info.videoY;
+   }
+
    NEXUS_SurfaceClientHandle GetSurfaceClient() const
    {
       return m_surfaceClient;
+   }
+
+   NEXUS_SurfaceClientHandle GetVideoClient() const
+   {
+      return m_videoClient;
+   }
+
+   void AttachVideoClient(NEXUS_SurfaceClientHandle videoClient)
+   {
+      m_videoClient = videoClient;
    }
 
    bool operator==(const NativeWindowInfo& rhs) const
@@ -120,7 +189,11 @@ public:
               (m_info.zOrder == rhs.m_info.zOrder) &&
               (memcmp(&m_info.colorBlend, &rhs.m_info.colorBlend, sizeof(NEXUS_BlendEquation)) == 0) &&
               (memcmp(&m_info.alphaBlend, &rhs.m_info.alphaBlend, sizeof(NEXUS_BlendEquation)) == 0) &&
-              (m_info.type == rhs.m_info.type));
+              (m_info.type == rhs.m_info.type) &&
+              (m_info.videoWidth == rhs.m_info.videoWidth) &&
+              (m_info.videoHeight == rhs.m_info.videoHeight) &&
+              (m_info.videoX == rhs.m_info.videoX) &&
+              (m_info.videoY == rhs.m_info.videoY));
    }
 
    bool operator!=(const NativeWindowInfo& rhs) const
@@ -136,6 +209,7 @@ private:
 #endif
    uint32_t                      m_clientID;
    NEXUS_SurfaceClientHandle     m_surfaceClient;
+   NEXUS_SurfaceClientHandle     m_videoClient;
 };
 
 }

@@ -697,6 +697,8 @@ typedef struct BXVD_P_Context
 
   BXVD_P_PowerState  eWatchdogSavedPowerState;
 
+  bool bResumePending;
+
   /* Platform-specific fields defined in platform header */
   BXVD_P_CONTEXT_PLATFORM
 

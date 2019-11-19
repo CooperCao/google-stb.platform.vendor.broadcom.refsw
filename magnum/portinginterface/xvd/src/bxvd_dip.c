@@ -780,26 +780,29 @@ BXVD_DisplayInterruptProvider_P_ProcessWatchdog(
 
    if ( true == hXvdDipCh->bInterruptSettingsValid )
    {
-      /* clear pending BVNF interrupts since they are edge-triggered */
-      BREG_Write32(hXvdDipCh->stChannelSettings.hRegister,
-                   hXvdDipCh->stChannelSettings.uiInterruptClearRegister,
-                   hXvdDipCh->uiRegMaskCurrent_0);
-
-      /* Restore mask register */
-      BREG_Write32(hXvdDipCh->stChannelSettings.hRegister,
-                   hXvdDipCh->stChannelSettings.uiInterruptMaskRegister,
-                   hXvdDipCh->uiRegMaskCurrent_0);
-
-      if ( hXvdDipCh->stChannelSettings.uiInterruptClearRegister_1 != 0)
+      if (hXvdDipCh->stChannelSettings.hXvd->bResumePending == false)
       {
          /* clear pending BVNF interrupts since they are edge-triggered */
          BREG_Write32(hXvdDipCh->stChannelSettings.hRegister,
-                      hXvdDipCh->stChannelSettings.uiInterruptClearRegister_1,
-                      hXvdDipCh->uiRegMaskCurrent_1);
+                      hXvdDipCh->stChannelSettings.uiInterruptClearRegister,
+                      hXvdDipCh->uiRegMaskCurrent_0);
 
+         /* Restore mask register */
          BREG_Write32(hXvdDipCh->stChannelSettings.hRegister,
-                      hXvdDipCh->stChannelSettings.uiInterruptMaskRegister_1,
-                      hXvdDipCh->uiRegMaskCurrent_1);
+                      hXvdDipCh->stChannelSettings.uiInterruptMaskRegister,
+                      hXvdDipCh->uiRegMaskCurrent_0);
+
+         if ( hXvdDipCh->stChannelSettings.uiInterruptClearRegister_1 != 0)
+         {
+            /* clear pending BVNF interrupts since they are edge-triggered */
+            BREG_Write32(hXvdDipCh->stChannelSettings.hRegister,
+                         hXvdDipCh->stChannelSettings.uiInterruptClearRegister_1,
+                         hXvdDipCh->uiRegMaskCurrent_1);
+
+            BREG_Write32(hXvdDipCh->stChannelSettings.hRegister,
+                         hXvdDipCh->stChannelSettings.uiInterruptMaskRegister_1,
+                         hXvdDipCh->uiRegMaskCurrent_1);
+         }
       }
 
       rc = BXVD_P_HostCmdSendConfig(hXvdDipCh->stChannelSettings.hXvd,

@@ -29,23 +29,8 @@ struct egl_pixmap_surface
 
 static EGL_SURFACE_METHODS_T fns;
 
-static void get_dimensions(EGL_SURFACE_T *surface, unsigned *width, unsigned *height)
-{
-   EGL_PIXMAP_SURFACE_T  *surf = (EGL_PIXMAP_SURFACE_T *)surface;
-   if (surf->image)
-   {
-      *width = khrn_image_get_width(surf->image);
-      *height = khrn_image_get_height(surf->image);
-   }
-   else
-   {
-      *width = 0;
-      *height = 0;
-   }
-}
-
 /* Get the buffer to draw to */
-static khrn_image *get_back_buffer(const EGL_SURFACE_T *surface)
+static khrn_image *get_back_buffer(EGL_SURFACE_T *surface)
 {
    EGL_PIXMAP_SURFACE_T *surf = (EGL_PIXMAP_SURFACE_T *) surface;
 
@@ -110,7 +95,7 @@ static EGLSurface egl_create_pixmap_surface_impl(
    }
 
    /* Determine size of the underlying native pixmap */
-   get_dimensions(&surface->base, &width, &height);
+   khrn_image_get_dimensions(surface->image, &width, &height, NULL, NULL);
 
    if (width == 0 || height == 0)
    {
@@ -241,6 +226,5 @@ end:
 static EGL_SURFACE_METHODS_T fns =
 {
    .get_back_buffer = get_back_buffer,
-   .get_dimensions = get_dimensions,
    .delete_fn = delete_fn,
 };

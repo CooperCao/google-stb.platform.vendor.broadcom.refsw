@@ -1458,41 +1458,16 @@ GL_API void GL_APIENTRY glFlush(void)
    glxx_unlock_server_state();
 }
 
-/*
-   glClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha)
-   glClearColorx(GLclampx red, GLclampx green, GLclampx blue, GLclampx alpha)
-
-   Khronos documentation:
-
-   Each of the specified components is clamped to [0, 1] and converted to fixed-point
-   according to the rules of section 2.12.8.
-
-   Implementation notes:
-
-   Conversion to fixed point is deferred to color buffer clear time.
-
-   Preconditions:
-
-   Valid EGL server state exists
-   EGL server state has a current OpenGL ES 1.1 or 2.0 context
-
-   Postconditions:
-
-   Invariants preserved:
-
-   state.clear_color is valid
-*/
-
-GL_API void GL_APIENTRY glClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha)
+GL_API void GL_APIENTRY glClearColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
 {
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_ANY);
    if (!state)
       return;
 
-   state->clear.color_value[0] = gfx_fclamp(red, 0.0f, 1.0f);
-   state->clear.color_value[1] = gfx_fclamp(green, 0.0f, 1.0f);
-   state->clear.color_value[2] = gfx_fclamp(blue, 0.0f, 1.0f);
-   state->clear.color_value[3] = gfx_fclamp(alpha, 0.0f, 1.0f);
+   state->clear.color_value[0] = red;
+   state->clear.color_value[1] = green;
+   state->clear.color_value[2] = blue;
+   state->clear.color_value[3] = alpha;
 
    glxx_unlock_server_state();
 }
@@ -1502,10 +1477,10 @@ GL_API void GL_APIENTRY glClearColorx(GLclampx red, GLclampx green, GLclampx blu
    if (!state)
       return;
 
-   state->clear.color_value[0] = gfx_fclamp(fixed_to_float(red), 0.0f, 1.0f);
-   state->clear.color_value[1] = gfx_fclamp(fixed_to_float(green), 0.0f, 1.0f);
-   state->clear.color_value[2] = gfx_fclamp(fixed_to_float(blue), 0.0f, 1.0f);
-   state->clear.color_value[3] = gfx_fclamp(fixed_to_float(alpha), 0.0f, 1.0f);
+   state->clear.color_value[0] = fixed_to_float(red);
+   state->clear.color_value[1] = fixed_to_float(green);
+   state->clear.color_value[2] = fixed_to_float(blue);
+   state->clear.color_value[3] = fixed_to_float(alpha);
 
    glxx_unlock_server_state();
 }

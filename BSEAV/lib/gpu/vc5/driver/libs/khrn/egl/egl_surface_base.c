@@ -8,8 +8,12 @@
 #include "egl_display.h"
 #include "egl_thread.h"
 #include "egl_context_base.h"
+#include "egl_context_gl.h"
 
 LOG_DEFAULT_CAT("egl_surface_base")
+
+static bool surface_base_init_aux_bufs(EGL_SURFACE_T *surface);
+static void surface_base_delete_aux_bufs(EGL_SURFACE_T *surface);
 
 static EGLint init_attrib(EGL_SURFACE_T *surface,
       EGLint attrib, EGLAttribKHR value)
@@ -131,8 +135,12 @@ static void manage_buffer_age_heuristics(EGL_BUFFER_AGE_DAMAGE_STATE_T *state)
    }
 }
 
-void egl_surface_base_update_buffer_age_heuristics(EGL_BUFFER_AGE_DAMAGE_STATE_T *state)
+void egl_surface_base_update_buffer_age_heuristics(
+      EGL_SURFACE_T *surface, khrn_image *back_buffer, int age)
 {
+   EGL_BUFFER_AGE_DAMAGE_STATE_T *state = &surface->age_damage_state;
+   state->buffer_age = age;
+
    // Calculate the buffer age we want to report and update the heuristics
    manage_buffer_age_heuristics(state);
 
@@ -141,16 +149,29 @@ void egl_surface_base_update_buffer_age_heuristics(EGL_BUFFER_AGE_DAMAGE_STATE_T
    // age will force buffer_age_enabled off and therefore also treat the buffer as undefined.
    if (!state->buffer_age_enabled || state->age_override_count > 0)
       state->buffer_age_override = 0;
-}
 
-void egl_surface_base_swap_done(EGL_SURFACE_T *surface)
-{
-   EGL_BUFFER_AGE_DAMAGE_STATE_T *state = &surface->age_damage_state;
+   if (state->buffer_age_override == 0)
+   {
+      /* Buffers with age 0 have undefined content, so we can invalidate the new back-buffer.
+       * This will prevent unnecessary tile loads of undefined data in certain cases. */
+      egl_context_gl_lock();
+      khrn_image_invalidate(back_buffer);
+      egl_context_gl_unlock();
+   }
 
    /* Reset the per-swap state in the surface */
    KHRN_MEM_ASSIGN(state->damage_rects, NULL);
    state->num_damage_rects    = -1;
    state->buffer_age_queried  = false;
+}
+
+int egl_surface_base_query_buffer_age(EGL_SURFACE_T *surface)
+{
+   EGL_BUFFER_AGE_DAMAGE_STATE_T *state = &surface->age_damage_state;
+
+   state->buffer_age_queried = true; // Queried this frame
+   state->buffer_age_enabled = true;
+   return state->buffer_age_override;
 }
 
 EGLint egl_surface_base_init(EGL_SURFACE_T *surface,
@@ -210,7 +231,8 @@ EGLint egl_surface_base_init(EGL_SURFACE_T *surface,
       return EGL_BAD_NATIVE_WINDOW;
    }
 
-   if (!egl_surface_base_init_aux_bufs(surface))
+   if (surface->width && surface->height &&
+      !surface_base_init_aux_bufs(surface))
       return EGL_BAD_ALLOC;
 
    if (vcos_mutex_create(&surface->lock, "EGL Surface") != VCOS_SUCCESS)
@@ -222,7 +244,7 @@ EGLint egl_surface_base_init(EGL_SURFACE_T *surface,
 void egl_surface_base_destroy(EGL_SURFACE_T *surface)
 {
    KHRN_MEM_ASSIGN(surface->age_damage_state.damage_rects, NULL);
-   egl_surface_base_delete_aux_bufs(surface);
+   surface_base_delete_aux_bufs(surface);
    vcos_mutex_delete(&surface->lock);
 }
 
@@ -276,64 +298,15 @@ EGLint egl_surface_base_get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint
       return EGL_SUCCESS;
 
    case EGL_WIDTH:
-      {
-         if (surface->type == EGL_SURFACE_TYPE_NATIVE_WINDOW)
-         {
-            khrn_image *back_buffer = egl_surface_get_back_buffer(surface);
-
-            if (back_buffer)
-            {
-               unsigned width;
-               khrn_image_get_dimensions(back_buffer, &width, NULL, NULL, NULL);
-               *value = width;
-            }
-            else
-               *value = surface->width;
-         }
-         else
-            *value = surface->width;
-
-      }
+      *value = surface->width;
       return EGL_SUCCESS;
 
    case EGL_HEIGHT:
-      {
-         if (surface->type == EGL_SURFACE_TYPE_NATIVE_WINDOW)
-         {
-            khrn_image *back_buffer = egl_surface_get_back_buffer(surface);
-
-            if (back_buffer)
-            {
-               unsigned height;
-               khrn_image_get_dimensions(back_buffer, NULL, &height, NULL, NULL);
-               *value = height;
-            }
-            else
-               *value = surface->height;
-         }
-         else
-            *value = surface->height;
-      }
+      *value = surface->height;
       return EGL_SUCCESS;
 
    case EGL_BUFFER_AGE_EXT:
-      {
-         if (surface->type == EGL_SURFACE_TYPE_NATIVE_WINDOW && !khrn_options.disable_buffer_age)
-         {
-            EGL_CONTEXT_T *context = egl_thread_get_context();
-            if (!context || context->draw != surface)
-               return EGL_BAD_SURFACE;
-
-            EGL_BUFFER_AGE_DAMAGE_STATE_T *state = &surface->age_damage_state;
-
-            state->buffer_age_queried = true; // Queried this frame
-            state->buffer_age_enabled = true;
-
-            *value = state->buffer_age_override;
-         }
-         else
-            *value = 0;  // Non-postable buffers have age 0
-      }
+      *value = 0;  // Non-postable buffers have age 0
       log_trace("Buffer age query = %d", *value);
       return EGL_SUCCESS;
 
@@ -464,7 +437,34 @@ EGLint egl_surface_base_set_attrib(EGL_SURFACE_T *surface,
    }
 }
 
-bool egl_surface_base_init_aux_bufs(EGL_SURFACE_T *surface)
+GFX_LFMT_T egl_surface_base_get_back_buffer_api_fmt(
+      const EGL_SURFACE_T *surface)
+{
+   return surface->config->color_api_fmt;
+}
+
+GFX_LFMT_T egl_surface_base_get_aux_buffer_api_fmt(
+      const EGL_SURFACE_T *surface, egl_aux_buf_t which)
+{
+   assert(which < AUX_MAX);
+   switch (which)
+   {
+   case AUX_DEPTH:
+      return surface->config->depth_stencil_api_fmt;
+   case AUX_STENCIL:
+      if (surface->config->depth_stencil_api_fmt != GFX_LFMT_NONE &&
+            gfx_lfmt_has_stencil(surface->config->depth_stencil_api_fmt))
+         return surface->config->depth_stencil_api_fmt;
+      else
+         return surface->config->stencil_api_fmt;
+   case AUX_MULTISAMPLE:
+      return egl_surface_base_get_back_buffer_api_fmt(surface);
+   default:
+      return GFX_LFMT_NONE;
+   }
+}
+
+static bool surface_base_init_aux_bufs(EGL_SURFACE_T *surface)
 {
    const EGL_CONFIG_T *config = surface->config;
    GFX_LFMT_T color_format = egl_api_fmt_to_lfmt(config->color_api_fmt, config->x_padded);
@@ -581,7 +581,7 @@ khrn_image *egl_surface_base_get_aux_buffer(const EGL_SURFACE_T *surface,
    return surface->aux_bufs[which].image;
 }
 
-void egl_surface_base_delete_aux_bufs(EGL_SURFACE_T *surface)
+static void surface_base_delete_aux_bufs(EGL_SURFACE_T *surface)
 {
    egl_aux_buf_t i;
 
@@ -589,5 +589,21 @@ void egl_surface_base_delete_aux_bufs(EGL_SURFACE_T *surface)
    {
       KHRN_MEM_ASSIGN(surface->aux_bufs[i].image, NULL);
       memset(surface->aux_bufs + i, 0, sizeof (EGL_AUX_BUF_T));
+   }
+}
+
+extern bool egl_surface_base_resize(EGL_SURFACE_T *surface,
+      unsigned width, unsigned height)
+{
+   if (surface->width != width || surface->height != height)
+   {
+      surface_base_delete_aux_bufs(surface);
+      surface->width = width;
+      surface->height = height;
+      return surface_base_init_aux_bufs(surface);
+   }
+   else
+   {
+      return true; /* nothing to do */
    }
 }

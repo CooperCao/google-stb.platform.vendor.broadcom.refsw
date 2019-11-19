@@ -322,6 +322,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetExtraSettings(
     )
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
+    bool changed = false;
 
     BDBG_ASSERT(output);
     BDBG_ASSERT(pSettings);
@@ -341,12 +342,18 @@ NEXUS_Error NEXUS_HdmiOutput_SetExtraSettings(
         {
             BDBG_WRN(("%s drm info frame override", pSettings->overrideDynamicRangeMasteringInfoFrame ? "Engaging" : "Releasing"));
         }
-        output->displaySettings.valid = false;
+        changed = true;
     }
 
     BKNI_Memcpy(&output->extraSettings, pSettings, sizeof(*pSettings));
 
-    NEXUS_HdmiOutput_P_NotifyDisplay(output);
+    if (changed)
+    {
+        /* ensure we don't make any decisions based on display settings until display updates them */
+        NEXUS_HdmiOutput_P_SetDisplaySettingsValidity(output, false);
+        /* notify display that we've changed drm settings, which should re-set the display settings *and* update AVIIF */
+        NEXUS_HdmiOutput_P_NotifyDisplay(output);
+    }
 
     return rc;
 }

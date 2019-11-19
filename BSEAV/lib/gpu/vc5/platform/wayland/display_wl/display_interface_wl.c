@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "display_interface_wl.h"
 
@@ -46,7 +46,7 @@ static bool add_display_item(WlDisplayInterface *self,
 static int remove_display_item(WlDisplayInterface *self,
       struct wl_buffer *wl_buffer)
 {
-   int fence = self->fence_interface->invalid_fence;
+   int fence = INVALID_FENCE;
    pthread_mutex_lock(&self->mutex);
    for (unsigned i = 0; i < self->buffers; i++)
    {
@@ -54,7 +54,7 @@ static int remove_display_item(WlDisplayInterface *self,
       {
          fence = self->displayed[i].fence;
          self->displayed[i].buffer = NULL;
-         self->displayed[i].fence = self->fence_interface->invalid_fence;
+         self->displayed[i].fence = INVALID_FENCE;
          break;
       }
    }
@@ -63,6 +63,7 @@ static int remove_display_item(WlDisplayInterface *self,
 }
 
 static DisplayInterfaceResult display(void *context, void *surface,
+      const WindowInfo *windowInfo,
       int render_fence, bool create_display_fence, int *display_fence)
 {
    WlDisplayInterface *self = (WlDisplayInterface *)context;
@@ -78,7 +79,7 @@ static DisplayInterfaceResult display(void *context, void *surface,
       assert(added);
    }
    else
-      *display_fence = self->fence_interface->invalid_fence;
+      *display_fence = INVALID_FENCE;
 
    if (DisplayWlSharedBuffer(&self->window, &buffer->buffer, buffer->dx,
          buffer->dy))
@@ -120,7 +121,7 @@ static void stop(void *context)
    for (unsigned i = 0; i < self->buffers; i++)
    {
       FenceInterface_Signal(self->fence_interface, self->displayed[i].fence);
-      self->displayed[i].fence = self->fence_interface->invalid_fence;
+      self->displayed[i].fence = INVALID_FENCE;
    }
 }
 
@@ -138,7 +139,7 @@ bool DisplayInterface_InitWayland(DisplayInterface *di, WlClient *client,
       pthread_mutex_init(&self->mutex, NULL);
       self->buffers = buffers;
       for (unsigned i = 0; i < buffers; i++)
-         self->displayed[i].fence = fi->invalid_fence;
+         self->displayed[i].fence = INVALID_FENCE;
 
       di->base.context = self;
       di->base.destroy = destroy;

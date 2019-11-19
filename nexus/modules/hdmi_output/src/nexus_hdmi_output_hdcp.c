@@ -1410,13 +1410,13 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
         goto done ;
     }
 
-    /* Check post timer to detect whether we're in the middle of a format change */
-    if (handle->postFormatChangeTimer)
+    /* Check if we need to defer starting HDCP. If we decide to, Nexus must guarantee to call back to this function when the condition is met. */
+    if (handle->postFormatChangeTimer || !handle->displayEnabled)
     {
-    	 BDBG_LOG(("%s: Going through format change, authentication will be started once format change completed", BSTD_FUNCTION));
-    	 handle->hdcpRequiredPostFormatChange = true;
-    	 errCode = NEXUS_NOT_AVAILABLE;
-    	 goto done;
+        BDBG_LOG(("Deferring StartHdcp: format change %u, displayEnabled %u", handle->postFormatChangeTimer!=NULL, handle->displayEnabled));
+        handle->startHdcpDeferred = true;
+        errCode = NEXUS_NOT_AVAILABLE;
+        goto done;
     }
 
     /* Check for device */
@@ -1534,7 +1534,7 @@ NEXUS_Error NEXUS_HdmiOutput_DisableHdcpAuthentication(
     if (IS_ALIAS(handle)) return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 
     /* Do not restart HDCP after formatChange since application wants to disable HDCP */
-    handle->hdcpRequiredPostFormatChange = false ;
+    handle->startHdcpDeferred = false ;
 
     if ( handle->hdcpFailedStartTimer )
     {
@@ -1891,6 +1891,11 @@ NEXUS_Error NEXUS_HdmiOutput_GetHdcpStatus(
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
     pStatus->hdcpState = NEXUS_HdmiOutputHdcpState_eUnauthenticated ;
+    if (!handle->hdcpStarted) {
+        pStatus->hdcpError = NEXUS_HdmiOutputHdcpError_eSuccess;
+        return NEXUS_SUCCESS;
+    }
+
     pStatus->hdcpError = NEXUS_HdmiOutputHdcpError_eRxBksvError;
 
     if (! NEXUS_HdmiOutput_P_IsRxPowered_isrsafe(handle))
@@ -1902,6 +1907,8 @@ NEXUS_Error NEXUS_HdmiOutput_GetHdcpStatus(
     errCode = BHDM_HDCP_GetHdcpVersion(handle->hdmHandle, &eHdcpVersion);
     /* default to HDCP 1.x if HDCP Version cannot be read from the Rx */
     if (errCode != BERR_SUCCESS) {
+        /* print error, but keep going because some HDCP 1.x devices do not properly report 2.2 support */
+        BERR_TRACE(errCode);
         eHdcpVersion = BHDM_HDCP_Version_e1_1;
     }
     pStatus->rxMaxHdcpVersion = (eHdcpVersion == BHDM_HDCP_Version_e2_2) ?

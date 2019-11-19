@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -777,6 +777,10 @@ struct NEXUS_Transport_P_State {
 #if !NEXUS_USE_SW_FILTER
         unsigned bank_refcnt[BXPT_NUM_FILTER_BANKS];
 #endif
+#if BXPT_P_MESG_FIXED_SIZE_BUFFERS
+    unsigned fixedSize[NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES];
+    bool bufferAllocated[NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES];
+#endif
     } message;
 #if BXPT_HAS_WAKEUP_PKT_SUPPORT
     struct {
@@ -973,6 +977,9 @@ void NEXUS_TransportRsCapture_Stop(NEXUS_TransportRsCapture *cap);
 void NEXUS_P_ConfigGisbBlocker(uint32_t start, uint32_t end, bool on);
 #endif
 
+#if BXPT_P_MESG_FIXED_SIZE_BUFFERS
+void NEXUS_Message_P_ConfigBufferSizes(void);
+#endif
 #ifdef __cplusplus
 }
 #endif

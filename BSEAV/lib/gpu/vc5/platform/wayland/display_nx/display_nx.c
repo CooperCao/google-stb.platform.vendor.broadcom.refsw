@@ -32,12 +32,11 @@
 #error Wayland platform requires multi-process mode!
 #endif
 
-typedef struct WLPL_NexusWindow
+typedef struct WindowState
 {
-   DisplayInterface display_interface;
    NXPL_NativeWindow *native_window;
    DisplayFramework display_framework;
-} WLPL_NexusWindow;
+} WindowState;
 
 typedef struct WLPL_NexusDisplay
 {
@@ -48,8 +47,6 @@ typedef struct WLPL_NexusDisplay
    BEGL_Error (*SurfaceRelease)(void *context, uint32_t target,
          uint32_t plane, BEGL_NativeBuffer buffer);
 
-   FenceInterface fence_interface;
-   SurfaceInterface surface_interface;
    WlDisplayBinding binding;
 } WLPL_NexusDisplay;
 
@@ -60,41 +57,19 @@ static WLPL_NexusDisplay *ToWlplNexusDisplay(NXPL_DisplayContext *context)
    return display;
 }
 
-static BEGL_Error NxWindowGetInfo(void *context, void *nativeWindow,
-      BEGL_WindowInfoFlags flags, BEGL_WindowInfo *info)
-{
-   UNUSED(context);
-   WLPL_NexusWindow *window = (WLPL_NexusWindow *)nativeWindow;
-   NXPL_NativeWindow *nw = window->native_window;
-
-   if (nw != NULL)
-   {
-      if (flags & BEGL_WindowInfoWidth)
-         info->width = nw->windowInfo.width;
-      if (flags & BEGL_WindowInfoHeight)
-         info->height = nw->windowInfo.height;
-
-      if (flags & BEGL_WindowInfoSwapChainCount)
-         info->swapchain_count = nw->numSurfaces;
-
-      return BEGL_Success;
-   }
-
-   return BEGL_Fail;
-}
-
 static BEGL_SwapchainBuffer NxGetNextSurface(void *context, void *nativeWindow,
       BEGL_BufferFormat format, bool secure,
       int *age, int *fence)
 {
    WLPL_NexusDisplay *display = ToWlplNexusDisplay(context);
-   WLPL_NexusWindow *window = (WLPL_NexusWindow *)nativeWindow;
+   WindowState *state = (WindowState *)nativeWindow;
 
-   if (window == NULL)
+   if (state == NULL)
       return NULL;
 
    NXPL_Surface *nxpl_surface = DisplayFramework_GetNextSurface(
-         &window->display_framework, format, secure, age, fence);
+         &state->display_framework, format, secure, age, fence,
+         (WindowInfo *)&state->native_window->windowInfo);
 
    return (BEGL_SwapchainBuffer)nxpl_surface;
 }
@@ -103,11 +78,11 @@ static BEGL_Error NxDisplaySurface(void *context, void *nativeWindow,
       BEGL_SwapchainBuffer nativeSurface, int fence, int interval)
 {
    UNUSED(context);
-   WLPL_NexusWindow *window = (WLPL_NexusWindow *)nativeWindow;
-   if (window && nativeSurface)
+   WindowState *state = (WindowState *)nativeWindow;
+   if (state && nativeSurface)
    {
-      DisplayFramework_DisplaySurface(&window->display_framework, nativeSurface,
-            fence, interval);
+      DisplayFramework_DisplaySurface(&state->display_framework, nativeSurface,
+            fence, interval, (WindowInfo *)&state->native_window->windowInfo);
       return BEGL_Success;
    }
    else
@@ -118,7 +93,7 @@ static BEGL_Error NxCancelSurface(void *context, void *nativeWindow,
       BEGL_SwapchainBuffer nativeSurface, int fence)
 {
    UNUSED(context);
-   WLPL_NexusWindow *state = (WLPL_NexusWindow *)nativeWindow;
+   WindowState *state = (WindowState *)nativeWindow;
    if (state && nativeSurface)
    {
       DisplayFramework_CancelSurface(&state->display_framework, nativeSurface,
@@ -132,17 +107,21 @@ static BEGL_Error NxCancelSurface(void *context, void *nativeWindow,
 static BEGL_Error NxWindowPlatformStateDestroy(void *context, void *windowState)
 {
    NXPL_DisplayContext *ctx = (NXPL_DisplayContext *)context;
-   WLPL_NexusWindow *window = (WLPL_NexusWindow *)windowState;
+   WindowState *state = (WindowState *)windowState;
 
-   if (window)
+   if (state)
    {
-      DisplayFramework_Stop(&window->display_framework);
-      Interface_Destroy(&window->display_interface.base);
+      DisplayFramework *df = (DisplayFramework *)&state->display_framework;
+      DisplayFramework_Stop(df);
+      Interface_Destroy(&df->display_interface.base);
+      Interface_Destroy(&df->surface_interface.base);
+      Interface_Destroy(&df->fence_interface.base);
+
 #ifndef NDEBUG
       /* catch some cases of use after free */
-      memset(window, 0, sizeof(*window));
+      memset(state, 0, sizeof(*state));
 #endif
-      free(window);
+      free(state);
    }
    return BEGL_Success;
 }
@@ -152,33 +131,36 @@ static void *NxWindowPlatformStateCreate(void *context, void *native)
    NXPL_DisplayContext *ctx = (NXPL_DisplayContext *)context;
    WLPL_NexusDisplay *display = ToWlplNexusDisplay(ctx);
    NXPL_NativeWindow *nw = (NXPL_NativeWindow*)native;
+   WindowState *state = NULL;
+   unsigned buffers = MAX_SWAP_BUFFERS;
 
-   WLPL_NexusWindow *window = NULL;
+   char *val = getenv("V3D_DOUBLE_BUFFER");
+   if (val && (val[0] == 't' || val[0] == 'T' || val[0] == '1'))
+      buffers = 2;
 
    if (display && nw)
    {
-      window = calloc(1, sizeof(*window));
-      if (window)
+      state = calloc(1, sizeof(*state));
+      if (state)
       {
-         DisplayInterface_InitNexusMulti(&window->display_interface,
-               &display->fence_interface, &nw->windowInfo, ctx->displayType,
-               nw->numSurfaces, nw->clientID, nw->surfaceClient, ctx->eventContext);
+         DisplayFramework *df = (DisplayFramework *)&state->display_framework;
+         InitFenceInterface(&df->fence_interface, ctx->schedIface);
+         SurfaceInterface_InitNexus(&df->surface_interface);
 
-         window->native_window = nw;
+         DisplayInterface_InitNexusMulti(&df->display_interface,
+               &df->fence_interface,
+               buffers, nw, ctx->eventContext);
 
-         if (!DisplayFramework_Start(&window->display_framework,
-               &window->display_interface, &display->fence_interface,
-               &display->surface_interface,
-               window->native_window->windowInfo.width,
-               window->native_window->windowInfo.height,
-               window->native_window->numSurfaces))
+         state->native_window = nw;
+
+         if (!DisplayFramework_Start(df, buffers))
          {
-            NxWindowPlatformStateDestroy(context, window);
-            window = NULL;
+            NxWindowPlatformStateDestroy(context, state);
+            state = NULL;
          }
       }
    }
-   return window;
+   return state;
 }
 
 static const char *NxGetDisplayExtensions(void *context)
@@ -320,7 +302,6 @@ BEGL_DisplayInterface *WLPL_CreateNexusDisplayInterface(
       iface = CreateDisplayInterface(NULL, &display->parent, schedIface, eventContext);
    if (iface)
    {
-      iface->WindowGetInfo                = NxWindowGetInfo;
       iface->GetNextSurface               = NxGetNextSurface;
       iface->DisplaySurface               = NxDisplaySurface;
       iface->CancelSurface                = NxCancelSurface;
@@ -339,9 +320,6 @@ BEGL_DisplayInterface *WLPL_CreateNexusDisplayInterface(
 
       display->SurfaceRelease = iface->SurfaceRelease;
       iface->SurfaceRelease = NxSurfaceRelease;
-
-      InitFenceInterface(&display->fence_interface, schedIface);
-      SurfaceInterface_InitNexus(&display->surface_interface);
    }
    else
    {
@@ -356,9 +334,6 @@ void WLPL_DestroyNexusDisplayInterface(BEGL_DisplayInterface *iface)
    if (iface)
    {
       WLPL_NexusDisplay *display = ToWlplNexusDisplay(iface->context);
-
-      Interface_Destroy(&display->surface_interface.base);
-      Interface_Destroy(&display->fence_interface.base);
       DestroyDisplayInterface(iface); /* inherited from NXPL */
       free(display);
    }

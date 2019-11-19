@@ -1,6 +1,6 @@
 /***************************************************************************
- *  Copyright (C) 2018 Broadcom.
- *  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2019 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to
@@ -47,9 +47,10 @@ extern "C" {
 #endif
 
 /* macros used in transport API. do not add internal-only macros here. */
-#define NEXUS_MAX_PARSER_BANDS 24
-#define NEXUS_MAX_PLAYPUMPS    32
-#define NEXUS_MAX_REMUX        2
+#define NEXUS_MAX_PARSER_BANDS      24
+#define NEXUS_MAX_PLAYPUMPS         32
+#define NEXUS_MAX_REMUX             2
+#define NEXUS_NUM_MESSAGE_FIXED_BUFFER_SIZE_ENTRIES   10
 
 /**
 Summary:
@@ -58,7 +59,7 @@ Query the capabilities of this chip.
 Description:
 Used in NEXUS_GetTransportCapabilities
 **/
-typedef struct NEXUS_TransportCapabilities 
+typedef struct NEXUS_TransportCapabilities
 {
     unsigned numInputBands; /* This is actually a max. Valid input bands are in range 0..numInputBands-1, but
                                there the total number of usable input bands in that range may be < numInputBands. */
@@ -114,6 +115,12 @@ void NEXUS_GetTransportStatus(
     NEXUS_TransportStatus *pStatus
     );
 
+typedef struct NEXUS_MessageFixedBufferSize {
+      unsigned startIndex;    /* First buffer with the given size */
+      unsigned count;      /* Number of buffer needed with this size. Set to 0 if unused. */
+      unsigned bufferSize;  /* The size, in bytes. See the Nexus API definition */
+} NEXUS_MessageFixedBufferSize;
+
 typedef struct NEXUS_TransportModuleSettings {
     NEXUS_CommonModuleSettings common;
     bool dssSaveMptFlag; /* if true, the DSS MPT flag will be put in the front of the reconstructed message.
@@ -155,6 +162,15 @@ typedef struct NEXUS_TransportModuleSettings {
 
     unsigned syncInCount; /* see BXPT_DefaultSettings for details */
     unsigned syncOutCount;
+
+    /* Map of sizes for the message filter buffers. Used only on certain chips. The count field will be
+    initialized to 0 on chips that do not use this.
+    To set 0 through 9 to 16kB, set the array entry as follows:
+      fixedBufferSizes[0].startIndex = 0;
+      fixedBufferSizes[0].count = 10;
+      fixedBufferSizes[0].bufferSize = 16 * 1024;
+    */
+    NEXUS_MessageFixedBufferSize messageFixedBufferSize[NEXUS_NUM_MESSAGE_FIXED_BUFFER_SIZE_ENTRIES];
 } NEXUS_TransportModuleSettings;
 
 /**
@@ -169,6 +185,7 @@ typedef struct NEXUS_TransportModuleStatus
         NEXUS_PowerStatus tsio;
     } power;
 } NEXUS_TransportModuleStatus;
+
 #ifdef __cplusplus
 }
 #endif

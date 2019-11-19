@@ -1,11 +1,10 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 
 #include "wlwindow.h"
 
 #include "wlworker.h"
-#include "wayland_egl/wayland_egl_priv.h"
 #include "default_wayland.h"
 
 #include <stdio.h>
@@ -34,7 +33,6 @@ WlWindow::WlWindow(struct WlClient *client, wl_egl_window *window, unsigned swap
    m_windowDy = m_wlEglWindow->dy;
    m_wlEglWindow->callback_private = this;
    m_wlEglWindow->resize_callback = ResizeCb;
-   m_wlEglWindow->get_attached_size_callback = GetAttachedSizeCb;
    m_wlEglWindow->destroy_window_callback = DestroyWindowCb;
 
    for (unsigned i = 0; i < swapbuffers; i++)
@@ -66,6 +64,8 @@ std::unique_ptr<WlBitmap> WlWindow::PopFreeQ(BEGL_BufferFormat format)
       // when the buffer is going to be displayed.
       tmp->SetWindowDisplacement(m_windowDx, m_windowDy);
       m_windowDx = m_windowDy = 0;
+      m_wlEglWindow->attached_width = tmp->GetExtent2D().GetWidth();
+      m_wlEglWindow->attached_height = tmp->GetExtent2D().GetHeight();
       bitmap = std::move(tmp);
    }
    return bitmap;
@@ -85,7 +85,6 @@ void WlWindow::DisplayNextBuffer()
       DisplayWlSharedBuffer(&m_window, &dispItem->m_bitmap->GetWlBuffer(),
             dispItem->m_bitmap->GetWindowDx(),
             dispItem->m_bitmap->GetWindowDy());
-      m_attachedSize = dispItem->m_bitmap->GetExtent2D();
       dispItem->m_bitmap->SetWindowDisplacement(0, 0);
 
       m_withWayland.push_back(std::move(dispItem->m_bitmap));
@@ -120,15 +119,6 @@ void WlWindow::Resize(struct wl_egl_window *egl_window)
    m_windowDy = egl_window->dy;
 }
 
-void WlWindow::GetAttachedSize(struct wl_egl_window *egl_window)
-{
-   assert(egl_window == m_wlEglWindow);
-
-   std::lock_guard<std::mutex> lock(m_displayMutex);
-   egl_window->attached_width = m_attachedSize.GetWidth();
-   egl_window->attached_height = m_attachedSize.GetHeight();
-}
-
 void WlWindow::DestroyWindow()
 {
    delete m_worker; //before the DestroyWlWindow()
@@ -137,7 +127,6 @@ void WlWindow::DestroyWindow()
    DestroyWlWindow(&m_window);
 
    m_wlEglWindow->resize_callback = NULL;
-   m_wlEglWindow->get_attached_size_callback = NULL;
    m_wlEglWindow->destroy_window_callback = NULL;
    m_wlEglWindow->callback_private = NULL;
 }

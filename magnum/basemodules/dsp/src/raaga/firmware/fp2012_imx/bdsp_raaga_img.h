@@ -77,6 +77,8 @@ extern const void * BDSP_IMG_video_encode_task_code [];
 extern const void * BDSP_IMG_cdb_passthru_code[];
 extern const void * BDSP_IMG_cdb_passthru_tables[];
 extern const void * BDSP_IMG_cdb_passthru_inter_frame[];
+extern const void * BDSP_IMG_pcmwav_ids[];
+extern const void * BDSP_IMG_pcmwav_ids_inter_frame[];
 
 /* Passthru AC3/MPEG/DDP/DTS/AAC even without license */
 #ifdef  BDSP_AC3_PASSTHRU_SUPPORT
@@ -399,8 +401,6 @@ extern const void * BDSP_IMG_dolby_volume_inter_frame[];
 #ifdef BDSP_PCMWAV_SUPPORT
 extern const void * BDSP_IMG_pcmwav_decode[];
 extern const void * BDSP_IMG_pcmwav_decode_inter_frame[];
-extern const void * BDSP_IMG_pcmwav_ids[];
-extern const void * BDSP_IMG_pcmwav_ids_inter_frame[];
 #endif
 
 #ifdef BDSP_FADECTRL_SUPPORT

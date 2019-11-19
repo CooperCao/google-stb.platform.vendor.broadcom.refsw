@@ -1,4 +1,4 @@
- /******************************************************************************
+/******************************************************************************
  * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
@@ -49,6 +49,7 @@ BDBG_MODULE(nexus_message);
 #include "bxpt_interrupt.h"
 
 #define BDBG_MSG_TRACE(X) /* BDBG_MSG(X) */
+
 
 static NEXUS_Error NEXUS_Message_P_ReadComplete(NEXUS_MessageHandle msg, size_t amountConsumed);
 
@@ -127,6 +128,67 @@ static void NEXUS_Message_P_CheckTimer(void *context)
 }
 #endif
 
+BXPT_MessageBufferSize bufferSizeToEnum(unsigned bufferSize)
+{
+     unsigned bSize, temp;
+     BXPT_MessageBufferSize bufferSizeEnum;
+
+     /* calculate actual bufferSize as a log of 2 */
+     bufferSizeEnum = BXPT_MessageBufferSize_e1kB;
+     bSize = 1024;
+     temp = bufferSize / 1024;
+     while (temp > 1 && bSize < 512*1024)
+     {
+         temp /= 2; /* throw away remainder */
+         bufferSizeEnum++;
+         bSize *= 2;
+     }
+         BDBG_ASSERT(bufferSizeEnum <= BXPT_MessageBufferSize_e512kB);
+#ifndef BXPT_P_MESG_FIXED_SIZE_BUFFERS
+         if (bSize < bufferSize) {
+             BDBG_WRN(("only %d out of %d bytes of message buffer will be used.", bSize, bufferSize));
+         }
+#endif
+     return bufferSizeEnum;
+}
+
+#if BXPT_P_MESG_FIXED_SIZE_BUFFERS
+#include "bchp_xpt_msg.h"
+
+/* ARRAY_ELEMENT_SIZE is the size of the register in bits. */
+#define MSG_SIZE_REG_STEP (BCHP_XPT_MSG_BUF_CTRL3_TABLE_i_ARRAY_ELEMENT_SIZE / 8)
+
+void NEXUS_Message_P_ConfigBufferSizes(void)
+{
+   unsigned i, j;
+
+   BDBG_ASSERT(NEXUS_NUM_MESSAGE_FIXED_BUFFER_SIZE_ENTRIES <= BCHP_XPT_MSG_BUF_CTRL3_TABLE_i_ARRAY_END);
+
+   for (i = 0; i < NEXUS_NUM_MESSAGE_FIXED_BUFFER_SIZE_ENTRIES; i++) {
+      struct NEXUS_MessageFixedBufferSize *p = &pTransport->settings.messageFixedBufferSize[i];
+
+      if (p->count) {
+     unsigned count;
+     for (j = p->startIndex, count = 0; count < p->count; j++, count++) {
+        uint32_t regAddr, reg, bufferSize;
+
+        BDBG_ASSERT(j <= BCHP_XPT_MSG_BUF_CTRL3_TABLE_i_ARRAY_END);
+
+        /* Writes to this register bank by the PI are disabled when this workaround is enabled. */
+        bufferSize = bufferSizeToEnum(p->bufferSize);
+        regAddr = BCHP_XPT_MSG_BUF_CTRL3_TABLE_i_ARRAY_BASE + (j * MSG_SIZE_REG_STEP);
+        reg = BREG_Read32(g_pCoreHandles->reg, regAddr);
+        BCHP_SET_FIELD_DATA(reg, XPT_MSG_BUF_CTRL3_TABLE_i, BP_BUFFER_SIZE, bufferSize);
+        BREG_Write32(g_pCoreHandles->reg, regAddr, reg);
+
+        /* Note the size in the handle struct, for checking during _Start() */
+        pTransport->message.fixedSize[j] = p->bufferSize;
+     }
+      }
+   }
+}
+#endif
+
 NEXUS_MessageHandle NEXUS_Message_Open(const NEXUS_MessageSettings *pSettings)
 {
     BERR_Code rc;
@@ -150,6 +212,45 @@ NEXUS_MessageHandle NEXUS_Message_Open(const NEXUS_MessageSettings *pSettings)
 
     heap = NEXUS_P_DefaultHeap(NULL, NEXUS_DefaultHeapType_eFull);
 
+    /* must keep track of Message handles in order to route interrupts back out to Message handles */
+#if BXPT_P_MESG_FIXED_SIZE_BUFFERS
+    /* Find a free handle */
+    for (i=0;i<NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES;i++) {
+        if (!pTransport->message.handle[i]) {
+            break;
+        }
+    }
+    if (i == NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES) {
+       BDBG_ERR(("You must increase NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES"));
+       goto error;
+    }
+
+    /* Now find a buffer of at least the correct size. */
+    for (msg->MesgBufferNum = 0; msg->MesgBufferNum < NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES; msg->MesgBufferNum++) {
+        if (!pTransport->message.bufferAllocated[msg->MesgBufferNum] && pTransport->message.fixedSize[msg->MesgBufferNum] >= pSettings->bufferSize) {
+           break;
+        }
+    }
+    if (msg->MesgBufferNum == NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES) {
+       BDBG_ERR(("No buffer found for the size requested. Update messageFixedBufferSize"));
+       goto error;
+    }
+    pTransport->message.bufferAllocated[msg->MesgBufferNum] = true;
+#else
+    for (i=0;i<NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES;i++) {
+        if (!pTransport->message.handle[i]) {
+            break;
+        }
+    }
+
+    if (i == NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES) {
+        BDBG_ERR(("You must increase NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES"));
+        goto error;
+    }
+
+    /* Use the index in the pTransport->message.handle[] array as the physical MesgBufferNum. */
+    msg->MesgBufferNum = i;
+#endif
 #define MAX_MSG_SIZE (512*1024)
     if (pSettings->bufferSize > MAX_MSG_SIZE) {
         void *temp;
@@ -169,7 +270,13 @@ NEXUS_MessageHandle NEXUS_Message_Open(const NEXUS_MessageSettings *pSettings)
         hwBufferSize = MAX_MSG_SIZE;
     }
     else {
+#if BXPT_P_MESG_FIXED_SIZE_BUFFERS
+        /* Caller may have requested a 0-sized buffer, meaning the real size will be given at _Start().
+    In that case, don't allocate a buffer here.  */
+        hwBufferSize = !pSettings->bufferSize ? 0 : pTransport->message.fixedSize[msg->MesgBufferNum];
+#else
         hwBufferSize = pSettings->bufferSize;
+#endif
     }
 
     if (hwBufferSize) {
@@ -209,19 +316,6 @@ NEXUS_MessageHandle NEXUS_Message_Open(const NEXUS_MessageSettings *pSettings)
             goto error;
         }
     }
-
-    /* must keep track of Message handles in order to route interrupts back out to Message handles */
-    for (i=0;i<NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES;i++) {
-        if (!pTransport->message.handle[i]) {
-            break;
-        }
-    }
-    if (i == NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES) {
-        BDBG_ERR(("You must increase NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES"));
-        goto error;
-    }
-    /* Use the index in the pTransport->message.handle[] array as the physical MesgBufferNum. */
-    msg->MesgBufferNum = i;
 
     msg->dataReady = NEXUS_IsrCallback_Create(msg, NULL);
     if(!msg->dataReady) { rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);goto error;}
@@ -288,6 +382,9 @@ static void NEXUS_Message_P_Finalizer(NEXUS_MessageHandle msg)
         BKNI_EnterCriticalSection();
         /* barrier to protect against isr which is already running from accessing this handle */
         pTransport->message.handle[i] = NULL;
+#if BXPT_P_MESG_FIXED_SIZE_BUFFERS
+    pTransport->message.bufferAllocated[msg->MesgBufferNum] = false;
+#endif
         BKNI_LeaveCriticalSection();
     }
     /* call this after message.handle[] is cleared.
@@ -423,6 +520,25 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
                 return BERR_TRACE(NEXUS_INVALID_PARAMETER);
             }
         }
+
+#if BXPT_P_MESG_FIXED_SIZE_BUFFERS
+        if (pStartSettings->bufferSize >= msg->settings.bufferSize) {
+       /* Mark the previous filter hw as free. */
+       pTransport->message.bufferAllocated[msg->MesgBufferNum] = false;
+
+       /* Now find a buffer of at least the correct size. */
+       for (msg->MesgBufferNum = 0; msg->MesgBufferNum < NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES; msg->MesgBufferNum++) {
+           if (!pTransport->message.bufferAllocated[msg->MesgBufferNum] && pTransport->message.fixedSize[msg->MesgBufferNum] >= pStartSettings->bufferSize) {
+          break;
+           }
+       }
+       if (msg->MesgBufferNum == NEXUS_TRANSPORT_MAX_MESSAGE_HANDLES) {
+          BDBG_ERR(("No buffer found for the size requested. Update messageFixedBufferSize"));
+          return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+       }
+       pTransport->message.bufferAllocated[msg->MesgBufferNum] = true;
+        }
+#endif
     }
 
     msg->startSettings = *pStartSettings;
@@ -462,22 +578,7 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
         bufferSizeEnum = BXPT_MessageBufferSize_e512kB;
     }
     else {
-        unsigned bSize, temp;
-
-        /* calculate actual bufferSize as a log of 2 */
-        bufferSizeEnum = BXPT_MessageBufferSize_e1kB;
-        bSize = 1024;
-        temp = msg->bufferSize / 1024;
-        while (temp > 1 && bSize < 512*1024)
-        {
-            temp /= 2; /* throw away remainder */
-            bufferSizeEnum++;
-            bSize *= 2;
-        }
-        BDBG_ASSERT(bufferSizeEnum <= BXPT_MessageBufferSize_e512kB);
-        if (bSize < msg->bufferSize) {
-            BDBG_WRN(("only %d out of %d bytes of message buffer will be used.", bSize, msg->bufferSize));
-        }
+       bufferSizeEnum = bufferSizeToEnum(msg->bufferSize);
     }
 
     rc = BXPT_Mesg_SetPidChannelBuffer(pTransport->xpt, msg->PidChannelNum, msg->MesgBufferNum, msg->buffer, bufferSizeEnum, NEXUS_MemoryBlock_GetBlock_priv(msg->mmaBlock));
@@ -1235,6 +1336,11 @@ NEXUS_Error NEXUS_Message_SetDssCapPattern( unsigned capFilterIndex, uint32_t pa
 struct NEXUS_Message {
     BDBG_OBJECT(NEXUS_Message)
 };
+
+void NEXUS_Message_P_ConfigMsgSizes(void)
+{
+   return;
+}
 
 void NEXUS_Message_GetDefaultSettings(NEXUS_MessageSettings *pSettings)
 {

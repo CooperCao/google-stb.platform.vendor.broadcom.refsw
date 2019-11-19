@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "display_nexus_multi.h"
 
@@ -18,16 +18,15 @@ typedef struct display
    struct fence_queue         fence_queue;
 
    NEXUS_DISPLAYHANDLE        display;
-   NXPL_DisplayType           displayType;
-   NXPL_DisplayType           prevDisplayType;
+   DisplayType                displayType;
    unsigned int               numSurfaces;
    unsigned int               pushedSurfaces;
-   uint32_t                   clientID;
-   NEXUS_SurfaceClientHandle  surfaceClient;
+   NXPL_NativeWindow         *nw;
 
    void                      *vsyncEvent;
    int                        terminating;
    EventContext              *eventContext;
+
 } display;
 
 static void vsyncCallback(void *context, int param)
@@ -52,7 +51,8 @@ static void recycledCallback(void *context, int param)
    {
       size_t numRecycled = 1;
       NEXUS_SurfaceHandle surface_list[self->numSurfaces];
-      NEXUS_SurfaceClient_RecycleSurface(self->surfaceClient, surface_list, self->numSurfaces, &numRecycled);
+      NXPL_NativeWindow *nw = self->nw;
+      NEXUS_SurfaceClient_RecycleSurface(nw->surfaceClient, surface_list, self->numSurfaces, &numRecycled);
 
       platform_dbg_message_add("%s, numRecycled %zd", __FUNCTION__, numRecycled);
 
@@ -69,8 +69,40 @@ static void recycledCallback(void *context, int param)
    }
 }
 
+static void SetDisplayComposition(display *self, const WindowInfo *windowInfo)
+{
+#if defined(NXCLIENT_SUPPORT)
+   NEXUS_SurfaceComposition comp;
+
+   NXPL_NativeWindow *nw = self->nw;
+   NxClient_GetSurfaceClientComposition(nw->clientID, &comp);
+
+   if (!windowInfo->stretch)
+   {
+      comp.virtualDisplay.width = 0;
+      comp.virtualDisplay.height = 0;
+      comp.position.width = windowInfo->width;
+      comp.position.height = windowInfo->height;
+   }
+   else
+   {
+      comp.virtualDisplay.width = windowInfo->width;
+      comp.virtualDisplay.height = windowInfo->height;
+      comp.position.width = windowInfo->width - (2 * windowInfo->x);
+      comp.position.height = windowInfo->height - (2 * windowInfo->y);
+   }
+   comp.position.x = windowInfo->x;
+   comp.position.y = windowInfo->y;
+   comp.zorder = windowInfo->zOrder;
+   comp.colorBlend = windowInfo->colorBlend;
+   comp.alphaBlend = windowInfo->alphaBlend;
+
+   NxClient_SetSurfaceClientComposition(nw->clientID, &comp);
+#endif
+}
 
 static DisplayInterfaceResult display_surface(void *context, void *s,
+      const WindowInfo *windowInfo,
       int render_fence, bool create_display_fence, int *display_fence)
 {
    UNUSED(create_display_fence);
@@ -82,26 +114,6 @@ static DisplayInterfaceResult display_surface(void *context, void *s,
          self->fenceInterface, &render_fence);
 
    NEXUS_Error err;
-   if (self->prevDisplayType != self->displayType)
-   {
-      NEXUS_SurfaceClientSettings clientSettings;
-      NEXUS_SurfaceClient_GetSettings(self->surfaceClient, &clientSettings);
-      if (self->displayType == NXPL_2D)
-         clientSettings.orientation = NEXUS_VideoOrientation_e2D;
-      else if (self->displayType == NXPL_3D_LEFT_RIGHT)
-         clientSettings.orientation = NEXUS_VideoOrientation_e3D_LeftRight;
-      else if (self->displayType == NXPL_3D_OVER_UNDER)
-         clientSettings.orientation = NEXUS_VideoOrientation_e3D_OverUnder;
-      else
-         FATAL_ERROR("Invalid displayType");
-      clientSettings.allowCompositionBypass = true;
-
-      err = NEXUS_SurfaceClient_SetSettings(self->surfaceClient, &clientSettings);
-      if (err != NEXUS_SUCCESS)
-         FATAL_ERROR("NEXUS_SurfaceClient_SetSettings failed");
-
-      self->prevDisplayType = self->displayType;
-   }
 
    ResetEvent(self->vsyncEvent);
 
@@ -109,7 +121,45 @@ static DisplayInterfaceResult display_surface(void *context, void *s,
 
    platform_dbg_message_add("%s %d - surface = %p", __FUNCTION__, __LINE__, surface);
 
-   err = NEXUS_SurfaceClient_PushSurface(self->surfaceClient, surface, NULL, false);
+   NXPL_NativeWindow *nw = self->nw;
+   if (windowInfo != NULL)
+   {
+      SetDisplayComposition(self, windowInfo);
+      if (self->displayType != windowInfo->type)
+      {
+         NEXUS_SurfaceClientSettings clientSettings;
+         NEXUS_SurfaceClient_GetSettings(nw->surfaceClient, &clientSettings);
+         if (windowInfo->type == _2D)
+            clientSettings.orientation = NEXUS_VideoOrientation_e2D;
+         else if (windowInfo->type == _3D_LEFT_RIGHT)
+            clientSettings.orientation = NEXUS_VideoOrientation_e3D_LeftRight;
+         else if (windowInfo->type == _3D_OVER_UNDER)
+            clientSettings.orientation = NEXUS_VideoOrientation_e3D_OverUnder;
+         else
+            FATAL_ERROR("Invalid displayType");
+         clientSettings.allowCompositionBypass = true;
+
+         err = NEXUS_SurfaceClient_SetSettings(nw->surfaceClient, &clientSettings);
+         if (err != NEXUS_SUCCESS)
+            FATAL_ERROR("NEXUS_SurfaceClient_SetSettings failed");
+
+         self->displayType = windowInfo->type;
+      }
+
+      if (nw->videoClient)
+      {
+         NEXUS_SurfaceClientSettings clientSettings;
+         NEXUS_SurfaceClient_GetSettings(nw->videoClient, &clientSettings);
+         clientSettings.composition.position.x      = windowInfo->videoX;
+         clientSettings.composition.position.y      = windowInfo->videoY;
+         clientSettings.composition.position.width  = windowInfo->videoWidth;
+         clientSettings.composition.position.height = windowInfo->videoHeight;
+         clientSettings.synchronizeGraphics         = true;
+         NEXUS_SurfaceClient_SetSettings(nw->videoClient, &clientSettings);
+      }
+   }
+
+   err = NEXUS_SurfaceClient_PushSurface(nw->surfaceClient, surface, NULL, true);
    if (err == NEXUS_SUCCESS)
    {
       FenceInterface_Create(
@@ -145,18 +195,19 @@ static void stop(void *context)
    if (res != 0)
       FATAL_ERROR("TerminateDisplay called more than once");
 
-   if (self->surfaceClient != NULL)
+   NXPL_NativeWindow *nw = self->nw;
+   if (nw->surfaceClient != NULL)
    {
       NEXUS_SurfaceClientSettings clientSettings;
-      NEXUS_SurfaceClient_GetSettings(self->surfaceClient, &clientSettings);
+      NEXUS_SurfaceClient_GetSettings(nw->surfaceClient, &clientSettings);
 
       clientSettings.vsync.callback = NULL;
       clientSettings.vsync.context = NULL;
 
-      NEXUS_SurfaceClient_SetSettings(self->surfaceClient, &clientSettings);
+      NEXUS_SurfaceClient_SetSettings(nw->surfaceClient, &clientSettings);
 
       /* current surface must be cleared from nxserver */
-      NEXUS_SurfaceClient_Clear(self->surfaceClient);
+      NEXUS_SurfaceClient_Clear(nw->surfaceClient);
    }
 
    DestroyEvent(self->vsyncEvent);
@@ -176,37 +227,6 @@ static void destroy(void *context)
       fence_queue_destroy(&self->fence_queue);
       free(self);
    }
-}
-
-static void SetDisplayComposition(display *self, const NXPL_NativeWindowInfoEXT *windowInfo)
-{
-#if defined(NXCLIENT_SUPPORT)
-   NEXUS_SurfaceComposition comp;
-
-   NxClient_GetSurfaceClientComposition(self->clientID, &comp);
-
-   if (!windowInfo->stretch)
-   {
-      comp.virtualDisplay.width = 0;
-      comp.virtualDisplay.height = 0;
-      comp.position.width = windowInfo->width;
-      comp.position.height = windowInfo->height;
-   }
-   else
-   {
-      comp.virtualDisplay.width = windowInfo->width;
-      comp.virtualDisplay.height = windowInfo->height;
-      comp.position.width = windowInfo->width - (2 * windowInfo->x);
-      comp.position.height = windowInfo->height - (2 * windowInfo->y);
-   }
-   comp.position.x = windowInfo->x;
-   comp.position.y = windowInfo->y;
-   comp.zorder = windowInfo->zOrder;
-   comp.colorBlend = windowInfo->colorBlend;
-   comp.alphaBlend = windowInfo->alphaBlend;
-
-   NxClient_SetSurfaceClientComposition(self->clientID, &comp);
-#endif
 }
 
 static void SetVsyncCallback(NEXUS_SurfaceClientHandle surfaceClient,
@@ -241,9 +261,7 @@ static void SetRecycledCallback(NEXUS_SurfaceClientHandle surfaceClient,
 
 bool DisplayInterface_InitNexusMulti(DisplayInterface *di,
       const FenceInterface *fi,
-      const NXPL_NativeWindowInfoEXT *windowInfo, NXPL_DisplayType displayType,
-      unsigned int numSurfaces, uint32_t clientID,
-      NEXUS_SurfaceClientHandle surfaceClient,
+      unsigned int numSurfaces, NXPL_NativeWindow *nw,
       EventContext *eventContext)
 {
    display *self = calloc(1, sizeof(*self));
@@ -253,22 +271,19 @@ bool DisplayInterface_InitNexusMulti(DisplayInterface *di,
       fence_queue_init(&self->fence_queue, numSurfaces, self->fenceInterface);
       pthread_mutex_init(&self->mutex, NULL);
 
-      self->displayType = displayType;
-      self->prevDisplayType = -1;
+      self->displayType = NXPL_2D;
       self->numSurfaces = numSurfaces;
-      self->clientID = clientID;
-      self->surfaceClient = surfaceClient;
+      self->nw = nw;
       self->display = NULL;
       self->eventContext = eventContext;
 
       /* setup the display & callback */
       self->vsyncEvent = CreateEvent();
 
-      if (self->surfaceClient != NULL)
+      if (nw->surfaceClient != NULL)
       {
-         SetDisplayComposition(self, windowInfo);
-         SetVsyncCallback(self->surfaceClient, vsyncCallback, self);
-         SetRecycledCallback(self->surfaceClient, recycledCallback, self);
+         SetVsyncCallback(nw->surfaceClient, vsyncCallback, self);
+         SetRecycledCallback(nw->surfaceClient, recycledCallback, self);
       }
 
       di->base.context = self;

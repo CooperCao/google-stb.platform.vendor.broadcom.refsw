@@ -325,8 +325,7 @@ struct b_session {
         } version_state;
         bool mute;
         NEXUS_HdmiOutputHdcpError lastHdcpError;
-        NEXUS_HdmiOutputHdcpState prev_state;
-        unsigned prev_state_cnt;
+        unsigned cnt;
         unsigned first_start_timestamp, start_timestamp;
     } hdcp;
 #endif

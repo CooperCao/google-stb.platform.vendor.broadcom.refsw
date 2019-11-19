@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #ifndef __PRIVATE_NEXUS_H__
 #define __PRIVATE_NEXUS_H__
@@ -27,9 +27,6 @@ typedef struct
 {
    /* Main thread data */
    NXPL_NativeWindowInfoEXT   windowInfo;
-   unsigned int               numSurfaces;
-
-   bool                       initialized;
 
 #ifdef NXPL_PLATFORM_EXCLUSIVE
    /* create and delete can overlap, although exclusive access to
@@ -40,6 +37,7 @@ typedef struct
    uint32_t                   clientID;
    /* NSC client handle */
    NEXUS_SurfaceClientHandle  surfaceClient;
+   NEXUS_SurfaceClientHandle  videoClient;
 #ifdef NXCLIENT_SUPPORT
    NxClient_AllocResults      allocResults;
 #endif

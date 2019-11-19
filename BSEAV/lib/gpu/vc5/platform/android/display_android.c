@@ -137,46 +137,6 @@ static BEGL_Error DispGetNativeFormat(void *context, BEGL_BufferFormat format, u
    return BeglToAndroidFormat((int *)nativeFormat, format) ? BEGL_Success : BEGL_Fail;
 }
 
-
-/* Called to determine current size of the window referenced by the opaque window handle.
- * This is needed by EGL in order to know the size of a native 'window'. */
-static BEGL_Error DispWindowGetInfo(void *context,
-                                    void *nativeWindow,
-                                    BEGL_WindowInfoFlags flags,
-                                    BEGL_WindowInfo *info)
-{
-   ANativeWindow *anw = (ANativeWindow*)nativeWindow;
-
-   if (anw == NULL || info == NULL)
-      return BEGL_Fail;
-
-   if (!isAndroidNativeWindow(anw))
-   {
-      ALOGE("%s anw=%p, not native window", __FUNCTION__, anw);
-      return BEGL_Fail;
-   }
-
-   if (flags & BEGL_WindowInfoWidth)
-   {
-      int res = anw->query(anw, NATIVE_WINDOW_WIDTH, (int *)&info->width);
-      if (res == -ENODEV)
-         assert(0);
-   }
-   if (flags & BEGL_WindowInfoHeight)
-   {
-      int res = anw->query(anw, NATIVE_WINDOW_HEIGHT, (int *)&info->height);
-      if (res == -ENODEV)
-         assert(0);
-   }
-
-   if (flags & BEGL_WindowInfoSwapChainCount)
-   {
-      info->swapchain_count = MAX_DEQUEUE_BUFFERS;
-   }
-
-   return BEGL_Success;
-}
-
 static void GetBlockHandle(private_handle_t const *hnd, NEXUS_MemoryBlockHandle *block)
 {
    int rc;
@@ -578,7 +538,6 @@ BEGL_DisplayInterface *CreateAndroidDisplayInterface(BEGL_SchedInterface *schedI
          s_expose_fences ? "on": "off");
 
    disp->context                    = schedIface;
-   disp->WindowGetInfo              = DispWindowGetInfo;
    disp->GetPixmapFormat            = NULL; /* Android doesn't have pixmaps */
    disp->SurfaceAcquire             = DispSurfaceAcquire;
    disp->SurfaceRelease             = DispSurfaceRelease;

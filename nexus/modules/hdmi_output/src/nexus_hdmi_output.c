@@ -171,9 +171,15 @@ NEXUS_Error NEXUS_HdmiOutputModule_Standby_priv(bool enabled, const NEXUS_Standb
             {
                 BHDM_StandbySettings standbySettings;
 
-                if (handle->videoConnected) {
+                if (!handle->hdmStandby) {
                     BHDM_GetDefaultStandbySettings(&standbySettings);
                     rc = BHDM_Standby(handle->hdmHandle, &standbySettings);
+                    if (rc) {
+                        BERR_TRACE(rc); /* keep going */
+                    }
+                    else {
+                        handle->hdmStandby = true;
+                    }
                 }
             }
         }
@@ -219,7 +225,7 @@ NEXUS_Error NEXUS_HdmiOutputModule_Standby_priv(bool enabled, const NEXUS_Standb
 
                 NEXUS_HdmiOutput_P_HotplugCallback(handle);
             }
-            else
+            else if (handle->videoConnected && handle->hdmStandby)
             {
                 rc = BHDM_Resume(handle->hdmHandle);
                 /* if err, dump trace and continue the power up sequence */
@@ -227,6 +233,7 @@ NEXUS_Error NEXUS_HdmiOutputModule_Standby_priv(bool enabled, const NEXUS_Standb
                     rc = BERR_TRACE(rc) ;
                     goto err;
                 }
+                handle->hdmStandby = false;
             }
         }
         handle->standbyMode = standbyMode;
@@ -362,7 +369,7 @@ NEXUS_HdmiOutputHandle NEXUS_HdmiOutput_Open( unsigned index, const NEXUS_HdmiOu
     NEXUS_CallbackDesc_Init(&pOutput->settings.hotplugCallback);
     NEXUS_CallbackDesc_Init(&pOutput->settings.hdmiRxStatusChanged);
     BDBG_ASSERT(pSettings->spd.deviceType < NEXUS_HdmiSpdSourceDeviceType_eMax);
-    pOutput->displaySettings.valid = false;
+    NEXUS_HdmiOutput_P_SetDisplaySettingsValidity(pOutput, false);
 
     NEXUS_HdmiOutput_P_GetDefaultExtraSettings(&pOutput->extraSettings);
     NEXUS_HdmiOutput_P_InitExtraStatus(pOutput);
@@ -820,19 +827,27 @@ NEXUS_Error NEXUS_HdmiOutput_SetSettings( NEXUS_HdmiOutputHandle output, const N
     }
 
     /* compare new user settings with old user settings here */
-    if ((pSettings->colorSpace != output->settings.colorSpace)
-        || (pSettings->colorDepth != output->settings.colorDepth)
-        || (pSettings->outputFormat != output->settings.outputFormat)
-        || (pSettings->enableOnlySupportedFormats != output->settings.enableOnlySupportedFormats)
-
-        || (pSettings->overrideMatrixCoefficients != output->settings.overrideMatrixCoefficients)
-        || (pSettings->overrideMatrixCoefficients && (pSettings->matrixCoefficients != output->settings.matrixCoefficients))
-
-        || (pSettings->overrideColorRange != output->settings.overrideColorRange)
-        || (pSettings->overrideColorRange && (pSettings->colorRange != output->settings.colorRange))
-        || (pSettings->syncOnly != output->settings.syncOnly))
+    if
+    (
+        (pSettings->colorSpace != output->settings.colorSpace)
+        ||
+        (pSettings->colorDepth != output->settings.colorDepth)
+        ||
+        (pSettings->outputFormat != output->settings.outputFormat)
+        ||
+        (pSettings->enableOnlySupportedFormats != output->settings.enableOnlySupportedFormats)
+        ||
+        (pSettings->overrideMatrixCoefficients != output->settings.overrideMatrixCoefficients)
+        ||
+        (pSettings->overrideMatrixCoefficients && (pSettings->matrixCoefficients != output->settings.matrixCoefficients))
+        ||
+        (pSettings->overrideColorRange != output->settings.overrideColorRange)
+        ||
+        (pSettings->overrideColorRange && (pSettings->colorRange != output->settings.colorRange))
+    )
     {
-        output->displaySettings.valid = false;
+        /* ensure we don't make any decisions based on display settings until display updates them */
+        NEXUS_HdmiOutput_P_SetDisplaySettingsValidity(output, false);
     }
 
 #if BDBG_DEBUG_BUILD && !BDBG_NO_MSG
@@ -1083,7 +1098,7 @@ NEXUS_Error NEXUS_HdmiOutput_GetStatus( NEXUS_HdmiOutputHandle output, NEXUS_Hdm
 
     pStatus->colorSpace =
         NEXUS_P_ColorSpace_FromMagnum_isrsafe(stVideoSettings.eColorSpace) ;
-    if (output->displaySettings.valid)
+    if (NEXUS_HdmiOutput_P_AreDisplaySettingsValid(output))
     {
         pStatus->colorDepth = output->displaySettings.settings.colorDepth;
         pStatus->matrixCoefficients = output->displaySettings.settings.colorimetry;
@@ -1894,11 +1909,21 @@ void NEXUS_HdmiOutput_P_GetColorimetry(
 
 void NEXUS_HdmiOutput_P_NotifyDisplay(NEXUS_HdmiOutputHandle hdmiOutput)
 {
-    if (hdmiOutput->notifyDisplayEvent && !hdmiOutput->displaySettings.valid)
+    if (hdmiOutput->notifyDisplayEvent)
     {
         BDBG_MSG(("notify display"));
         BKNI_SetEvent(hdmiOutput->notifyDisplayEvent);
     }
+}
+
+void NEXUS_HdmiOutput_P_SetDisplaySettingsValidity(NEXUS_HdmiOutputHandle hdmiOutput, bool validity)
+{
+    hdmiOutput->displaySettings.valid = validity;
+}
+
+bool NEXUS_HdmiOutput_P_AreDisplaySettingsValid(NEXUS_HdmiOutputHandle hdmiOutput)
+{
+    return hdmiOutput->displaySettings.valid;
 }
 
 /* Set the notifyAudioEvent */
@@ -1994,22 +2019,16 @@ NEXUS_Error NEXUS_HdmiOutput_Connect_priv(
 {
     BERR_Code errCode = BERR_SUCCESS ;
 
-    if (handle->videoConnected)
-    {
-        BDBG_WRN(("HDMI Output device already connected to the display")) ;
-        goto done ;
+    if (handle->hdmStandby) {
+        /* BHDM_Resume will force a HP callback */
+        errCode = BHDM_Resume(handle->hdmHandle) ;
+        if (errCode) return BERR_TRACE(errCode);
+        handle->hdmStandby = false;
     }
-
-    /* BHDM_Resume will force a HP callback */
-    errCode = BHDM_Resume(handle->hdmHandle) ;
-    if (errCode) { errCode = BERR_TRACE(errCode) ;}
 
     handle->videoConnected = true;
     handle->notifyDisplayEvent = notifyDisplayEvent;
 
-    NEXUS_HdmiOutput_P_HotplugCallback(handle) ;
-
-done:
     return(errCode) ;
 }
 
@@ -2020,27 +2039,29 @@ NEXUS_Error NEXUS_HdmiOutput_Disconnect_priv(
     )
 {
     BERR_Code errCode = BERR_SUCCESS ;
-    BHDM_StandbySettings standbySettings ;
     NEXUS_ASSERT_MODULE();
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
 
-    if (!handle->videoConnected)
-    {
-        BDBG_WRN(("HDMI Output device already removed from the display")) ;
-        goto done ;
+    handle->notifyDisplayEvent = NULL;
+    if (handle->videoConnected) {
+        NEXUS_HdmiOutput_P_SetDisconnectedState(handle);
     }
 
-    handle->notifyDisplayEvent = NULL;
-    NEXUS_HdmiOutput_P_SetDisconnectedState(handle);
-
-    BHDM_GetDefaultStandbySettings(&standbySettings);
-    errCode = BHDM_Standby(handle->hdmHandle, &standbySettings) ;
-    /* if error, trace and continue disconnecting HDMI Output */
-    if (errCode) {errCode = BERR_TRACE(errCode) ;}
+    if (!handle->hdmStandby) {
+        BHDM_StandbySettings standbySettings ;
+        BHDM_GetDefaultStandbySettings(&standbySettings);
+        errCode = BHDM_Standby(handle->hdmHandle, &standbySettings) ;
+        /* if error, trace and continue disconnecting HDMI Output */
+        if (errCode) {
+            errCode = BERR_TRACE(errCode); /* keep going */
+        }
+        else {
+            handle->hdmStandby = true;
+        }
+    }
 
     handle->videoConnected = false;
 
-done:
     return errCode ;
 }
 
@@ -2213,15 +2234,15 @@ void NEXUS_HdmiOutput_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiOutput, bo
 
     if (hdmiOutput->hdcpStarted)
     {
-        /*
+    /*
         * HDCP 2.2 Disable/Enable of encryption on non-frequency changes
         * is not handled properly on certain TVs; use DisableEncryption/StartAuthentication instead.
-        * Always disable Hdcp Encryption before settng hdcpRequiredPostFormatChange flag
+        * Always disable Hdcp Encryption before setting startHdcpDeferred flag
         */
         rc = NEXUS_HdmiOutput_DisableHdcpEncryption(hdmiOutput);
         if (rc) { rc = BERR_TRACE(rc); return; }
 
-        hdmiOutput->hdcpRequiredPostFormatChange = true ;
+        hdmiOutput->startHdcpDeferred = true ;
     }
 
     hdmiOutput->formatChangeMute = true;
@@ -2263,7 +2284,6 @@ void NEXUS_HdmiOutput_PostFormatChange_priv(NEXUS_HdmiOutputHandle hdmiOutput)
 static void NEXUS_HdmiOutput_P_PostFormatChange_timer(void *context)
 {
     NEXUS_Error rc = NEXUS_SUCCESS ;
-    BHDM_Status hdmiStatus;
     NEXUS_HdmiOutputHandle hdmiOutput = context;
 
     hdmiOutput->postFormatChangeTimer = NULL;
@@ -2274,44 +2294,14 @@ static void NEXUS_HdmiOutput_P_PostFormatChange_timer(void *context)
     if (rc) {rc = BERR_TRACE(rc);}
 
 
-    if (hdmiOutput->hdcpRequiredPostFormatChange)
+    if (hdmiOutput->startHdcpDeferred)
     {
-        hdmiOutput->hdcpRequiredPostFormatChange = false ;
-
+        hdmiOutput->startHdcpDeferred = false ;
         BDBG_MSG(("PostFormatChange HDCP Restart required")) ;
-
-        BHDM_GetHdmiStatus(hdmiOutput->hdmHandle, &hdmiStatus);
-
-        BDBG_MSG(("%s pixelClkRate = %d", BSTD_FUNCTION, hdmiStatus.pixelClockRate));
-
-        /* always reauthenticate HDCP coming out of standby */
-        if (hdmiOutput->standbyMode >= NEXUS_StandbyMode_ePassive)
-        {
-            BDBG_LOG(("Restart HDCP Authentication after standby mode %d...",
-                hdmiOutput->standbyMode)) ;
-            hdmiOutput->standbyMode = NEXUS_StandbyMode_eActive ;
-            rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
-        }
-        /* Restart Hdcp Authentication when switching from/to a high clock rate format (297Mhz and up) */
-        else if ((hdmiOutput->pixelClkRatePreFormatChange != hdmiStatus.pixelClockRate)
-        || (hdmiOutput->pixelClkRatePreFormatChange >= NEXUS_HDMI_OUTPUT_4K_PIXEL_CLOCK_RATE)
-        || (hdmiStatus.pixelClockRate >= NEXUS_HDMI_OUTPUT_4K_PIXEL_CLOCK_RATE))
-        {
-            BDBG_LOG(("%s: Restart HDCP authentication after format change", BSTD_FUNCTION));
-            rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
-        }
-        else {
-            /*
-            * HDCP 2.2 Disable/Enable of encryption on non-frequency changes
-			* is not handled properly on certain TVs; use Disable/Start Authentication instead
-            */
-            rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
-        }
-        if (rc) {rc = BERR_TRACE(rc); goto done ;}
-
+        rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
+        if (rc && rc != NEXUS_NOT_AVAILABLE) BERR_TRACE(rc); /* keep going */
     }
 
-done :
     return;
 }
 
@@ -2415,7 +2405,7 @@ NEXUS_Error NEXUS_HdmiOutput_ResolveDisplaySettings_priv
     }
     else if (rc)
     {
-        BDBG_WRN(("Unable to validate Color Space/Color Depth Settings; No Change"))  ;
+        BDBG_MSG(("Unable to validate Color Space/Color Depth Settings rc=%d ; No Change", rc))  ;
         NEXUS_HdmiOutput_GetDisplaySettings_priv(hdmiOutput, pDisplaySettings); /* reset to previously applied settings */
         return rc ;
     }
@@ -2458,7 +2448,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplaySettings_priv(
         pstDisplaySettings->colorimetry, handle->settings.overrideMatrixCoefficients ? "Yes" : "No")) ;
 
     handle->displaySettings.settings = *pstDisplaySettings;
-    handle->displaySettings.valid = true;
+    NEXUS_HdmiOutput_P_SetDisplaySettingsValidity(handle, true);
 
     /* expects *resolved* dynrng mode */
     rc = NEXUS_HdmiOutput_Dynrng_P_SetMode(handle, pstDisplaySettings->dynamicRangeMode);
@@ -2981,6 +2971,8 @@ NEXUS_Error NEXUS_HdmiOutput_P_EnableDisplay(
 
     rc = BHDM_EnableDisplay(hdmiOutput->hdmHandle, pSettings);
     if (rc) { rc = BERR_TRACE(rc); return rc; }
+    hdmiOutput->displayEnabled = true;
+
     /*
      * EnableDisplay will modify AVI IF within the PI
      * (except for fields controlled by override, see below),
@@ -2994,6 +2986,14 @@ NEXUS_Error NEXUS_HdmiOutput_P_EnableDisplay(
      */
     rc = NEXUS_HdmiOutput_P_ApplyAviInfoFrame(hdmiOutput);
     if (rc) { rc = BERR_TRACE(rc); return rc; }
+
+    if (hdmiOutput->startHdcpDeferred)
+    {
+        hdmiOutput->startHdcpDeferred = false ;
+        BDBG_MSG(("post-enable HDCP Restart")) ;
+        rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
+        if (rc && rc != NEXUS_NOT_AVAILABLE) BERR_TRACE(rc); /* keep going */
+    }
 
     return rc;
 }

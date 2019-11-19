@@ -3,7 +3,6 @@
  ******************************************************************************/
 #include "vcos.h"
 #include "egl_thread.h"
-#include "egl_context_gl.h"
 #include "egl_surface_base.h"
 #include "egl_display.h"
 
@@ -118,9 +117,20 @@ EGL_THREAD_T *egl_surface_get_thread(const EGL_SURFACE_T *surface)
    return surface->context->bound_thread;
 }
 
-khrn_image *egl_surface_get_back_buffer(const EGL_SURFACE_T *surface)
+GFX_LFMT_T egl_surface_get_back_buffer_api_fmt(const EGL_SURFACE_T *surface)
+{
+   return egl_surface_base_get_back_buffer_api_fmt(surface);
+}
+
+khrn_image *egl_surface_get_back_buffer(EGL_SURFACE_T *surface)
 {
    return surface->fns->get_back_buffer(surface);
+}
+
+GFX_LFMT_T egl_surface_get_aux_buffer_api_fmt(const EGL_SURFACE_T *surface,
+      egl_aux_buf_t which)
+{
+   return egl_surface_base_get_aux_buffer_api_fmt(surface, which);
 }
 
 khrn_image *egl_surface_get_aux_buffer(const EGL_SURFACE_T *surface,
@@ -129,7 +139,7 @@ khrn_image *egl_surface_get_aux_buffer(const EGL_SURFACE_T *surface,
    return egl_surface_base_get_aux_buffer(surface, which);
 }
 
-khrn_image *egl_surface_get_back_buffer_with_gl_colorspace(const EGL_SURFACE_T *surface)
+khrn_image *egl_surface_get_back_buffer_with_gl_colorspace(EGL_SURFACE_T *surface)
 {
    khrn_image *img = egl_surface_get_back_buffer(surface);
    khrn_mem_acquire(img);
@@ -154,46 +164,6 @@ khrn_image *egl_surface_get_back_buffer_with_gl_colorspace(const EGL_SURFACE_T *
    }
 
    return img;
-}
-
-/*
- * Get the surface's current dimensions, returning true if they have changed.
- * If it has a back buffer, use that, since those are the dimensions we are
- * going to be using to draw the next frame.
- */
-static bool get_new_dimensions(EGL_SURFACE_T *surface,
-      unsigned *width, unsigned *height)
-{
-   khrn_image *back_buffer = egl_surface_get_back_buffer(surface);
-
-   if (back_buffer)
-      khrn_image_get_dimensions(back_buffer, width, height, NULL, NULL);
-
-   else if (surface->fns->get_dimensions)
-      surface->fns->get_dimensions(surface, width, height);
-
-   else
-   {
-      *width = surface->width;
-      *height = surface->height;
-   }
-
-   return *width != surface->width || *height != surface->height;
-}
-
-bool egl_surface_resize(EGL_SURFACE_T *surface)
-{
-   unsigned new_width, new_height;
-
-   if (!get_new_dimensions(surface, &new_width, &new_height))
-      return true;
-
-   egl_surface_base_delete_aux_bufs(surface);
-
-   surface->width = new_width;
-   surface->height = new_height;
-
-   return egl_surface_base_init_aux_bufs(surface);
 }
 
 EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
@@ -230,46 +200,10 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
        * 3. Switch to the next back buffer. */
       if (surface->fns->swap_buffers)
       {
-         egl_result_t swap_result = surface->fns->swap_buffers(surface);
-
-         switch (swap_result)
-         {
-         case EGL_RES_NO_MEM:
-            error = EGL_BAD_ALLOC;
+         error = surface->fns->swap_buffers(surface);
+         if (error != EGL_SUCCESS)
             goto end;
-         case EGL_RES_BAD_NATIVE_WINDOW:
-            error = EGL_BAD_NATIVE_WINDOW;
-            goto end;
-
-         case EGL_RES_SUCCESS:
-            if (!egl_surface_resize(surface))
-            {
-               error = EGL_BAD_ALLOC;
-               goto end;
-            }
-            break;
-         }
       }
-
-      // Getting the new back buffer will update the buffer_age in surface->dmg_state which we use below.
-      khrn_image *back_buffer = egl_surface_get_back_buffer(surface);
-
-      EGL_BUFFER_AGE_DAMAGE_STATE_T *dmg_state = &surface->age_damage_state;
-
-      /* Update buffer age state and get a new buffer_age_override value */
-      egl_surface_base_update_buffer_age_heuristics(dmg_state);
-
-      if (dmg_state->buffer_age_override == 0)
-      {
-         /* Buffers with age 0 have undefined content, so we can invalidate the new back-buffer.
-          * This will prevent unnecessary tile loads of undefined data in certain cases. */
-         egl_context_gl_lock();
-         khrn_image_invalidate(back_buffer);
-         egl_context_gl_unlock();
-      }
-
-      /* Reset any per-swap state in the surface */
-      egl_surface_base_swap_done(surface);
 
       if (surface->context)
          egl_context_reattach(surface->context);

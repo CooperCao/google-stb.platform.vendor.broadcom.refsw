@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #ifndef __DISPLAY_NEXUS_H__
 #define __DISPLAY_NEXUS_H__
@@ -18,13 +18,11 @@ extern "C" {
 /* NXPL_DisplayContext */
 typedef struct
 {
-   NXPL_DisplayType        displayType;
    BEGL_SchedInterface    *schedIface;
    EventContext           *eventContext;
 
 #ifdef NXPL_PLATFORM_EXCLUSIVE
    NEXUS_DISPLAYHANDLE  display;
-   bool                 stretch;
 #endif
 } NXPL_DisplayContext;
 

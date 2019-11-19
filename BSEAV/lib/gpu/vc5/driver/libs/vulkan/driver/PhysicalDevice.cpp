@@ -1074,9 +1074,11 @@ void PhysicalDevice::FPSet(VkFormat fmt, VkFormatProperties flags)
       const VkFormatFeatureFlags tlbFeatures = VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT |
                                                VK_FORMAT_FEATURE_BLIT_DST_BIT;
 
+#if 0
       if ((flags.linearTilingFeatures  & tlbFeatures) != 0 ||
           (flags.optimalTilingFeatures & tlbFeatures) != 0)
          assert(Formats::HasTLBSupport(lfmt));
+#endif
 
       const VkFormatFeatureFlags tmuFeatures = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
                                                VK_FORMAT_FEATURE_BLIT_SRC_BIT;

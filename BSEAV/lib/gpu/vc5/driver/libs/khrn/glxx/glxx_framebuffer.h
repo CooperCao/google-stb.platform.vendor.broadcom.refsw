@@ -66,6 +66,8 @@ typedef struct
                                    multisampled image and a downsampled image;
                                    in the depth attachmnent case, we have only
                                    a multisampled image */
+
+         EGL_SURFACE_T *surface;
       }fb_default;
    }obj;
 
@@ -137,6 +139,12 @@ const GLXX_ATTACHMENT_T* glxx_fb_get_attachment_by_index(const GLXX_FRAMEBUFFER_
    return &fb->attachment[att_index];
 }
 
+extern glxx_att_index_t glxx_attachment_point_to_att_index(
+      glxx_attachment_point_t att_point);
+
+extern GFX_LFMT_T glxx_fb_get_attachment_api_fmt(const GLXX_FRAMEBUFFER_T *fb,
+      glxx_att_index_t att_index);
+
 extern void glxx_fb_attach_texture(GLXX_FRAMEBUFFER_T *fb,
       glxx_attachment_point_t att_point, GLXX_TEXTURE_T *texture,
       unsigned level,
@@ -147,7 +155,7 @@ extern void glxx_fb_attach_renderbuffer(GLXX_FRAMEBUFFER_T *fb,
       glxx_attachment_point_t att_point, GLXX_RENDERBUFFER_T *rb);
 
 extern void glxx_fb_attach_egl_surface(GLXX_FRAMEBUFFER_T *fb,
-      const EGL_SURFACE_T *surface);
+      EGL_SURFACE_T *surface);
 
 /* if this fb has any attachment that contains texture, detach it */
 extern void glxx_fb_detach_texture(GLXX_FRAMEBUFFER_T *fb, GLXX_TEXTURE_T
@@ -273,8 +281,6 @@ static inline bool glxx_attachment_has_downsample_texture(
 extern bool glxx_fb_acquire_read_image(const GLXX_FRAMEBUFFER_T *fb,
       glxx_att_img_t att_img,
       khrn_image **img, bool *ms);
-
-extern GFX_LFMT_T glxx_attachment_get_api_fmt(const GLXX_ATTACHMENT_T *attachment);
 
 extern bool glxx_fb_is_complete(const GLXX_FRAMEBUFFER_T *fb, glxx_context_fences *fences);
 

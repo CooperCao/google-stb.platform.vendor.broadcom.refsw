@@ -1302,8 +1302,8 @@ static bool do_changed_cfg(
    {
       khrn_render_state_set_remove(&state->dirty.polygon_offset, rs);
 
-      GFX_LFMT_T depth_lfmt = glxx_attachment_get_api_fmt(
-         &state->bound_draw_framebuffer->attachment[GLXX_DEPTH_ATT]);
+      GFX_LFMT_T depth_lfmt = glxx_fb_get_attachment_api_fmt(
+            state->bound_draw_framebuffer, GLXX_DEPTH_ATT);
 
       unsigned depth_bits = depth_lfmt != GFX_LFMT_NONE ? gfx_lfmt_depth_bits(depth_lfmt) : 0;
 

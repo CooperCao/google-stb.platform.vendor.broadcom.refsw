@@ -558,12 +558,15 @@ void nexus_surface_compositor_p_update_video(NEXUS_SurfaceCompositorHandle serve
     }
     server->set_video_pending.set = false;
 
-    NEXUS_Time_Get(&begin);
-    NEXUS_DisplayModule_SetUpdateMode_priv(NEXUS_DisplayUpdateMode_eAuto, NULL);
-    NEXUS_Time_Get(&end);
-    /* if this BVDC_ApplyChanges is blocking, we need to wait 2 vsyncs to get back to non-blocking behavior. */
-    if (NEXUS_Time_Diff(&end, &begin) > 10) {
-        server->set_video_pending.windowMoved++;
+    /* if synchronizeGraphics is true, NEXUS_DisplayUpdateMode_eAuto will wait until next NEXUS_Display_SetGraphicsFramebuffer */
+    if (!server->synchronizeGraphics) {
+        NEXUS_Time_Get(&begin);
+        NEXUS_DisplayModule_SetUpdateMode_priv(NEXUS_DisplayUpdateMode_eAuto, NULL);
+        NEXUS_Time_Get(&end);
+        /* if this BVDC_ApplyChanges is blocking, we need to wait 2 vsyncs to get back to non-blocking behavior. */
+        if (NEXUS_Time_Diff(&end, &begin) > 10) {
+            server->set_video_pending.windowMoved++;
+        }
     }
     NEXUS_Module_Unlock(g_NEXUS_SurfaceCompositorModuleSettings.modules.display);
 }

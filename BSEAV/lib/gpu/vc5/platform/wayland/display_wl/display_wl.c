@@ -2,6 +2,7 @@
  *  Copyright (C) 2018 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "wl_server.h"
+#include "wl_priv.h"
 #include "display_interface.h"
 #include "display_framework.h"
 #include "private_nexus.h"
@@ -32,39 +33,18 @@
 
 typedef struct WLPL_WaylandDisplay
 {
+   BEGL_SchedInterface    *schedIface;
    WlClient client;
-   FenceInterface fence_interface;
    WlDisplayBinding binding;
 } WLPL_WaylandDisplay;
 
-typedef struct WLPL_WaylandWindow
+typedef struct WindowState
 {
    struct wl_egl_window *wl_egl_window;
-   SurfaceInterface surface_interface;
-   DisplayInterface display_interface;
    DisplayFramework display_framework;
-} WLPL_WaylandWindow;
-
-static BEGL_Error WlWindowGetInfo(void *context, void *nativeWindow,
-      BEGL_WindowInfoFlags flags, BEGL_WindowInfo *info)
-{
-   UNUSED(context);
-   WLPL_WaylandWindow *window = (WLPL_WaylandWindow *)nativeWindow;
-
-   if (window)
-   {
-      uint32_t width, height;
-      DisplayFramework_GetSize(&window->display_framework, &width, &height);
-      if (flags & BEGL_WindowInfoWidth)
-         info->width = width;
-      if (flags & BEGL_WindowInfoHeight)
-         info->height = height;
-      if (flags & BEGL_WindowInfoSwapChainCount)
-         info->swapchain_count = SWAPCHAIN_COUNT;
-      return BEGL_Success;
-   }
-   return BEGL_Fail;
-}
+   uint32_t width;
+   uint32_t height;
+} WindowState;
 
 static BEGL_NativeBuffer WlSurfaceAcquire(void *context, uint32_t target,
       void *eglObject, uint32_t plane, BEGL_SurfaceInfo *info)
@@ -129,13 +109,18 @@ static BEGL_SwapchainBuffer WlGetNextSurface(void *context, void *nativeWindow,
    UNUSED(context);
    UNUSED(secure);
 
-   WLPL_WaylandWindow *window = (WLPL_WaylandWindow *)nativeWindow;
+   WindowState *state = (WindowState *)nativeWindow;
 
-   if (window == NULL)
+   if (state == NULL)
       return NULL;
 
-   WlWindowBuffer *buffer = DisplayFramework_GetNextSurface(&window->display_framework,
-         format, secure, age, fence);
+   WindowInfo windowInfo = { 0 };
+   windowInfo.width = state->width;
+   windowInfo.height = state->height;
+   windowInfo.magic = NATIVE_WINDOW_INFO_MAGIC;
+
+   WlWindowBuffer *buffer = DisplayFramework_GetNextSurface(&state->display_framework,
+         format, secure, age, fence, &windowInfo);
 
    return (BEGL_SwapchainBuffer)buffer;
 }
@@ -144,11 +129,19 @@ static BEGL_Error WlDisplaySurface(void *context, void *nativeWindow,
       BEGL_SwapchainBuffer nativeSurface, int fence, int interval)
 {
    UNUSED(context);
-   WLPL_WaylandWindow *window = (WLPL_WaylandWindow *)nativeWindow;
-   if (window && nativeSurface)
+   WindowState *state = (WindowState *)nativeWindow;
+   if (state && nativeSurface)
    {
-      DisplayFramework_DisplaySurface(&window->display_framework, nativeSurface,
-            fence, interval);
+      WindowInfo windowInfo = { 0 };
+      windowInfo.width = state->wl_egl_window->width;
+      windowInfo.height = state->wl_egl_window->height;
+      windowInfo.magic = NATIVE_WINDOW_INFO_MAGIC;
+
+      state->wl_egl_window->attached_width = state->wl_egl_window->width;
+      state->wl_egl_window->attached_height = state->wl_egl_window->height;
+
+      DisplayFramework_DisplaySurface(&state->display_framework, nativeSurface,
+            fence, interval, &windowInfo);
       return BEGL_Success;
    }
    else
@@ -159,10 +152,10 @@ static BEGL_Error WlCancelSurface(void *context, void *nativeWindow,
       BEGL_SwapchainBuffer nativeSurface, int fence)
 {
    UNUSED(context);
-   WLPL_WaylandWindow *window = (WLPL_WaylandWindow *)nativeWindow;
-   if (window && nativeSurface)
+   WindowState *state = (WindowState *)nativeWindow;
+   if (state && nativeSurface)
    {
-      DisplayFramework_CancelSurface(&window->display_framework, nativeSurface,
+      DisplayFramework_CancelSurface(&state->display_framework, nativeSurface,
             fence);
       return BEGL_Success;
    }
@@ -178,24 +171,16 @@ static const char *WlGetDisplayExtensions(void *context)
 
 static void WlResizeCallback(struct wl_egl_window *wl_egl_window, void *context)
 {
-   WLPL_WaylandWindow *window = (WLPL_WaylandWindow *)context;
-   DisplayFramework_SetSize(&window->display_framework,
-         wl_egl_window->width, wl_egl_window->height);
-}
-
-static void WlGetAttachedCallback(struct wl_egl_window *wl_egl_window, void *context)
-{
-   WLPL_WaylandWindow *window = (WLPL_WaylandWindow *)context;
-   uint32_t width, height;
-   DisplayFramework_GetSize(&window->display_framework, &width, &height);
-   wl_egl_window->attached_width = width;
-   wl_egl_window->attached_height = height;
+   WindowState *state = (WindowState *)context;
+   state->width = wl_egl_window->width;
+   state->height = wl_egl_window->height;
 }
 
 static void WlReleaseCallback(void *data, struct wl_buffer *wl_buffer)
 {
-   WLPL_WaylandWindow *window = (WLPL_WaylandWindow *)data;
-   DisplayInterface_WlBufferRelease(&window->display_interface, wl_buffer);
+   WindowState *state = (WindowState *)data;
+   DisplayFramework *df = (DisplayFramework *)&state->display_framework;
+   DisplayInterface_WlBufferRelease(&df->display_interface, wl_buffer);
 }
 
 static void *WlWindowPlatformStateCreate(void *context, void *native)
@@ -203,65 +188,71 @@ static void *WlWindowPlatformStateCreate(void *context, void *native)
    WLPL_WaylandDisplay *display = (WLPL_WaylandDisplay *)context;
    struct wl_egl_window *wl_egl_window = (struct wl_egl_window *)native;
 
-   WLPL_WaylandWindow *window = NULL;
+   WindowState *state = NULL;
 
    if (display && wl_egl_window && wl_egl_window->surface)
    {
-      window = calloc(1, sizeof(*window));
-      if (window)
+      state = calloc(1, sizeof(*state));
+      if (state)
       {
-         DisplayInterface_InitWayland(&window->display_interface,
-               &display->client, &display->fence_interface,
+         DisplayFramework *df = (DisplayFramework *)&state->display_framework;
+         InitFenceInterface(&df->fence_interface, display->schedIface);
+
+         DisplayInterface_InitWayland(&df->display_interface,
+               &display->client, &df->fence_interface,
                wl_egl_window, SWAPCHAIN_COUNT);
 
-         SurfaceInterface_InitWayland(&window->surface_interface,
-               &display->client, WlReleaseCallback, window);
+         SurfaceInterface_InitWayland(&df->surface_interface,
+               &display->client, WlReleaseCallback, state);
 
-         if (DisplayFramework_Start(&window->display_framework,
-               &window->display_interface, &display->fence_interface,
-               &window->surface_interface, wl_egl_window->width,
-               wl_egl_window->height, SWAPCHAIN_COUNT))
+         state->width = wl_egl_window->width;
+         state->height = wl_egl_window->height;
+
+         if (DisplayFramework_Start(df, SWAPCHAIN_COUNT))
          {
-            window->wl_egl_window = wl_egl_window;
-            window->wl_egl_window->callback_private = window;
-            window->wl_egl_window->resize_callback = WlResizeCallback;
-            window->wl_egl_window->get_attached_size_callback = WlGetAttachedCallback;
-            window->wl_egl_window->destroy_window_callback = NULL;
+            state->wl_egl_window = wl_egl_window;
+            state->wl_egl_window->callback_private = state;
+            state->wl_egl_window->resize_callback = WlResizeCallback;
+            state->wl_egl_window->destroy_window_callback = NULL;
          }
          else
          {
-            Interface_Destroy(&window->display_interface.base);
-            Interface_Destroy(&window->surface_interface.base);
-            free(window);
-            window = NULL;
+            Interface_Destroy(&df->display_interface.base);
+            Interface_Destroy(&df->surface_interface.base);
+            Interface_Destroy(&df->fence_interface.base);
+            free(state);
+            state = NULL;
          }
 
       }
    }
-   return window;
+   return state;
 }
 
 static BEGL_Error WlWindowPlatformStateDestroy(void *context, void *windowState)
 {
    UNUSED(context);
-   WLPL_WaylandWindow *window = (WLPL_WaylandWindow *)windowState;
+   WindowState *state = (WindowState *)windowState;
 
-   if (window)
+   if (state)
    {
-      window->wl_egl_window->callback_private = NULL;
-      window->wl_egl_window->get_attached_size_callback = NULL;
-      window->wl_egl_window->destroy_window_callback = NULL;
-      window->wl_egl_window = NULL;
+      state->wl_egl_window->callback_private = NULL;
+      state->wl_egl_window->get_attached_size_callback = NULL;
+      state->wl_egl_window->destroy_window_callback = NULL;
+      state->wl_egl_window = NULL;
 
-      DisplayFramework_Stop(&window->display_framework);
+      DisplayFramework *df = (DisplayFramework *)&state->display_framework;
 
-      Interface_Destroy(&window->display_interface.base);
-      Interface_Destroy(&window->surface_interface.base);
+      DisplayFramework_Stop(df);
+
+      Interface_Destroy(&df->display_interface.base);
+      Interface_Destroy(&df->surface_interface.base);
+      Interface_Destroy(&df->fence_interface.base);
 
 #ifndef NDEBUG
-      memset(window, 0, sizeof(*window));
+      memset(state, 0, sizeof(*state));
 #endif
-      free(window);
+      free(state);
    }
    return BEGL_Success;
 }
@@ -352,10 +343,9 @@ struct BEGL_DisplayInterface *WLPL_CreateWaylandDisplayInterface(
    BEGL_DisplayInterface *iface = calloc(1, sizeof(*iface));
    if (display && iface && CreateWlClient(&display->client, wl_display))
    {
-      InitFenceInterface(&display->fence_interface, schedIface);
+      display->schedIface                 = schedIface;
 
       iface->context = display;
-      iface->WindowGetInfo                = WlWindowGetInfo;
       iface->GetPixmapFormat              = NULL; /* Wayland doesn't have pixmaps */
       iface->SurfaceAcquire               = WlSurfaceAcquire;
       iface->SurfaceRelease               = WlSurfaceRelease;
@@ -384,7 +374,6 @@ void WLPL_DestroyWaylandDisplayInterface(BEGL_DisplayInterface *iface)
    if (iface)
    {
       WLPL_WaylandDisplay *display = (WLPL_WaylandDisplay *)iface->context;
-      Interface_Destroy(&display->fence_interface.base);
       DestroyWlClient(&display->client);
 #ifndef NDEBUG
       memset(display, 0, sizeof(*display));

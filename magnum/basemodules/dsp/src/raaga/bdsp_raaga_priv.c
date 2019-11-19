@@ -4864,8 +4864,8 @@ BERR_Code BDSP_Raaga_P_CalcThresholdZeroFillTimeAudOffset_isrsafe(
 	else
 	{
         /*2*BT worst case decode time; AudOffset~DT= input buffer wait time */
-		psCTB_OutputStructure->ui32BlockTime = 14;
-		psCTB_OutputStructure->ui32AudOffset = 64;
+		psCTB_OutputStructure->ui32BlockTime = 23;/*14;*/
+		psCTB_OutputStructure->ui32AudOffset = 50;/*64;*/
 	}
 
 	if( pCtbInput->realtimeMode == BDSP_TaskRealtimeMode_eNonRealTime )

@@ -50,41 +50,6 @@ enum
           }                                                           \
      }
 
-/* Called to determine current size of the window referenced by the opaque window handle.
- * This is needed by EGL in order to know the size of a native 'window'. */
-static BEGL_Error DispWindowGetInfo(void *context __attribute__((unused)),
-                                    void *platformState,
-                                    BEGL_WindowInfoFlags flags,
-                                    BEGL_WindowInfo *info)
-{
-   if (!platformState)
-      return BEGL_Fail;
-
-   auto windowState = static_cast<WindowState *>(platformState);
-   auto surface = windowState->GetBitmap()->GetSurface();
-
-   if ((flags & BEGL_WindowInfoWidth) || (flags & BEGL_WindowInfoHeight))
-   {
-      assert(sizeof(int) == sizeof(info->width));
-      assert(sizeof(int) == sizeof(info->height));
-      DFBCHECK( surface->GetSize ( surface, reinterpret_cast<int *>(&info->width), reinterpret_cast<int *>(&info->height)));
-   }
-
-   if (flags & BEGL_WindowInfoSwapChainCount)
-   {
-      DFBSurfaceCapabilities ret_caps;
-      DFBCHECK( surface->GetCapabilities( surface, &ret_caps ) );
-      if (ret_caps & DSCAPS_DOUBLE)
-         info->swapchain_count = 2;
-      else if (ret_caps & DSCAPS_TRIPLE)
-         info->swapchain_count = 3;
-      else
-         info->swapchain_count = 1;
-   }
-
-   return BEGL_Success;
-}
-
 static BEGL_BufferFormat DispGetPixmapFormat(void *context __attribute__((unused)), void *pixmap)
 {
    auto surface = static_cast<IDirectFBSurface *>(pixmap);
@@ -231,7 +196,6 @@ extern "C" BEGL_DisplayInterface *CreateDirectFBDisplayInterface(IDirectFB *dfb,
    memset(disp.get(), 0, sizeof(DBPL_DisplayInterface));
 
    disp->context = &disp->data;
-   disp->WindowGetInfo              = DispWindowGetInfo;
    disp->GetPixmapFormat            = DispGetPixmapFormat;
    disp->SurfaceAcquire             = DispSurfaceAcquire;
    disp->SurfaceRelease             = DispSurfaceRelease;

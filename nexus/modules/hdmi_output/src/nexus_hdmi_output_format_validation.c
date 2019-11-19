@@ -522,6 +522,7 @@ static bool NEXUS_HdmiOutput_P_GetBestVideoSettings(
         numEntries = numNonUhdVideoSettingsPriorityTableEntries ;
     }
 
+    matchFound = false;
     for (idx = 0; idx < numEntries ; idx++)
     {
         /* skip Priority Table entries that have colorDepth that are > than requested */

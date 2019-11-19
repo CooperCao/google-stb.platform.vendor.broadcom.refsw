@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #ifndef __DISPLAY_NEXUS_EXCLUSIVE_H__
 #define __DISPLAY_NEXUS_EXCLUSIVE_H__
@@ -14,7 +14,7 @@
  */
 bool DisplayInterface_InitNexusExclusive(DisplayInterface *di,
       const FenceInterface *fi,
-      const NXPL_NativeWindowInfoEXT *windowInfo, NXPL_DisplayType displayType,
+      const NXPL_NativeWindowInfoEXT *windowInfo,
       NEXUS_DISPLAYHANDLE display, int *bound, EventContext *eventContext);
 
 #endif /* __DISPLAY_NEXUS_EXCLUSIVE_H__ */

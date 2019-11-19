@@ -33,7 +33,7 @@ struct egl_pbuffer_surface
 };
 
 static EGL_SURFACE_METHODS_T fns;
-static khrn_image *get_back_buffer(const EGL_SURFACE_T *surface);
+static khrn_image *get_back_buffer(EGL_SURFACE_T *surface);
 
 static void set_mipmap_level(EGL_PBUFFER_SURFACE_T *surface, int level)
 {
@@ -189,7 +189,7 @@ static EGLint get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint *value)
    return egl_surface_base_get_attrib(&surf->base, attrib, value);
 }
 
-static khrn_image *get_back_buffer(const EGL_SURFACE_T *surface)
+static khrn_image *get_back_buffer(EGL_SURFACE_T *surface)
 {
    const EGL_PBUFFER_SURFACE_T *surf = (const EGL_PBUFFER_SURFACE_T *) surface;
    return surf->images[surf->current_image];

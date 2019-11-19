@@ -1291,6 +1291,7 @@ BERR_Code BXVD_Resume(BXVD_Handle hXvd)
    hXvd->bWatchdogPending = true;
 
    hXvd->eAVDBootMode = BXVD_AVDBootMode_eWatchdog;
+   hXvd->bResumePending = true;
 
    rc = BXVD_ProcessWatchdog(hXvd);
 
@@ -1371,6 +1372,8 @@ BERR_Code BXVD_ResumeRestartDecoder(BXVD_Handle hXvd)
    {
       return BERR_TRACE(rc);
    }
+
+   hXvd->bResumePending = false;
 
    if (hXvd->PowerStateSaved != BXVD_P_PowerState_eOn)
    {

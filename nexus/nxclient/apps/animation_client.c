@@ -272,6 +272,11 @@ int main(int argc, const char **argv)
         curarg++;
     }
 
+    if (infront && bypass && max_depth < 4) {
+        BDBG_WRN(("infront and bypass require max_depth of 4 or more for fast performance"));
+        max_depth = 4;
+    }
+
     NxClient_GetDefaultJoinSettings(&joinSettings);
     snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "%s", argv[0]);
     rc = NxClient_Join(&joinSettings);
@@ -371,16 +376,30 @@ int main(int argc, const char **argv)
 
         if (g_queue.surface[g_queue.submit_ptr].submitted || g_queue.depth >= max_depth) {
             recycle_next(blit_client);
-            if (g_queue.surface[g_queue.submit_ptr].submitted || g_queue.depth >= max_depth) {
+            if (g_queue.depth >= max_depth) {
+                if (infront) {
+                    BDBG_WRN(("no recycled surfaces. loss of speed."));
+                }
                 rc = BKNI_WaitForEvent(recycledEvent, 2000);
                 BDBG_ASSERT(!rc);
                 continue;
             }
         }
 
+        if (infront && g_queue.surface[g_queue.submit_ptr].submitted) {
+            /* may have to search for unused buffer */
+            for (i=0;i<g_queue.numsurfaces;i++) {
+                if (!g_queue.surface[i].submitted) {
+                    g_queue.submit_ptr = i;
+                    break;
+                }
+            }
+            /* we have to find at least one because of preceding logic */
+        }
+        BDBG_ASSERT(!g_queue.surface[g_queue.submit_ptr].submitted);
         draw_surface(total_pushes, g_queue.surface[g_queue.submit_ptr].handle);
 
-        BDBG_MSG(("PUSH %u:%p(%s)", g_queue.submit_ptr, (void *)g_queue.surface[g_queue.submit_ptr].handle, infront?"infront":""));
+        BDBG_MSG(("Push %u:%p(%s)", g_queue.submit_ptr, (void *)g_queue.surface[g_queue.submit_ptr].handle, infront?"infront":""));
         NEXUS_SurfaceClient_PushSurface(blit_client, g_queue.surface[g_queue.submit_ptr].handle, NULL, infront);
         BDBG_ASSERT(!rc);
         g_queue.surface[g_queue.submit_ptr].submitted = true;
@@ -440,17 +459,21 @@ static void recycle_next(NEXUS_SurfaceClientHandle blit_client)
 
         rc = NEXUS_SurfaceClient_RecycleSurface(blit_client, surface, MAX_RECYCLE, &num);
         BDBG_ASSERT(!rc);
-        BDBG_MSG(("Recycle %u", (unsigned)num));
         for (i=0;i<num;i++) {
             unsigned j;
             /* if submitted infront, they may return out of order */
-            BDBG_MSG(("Recycle %u/%u %p", i, (unsigned)num, (void *)surface[i]));
             for (j=0;j<g_queue.numsurfaces;j++) {
                 if (g_queue.surface[j].handle == surface[i]) {
                     BDBG_ASSERT(g_queue.surface[j].submitted);
                     g_queue.surface[j].submitted = false;
+                    BDBG_MSG(("Recycle %u/%u %u:%p", i, (unsigned)num, j, (void *)surface[i]));
+                    BDBG_ASSERT(g_queue.depth);
                     g_queue.depth--;
+                    break;
                 }
+            }
+            if (j == g_queue.numsurfaces) {
+                BDBG_ERR(("Bad Recycle %u/%u ?:%p", i, (unsigned)num, (void *)surface[i]));
             }
         }
     } while (num >= MAX_RECYCLE);

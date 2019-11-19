@@ -122,6 +122,7 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_OBJECT(NEXUS_HdmiOutput);
     bool opened;
     bool videoConnected;
+    bool hdmStandby;
 
 #define RESOLVE_ALIAS(handle) do {(handle) = ((handle)->alias.master?(handle)->alias.master:(handle));}while(0)
 #define IS_ALIAS(handle) ((handle)->alias.master != NULL)
@@ -130,6 +131,7 @@ typedef struct NEXUS_HdmiOutput
     } alias;
 
     NEXUS_HdmiOutputState rxState;
+    bool displayEnabled; /* set false with eDisconnected, true after BHDM_EnableDisplay. used to defer HDCP. */
 
     NEXUS_VideoOutputObject videoConnector;
     NEXUS_AudioOutputObject audioConnector;
@@ -148,7 +150,7 @@ typedef struct NEXUS_HdmiOutput
     unsigned retryPostFormatChangeCount;
 
     bool forceSendRxIdList;
-    bool hdcpRequiredPostFormatChange;
+    bool startHdcpDeferred;
     bool formatChangeMute;
     bool avMuteSetting;
     bool hdcpStarted;
@@ -345,6 +347,9 @@ NEXUS_Error NEXUS_HdmiOutput_P_SetTmdsSignalClock( NEXUS_HdmiOutputHandle handle
 void NEXUS_HdmiOutput_TriggerCecCallback_priv(NEXUS_HdmiOutputHandle hdmiOutput);
 
 void NEXUS_HdmiOutput_P_NotifyDisplay(NEXUS_HdmiOutputHandle hdmiOutput);
+
+void NEXUS_HdmiOutput_P_SetDisplaySettingsValidity(NEXUS_HdmiOutputHandle hdmiOutput, bool validity);
+bool NEXUS_HdmiOutput_P_AreDisplaySettingsValid(NEXUS_HdmiOutputHandle hdmiOutput);
 
 typedef struct NEXUS_HdmiOutputColorimetryParameters
 {

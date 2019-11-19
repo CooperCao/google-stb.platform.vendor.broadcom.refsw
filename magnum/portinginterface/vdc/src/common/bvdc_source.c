@@ -1843,6 +1843,47 @@ static BERR_Code BVDC_P_Source_CheckGfxMemcIndex_isr
 /***************************************************************************
  *
  */
+BERR_Code BVDC_Source_GetSettings
+    ( BVDC_Source_Handle               hSource,
+      BVDC_Source_Settings            *pSettings)
+{
+    BDBG_ENTER(BVDC_Source_GetSettings);
+    BDBG_OBJECT_ASSERT(hSource, BVDC_SRC);
+
+    if(!pSettings)
+    {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    BKNI_Memset(pSettings, 0, sizeof(BVDC_Source_Settings));
+    pSettings->bRequireApply = hSource->bRequireApply;
+
+    BDBG_LEAVE(BVDC_Source_GetSettings);
+    return BERR_SUCCESS;
+}
+
+/***************************************************************************
+ *
+ */
+BERR_Code BVDC_Source_SetSettings
+    ( BVDC_Source_Handle               hSource,
+      const BVDC_Source_Settings      *pSettings)
+{
+    BDBG_ENTER(BVDC_Source_SetSettings);
+    BDBG_OBJECT_ASSERT(hSource, BVDC_SRC);
+
+    if(!pSettings)
+    {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    hSource->bRequireApply = pSettings->bRequireApply;
+
+    BDBG_LEAVE(BVDC_Source_SetSettings);
+    return BERR_SUCCESS;
+}
+
+/***************************************************************************
+ *
+ */
 BERR_Code BVDC_Source_SetSurface
     ( BVDC_Source_Handle      hSource,
      const BAVC_Gfx_Picture  *pAvcGfxPic)
@@ -1873,7 +1914,8 @@ BERR_Code BVDC_Source_SetSurface
     {
         eStatus = BVDC_P_GfxSurface_SetSurface_isr(
             &hSource->hGfxFeeder->stGfxSurface,
-            &hSource->hGfxFeeder->stGfxSurface.stNewSurInfo, pAvcGfxPic, hSource);
+            &hSource->hGfxFeeder->stGfxSurface.stNewSurInfo, pAvcGfxPic,
+            hSource, hSource->bRequireApply);
     }
     else if (NULL != hSource->hVfdFeeder && NULL != pAvcGfxPic)
     {
@@ -1887,7 +1929,8 @@ BERR_Code BVDC_Source_SetSurface
         {
             eStatus = BVDC_P_GfxSurface_SetSurface_isr(
                 &hSource->hVfdFeeder->stGfxSurface,
-                &hSource->hVfdFeeder->stGfxSurface.stNewSurInfo, pAvcGfxPic, hSource);
+                &hSource->hVfdFeeder->stGfxSurface.stNewSurInfo, pAvcGfxPic,
+                hSource, hSource->bRequireApply);
         }
     }
     else if (NULL != hSource->hMpegFeeder && NULL != pAvcGfxPic)
@@ -1913,7 +1956,8 @@ BERR_Code BVDC_Source_SetSurface
         }
         eStatus = BVDC_P_GfxSurface_SetSurface_isr(
             &hSource->hMpegFeeder->stGfxSurface,
-            &hSource->hMpegFeeder->stGfxSurface.stNewSurInfo, pAvcGfxPic, hSource);
+            &hSource->hMpegFeeder->stGfxSurface.stNewSurInfo, pAvcGfxPic,
+            hSource, hSource->bRequireApply);
     }
     else
     {
@@ -1965,7 +2009,8 @@ BERR_Code BVDC_Source_SetSurface_isr
     {
         eStatus = BVDC_P_GfxSurface_SetSurface_isr(
             &hSource->hGfxFeeder->stGfxSurface,
-            &hSource->hGfxFeeder->stGfxSurface.stIsrSurInfo, pAvcGfxPic, hSource);
+            &hSource->hGfxFeeder->stGfxSurface.stIsrSurInfo, pAvcGfxPic,
+            hSource, false);
     }
     else if (NULL != hSource->hVfdFeeder && NULL != pAvcGfxPic)
     {
@@ -1979,7 +2024,8 @@ BERR_Code BVDC_Source_SetSurface_isr
         {
             eStatus = BVDC_P_GfxSurface_SetSurface_isr(
                 &hSource->hVfdFeeder->stGfxSurface,
-                &hSource->hVfdFeeder->stGfxSurface.stIsrSurInfo, pAvcGfxPic, hSource);
+                &hSource->hVfdFeeder->stGfxSurface.stIsrSurInfo, pAvcGfxPic,
+                hSource, false);
         }
     }
     else if (NULL != hSource->hMpegFeeder && NULL != pAvcGfxPic)
@@ -1994,7 +2040,8 @@ BERR_Code BVDC_Source_SetSurface_isr
         {
             eStatus = BVDC_P_GfxSurface_SetSurface_isr(
                 &hSource->hMpegFeeder->stGfxSurface,
-                &hSource->hMpegFeeder->stGfxSurface.stIsrSurInfo, pAvcGfxPic, hSource);
+                &hSource->hMpegFeeder->stGfxSurface.stIsrSurInfo, pAvcGfxPic,
+                hSource, false);
         }
     }
     else

@@ -2384,7 +2384,7 @@ static void BVDC_P_GfxFeeder_HandleIsrSurface_isr
         if ( NULL != pvGfxPic )
         {
             if (BVDC_P_GfxSurface_SetSurface_isr(&hGfxFeeder->stGfxSurface,
-                pIsrSur, (BAVC_Gfx_Picture *)pvGfxPic, hGfxFeeder->hSource) != BERR_SUCCESS)
+                pIsrSur, (BAVC_Gfx_Picture *)pvGfxPic, hGfxFeeder->hSource, false) != BERR_SUCCESS)
             {
                 BDBG_ERR(("Previous surface is displayed."));
                 return;

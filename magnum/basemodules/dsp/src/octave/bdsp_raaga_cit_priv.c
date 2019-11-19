@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -249,11 +249,17 @@ static BERR_Code BDSP_Raaga_P_PopulateGateOpenConfig(
     BDSP_AF_P_FmmDstFsRate eBaseRateMultiplier = BDSP_AF_P_FmmDstFsRate_eInvalid;
     BDSP_AF_P_FmmContentType eFMMContentType = BDSP_AF_P_FmmContentType_eInvalid;
 	BDSP_AF_P_sCIRCULAR_BUFFER sCircularBuffer[BDSP_AF_P_MAX_CHANNELS];
+	BDSP_CTB_Input   sCtbInput;
+	BDSP_CTB_Output  sCtbOutput;
 
 	BDBG_ENTER(BDSP_Raaga_P_PopulateGateOpenConfig);
 	pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
 	pGateOpenConfig = (BDSP_AF_P_sTASK_GATEOPEN_CONFIG *)Memory.pAddr;
 	pRingbuffer = &pGateOpenConfig->sRingBufferInfo[0];
+
+	sCtbInput.audioTaskDelayMode = pRaagaTask->startSettings.audioTaskDelayMode;
+	sCtbInput.eAudioIpSourceType = BDSP_Audio_AudioInputSource_eInvalid;
+	sCtbInput.realtimeMode = pRaagaTask->startSettings.realtimeMode;
 
 	BDSP_STAGE_TRAVERSE_LOOP_BEGIN(pRaagaPrimaryStage, pRaagaConnectStage)
 	BSTD_UNUSED(macroBrId);
@@ -299,9 +305,11 @@ static BERR_Code BDSP_Raaga_P_PopulateGateOpenConfig(
 	}
 	BDSP_STAGE_TRAVERSE_LOOP_END(pRaagaConnectStage)
 
+	BDSP_Raaga_P_GetAudioDelay_isrsafe( &sCtbInput,pRaagaTask->startSettings.primaryStage->pStageHandle, &sCtbOutput);
+
 	pGateOpenConfig->ui32NumPorts            = NumPorts;
 	pGateOpenConfig->ui32MaxIndependentDelay = pRaagaTask->startSettings.maxIndependentDelay;
-	pGateOpenConfig->ui32BlockingTime        = BDSP_AF_P_BLOCKING_TIME;
+	pGateOpenConfig->ui32BlockingTime        = sCtbOutput.ui32BlockTime;
 	BDSP_MMA_P_FlushCache(Memory,sizeof(BDSP_AF_P_sTASK_GATEOPEN_CONFIG));
 
 end:
@@ -321,9 +329,16 @@ static BERR_Code BDSP_Raaga_P_PopulateSchedulingConfig(
 	unsigned index =0, independentDelay =0;
 	BDSP_AF_P_sTASK_SCHEDULING_CONFIG *pSchedulingConfig;
 
+	BDSP_CTB_Input   sCtbInput;
+	BDSP_CTB_Output  sCtbOutput;
+
 	BDBG_ENTER(BDSP_Raaga_P_PopulateSchedulingConfig);
 	pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
 	pSchedulingConfig = (BDSP_AF_P_sTASK_SCHEDULING_CONFIG *)Memory.pAddr;
+
+    sCtbInput.audioTaskDelayMode = pRaagaTask->startSettings.audioTaskDelayMode;
+    sCtbInput.eAudioIpSourceType = BDSP_Audio_AudioInputSource_eInvalid;
+    sCtbInput.realtimeMode = pRaagaTask->startSettings.realtimeMode;
 
     if(pRaagaTask->startSettings.schedulingMode != BDSP_TaskSchedulingMode_eSlave)
     {
@@ -400,12 +415,13 @@ static BERR_Code BDSP_Raaga_P_PopulateSchedulingConfig(
         BDSP_STAGE_TRAVERSE_LOOP_END(pRaagaConnectStage)
 
 next_step_1:
+        BDSP_Raaga_P_GetAudioDelay_isrsafe( &sCtbInput,pRaagaTask->startSettings.primaryStage->pStageHandle, &sCtbOutput);
         pSchedulingConfig->sSchedulingInfo.ui32MaxIndependentDelay = pRaagaTask->startSettings.maxIndependentDelay;
         pSchedulingConfig->sSchedulingInfo.eFMMContentType         = eFMMContentType;
         pSchedulingConfig->sSchedulingInfo.eBaseRateMultiplier     = eBaseRateMultiplier;
         pSchedulingConfig->sSchedulingInfo.bFixedSampleRate        = BDSP_AF_P_Boolean_eFalse;
         pSchedulingConfig->sSchedulingInfo.ui32FixedSampleRate     = 0;
-        pSchedulingConfig->sSchedulingInfo.ui32BlockingTime        = BDSP_AF_P_BLOCKING_TIME;
+        pSchedulingConfig->sSchedulingInfo.ui32BlockingTime        = sCtbOutput.ui32BlockTime;
         pSchedulingConfig->sSchedulingInfo.ui32IndependentDelay    = independentDelay;
     }
     else

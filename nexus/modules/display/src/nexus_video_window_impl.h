@@ -65,6 +65,7 @@ struct NEXUS_VideoWindow {
     NEXUS_VideoWindowSplitScreenSettings splitScreenSettings;
     NEXUS_VideoWindowStatus status;
     int phaseDelay; /* internal variable used to store phase delay as communicated by VDC, necessary for computing public phase delay later */
+    uint32_t nonProcessVsyncDelay;
     bool open;
     bool layoutChanged;
     NEXUS_IsrCallbackHandle letterBoxDetectionCallback;

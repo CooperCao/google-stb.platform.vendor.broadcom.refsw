@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #ifndef __FENCE_INTERFACE_H__
 #define __FENCE_INTERFACE_H__
@@ -14,12 +14,12 @@ extern "C"
 #endif
 
 #define FENCE_WAIT_INFINITE 0xffffffff
+#define INVALID_FENCE -1
 
 typedef struct FenceInterface
 {
    Interface base;
 
-   int invalid_fence;
    void (*create)(void *context, int *fence); /* may be NULL */
    void (*destroy)(void *context, int fence); /* may be NULL if create is null*/
    bool (*keep)(void *context, int fence);    /* may be NULL if create is null*/

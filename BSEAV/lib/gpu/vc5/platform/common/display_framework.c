@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "display_framework.h"
 #include "platform_common.h"
@@ -28,7 +28,7 @@
 
 static unsigned wait_sync(DisplayFramework *df, unsigned swap_interval)
 {
-   while(swap_interval && DisplayInterface_WaitSync(df->display_interface))
+   while(swap_interval && DisplayInterface_WaitSync(&df->display_interface))
    {
       --swap_interval;
    }
@@ -47,12 +47,21 @@ static void *display_thread_func(void *p)
    {
       /* ownership of the render fence is passed to display */
       int render_fence = surface->render_fence;
-      surface->render_fence = df->fence_interface->invalid_fence;
+      surface->render_fence = INVALID_FENCE;
 
-      assert(surface->display_fence == df->fence_interface->invalid_fence);
+      assert(surface->display_fence == INVALID_FENCE);
 
-      DisplayInterface_Display(df->display_interface, surface->native_surface,
-            render_fence, (surface->swap_interval > 0), &surface->display_fence);
+      WindowInfo *windowInfo = NULL;
+      if (memcmp(&df->windowInfo, &surface->windowInfo, sizeof(WindowInfo)) != 0)
+      {
+         /* window has been updated */
+         memcpy(&df->windowInfo, &surface->windowInfo, sizeof(WindowInfo));
+         /* trigger to make the update */
+         windowInfo = &df->windowInfo;
+      }
+
+      DisplayInterface_Display(&df->display_interface, surface->native_surface,
+            windowInfo, render_fence, (surface->swap_interval > 0), &surface->display_fence);
 
       wait_sync(df, surface->swap_interval);
 
@@ -63,30 +72,15 @@ static void *display_thread_func(void *p)
 }
 
 bool DisplayFramework_Start(DisplayFramework *df,
-      const DisplayInterface *display_interface,
-      const FenceInterface *fence_interface,
-      const SurfaceInterface *surface_interface,
-      uint32_t width, uint32_t height, uint32_t swapchain_count)
+      uint32_t swapchain_count)
 {
    /* sanity check */
    assert(df != NULL);
-   assert(display_interface != NULL);
-   assert(fence_interface != NULL);
-   assert(surface_interface != NULL);
-   assert(width > 0 && height > 0);
    assert(swapchain_count > 1);
 
-   memset(df, 0, sizeof(*df));
+   df->swapchain_count = swapchain_count;
 
-   df->display_interface = display_interface;
-   df->fence_interface = fence_interface;
-   df->surface_interface = surface_interface;
-
-   df->window_info.width = width;
-   df->window_info.height = height;
-   df->window_info.swapchain_count = swapchain_count;
-
-   if (!SwapchainCreate(&df->swapchain, fence_interface, surface_interface, swapchain_count))
+   if (!SwapchainCreate(&df->swapchain, &df->fence_interface, &df->surface_interface, swapchain_count))
       goto no_swapchain;
    if (pthread_mutex_init(&df->window_mutex, NULL) != 0)
       goto no_mutex;
@@ -121,7 +115,7 @@ void DisplayFramework_Stop(DisplayFramework *df)
        * sent to display with display fences. Ask display to stop - this should
        * lead to all display fences being eventually signalled.
        */
-      DisplayInterface_Stop(df->display_interface);
+      DisplayInterface_Stop(&df->display_interface);
 
       /* Destroy swapchain - swapchain waits on both render and display fence,
        * if present, prior to destroying each surface so we don't have to.
@@ -133,65 +127,48 @@ void DisplayFramework_Stop(DisplayFramework *df)
    }
 }
 
-void DisplayFramework_GetSize(DisplayFramework *df,
-      uint32_t *width, uint32_t *height)
-{
-   pthread_mutex_lock(&df->window_mutex);
-   *width = df->window_info.width;
-   *height = df->window_info.height;
-   pthread_mutex_unlock(&df->window_mutex);
-}
-
-void DisplayFramework_SetSize(DisplayFramework *df,
-      uint32_t width, uint32_t height)
-{
-   pthread_mutex_lock(&df->window_mutex);
-   df->window_info.width = width;
-   df->window_info.height = height;
-   pthread_mutex_unlock(&df->window_mutex);
-}
-
 void *DisplayFramework_GetNextSurface(DisplayFramework *df,
-      BEGL_BufferFormat format, bool secure, int *age, int *fence)
+      BEGL_BufferFormat format, bool secure, int *age, int *fence,
+      const WindowInfo *windowInfo)
 {
    assert(df != NULL);
    assert(format != BEGL_BufferFormat_INVALID);
 
    pthread_mutex_lock(&df->window_mutex);
    BEGL_PixmapInfo requested = {
-         .width = df->window_info.width,
-         .height = df->window_info.height,
+         .width = windowInfo->width,
+         .height = windowInfo->height,
          .format = format,
    };
    pthread_mutex_unlock(&df->window_mutex);
 
    sem_wait(&df->latency);
 
-   DisplayInterface_Release(df->display_interface);
+   DisplayInterface_Release(&df->display_interface);
 
    SwapchainSurface *surface = SwapchainDequeueRenderSurface(
          &df->swapchain, &requested, secure);
    if (surface)
    {
       /* if this surface was cancelled the render fence may still be set */
-      FenceInterface_WaitAndDestroy(df->fence_interface,
+      FenceInterface_WaitAndDestroy(&df->fence_interface,
             &surface->render_fence);
 
       if (fence)
       {
          /* hand over the the display fence to the caller */
          *fence = surface->display_fence;
-         surface->display_fence = df->fence_interface->invalid_fence; /* lost ownership */
+         surface->display_fence = INVALID_FENCE; /* lost ownership */
       }
       else
       {
          /*the caller didn't want to handle the fence so wait here */
-         FenceInterface_WaitAndDestroy(df->fence_interface,
+         FenceInterface_WaitAndDestroy(&df->fence_interface,
                &surface->display_fence);
       }
 
-      assert(surface->render_fence == df->fence_interface->invalid_fence);
-      assert(surface->display_fence == df->fence_interface->invalid_fence);
+      assert(surface->render_fence == INVALID_FENCE);
+      assert(surface->display_fence == INVALID_FENCE);
 
       *age = surface->age;
 
@@ -218,7 +195,8 @@ static void AgeSwapchain(Swapchain *swapchain, SwapchainSurface *cur_backbuffer)
 }
 
 void DisplayFramework_DisplaySurface(DisplayFramework *df,
-      void *surface, int fence, uint32_t swap_interval)
+      void *surface, int fence, uint32_t swap_interval,
+      const WindowInfo *windowInfo)
 {
    assert(df != NULL);
    assert(surface != NULL);
@@ -227,9 +205,11 @@ void DisplayFramework_DisplaySurface(DisplayFramework *df,
 
    AgeSwapchain(&df->swapchain, s);
 
-   assert(s->render_fence == df->fence_interface->invalid_fence);
+   assert(s->render_fence == INVALID_FENCE);
    s->render_fence = fence;
    s->swap_interval = swap_interval;
+   /* end of swap, update the display parameters are used to control presentation */
+   s->windowInfo = *windowInfo;
 
    SwapchainEnqueueDisplaySurface(&df->swapchain, s);
 }
@@ -242,7 +222,7 @@ void DisplayFramework_CancelSurface(DisplayFramework *df,
 
    SwapchainSurface *s = container_of(surface, SwapchainSurface, native_surface);
 
-   assert(s->render_fence == df->fence_interface->invalid_fence);
+   assert(s->render_fence == INVALID_FENCE);
    s->render_fence = fence;
    s->age = 0;
 

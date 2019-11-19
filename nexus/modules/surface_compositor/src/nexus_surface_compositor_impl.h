@@ -196,6 +196,7 @@ struct NEXUS_SurfaceCompositorDisplay {
      */
 
     struct NEXUS_SurfaceCompositorFramebufferQueue available;
+    struct NEXUS_SurfaceCompositorFramebuffer *displaying2;
     struct NEXUS_SurfaceCompositorFramebuffer *compositing;
     struct NEXUS_SurfaceCompositorFramebuffer *composited;
     struct NEXUS_SurfaceCompositorFramebuffer *submitted;
@@ -318,6 +319,7 @@ struct NEXUS_SurfaceCompositor
     NEXUS_SurfaceCompositorSettings settings;
     struct NEXUS_SurfaceCompositorDisplay *display[NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS];
     NEXUS_VideoWindowSettings windowSettings, prevWindowSettings; /* avoid stack blowout */
+    unsigned synchronizeGraphics; /* if nonzero, this is the delay needed to synchronize */
 };
 
 
@@ -465,6 +467,7 @@ void nexus_p_surface_compositor_update_client(NEXUS_SurfaceClientHandle client, 
 void nexus_p_surface_compositor_check_inactive(NEXUS_SurfaceCompositorHandle server);
 void nexus_surface_compositor_p_schedule_inactive_timer(NEXUS_SurfaceCompositorHandle server);
 bool nexus_surface_compositor_p_display_enabled(NEXUS_SurfaceCompositorHandle server, unsigned i);
+void nexus_surfacemp_p_auto_disable(NEXUS_SurfaceCompositorHandle server);
 
 void nexus_surface_compositor_p_release_surfaces(NEXUS_SurfaceCompositorHandle server);
 
@@ -519,5 +522,6 @@ unsigned nexus_surface_compositor_p_get_time_diff(NEXUS_SurfaceCompositorHandle 
 extern const NEXUS_BlendEquation NEXUS_SurfaceCompositor_P_ColorCopySource;
 extern const NEXUS_BlendEquation NEXUS_SurfaceCompositor_P_AlphaCopySource;
 NEXUS_Error NEXUS_SurfaceClient_P_CopySetSurface( NEXUS_SurfaceClientHandle client, NEXUS_SurfaceHandle surface );
+void nexus_surface_compositor_p_calc_sync_graphics(NEXUS_SurfaceCompositorHandle server);
 
 #endif /* NEXUS_SURFACECMP_IMPL_H__ */

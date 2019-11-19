@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "vcos.h"
 #include "libs/util/demand.h" /* TODO Shouldn't be using demand in production code... */
@@ -315,12 +315,10 @@ static EGLint make_current(EGL_THREAD_T *thread, egl_api_t api,
 
          if (egl_surface_get_back_buffer(surfaces[i]) == NULL)
             return EGL_BAD_NATIVE_WINDOW;
+            /* TODO: return EGL_BAD_ALLOC if aux buffers could not be resized */
 
          if (!egl_config_context_surface_compatible(context, surfaces[i]))
             return EGL_BAD_MATCH;
-
-         if (!egl_surface_resize(surfaces[i]))
-            return EGL_BAD_ALLOC;
       }
    }
 

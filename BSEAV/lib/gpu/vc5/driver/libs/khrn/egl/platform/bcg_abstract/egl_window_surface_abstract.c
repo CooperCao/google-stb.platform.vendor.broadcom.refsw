@@ -19,6 +19,8 @@
 #include "egl_platform_abstract.h"
 #include "egl_surface_common_abstract.h"
 
+LOG_DEFAULT_CAT("egl_window_surface_abstract")
+
 /* Our own representation of an egl_window_surface */
 struct egl_window_surface
 {
@@ -49,7 +51,7 @@ static BEGL_BufferFormat get_begl_format(GFX_LFMT_T api_fmt, bool x_padded)
    }
 }
 
-static egl_result_t dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
+static EGLint dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
 {
    BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
 
@@ -58,13 +60,14 @@ static egl_result_t dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
 
    /* Get our initial buffer */
    int fence = -1;
+   int age = 0;
 
    assert(platform->GetNextSurface);
    surf->native_back_buffer = platform->GetNextSurface(platform->context,
          surf->native_window_state, format, surf->base.secure,
-         &surf->base.age_damage_state.buffer_age, &fence);
+         &age, &fence);
    if (!surf->native_back_buffer)
-      return EGL_RES_BAD_NATIVE_WINDOW;
+      return EGL_BAD_NATIVE_WINDOW;
 
    surf->active_image = image_from_surface_abstract(BEGL_SWAPCHAIN_BUFFER,
          surf->native_back_buffer, /*flipY=*/true, "swapchain buffer",
@@ -75,7 +78,7 @@ static egl_result_t dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
       assert(platform->CancelSurface);
       platform->CancelSurface(platform->context, surf->native_window_state,
             surf->native_back_buffer, fence);
-      return EGL_RES_NO_MEM;
+      return EGL_BAD_ALLOC;
    }
 
    /* window surfaces need to be renderable */
@@ -85,16 +88,31 @@ static egl_result_t dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
       platform->CancelSurface(platform->context, surf->native_window_state,
             surf->native_back_buffer, fence);
       KHRN_MEM_ASSIGN(surf->active_image, NULL);
-      return EGL_RES_BAD_NATIVE_WINDOW;
+      return EGL_BAD_NATIVE_WINDOW;
    }
 
+   /* resize aux buffers if necessary */
+   unsigned width, height;
+   khrn_image_get_dimensions(surf->active_image, &width, &height, NULL, NULL);
+   if (!egl_surface_base_resize(&surf->base, width, height))
+   {
+      platform->CancelSurface(platform->context, surf->native_window_state,
+            surf->native_back_buffer, fence);
+      surf->native_back_buffer = NULL;
+      KHRN_MEM_ASSIGN(surf->active_image, NULL);
+      return EGL_BAD_ALLOC;
+   }
+
+   egl_surface_base_update_buffer_age_heuristics(&surf->base,
+         surf->active_image, age);
+
    if (fence == -1)
-      return EGL_RES_SUCCESS;
+      return EGL_SUCCESS;
 
    uint64_t job_id = v3d_scheduler_submit_wait_fence(fence);
    khrn_resource_job_replace(khrn_image_get_resource(surf->active_image), job_id);
 
-   return EGL_RES_SUCCESS;
+   return EGL_SUCCESS;
 }
 
 static void dump_gmem_status(void)
@@ -120,7 +138,7 @@ static void dump_gmem_status(void)
    }
 }
 
-static egl_result_t swap_buffers(EGL_SURFACE_T *surface)
+static EGLint swap_buffers(EGL_SURFACE_T *surface)
 {
    EGL_WINDOW_SURFACE_T          *surf = (EGL_WINDOW_SURFACE_T *) surface;
    BEGL_DisplayInterface         *platform = &g_bcgPlatformData.displayInterface;
@@ -133,38 +151,18 @@ static egl_result_t swap_buffers(EGL_SURFACE_T *surface)
       assert(platform->DisplaySurface);
 
       if (platform->DisplaySurface(platform->context, surf->native_window_state, surf->native_back_buffer, fence, surf->interval) != BEGL_Success)
-         return EGL_RES_BAD_NATIVE_WINDOW;
+         return EGL_BAD_NATIVE_WINDOW;
 
       KHRN_MEM_ASSIGN(surf->active_image, NULL);
 
       dump_gmem_status();
    }
 
-   return dequeue_buffer(surf);
-}
-
-static void get_dimensions(EGL_SURFACE_T *surface, unsigned *width, unsigned *height)
-{
-   BEGL_DisplayInterface *platform = &g_bcgPlatformData.displayInterface;
-   BEGL_WindowInfo       winInfo;
-
-   if (platform->WindowGetInfo)
-   {
-      EGL_WINDOW_SURFACE_T *surf = (EGL_WINDOW_SURFACE_T *)surface;
-
-      platform->WindowGetInfo(platform->context, surf->native_window_state, BEGL_WindowInfoWidth | BEGL_WindowInfoHeight, &winInfo);
-      *width = winInfo.width;
-      *height = winInfo.height;
-   }
-   else
-   {
-      *width = 0;
-      *height = 0;
-   }
+   return EGL_SUCCESS;
 }
 
 /* Get the buffer to draw to */
-static khrn_image *get_back_buffer(const EGL_SURFACE_T *surface)
+static khrn_image *get_back_buffer(EGL_SURFACE_T *surface)
 {
    EGL_WINDOW_SURFACE_T *surf = (EGL_WINDOW_SURFACE_T *) surface;
 
@@ -172,6 +170,40 @@ static khrn_image *get_back_buffer(const EGL_SURFACE_T *surface)
       dequeue_buffer(surf);
 
    return surf->active_image;
+}
+
+EGLint get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint *value)
+{
+   EGL_WINDOW_SURFACE_T *surf = (EGL_WINDOW_SURFACE_T *) surface;
+
+   switch (attrib)
+   {
+   case EGL_WIDTH:
+   case EGL_HEIGHT:
+      get_back_buffer(surface); /* force dequeue, this will handle resize */
+      break;
+
+   case EGL_BUFFER_AGE_EXT:
+      if (!khrn_options.disable_buffer_age)
+      {
+         EGL_CONTEXT_T *context = egl_thread_get_context();
+         if (!context || context->draw != surface)
+            return EGL_BAD_SURFACE;
+
+         if (!get_back_buffer(surface))
+            return EGL_BAD_ALLOC;
+
+         *value = egl_surface_base_query_buffer_age(surface);
+      }
+      else
+         *value = 0;
+      log_trace("Buffer age query = %d", *value);
+      return EGL_SUCCESS;
+
+   default:
+      break;
+   }
+   return egl_surface_base_get_attrib(&surf->base, attrib, value);
 }
 
 static void delete_fn(EGL_SURFACE_T *surface)
@@ -232,11 +264,7 @@ static EGLSurface egl_create_window_surface_impl(EGLDisplay dpy, EGLConfig confi
    EGLint                     error = EGL_BAD_ALLOC;
    EGL_WINDOW_SURFACE_T       *surface;
    EGLSurface                 ret = EGL_NO_SURFACE;
-   BEGL_WindowInfo            winInfo;
-   unsigned int               width, height;
    BEGL_DisplayInterface      *platform = &g_bcgPlatformData.displayInterface;
-
-   memset(&winInfo, 0, sizeof(BEGL_WindowInfo));
 
    if (!egl_initialized(dpy, true))
       return EGL_NO_SURFACE;
@@ -259,7 +287,12 @@ static EGLSurface egl_create_window_surface_impl(EGLDisplay dpy, EGLConfig confi
       goto end;
    }
 
-   surface->base.fns = &fns;
+   surface->base.type = EGL_SURFACE_TYPE_NATIVE_WINDOW;
+
+   error = egl_surface_base_init(&surface->base, &fns, config, attrib_list,
+         attrib_type, /*width=*/0, /*height=*/0, win, NULL);
+   if (error != EGL_SUCCESS)
+      goto end;
 
    /* set default swap interval */
    surface->interval = 1;
@@ -276,19 +309,8 @@ static EGLSurface egl_create_window_surface_impl(EGLDisplay dpy, EGLConfig confi
       goto end;
    }
 
-   /* Determine size of the underlying native window */
-   get_dimensions(&surface->base, &width, &height);
-
-   if (width == 0 || height == 0)
-   {
-      error = EGL_BAD_MATCH;
-      goto end;
-   }
-
-   surface->base.type = EGL_SURFACE_TYPE_NATIVE_WINDOW;
-
-   error = egl_surface_base_init(&surface->base, &fns, config, attrib_list,
-         attrib_type, width, height, win, NULL);
+   /* get the colour buffer and create auxiliary buffers */
+   error = dequeue_buffer(surface);
    if (error != EGL_SUCCESS)
       goto end;
 
@@ -349,6 +371,6 @@ static EGL_SURFACE_METHODS_T fns =
    .get_back_buffer = get_back_buffer,
    .swap_buffers = swap_buffers,
    .swap_interval = swap_interval,
-   .get_dimensions = get_dimensions,
+   .get_attrib = get_attrib,
    .delete_fn = delete_fn,
 };

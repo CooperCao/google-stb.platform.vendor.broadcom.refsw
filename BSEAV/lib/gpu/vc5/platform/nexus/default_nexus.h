@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #ifndef __DEFAULT_NEXUS_H__
 #define __DEFAULT_NEXUS_H__
@@ -48,6 +48,13 @@ struct BEGL_PixmapInfoEXT;
 
 typedef void *NXPL_PlatformHandle;
 
+typedef enum NXPL_DisplayType
+{
+   NXPL_2D = 0,
+   NXPL_3D_LEFT_RIGHT,
+   NXPL_3D_OVER_UNDER
+} NXPL_DisplayType;
+
 /* WARNING, deprecated */
 typedef struct
 {
@@ -74,15 +81,13 @@ typedef struct
    NEXUS_BlendEquation  colorBlend;
    NEXUS_BlendEquation  alphaBlend;
 #endif
+   NXPL_DisplayType     type;
+   uint32_t             videoWidth;
+   uint32_t             videoHeight;
+   uint32_t             videoX;
+   uint32_t             videoY;
    uint32_t             magic;
 } NXPL_NativeWindowInfoEXT;
-
-typedef enum NXPL_DisplayType
-{
-   NXPL_2D = 0,
-   NXPL_3D_LEFT_RIGHT,
-   NXPL_3D_OVER_UNDER
-} NXPL_DisplayType;
 
 /* Register a display for exclusive use. The client application should not use the display until
  * calling NXPL_UnregisterNexusDisplayPlatform.
@@ -132,7 +137,8 @@ NXPL_EXPORT void NXPL_SetDisplayType(NXPL_PlatformHandle handle, NXPL_DisplayTyp
 NXPL_EXPORT NEXUS_SurfaceClientHandle NXPL_CreateVideoWindowClient(void *native, unsigned windowId);
 
 /* releases the pip back */
-NXPL_EXPORT void NXPL_ReleaseVideoWindowClient(NEXUS_SurfaceClientHandle handle);
+NXPL_EXPORT void NXPL_ReleaseVideoWindowClient(NEXUS_SurfaceClientHandle handle) __attribute__((deprecated("Use NXPL_ReleaseVideoWindowClientEXT() instead")));
+NXPL_EXPORT void NXPL_ReleaseVideoWindowClientEXT(void *native);
 
 /* returns the top surface Id for that nxclient or */
 /* 0 if the native window doesn't exit */

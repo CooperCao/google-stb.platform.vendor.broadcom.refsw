@@ -1,10 +1,11 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "worker.h"
 #include "windowstate.h"
 #include "dispitem.h"
 #include "../helpers/semaphore.h"
+#include "nexus_core_utils.h"
 
 namespace nxpl
 {
@@ -18,6 +19,7 @@ Worker::~Worker()
    std::unique_ptr<helper::Semaphore> sem;
    std::unique_ptr<nxpl::DispItem> dispItem(new nxpl::DispItem(std::move(bitmap), std::move(sem), 0));
    windowState->PushDispQ(std::move(dispItem));
+   m_vsync.notify();
    m_worker.join();
 }
 
@@ -93,25 +95,26 @@ void Worker::VSyncHandler()
    m_vsync.notify();
 }
 
-void Worker::SetupDisplay(const NativeWindowInfo &nw)
+void Worker::SetupDisplay(const NativeWindowInfo &nw, const helper::Extent2D &extent)
 {
    auto windowState = static_cast<nxpl::WindowState *>(m_platformState);
 
    /* setup the display & callback */
    NEXUS_Display_GetGraphicsSettings(windowState->GetDisplay(), &m_graphicsSettings);
    m_graphicsSettings.enabled = true;
-   m_graphicsSettings.position.x = nw.GetX();
-   m_graphicsSettings.position.y = nw.GetY();
 
-   if (!m_info.GetStretch())
+   if (!nw.GetStretch())
    {
-      m_graphicsSettings.position.width = nw.GetWidth();
-      m_graphicsSettings.position.height = nw.GetHeight();
+      m_graphicsSettings.position.x = nw.GetX();
+      m_graphicsSettings.position.y = nw.GetY();
+
+      m_graphicsSettings.position.width = extent.GetWidth();
+      m_graphicsSettings.position.height = extent.GetHeight();
    }
    else
    {
-      float scaledPosX = m_info.GetX() * ((float)m_graphicsSettings.position.width / nw.GetWidth());
-      float scaledPosY = m_info.GetY() * ((float)m_graphicsSettings.position.height / nw.GetHeight());
+      float scaledPosX = nw.GetX() * ((float)m_graphicsSettings.position.width / extent.GetWidth());
+      float scaledPosY = nw.GetY() * ((float)m_graphicsSettings.position.height / extent.GetHeight());
 
       m_graphicsSettings.position.x = (uint16_t)scaledPosX;
       m_graphicsSettings.position.y = (uint16_t)scaledPosY;
@@ -119,8 +122,8 @@ void Worker::SetupDisplay(const NativeWindowInfo &nw)
       m_graphicsSettings.position.width -= (2 * scaledPosX);
       m_graphicsSettings.position.height -= (2 * scaledPosY);
    }
-   m_graphicsSettings.clip.width = nw.GetWidth();
-   m_graphicsSettings.clip.height = nw.GetHeight();
+   m_graphicsSettings.clip.width = extent.GetWidth();
+   m_graphicsSettings.clip.height = extent.GetHeight();
 }
 
 void Worker::TermDisplay()
@@ -130,6 +133,15 @@ void Worker::TermDisplay()
    {
       NEXUS_DisplayModule_SetUpdateMode(NEXUS_DisplayUpdateMode_eAuto);
       NEXUS_Display_SetVsyncCallback(windowState->GetDisplay(), NULL);
+
+      // Clear callbacks that are 'in-flight'. From Nexus description of
+      // the NEXUS_StopCallbacks():
+      //
+      // "Description:
+      // This waits for any running callbacks to finish and ensures that
+      // no other callbacks for this handle arrive."
+      NEXUS_StopCallbacks(windowState->GetDisplay());
+      NEXUS_StartCallbacks(windowState->GetDisplay());
 
       NEXUS_GraphicsSettings settings;
       NEXUS_Display_GetGraphicsSettings(windowState->GetDisplay(), &settings);
@@ -148,11 +160,11 @@ void Worker::mainThread(void)
 
       if (!m_done)
       {
+         auto windowInfo = dispItem->m_bitmap->GetWindowInfo();
          // check if display parameters match
-         if (dispItem->m_bitmap->GetWindowInfo() != windowState->GetWindowInfo())
+         if (windowInfo != windowState->GetWindowInfo())
          {
-            SetupDisplay(dispItem->m_bitmap->GetWindowInfo());
-            auto windowInfo = dispItem->m_bitmap->GetWindowInfo();
+            SetupDisplay(windowInfo, dispItem->m_bitmap->GetExtent2D());
             windowState->UpdateWindowInfo(windowInfo);
          }
 
@@ -251,7 +263,7 @@ void Worker::mainThread(void)
             m_vsync.reset();
          }
 
-         for (int i = 0; i < dispItem->m_swapInterval; i++)
+         for (int i = 0; i < dispItem->m_swapInterval && !m_done; i++)
             m_vsync.wait();
       }
    }

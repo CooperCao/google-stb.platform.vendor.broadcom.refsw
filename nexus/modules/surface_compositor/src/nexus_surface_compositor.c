@@ -532,7 +532,9 @@ static NEXUS_Error nexus_surface_compositor_p_alloc_framebuffers(struct NEXUS_Su
                 goto create_error;
             }
         }
-        BLST_SQ_INSERT_TAIL(&cmpDisplay->available, framebuffer, link);
+        if (framebuffer->state == NEXUS_SurfaceCompositorFramebufferState_eAvailable) {
+            BLST_SQ_INSERT_TAIL(&cmpDisplay->available, framebuffer, link);
+        }
     }
     /* create 3D buffers when needed */
     for (j=0;j<cmpDisplay->num_framebuffers;j++) {
@@ -967,6 +969,18 @@ bool nexus_surface_compositor_p_display_enabled(NEXUS_SurfaceCompositorHandle se
     return server->settings.display[i].enabled && !server->auto_disable.disabled;
 }
 
+void nexus_surfacemp_p_auto_disable(NEXUS_SurfaceCompositorHandle server)
+{
+    unsigned i;
+    BDBG_WRN(("auto_disable of unused graphics"));
+    server->auto_disable.disabled = true;
+    for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
+        if (server->display[i]) {
+            nexus_surfacemp_p_disable_display(server, server->display[i]);
+        }
+    }
+}
+
 static void nexus_surface_compositor_p_inactive_timer(void *context)
 {
     NEXUS_SurfaceCompositorHandle server = context;
@@ -1007,14 +1021,7 @@ static void nexus_surface_compositor_p_inactive_timer(void *context)
             BDBG_ASSERT(server->auto_disable.disabled);
         }
         else if (++server->auto_disable.cnt == 20) { /* 20 iterations at 50 msec == 1 second */
-            unsigned i;
-            BDBG_WRN(("auto_disable of unused graphics"));
-            server->auto_disable.disabled = true;
-            for (i=0;i<NEXUS_SURFACE_COMPOSITOR_MAX_DISPLAYS;i++) {
-                if (server->display[i]) {
-                    nexus_surfacemp_p_disable_display(server, server->display[i]);
-                }
-            }
+            nexus_surfacemp_p_auto_disable(server);
         }
         else {
             BDBG_MSG_TRACE(("timed auto_disable of unused graphics: %u", server->auto_disable.cnt));
@@ -1292,6 +1299,7 @@ NEXUS_Error NEXUS_SurfaceCompositor_SetClientSettings( NEXUS_SurfaceCompositorHa
     /* save settings */
     client->serverSettings = *pSettings;
     nexus_surfaceclient_p_setwindows(client);
+    nexus_surface_compositor_p_calc_sync_graphics(server);
 
     if (flags & NEXUS_P_SURFACECLIENT_UPDATE_ZORDER) {
         nexus_surfacecmp_p_insert_client(server, client, true);
@@ -1966,6 +1974,9 @@ void nexus_surface_compositor_p_compose(NEXUS_SurfaceCompositorHandle server)
                     BDBG_MSG_TRACE(("compose:%p rendering into framebuffer:%p from tunnel:%p", (void *)server, (void *)framebuffer, (void *)tunnelSource));
                 }
             }
+            else if (server->synchronizeGraphics) {
+                BDBG_ERR(("synchronizeGraphics requires adding more framebuffers (%u)", cmpDisplay->num_framebuffers));
+            }
         }
 framebuffer_done:
         if(framebuffer) {
@@ -2397,4 +2408,48 @@ done:
     BSTD_UNUSED(pSettings);
     return NEXUS_SUCCESS;
 #endif
+}
+
+void nexus_surface_compositor_p_calc_sync_graphics(NEXUS_SurfaceCompositorHandle server)
+{
+    NEXUS_SurfaceClientHandle client;
+    unsigned synchronizeGraphics = 0;
+
+    for (client = BLST_Q_FIRST(&server->clients); client && !synchronizeGraphics; client = BLST_Q_NEXT(client, link)) {
+        NEXUS_SurfaceClientHandle child;
+        for (child = BLST_S_FIRST(&client->children); child && !synchronizeGraphics; child = BLST_S_NEXT(child, child_link)) {
+            if (child->type == NEXUS_SurfaceClient_eVideoWindow && child->settings.synchronizeGraphics && child->window[0]) {
+                NEXUS_Module_Lock(g_NEXUS_SurfaceCompositorModuleSettings.modules.display);
+                synchronizeGraphics = NEXUS_VideoWindow_GetGraphicsSyncDelay_priv(child->window[0]);
+                NEXUS_Module_Unlock(g_NEXUS_SurfaceCompositorModuleSettings.modules.display);
+                if (synchronizeGraphics) synchronizeGraphics--;
+            }
+        }
+    }
+
+    if (server->synchronizeGraphics != synchronizeGraphics && server->display[0]->display) {
+        NEXUS_Error rc;
+        NEXUS_GraphicsSettings graphicsSettings;
+        struct NEXUS_SurfaceCompositorDisplay *cmpDisplay = server->display[0];
+        unsigned n;
+
+        server->synchronizeGraphics = synchronizeGraphics;
+        BDBG_MSG(("synchronizeGraphics change to %d", server->synchronizeGraphics));
+
+        /* nexus_surface_compositor_p_alloc_framebuffers can bump up, not down */
+        n = server->settings.display[0].framebuffer.number + synchronizeGraphics;
+        if (cmpDisplay->num_framebuffers < n) {
+            BDBG_WRN(("increasing display[0] framebuffers from %u to %u", cmpDisplay->num_framebuffers, n));
+            cmpDisplay->num_framebuffers = n;
+            rc = nexus_surface_compositor_p_alloc_framebuffers(cmpDisplay, &server->settings.display[0]);
+            if (rc) BERR_TRACE(rc); /* keep going with framebuffers we have. */
+        }
+
+        NEXUS_Display_GetGraphicsSettings(server->display[0]->display, &graphicsSettings);
+        graphicsSettings.synchronized = (synchronizeGraphics != 0);
+        rc = NEXUS_Display_SetGraphicsSettings(server->display[0]->display, &graphicsSettings);
+        if (rc) {
+            BERR_TRACE(rc);
+        }
+    }
 }

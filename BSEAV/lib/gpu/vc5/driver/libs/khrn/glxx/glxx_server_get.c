@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "gl_public_api.h"
 #include "../common/khrn_int_common.h"
@@ -333,7 +333,8 @@ static glxx_get_type_count glxx_get_params_and_type_common(
 
       if (att)
       {
-         GFX_LFMT_T api_fmt = glxx_attachment_get_api_fmt(att);
+         GLXX_FRAMEBUFFER_T const* fb = state->bound_read_framebuffer;
+         GFX_LFMT_T api_fmt = glxx_fb_get_attachment_api_fmt(fb, fb->read_buffer);
 
          if (api_fmt != GFX_LFMT_NONE)
          {
@@ -2168,42 +2169,41 @@ end:
 typedef uint32_t (*comp_size_fct_t)(GFX_LFMT_T lfmt);
 static uint32_t component_bits(GLXX_FRAMEBUFFER_T *fbo, GLenum component)
 {
-   glxx_attachment_point_t att_point;
+   glxx_att_index_t att_index;
    comp_size_fct_t fct = NULL;
    uint32_t bits = 0;
 
    switch(component)
    {
       case GL_RED_BITS:
-         att_point = GL_COLOR_ATTACHMENT0;
+         att_index = GLXX_COLOR0_ATT;
          fct = gfx_lfmt_red_bits;
          break;
       case GL_GREEN_BITS:
-         att_point = GL_COLOR_ATTACHMENT0;
+         att_index = GLXX_COLOR0_ATT;
          fct = gfx_lfmt_green_bits;
          break;
       case GL_BLUE_BITS:
-         att_point = GL_COLOR_ATTACHMENT0;
+         att_index = GLXX_COLOR0_ATT;
          fct = gfx_lfmt_blue_bits;
          break;
       case GL_ALPHA_BITS:
-         att_point = GL_COLOR_ATTACHMENT0;
+         att_index = GLXX_COLOR0_ATT;
          fct = gfx_lfmt_alpha_bits;
          break;
       case GL_DEPTH_BITS:
-         att_point = GL_DEPTH_ATTACHMENT;
+         att_index = GLXX_DEPTH_ATT;
          fct = gfx_lfmt_depth_bits;
          break;
       case GL_STENCIL_BITS:
-         att_point = GL_STENCIL_ATTACHMENT;
+         att_index = GLXX_STENCIL_ATT;
          fct = gfx_lfmt_stencil_bits;
          break;
       default:
          unreachable();
    }
 
-   const GLXX_ATTACHMENT_T *att = glxx_fb_get_attachment(fbo, att_point);
-   GFX_LFMT_T api_fmt = glxx_attachment_get_api_fmt(att);
+   GFX_LFMT_T api_fmt = glxx_fb_get_attachment_api_fmt(fbo, att_index);
    if (api_fmt != GFX_LFMT_NONE)
       bits = fct(api_fmt);
 

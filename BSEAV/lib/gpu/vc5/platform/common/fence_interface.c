@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "fence_interface.h"
 
@@ -16,7 +16,7 @@ void FenceInterface_Create(const FenceInterface *fi, int *fence)
    if (fi->create)
       fi->create(fi->base.context, fence);
    else
-      *fence = fi->invalid_fence;
+      *fence = INVALID_FENCE;
 
    platform_dbg_message_add("%s - fence = %d", __FUNCTION__, *fence);
 }
@@ -28,9 +28,9 @@ void FenceInterface_Destroy(const FenceInterface *fi, int *fence)
 
    platform_dbg_message_add("%s - fence = %d", __FUNCTION__, *fence);
 
-   if (fi->destroy && *fence != fi->invalid_fence)
+   if (fi->destroy && *fence != INVALID_FENCE)
       fi->destroy(fi->base.context, *fence);
-   *fence = fi->invalid_fence;
+   *fence = INVALID_FENCE;
 }
 
 bool FenceInterface_Keep(const FenceInterface *fi, int fence)
@@ -39,7 +39,7 @@ bool FenceInterface_Keep(const FenceInterface *fi, int fence)
 
    platform_dbg_message_add("%s %d - fence = %d", __FUNCTION__, __LINE__, fence);
 
-   return fi->keep && fence != fi->invalid_fence ?
+   return fi->keep && fence != INVALID_FENCE ?
       fi->keep(fi->base.context, fence) : false;
 }
 
@@ -50,7 +50,7 @@ bool FenceInterface_Wait(const FenceInterface *fi, int fence,
 
    platform_dbg_message_add("%s %d - fence = %d, timeout = %d", __FUNCTION__, __LINE__, fence, timeoutms);
 
-   return fi->wait && fence != fi->invalid_fence ?
+   return fi->wait && fence != INVALID_FENCE ?
       fi->wait(fi->base.context, fence, timeoutms) : true;
 }
 
@@ -60,7 +60,7 @@ void FenceInterface_Signal(const FenceInterface *fi, int fence)
 
    platform_dbg_message_add("%s %d - fence = %d", __FUNCTION__, __LINE__, fence);
 
-   if (fi->signal && fence != fi->invalid_fence)
+   if (fi->signal && fence != INVALID_FENCE)
       fi->signal(fi->base.context, fence);
 }
 

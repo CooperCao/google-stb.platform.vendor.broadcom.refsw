@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #pragma once
 
@@ -67,6 +67,10 @@ typedef struct
    NEXUS_BlendEquation  colorBlend;
    NEXUS_BlendEquation  alphaBlend;
    NXPL_DisplayType     type;
+   uint32_t             videoWidth;
+   uint32_t             videoHeight;
+   uint32_t             videoX;
+   uint32_t             videoY;
    uint32_t             magic;
 } NXPL_NativeWindowInfoEXT;
 
@@ -112,7 +116,8 @@ NXPL_EXPORT void NXPL_DestroyCompatiblePixmap(NXPL_PlatformHandle handle, void *
 NXPL_EXPORT NEXUS_SURFACECLIENTHANDLE NXPL_CreateVideoWindowClient(void *native, unsigned windowId);
 
 /* releases the pip back */
-NXPL_EXPORT void NXPL_ReleaseVideoWindowClient(NEXUS_SURFACECLIENTHANDLE handle);
+NXPL_EXPORT void NXPL_ReleaseVideoWindowClient(NEXUS_SURFACECLIENTHANDLE handle) __attribute__((deprecated("Use NXPL_ReleaseVideoWindowClientEXT() instead")));
+NXPL_EXPORT void NXPL_ReleaseVideoWindowClientEXT(void *native);
 
 /* returns the top surface Id for that nxclient or */
 /* 0 if the native window doesn't exit */

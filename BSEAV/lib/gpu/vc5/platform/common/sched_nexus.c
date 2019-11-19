@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "sched_nexus.h"
 #include "platform_common.h"
@@ -1360,7 +1360,6 @@ void InitFenceInterface(FenceInterface *fi, const BEGL_SchedInterface *sched)
    fi->base.context = (void*)sched->context;
    fi->base.destroy = NULL; /* unused */
 
-   fi->invalid_fence    = -1;
    fi->create           = MakeFence;
    fi->destroy          = CloseFence;
    fi->keep             = KeepFence;

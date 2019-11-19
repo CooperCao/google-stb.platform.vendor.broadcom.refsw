@@ -2104,12 +2104,55 @@ BERR_Code BDSP_Raaga_P_GetAudioDelay_isrsafe(
             pCTBOutput->ui32AudOffset = BDSP_AF_P_MAX_AUD_OFFSET;
             pCTBOutput->ui32BlockTime = BDSP_AF_P_BLOCKING_TIME;
         }
-        else
+        else if(pCtbInput->audioTaskDelayMode == BDSP_AudioTaskDelayMode_WD_eLow)
         {
-            /* Low and lowest Delay mode are considered same */
             /*2*BT worst case decode time; AudOffset~DT= input buffer wait time */
             pCTBOutput->ui32AudOffset = BDSP_AF_P_MAX_AUD_OFFSET_LOW_DELAY;
             pCTBOutput->ui32BlockTime = BDSP_AF_P_BLOCKING_TIME_LOW_DELAY;
+        }
+        else
+        {
+            switch(pRaagaStage->eAlgorithm)
+            {
+            case BDSP_Algorithm_eMpegAudioDecode:
+            case BDSP_Algorithm_eMpegAudioPassthrough:
+                pCTBOutput->ui32BlockTime = 10; /*Worst case decode time about 5ms, 5ms for Idle task blocking */
+                pCTBOutput->ui32AudOffset = pCTBOutput->ui32BlockTime+BDSP_CDB_BUFFERING_TIME_LOWEST_DELAY;
+                break;
+            case BDSP_Algorithm_eAc3Decode:
+            case BDSP_Algorithm_eAc3Passthrough:
+                pCTBOutput->ui32BlockTime = 10; /*Worst case decode time about 5ms, 5ms for Idle task blocking */
+                pCTBOutput->ui32AudOffset = pCTBOutput->ui32BlockTime+BDSP_CDB_BUFFERING_TIME_LOWEST_DELAY;
+                break;
+            case BDSP_Algorithm_eAacAdtsDecode:
+            case BDSP_Algorithm_eAacLoasDecode:
+            case BDSP_Algorithm_eAacAdtsPassthrough:
+            case BDSP_Algorithm_eAacLoasPassthrough:
+            case BDSP_Algorithm_eDolbyAacheAdtsDecode:
+            case BDSP_Algorithm_eDolbyAacheLoasDecode:
+                pCTBOutput->ui32BlockTime = 10; /*Worst case decode time about 5ms, 5ms for Idle task blocking */
+                pCTBOutput->ui32AudOffset = pCTBOutput->ui32BlockTime+BDSP_CDB_BUFFERING_TIME_LOWEST_DELAY;
+                break;
+            case BDSP_Algorithm_eLpcm1394Decode:
+                pCTBOutput->ui32BlockTime = 10;
+                pCTBOutput->ui32AudOffset = pCTBOutput->ui32BlockTime+BDSP_CDB_BUFFERING_TIME_LOWEST_DELAY;
+                break;
+            case BDSP_Algorithm_eAc3PlusDecode:
+            case BDSP_Algorithm_eAc3PlusPassthrough:
+                pCTBOutput->ui32BlockTime = 10;
+                pCTBOutput->ui32AudOffset = pCTBOutput->ui32BlockTime+BDSP_CDB_BUFFERING_TIME_LOWEST_DELAY;
+                break;
+            case BDSP_Algorithm_ePcmDecode:
+                pCTBOutput->ui32BlockTime = 10;
+                pCTBOutput->ui32AudOffset = pCTBOutput->ui32BlockTime+BDSP_CDB_BUFFERING_TIME_LOWEST_DELAY;
+                break;
+            default:
+                BDBG_ERR((" Algo format ( %s )is not supported in Low Delay Mode",(BDSP_Raaga_P_LookupAlgorithmSupportInfo(pRaagaStage->eAlgorithm))->pName ));
+                errCode = BERR_NOT_SUPPORTED;
+                pCTBOutput->ui32AudOffset = BDSP_AF_P_MAX_AUD_OFFSET;
+                pCTBOutput->ui32BlockTime = BDSP_AF_P_BLOCKING_TIME;
+                break;
+            }
         }
     }
     else

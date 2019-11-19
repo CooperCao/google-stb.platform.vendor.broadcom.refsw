@@ -491,10 +491,12 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplayDynamicRangeProcessingCapabilities_priv(N
 #endif
 
         NEXUS_HdmiOutput_Dynrng_P_PrintCaps("display capabilities change event", output);
-        output->displaySettings.valid = false;
-    }
 
-    NEXUS_HdmiOutput_P_NotifyDisplay(output);
+        /* ensure we don't make any decisions based on display settings until display updates them */
+        NEXUS_HdmiOutput_P_SetDisplaySettingsValidity(output, false);
+        /* notify display that HDMI knows that display caps have been updated, which should re-set the display settings */
+        NEXUS_HdmiOutput_P_NotifyDisplay(output);
+    }
 
     return rc;
 }
@@ -513,7 +515,6 @@ void NEXUS_HdmiOutput_SetInputDrmInfoFrame_priv(NEXUS_HdmiOutputHandle hdmiOutpu
     const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame)
 {
     NEXUS_HdmiOutput_Drmif_P_SetInput(hdmiOutput, pDrmInfoFrame);
-    NEXUS_HdmiOutput_P_NotifyDisplay(hdmiOutput);
 }
 
 void NEXUS_HdmiOutput_GetDynrngEdidBytes_priv(NEXUS_HdmiOutputHandle hdmiOutput, uint8_t * bytes)

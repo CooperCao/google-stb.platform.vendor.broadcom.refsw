@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "swapchain.h"
 
@@ -16,8 +16,8 @@ static void init_surface(Swapchain *swapchain, SwapchainSurface *surface)
    surface->secure = false;
    surface->swap_interval = 1;
    surface->age = 0;
-   surface->display_fence = swapchain->fence_interface->invalid_fence;
-   surface->render_fence = swapchain->fence_interface->invalid_fence;
+   surface->display_fence = INVALID_FENCE;
+   surface->render_fence = INVALID_FENCE;
 }
 
 static bool create_surface(Swapchain *swapchain,

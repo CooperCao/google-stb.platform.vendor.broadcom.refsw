@@ -200,8 +200,9 @@ static void NEXUS_HdmiOutput_Drmif_P_Disable(NEXUS_HdmiOutputHandle hdmiOutput)
     rc = BHDM_SetDRMInfoFramePacket(hdmiOutput->hdmHandle, &stDRMInfoFrame) ;
     if (rc) { BERR_TRACE(rc); hdmiOutput->dynrng.drmif.outputInfoFrame.eotf = oldEotf; }
 
-    /* notify display that we've changed drminfoframe, but only call this if called from timer below */
-    hdmiOutput->displaySettings.valid = false;
+    /* ensure we don't make any decisions based on display settings until display updates them */
+    NEXUS_HdmiOutput_P_SetDisplaySettingsValidity(hdmiOutput, false);
+    /* notify display that we've changed drm settings, which should re-set the display settings */
     NEXUS_HdmiOutput_P_NotifyDisplay(hdmiOutput);
 }
 
@@ -476,6 +477,9 @@ void NEXUS_HdmiOutput_Drmif_P_SetInput(NEXUS_HdmiOutputHandle hdmiOutput,
     if (BKNI_Memcmp(&hdmiOutput->dynrng.drmif.inputInfoFrame, pDrmInfoFrame, sizeof(hdmiOutput->dynrng.drmif.inputInfoFrame)))
     {
         BKNI_Memcpy(&hdmiOutput->dynrng.drmif.inputInfoFrame, pDrmInfoFrame, sizeof(hdmiOutput->dynrng.drmif.inputInfoFrame));
-        hdmiOutput->displaySettings.valid = false;
+        /* ensure we don't make any decisions based on display settings until display updates them */
+        NEXUS_HdmiOutput_P_SetDisplaySettingsValidity(hdmiOutput, false);
+        /* notify display that the input has changed drm settings, which may re-set the display settings */
+        NEXUS_HdmiOutput_P_NotifyDisplay(hdmiOutput);
     }
 }

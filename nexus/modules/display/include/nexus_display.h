@@ -397,6 +397,11 @@ typedef struct NEXUS_GraphicsSettings
         int16_t y, cb, cr; /* valid range: 32767 to -32768. default is 0. The smaller this number, the dimmer / less saturated */
     } sdrToHdr;
     bool secure;
+
+    bool synchronized; /* If true, SetGraphicsFramebuffer is applied to the RUL on the next vsync, then to the HW on the vsync after that.
+        Use NEXUS_DisplayUpdateMode_eManual to set VideoWindow geometry and graphics framebuffer in one BVDC_ApplyChanges to achieve
+        video/graphics movement synchronization. Caller must also apply NEXUS_VideoWindowStatus.delay, which is video delay,
+        to the graphics pipeline. */
 } NEXUS_GraphicsSettings;
 
 /**
@@ -436,8 +441,12 @@ There is no implicit double-buffering. The user is responsible to provide any do
 If you are doing asynchronous blits into the new framebuffer, to avoid tearing your app must wait for those blits to be completed before calling
 NEXUS_Display_SetGraphicsFramebuffer. See NEXUS_Graphics2D_Checkpoint.
 
-The framebuffer will be switched on the next vsync. NEXUS_GraphicsSettings.frameBufferCallback will be fired after that switch happens.
-If you are double buffering, to avoid tearing you must not write into the outgoing framebuffer until after frameBufferCallback is fired.
+The framebuffer will be switched on the next vsync if NEXUS_GraphicsSettings.synchronized is false; otherwise, the framebuffer will be switched on the further next
+vsync. That implies you'll need at least triple-buffering to avoid tearing when synchronized is true.
+
+NEXUS_GraphicsSettings.frameBufferCallback will be fired on every vsync.
+
+If you are double buffering, to avoid tearing you must not write into the outgoing framebuffer until after the set framebuffer is switched.
 If you want to start updating the next framebuffer before waiting for frameBufferCallback, use triple buffering. You can achieve a sustained 60 fps
 graphics update (or 50 fps for 50Hz systems), if your application can prepare the next framebuffer in less than the 16 msec vsync time minus a small amount
 of time (e.g. 1-2 msec) to process the frameBufferCallback.

@@ -440,7 +440,8 @@ BERR_Code BVDC_Source_SetSurface
     {
         eStatus = BVDC_P_GfxSurface_SetSurface_isr(
             &hSource->hGfxFeeder->stGfxSurface,
-            &hSource->hGfxFeeder->stGfxSurface.stNewSurInfo, pAvcGfxPic, hSource);
+            &hSource->hGfxFeeder->stGfxSurface.stNewSurInfo,
+            pAvcGfxPic, hSource, false);
     }
     else
     {

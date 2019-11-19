@@ -2485,8 +2485,8 @@ BERR_Code BVDC_P_Window_ValidateChanges
              * and mosaic mode, we capture so the bias will become sclBeforeCap.
              */
             if(((pNewInfo->stDstRect.ulWidth  > BFMT_1080I_WIDTH) ||
-               (pNewInfo->stDstRect.ulHeight > BFMT_1080I_HEIGHT)) &&
-               !pNewInfo->bMosaicMode)
+                (pNewInfo->stDstRect.ulHeight > BFMT_1080I_HEIGHT)) &&
+                !pNewInfo->bMosaicMode)
             {
                 /* special case to support Live Feed */
                 pNewInfo->bForceCapture = false;
@@ -2506,6 +2506,25 @@ BERR_Code BVDC_P_Window_ValidateChanges
             /* BBOX_Vdc_SclCapBias_eSclBeforeCap/BBOX_Vdc_SclCapBias_eAuto need capture on always */
             pNewInfo->bForceCapture = true;
             pNewInfo->eSclCapBias   = pBoxVdc->astDisplay[eDisplayId].astWindow[ulBoxWinId].eSclCapBias;
+            /* if auto bias mode with PIP window < quater screen size, can force eSclCap to avoid vnet reconfig */
+            if(pNewInfo->eSclCapBias == BVDC_SclCapBias_eAuto &&
+               pNewInfo->stDstRect.ulWidth <= pDstFormatInfo->ulWidth/2 &&
+               pNewInfo->stDstRect.ulHeight <= pDstFormatInfo->ulHeight/2 &&
+               pNewInfo->eEnableBackgroundBars != BVDC_Mode_eOff)
+            {
+                pNewInfo->eSclCapBias   = BVDC_SclCapBias_eSclBeforeCap;
+            }
+            pNewInfo->ulBandwidthDelta = BVDC_P_BW_FIXED_BIAS_DELTA;
+        }
+    } else
+    {
+        /* if disregard bias mode with mfd PIP window < quater screen size, can force eSclCap to allow background bars */
+        if(pNewInfo->stDstRect.ulWidth <= pDstFormatInfo->ulWidth/2 &&
+           pNewInfo->stDstRect.ulHeight <= pDstFormatInfo->ulHeight/2 &&
+           pNewInfo->eEnableBackgroundBars != BVDC_Mode_eOff &&
+           BVDC_P_SRC_IS_MPEG(pNewInfo->hSource->eId))
+        {
+            pNewInfo->eSclCapBias   = BVDC_SclCapBias_eSclBeforeCap;
             pNewInfo->ulBandwidthDelta = BVDC_P_BW_FIXED_BIAS_DELTA;
         }
     }
@@ -12163,7 +12182,7 @@ static void BVDC_P_Window_UpdateCallback_isr
 {
     BVDC_P_Window_Info *pCurInfo;
     unsigned int uiNewVsyncDelay, ulVsyncRate, ulSrcVsyncRate;
-    uint32_t ulAdjustCnt;
+    uint32_t ulAdjustCnt, ulNewNonProcessVsyncDelay;
     uint32_t ulMpegVecDelay;
     uint16_t usMadVsyncDelay = 0;
     BVDC_Window_CallbackData *pCbData;
@@ -12199,6 +12218,7 @@ static void BVDC_P_Window_UpdateCallback_isr
     {
         uiNewVsyncDelay += (hWindow->ulBufDelay - pCurInfo->uiVsyncDelayOffset);
     }
+    ulNewNonProcessVsyncDelay = uiNewVsyncDelay;
 
     /* (1.2) deinterlace delay */
 
@@ -12301,15 +12321,18 @@ static void BVDC_P_Window_UpdateCallback_isr
 #if (BVDC_P_SUPPORT_STG)
         if(hWindow->hCompositor->hDisplay->stCurInfo.bStgNonRealTime) {
             uiNewVsyncDelay = 0;
+            ulNewNonProcessVsyncDelay = 0;
         }
 #endif
 
         /* forced frame capture assumed to drop every other writer buffer isr, so vsync delay is doubled based on display vsync rate */
         /* assume display is 60hz; TODO: based on actual display/source rate to adjust vsync delay */
         uiNewVsyncDelay = uiNewVsyncDelay << hWindow->stCurInfo.hSource->stCurInfo.bForceFrameCapture;
+        ulNewNonProcessVsyncDelay = ulNewNonProcessVsyncDelay << hWindow->stCurInfo.hSource->stCurInfo.bForceFrameCapture;
 
         /* (3) Which one triggers callback? */
         if(((uiNewVsyncDelay != pCbData->ulVsyncDelay) ||
+            (ulNewNonProcessVsyncDelay != pCbData->ulNonProcessVsyncDelay)  ||
             (ulVsyncRate     != pCbData->ulVsyncRate)  ||
             (pCbData->ulVsyncDelay == BVDC_P_LIP_SYNC_RESET_DELAY)) &&
              pCbSettings->stMask.bVsyncDelay)
@@ -12354,8 +12377,11 @@ static void BVDC_P_Window_UpdateCallback_isr
                 pCbData->ulVsyncDelay = uiNewVsyncDelay;
                 pCbData->ulVsyncRate  = ulVsyncRate;
                 pCbData->ulSrcVsyncRate  = ulSrcVsyncRate;
+                pCbData->ulNonProcessVsyncDelay = ulNewNonProcessVsyncDelay;
+
                 BDBG_MSG(("Window[%d] callback bVsyncDelay: ", hWindow->eId));
-                BDBG_MSG(("    ulVsyncDelay = %d", pCbData->ulVsyncDelay));
+                BDBG_MSG(("    ulVsyncDelay = %d, ulNonProcessingVsyncDelay = %d",
+                    pCbData->ulVsyncDelay, pCbData->ulNonProcessVsyncDelay));
             }
 
             if(pCbMask->bDriftDelay)

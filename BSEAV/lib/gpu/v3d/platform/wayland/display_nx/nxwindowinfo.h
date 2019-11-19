@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #pragma once
 
@@ -18,17 +18,24 @@ namespace wlpl
 
 class NxWindowInfo
 {
-public:
-   NxWindowInfo() :
-         m_clientID(0)
-   {
-   }
-
-   NxWindowInfo(const WLPL_NexusWindowInfoEXT *info) :
+private:
+   NxWindowInfo(const WLPL_NexusWindowInfoEXT &info) :
+         m_info(info),
+#ifdef NXCLIENT_SUPPORT
+         m_allocResults(),
+#endif
          m_clientID(0),
-         m_info(*info)
-   {
-   }
+         m_surfaceClient(0)
+   {}
+
+public:
+   NxWindowInfo(const WLPL_NexusWindowInfoEXT *info) :
+      NxWindowInfo(*info)
+   {}
+
+   NxWindowInfo() :
+      NxWindowInfo(WLPL_NexusWindowInfoEXT())
+   {}
 
    ~NxWindowInfo() = default;
 
@@ -105,8 +112,18 @@ public:
       return m_surfaceClient;
    }
 
+   NEXUS_SurfaceClientHandle GetVideoClient() const
+   {
+      return NULL;
+   }
+
+   void AttachVideoClient(NEXUS_SurfaceClientHandle videoClient __attribute__((unused)))
+   {
+   }
+
    bool operator==(const NxWindowInfo& rhs) const
    {
+      /* video window position ignored in wayland */
       return ((m_info.magic == rhs.m_info.magic) &&
               (m_info.width == rhs.m_info.width) &&
               (m_info.height == rhs.m_info.height) &&

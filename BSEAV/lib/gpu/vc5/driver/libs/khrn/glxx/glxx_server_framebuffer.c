@@ -56,9 +56,7 @@ unsigned glxx_get_stencil_size(const GLXX_SERVER_STATE_T *state)
    unsigned res = 0;
 
    GLXX_FRAMEBUFFER_T const* fb = state->bound_draw_framebuffer;
-   GLXX_ATTACHMENT_T const* att = &fb->attachment[GLXX_STENCIL_ATT];
-
-   GFX_LFMT_T api_fmt = glxx_attachment_get_api_fmt(att);
+   GFX_LFMT_T api_fmt = glxx_fb_get_attachment_api_fmt(fb, GLXX_STENCIL_ATT);
    if (api_fmt != GFX_LFMT_NONE)
       res = gfx_lfmt_stencil_bits(api_fmt);
    return res;
@@ -1402,7 +1400,8 @@ GL_API void GL_APIENTRY glGetFramebufferAttachmentParameteriv(GLenum target_e,
       }
    }
 
-   GFX_LFMT_T api_fmt = glxx_attachment_get_api_fmt(att);
+   GFX_LFMT_T api_fmt = glxx_fb_get_attachment_api_fmt(fb,
+         glxx_attachment_point_to_att_index(att_point));
    if (!attachment_parameter_common(api_fmt, pname, params))
    {
       error = GL_INVALID_ENUM;

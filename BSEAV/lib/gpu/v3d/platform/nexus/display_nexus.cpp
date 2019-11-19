@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include <memory>
 #include <cassert>
@@ -68,9 +68,6 @@ static BEGL_SwapchainBuffer DispBufferDequeue(void *context, void *platformState
    // not needed on win32
    *fd = -1;
 
-   // m_info contains other presentation info other than size, so update
-   bitmap->UpdateWindowInfo(*nw);
-
    auto buffer = bitmap.release();
 
    static uint32_t eventID = 0;
@@ -91,6 +88,10 @@ static BEGL_Error DispBufferQueue(void *context, void *platformState, BEGL_Swapc
       auto data = static_cast<NXPL_Display *>(context);
       auto windowState = static_cast<nxpl::WindowState *>(platformState);
       std::unique_ptr<nxpl::Bitmap> bitmap(static_cast<nxpl::Bitmap*>(buffer));
+
+      // end of swap, update the display parameters are used to control presentation
+      auto nw = static_cast<nxpl::NativeWindowInfo*>(windowState->GetWindowHandle());
+      bitmap->UpdateWindowInfo(*nw);
 
       static uint32_t eventID = 0;
       NEXUS_SurfaceHandle surface = bitmap->GetSurface();
@@ -396,12 +397,12 @@ extern "C" void NXPL_DestroyNativeWindow(void *native)
 extern "C" NEXUS_SURFACECLIENTHANDLE NXPL_CreateVideoWindowClient(void *native __attribute__((unused)), unsigned windowId __attribute__((unused)))
 {
    NEXUS_SURFACECLIENTHANDLE ret = NULL;
-#ifndef SINGLE_PROCESS
    auto nw = static_cast<nxpl::NativeWindowInfo*>(native);
-
+#ifndef SINGLE_PROCESS
    if (nw && nw->GetSurfaceClient())
       ret = NEXUS_SurfaceClient_AcquireVideoWindow(nw->GetSurfaceClient(), windowId);
 #endif
+   nw->AttachVideoClient(ret);
    return ret;
 }
 
@@ -409,6 +410,17 @@ extern "C" void NXPL_ReleaseVideoWindowClient(NEXUS_SURFACECLIENTHANDLE handle _
 {
 #ifndef SINGLE_PROCESS
    NEXUS_SurfaceClient_ReleaseVideoWindow(handle);
+#endif
+}
+
+extern "C" void NXPL_ReleaseVideoWindowClientEXT(void *native)
+{
+   auto nw = static_cast<nxpl::NativeWindowInfo*>(native);
+   NEXUS_SURFACECLIENTHANDLE videoClient __attribute__((unused)) = nw->GetVideoClient();
+   nw->AttachVideoClient(NULL);
+#ifndef SINGLE_PROCESS
+   if (videoClient)
+      NEXUS_SurfaceClient_ReleaseVideoWindow(videoClient);
 #endif
 }
 

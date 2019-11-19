@@ -84,8 +84,10 @@
 #define BDSP_AF_P_SAMPLE_PADDING                ((uint32_t)(1024))  /* Padding */
 #define BDSP_AF_P_BLOCKING_TIME                 ((uint32_t)(84))    /* In msec */
 
-#define BDSP_AF_P_MAX_AUD_OFFSET_LOW_DELAY	    ((uint32_t)64)     /* in ms */
-#define BDSP_AF_P_BLOCKING_TIME_LOW_DELAY       ((uint32_t)28)     /* in ms */
+#define BDSP_AF_P_MAX_AUD_OFFSET_LOW_DELAY	    ((uint32_t)50)     /* in ms */
+#define BDSP_AF_P_BLOCKING_TIME_LOW_DELAY       ((uint32_t)46)     /* in ms */
+
+#define BDSP_CDB_BUFFERING_TIME_LOWEST_DELAY         ((uint32_t)4) /* in ms, it should take care of FMM jitter also */
 
 #define BDSP_AF_P_MAT_BUF_SIZE                  ((uint32_t)(1536 * 1024 )) /*  In Bytes: Based on experiments done on MLP worst case streams */
 #define BDSP_AF_P_MAT_SAMPRATE_kHz              ((uint32_t)768)

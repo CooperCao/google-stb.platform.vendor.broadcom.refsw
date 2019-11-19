@@ -2689,6 +2689,23 @@ typedef struct
 
 /***************************************************************************
 Summary:
+    This structure describes the source runtime settings
+
+Description:
+    bRequireApply - specify whether a BVDC_Source_SetSurface call requires ApplyChanges
+                  to take effect.
+
+See Also:
+    BVDC_Source_SetSettings
+    BVDC_Source_SetSurface
+***************************************************************************/
+typedef struct
+{
+    bool                               bRequireApply;
+}BVDC_Source_Settings;
+
+/***************************************************************************
+Summary:
     This structure describes the default settings a display
 
 Description:
@@ -2747,6 +2764,7 @@ Description:
                               help user with lipsync computation. So when Vsync delay value
                               is not changed, but Vsync rate is changed, window callback will
                               fire as well.
+                              Note non processing vsync delay is also reported in the callback.
     bDriftDelay     - User wants to be notified about drift delay changes beyond
                               ulLipSyncTolerance in BVDC_Window_CallbackSettings. The
                               drift delay change is calculated as the delta between window's
@@ -2935,6 +2953,10 @@ Description:
                            BVN configuration is changed. When one video source feeds multiple displays
                            sharing a single audio path, lipsync algorithm may need to match all display
                            paths ulVsyncDelays by inserting delay offset buffers appropriately.
+    ulNonProcessVsyncDelay    - number of Vsyncs to take a window's input to flow from source
+                           to display; this value does not include the BVN processing latency.
+                           Note this value is the ulVsyncDelay minus the BVN processing delay from blocks
+                           like Deinterlacer.
     ulDriftDelay    - total BVN delay in microseconds, excluding the delay offset added
                            by user, including the sub-field phase difference between the source and
                            display Vsyncs. When stMask.bDriftDelay is set, VDC will callback when
@@ -2980,6 +3002,7 @@ typedef struct
 {
     BVDC_Window_CallbackMask       stMask;
     uint32_t                       ulVsyncDelay;
+    uint32_t                       ulNonProcessVsyncDelay;
     uint32_t                       ulDriftDelay;
     uint32_t                       ulGameModeDelay;
     uint32_t                       ulVsyncRate;
@@ -11136,6 +11159,54 @@ BERR_Code BVDC_Source_GetMuteMode
 
 /***************************************************************************
 Summary:
+    Set source dynamic settings.
+
+Description:
+    Currently it sets whether a gfd or mfd/vfd source requires ApplyChanges for
+    BVDC_Source_SetSurface to display a surface.
+
+Input:
+    hSource - The source handle.
+    pSettings - The source dynamic settings.
+
+Output:
+
+Returns:
+    BERR_INVALID_PARAMETER - Invalid function parameters.
+    BERR_SUCCESS - Successfully set.
+
+See Also:
+    BVDC_Source_SetSurface, BVDC_Source_Settings
+****************************************************************************/
+BERR_Code BVDC_Source_SetSettings
+    ( BVDC_Source_Handle               hSource,
+      const BVDC_Source_Settings      *pSettings);
+
+/***************************************************************************
+Summary:
+    Get source runtime settings.
+
+Description:
+
+Input:
+    hSource - The source handle.
+    pSettings - The source runtime settings.
+
+Output:
+
+Returns:
+    BERR_INVALID_PARAMETER - Invalid function parameters.
+    BERR_SUCCESS - Successfully set.
+
+See Also:
+    BVDC_Source_SetSettings, BVDC_Source_Settings
+****************************************************************************/
+BERR_Code BVDC_Source_GetSettings
+    ( BVDC_Source_Handle               hSource,
+      BVDC_Source_Settings            *pSettings);
+
+/***************************************************************************
+Summary:
     Specifies the graphics surface (set) to use in the graphics source device
     represented by the source handle.
 
@@ -11190,10 +11261,14 @@ Description:
     BVDC before it are released from BVDC and are free for application to
     create new content.
 
-    Setting with BVDC_Source_SetSurface will be displayed by BVDC right after
+    If BVDC_Source_SetSettings.bRequireApply is false, which is by default,
+    BVDC_Source_SetSurface will be displayed by BVDC right after
     the coming vsync if the surface width, height, pitch, and pixel format
     does not change from previous setting. Otherwise it is not to be applied
     until a call to BVDC_ApplyChanges is made.
+
+    If BVDC_Source_Settings.bRequireApply is true, pGfxPic will be displayd
+    on the 2nd vsync after the next ApplyChanges.
 
     Besides BVDC_Source_SetSurface, the graphics surfaces could also be set
     by BVDC_Source_SetSurface_isr and BVDC_Source_PictureCallback_isr. Both
@@ -11226,6 +11301,7 @@ See Also:
     BVDC_Source_GetSurface
     BVDC_Window_SetSrcClip
     BVDC_Window_SetAlpha
+    BVDC_Source_SetSettings
     BVDC_ApplyChanges
     BVDC_Source_SetSurface_isr, BVDC_Source_PictureCallback_isr
 ****************************************************************************/

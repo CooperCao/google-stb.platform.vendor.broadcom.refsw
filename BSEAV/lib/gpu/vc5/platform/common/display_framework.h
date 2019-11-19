@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #ifndef __DISPLAY_FRAMEWORK_H__
 #define __DISPLAY_FRAMEWORK_H__
@@ -54,37 +54,31 @@
  */
 typedef struct DisplayFramework
 {
-   const DisplayInterface   *display_interface;
-   const FenceInterface     *fence_interface;
-   const SurfaceInterface   *surface_interface;
-   BEGL_WindowInfo           window_info;
-   pthread_mutex_t           window_mutex;
+   DisplayInterface           display_interface;
+   FenceInterface             fence_interface;
+   SurfaceInterface           surface_interface;
+   unsigned                   swapchain_count;
+   pthread_mutex_t            window_mutex;
 
-   pthread_t                 thread;
-   pthread_barrier_t         barrier;
-   sem_t                     latency;
-   Swapchain                 swapchain;
+   pthread_t                  thread;
+   pthread_barrier_t          barrier;
+   sem_t                      latency;
+   Swapchain                  swapchain;
+
+   WindowInfo                 windowInfo;
 } DisplayFramework;
 
-bool DisplayFramework_Start(DisplayFramework *df,
-      const DisplayInterface *display_interface,
-      const FenceInterface *fence_interface,
-      const SurfaceInterface *surface_interface,
-      uint32_t width, uint32_t height, uint32_t swapchain_count);
+bool DisplayFramework_Start(DisplayFramework *df, uint32_t swapchain_count);
 
 void DisplayFramework_Stop(DisplayFramework *df);
 
-void DisplayFramework_GetSize(DisplayFramework *df,
-      uint32_t *width, uint32_t *height);
-
-void DisplayFramework_SetSize(DisplayFramework *df,
-      uint32_t width, uint32_t height);
-
 void *DisplayFramework_GetNextSurface(DisplayFramework *df,
-      BEGL_BufferFormat format, bool secure, int *age, int *fence);
+      BEGL_BufferFormat format, bool secure, int *age, int *fence,
+      const WindowInfo *windowInfo);
 
 void DisplayFramework_DisplaySurface(DisplayFramework *df,
-      void *surface, int fence, uint32_t swap_interval);
+      void *surface, int fence, uint32_t swap_interval,
+      const WindowInfo *windowInfo);
 
 void DisplayFramework_CancelSurface(DisplayFramework *df,
       void *surface, int fence);

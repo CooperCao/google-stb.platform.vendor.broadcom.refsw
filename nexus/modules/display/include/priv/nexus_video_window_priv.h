@@ -133,6 +133,7 @@ bool NEXUS_VideoAdj_P_DefaultMadEnabled_priv(NEXUS_VideoWindowHandle window);
 bool NEXUS_VideoWindow_IsSmoothScaling_isrsafe(NEXUS_VideoWindowHandle window);
 void NEXUS_VideoWindow_GetDefaultMinDisplayFormat_isrsafe(NEXUS_VideoWindowHandle window, NEXUS_VideoFormat *pMinDisplayFormat);
 void NEXUS_VideoWindow_GetParentIndex_isrsafe(NEXUS_VideoWindowHandle window, unsigned *parentIndex, int *mosaicIndex /* -1 if not */);
+unsigned NEXUS_VideoWindow_GetGraphicsSyncDelay_priv(NEXUS_VideoWindowHandle window);
 
 #ifdef __cplusplus
 }

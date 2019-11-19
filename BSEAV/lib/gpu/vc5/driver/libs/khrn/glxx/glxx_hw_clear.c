@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  ******************************************************************************/
 #include "glxx_hw.h"
 #include "../common/khrn_counters.h"
@@ -62,6 +62,17 @@ bool glxx_hw_clear(GLXX_SERVER_STATE_T *state, GLXX_CLEAR_T *clear)
    // Early out if no clears
    if (!clear->color_buffer_mask && !clear->depth && !clear->stencil)
       return true;
+
+   // If we're clearing unorm buffers then clamp the clear colors
+   for (unsigned b = 0; b != V3D_MAX_RENDER_TARGETS; ++b) {
+      if (clear->color_buffer_mask & (1u << b)) {
+         GFX_LFMT_T lfmt = glxx_fb_get_attachment_api_fmt(fb, GLXX_COLOR0_ATT + b);
+         if (gfx_lfmt_contains_unorm(lfmt)) {
+            float f = gfx_fclamp(gfx_float_from_bits(clear->color_value[b]), 0.0f, 1.0f);
+            clear->color_value[b] = gfx_float_to_bits(f);
+         }
+      }
+   }
 
    GLXX_HW_FRAMEBUFFER_T hw_fb;
    if (!glxx_init_hw_framebuffer(fb, &hw_fb, &state->fences))

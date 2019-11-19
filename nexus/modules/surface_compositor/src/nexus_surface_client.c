@@ -47,6 +47,7 @@
 #include "priv/nexus_core.h"
 #include "priv/nexus_display_priv.h"
 #include "priv/nexus_surface_priv.h"
+#include "priv/nexus_video_window_priv.h"
 #include "nexus_client_resources.h"
 
 BDBG_MODULE(nexus_surface_client);
@@ -228,7 +229,11 @@ static void NEXUS_SurfaceClient_P_Finalizer( NEXUS_SurfaceClientHandle client )
     NEXUS_OBJECT_ASSERT(NEXUS_SurfaceClient, client);
     switch (client->type) {
     case NEXUS_SurfaceClient_eVideoWindow:
+        {
+        NEXUS_SurfaceCompositorHandle server = client->settings.synchronizeGraphics?client->server:NULL;
         NEXUS_SurfaceClient_P_VideoWindowFinalizer(client);
+        if (server) nexus_surface_compositor_p_calc_sync_graphics(server);
+        }
         break;
     /* TODO: case NEXUS_SurfaceClient_eChild: */
     default:
@@ -574,23 +579,40 @@ static void NEXUS_SurfaceClient_P_RecycleOld(NEXUS_SurfaceClientHandle client, b
                 BDBG_MSG_TRACE(("RecycleOld:%#lx recycle %#lx ...", (unsigned long)client, (unsigned long)node));
             }
         }
-    } else {
-        NEXUS_SurfaceCompositor_P_PushElement *first_node=NULL;
-        if(client->queue.compositing) {
-            first_node = BLST_SQ_FIRST(&client->queue.push);
-            if(first_node) {
-                BLST_SQ_REMOVE_HEAD(&client->queue.push, link);
+    }
+    else if (client->server->bypass_compose.client == client) {
+        for (node = BLST_SQ_FIRST(&client->queue.push); node;) {
+            NEXUS_SurfaceCompositor_P_PushElement *next = BLST_SQ_NEXT(node, link);
+            if (client->server->bypass_compose.set != node->surface.surface &&
+                client->server->bypass_compose.completing != node->surface.surface)
+            {
+                recycled = true;
+                BLST_SQ_REMOVE(&client->queue.push, node, NEXUS_SurfaceCompositor_P_PushElement, link);
+                BLST_SQ_INSERT_TAIL(&client->queue.recycle, node, link);
+                NEXUS_OBJECT_RELEASE(client, NEXUS_Surface, node->surface.surface);
+                BDBG_MSG_TRACE(("RecycleOld:%#lx recycle %#lx ...", (unsigned long)client, (unsigned long)node));
             }
+            node = next;
         }
-        while ((node = BLST_SQ_FIRST(&client->queue.push))) {
+    }
+    else {
+        unsigned graphics_delay = client->server->synchronizeGraphics;
+        node = BLST_SQ_FIRST(&client->queue.push);
+        if (client->queue.compositing && node) {
+            node = BLST_SQ_NEXT(node, link);
+            if (graphics_delay) graphics_delay--;
+        }
+        while (graphics_delay-- && node) {
+            node = BLST_SQ_NEXT(node, link);
+        }
+        while (node) {
+            NEXUS_SurfaceCompositor_P_PushElement *next = BLST_SQ_NEXT(node, link);
             recycled = true;
-            BLST_SQ_REMOVE_HEAD(&client->queue.push, link);
+            BLST_SQ_REMOVE(&client->queue.push, node, NEXUS_SurfaceCompositor_P_PushElement, link);
             BLST_SQ_INSERT_TAIL(&client->queue.recycle, node, link);
             NEXUS_OBJECT_RELEASE(client, NEXUS_Surface, node->surface.surface);
             BDBG_MSG_TRACE(("RecycleOld:%#lx recycle %#lx ...", (unsigned long)client, (unsigned long)node));
-        }
-        if(first_node) {
-            BLST_SQ_INSERT_HEAD(&client->queue.push, first_node, link);
+            node = next;
         }
     }
     if(recycled) {
@@ -725,6 +747,19 @@ void NEXUS_SurfaceClient_Clear( NEXUS_SurfaceClientHandle client )
         client->queue.last = false;
         if (client->server->bypass_compose.client == client) {
             client->server->bypass_compose.client = NULL;
+            if (client->server->bypass_compose.set || client->server->bypass_compose.completing) {
+                /* the only way to get it back immediately is auto_disable, but bypass_client means
+                this is the only client, so it's valid. */
+                nexus_surfacemp_p_auto_disable(client->server);
+                if (client->server->bypass_compose.set) {
+                    NEXUS_OBJECT_RELEASE(client->server, NEXUS_Surface, client->server->bypass_compose.set);
+                    client->server->bypass_compose.set = NULL;
+                }
+                if (client->server->bypass_compose.completing) {
+                    NEXUS_OBJECT_RELEASE(client->server, NEXUS_Surface, client->server->bypass_compose.completing);
+                    client->server->bypass_compose.completing = NULL;
+                }
+            }
             nexus_surface_compositor_p_realloc_framebuffers(client->server);
         }
         break;
@@ -750,6 +785,7 @@ void NEXUS_SurfaceClient_GetSettings( NEXUS_SurfaceClientHandle client, NEXUS_Su
 NEXUS_Error NEXUS_SurfaceClient_SetSettings( NEXUS_SurfaceClientHandle client, const NEXUS_SurfaceClientSettings *pSettings )
 {
     bool changeChildZorder = false;
+    bool change_synchronizeGraphics;
     BDBG_OBJECT_ASSERT(client, NEXUS_SurfaceClient);
     BDBG_ASSERT(pSettings);
     if(client->state.client_type != client_type_idle) {
@@ -769,6 +805,9 @@ NEXUS_Error NEXUS_SurfaceClient_SetSettings( NEXUS_SurfaceClientHandle client, c
             /* app should use NxClient_SetSurfaceClientComposition instead */
             return BERR_TRACE(NEXUS_NOT_SUPPORTED);
         }
+        if (pSettings->synchronizeGraphics) {
+            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        }
         NEXUS_TaskCallback_Set(client->displayedCallback, &pSettings->displayed);
         NEXUS_TaskCallback_Set(client->recycledCallback, &pSettings->recycled);
         NEXUS_TaskCallback_Set(client->displayStatusChangedCallback, &pSettings->displayStatusChanged);
@@ -782,7 +821,7 @@ NEXUS_Error NEXUS_SurfaceClient_SetSettings( NEXUS_SurfaceClientHandle client, c
         /* can't change orientation of active tunneled client */
         if(pSettings->orientation != client->settings.orientation) { return BERR_TRACE(NEXUS_NOT_SUPPORTED); }
     }
-
+    change_synchronizeGraphics = (pSettings->synchronizeGraphics != client->settings.synchronizeGraphics);
     client->settings = *pSettings;
 
     if (changeChildZorder) {
@@ -790,6 +829,7 @@ NEXUS_Error NEXUS_SurfaceClient_SetSettings( NEXUS_SurfaceClientHandle client, c
     }
     if (client->type == NEXUS_SurfaceClient_eVideoWindow) {
         nexus_surfaceclient_request_setvideo(client);
+        if (change_synchronizeGraphics) nexus_surface_compositor_p_calc_sync_graphics(client->server);
     }
     return NEXUS_SUCCESS;
 }

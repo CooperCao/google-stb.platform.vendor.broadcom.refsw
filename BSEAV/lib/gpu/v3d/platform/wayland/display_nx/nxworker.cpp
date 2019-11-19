@@ -20,6 +20,7 @@ NxWorker::~NxWorker()
    std::unique_ptr<DispItem<NxBitmap>> dispItem(
          new DispItem<NxBitmap>(std::move(bitmap), std::move(sem)));
    windowState->PushDispQ(std::move(dispItem));
+   m_vsync.notify();
    m_worker.join();
 }
 
@@ -87,7 +88,7 @@ void NxWorker::RecycleHandler()
    }
 }
 
-void NxWorker::SetupDisplay(const NxWindowInfo &nw)
+void NxWorker::SetupDisplay(const NxWindowInfo &nw, const helper::Extent2D &extent)
 {
 #ifdef NXCLIENT_SUPPORT
    NEXUS_SurfaceComposition comp;
@@ -99,15 +100,15 @@ void NxWorker::SetupDisplay(const NxWindowInfo &nw)
    {
       comp.virtualDisplay.width = 0;
       comp.virtualDisplay.height = 0;
-      comp.position.width = nw.GetWidth();
-      comp.position.height = nw.GetHeight();
+      comp.position.width = extent.GetWidth();
+      comp.position.height = extent.GetHeight();
    }
    else
    {
-      comp.virtualDisplay.width = nw.GetWidth();
-      comp.virtualDisplay.height = nw.GetHeight();
-      comp.position.width = nw.GetWidth() - (2 * nw.GetX());
-      comp.position.height = nw.GetHeight() - (2 * nw.GetY());
+      comp.virtualDisplay.width = extent.GetWidth();
+      comp.virtualDisplay.height = extent.GetHeight();
+      comp.position.width = extent.GetWidth() - (2 * nw.GetX());
+      comp.position.height = extent.GetHeight() - (2 * nw.GetY());
    }
    comp.position.x = nw.GetX();
    comp.position.y = nw.GetY();
@@ -168,7 +169,7 @@ void NxWorker::mainThread(void)
          auto windowInfo = dispItem->m_bitmap->GetWindowInfo();
          if (windowInfo != windowState->GetWindowInfo())
          {
-            SetupDisplay(windowInfo);
+            SetupDisplay(windowInfo, dispItem->m_bitmap->GetExtent2D());
             windowState->UpdateWindowInfo(windowInfo);
          }
 
@@ -186,7 +187,7 @@ void NxWorker::mainThread(void)
 
          m_vsync.reset();
 
-         for (int i = 0; i < dispItem->m_swapInterval; i++)
+         for (int i = 0; i < dispItem->m_swapInterval && !m_done; i++)
             m_vsync.wait();
 
          RecycleHandler();

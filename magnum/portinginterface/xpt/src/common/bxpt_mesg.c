@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2018 Broadcom.
+ * Copyright (C) 2019 Broadcom.
  * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
@@ -1605,6 +1605,10 @@ BERR_Code ConfigMessageBufferRegs(
 
     /** Set the buffer address and size. **/
 #ifdef BCHP_XPT_MSG_BUF_CTRL3_TABLE_i_ARRAY_BASE
+#if BXPT_P_MESG_FIXED_SIZE_BUFFERS
+        /* Do nothing here. nexus_message_pid2buf.c has already written the buffer size */
+	 BSTD_UNUSED(BufferSize);
+#else
         RegAddr = BCHP_XPT_MSG_BUF_CTRL3_TABLE_i_ARRAY_BASE + ( MesgBufferNum * BP_TABLE_STEP );
         Reg = BREG_Read32( hXpt->hRegister, RegAddr );
         Reg &= ~(
@@ -1615,6 +1619,7 @@ BERR_Code ConfigMessageBufferRegs(
             BCHP_FIELD_DATA( XPT_MSG_BUF_CTRL3_TABLE_i, BP_BUFFER_SIZE, ( uint32_t ) BufferSize )
             );
         BREG_Write32( hXpt->hRegister, RegAddr, Reg );
+#endif
 
         RegAddr = BCHP_XPT_MSG_DMA_BP_TABLE_i_ARRAY_BASE + ( MesgBufferNum * BP_TABLE_STEP );
         Reg = BREG_Read32( hXpt->hRegister, RegAddr );
