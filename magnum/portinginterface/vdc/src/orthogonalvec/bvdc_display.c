@@ -1596,8 +1596,15 @@ BERR_Code BVDC_Display_Set656Configuration
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    hDisplay->stNewInfo.bEnable656 = bEnable;
-    if((hDisplay->stCurInfo.bEnable656 != bEnable) ||
+    if(hDisplay->eMasterTg == BVDC_DisplayTg_e656Dtg && !bEnable)
+    {
+        BDBG_MSG(("Disp%d running 656 master mode, can't turn off 656", hDisplay->eId));
+    }
+    else
+    {
+        hDisplay->stNewInfo.bEnable656 = bEnable;
+    }
+    if((hDisplay->stCurInfo.bEnable656 != hDisplay->stNewInfo.bEnable656) ||
        (hDisplay->stNewInfo.bErrorLastSetting))
     {
         hDisplay->stNewInfo.stDirty.stBits.b656Enable = BVDC_P_DIRTY;

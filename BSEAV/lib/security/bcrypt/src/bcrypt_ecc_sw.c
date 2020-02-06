@@ -1,41 +1,44 @@
-/***************************************************************************
- *     (c)2014 Broadcom Corporation
+/******************************************************************************
+ *  Copyright (C) 2019 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
- **************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 /* General purpose elliptic curve routines. */
 #include "bstd.h"
@@ -49,6 +52,21 @@
 
 BDBG_MODULE(BCRYPT);
 
+static int bcrypt_Is_neg(BIGNUM * p)
+{
+#if (OPENSSL_VERSION_NUMBER > 0x10100000L)
+    if(BN_is_negative(p))
+#else
+    if (p->neg)
+#endif
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+     }
+}
 /*-jfu check 4*a^3+27*b^2<>0 */
 static int ECC_param_ok(BIGNUM * p, BIGNUM * a, BIGNUM * b)
 {
@@ -192,8 +210,10 @@ int ECCpt_is_valid_pt(ECCpt * a, ECC * ecc)
 
 int ECCpt_is_equal(ECCpt * a, ECCpt * b)
 {
-    if (a->x->neg && b->x->neg)
+    if (bcrypt_Is_neg(a->x) && bcrypt_Is_neg(b->x))
+    {
         return 1;
+    }
     return ((BN_cmp(a->x, b->x) == 0) && (BN_cmp(a->y, b->y) == 0));
 }
 
@@ -204,13 +224,13 @@ void ECCpt_add(ECCpt * r, ECCpt * a, ECCpt * b, ECC * ecc)
     BIGNUM *tmp1, *tmp2;
     BIGNUM *lambda;
 
-    if (a->x->neg) {
+    if (bcrypt_Is_neg(a->x)) {
         BN_copy(r->x, b->x);
         BN_copy(r->y, b->y);
         return;
     }
 
-    if (b->x->neg) {
+    if (bcrypt_Is_neg(b->x)) {
         BN_copy(r->x, a->x);
         BN_copy(r->y, a->y);
         return;
@@ -221,7 +241,7 @@ void ECCpt_add(ECCpt * r, ECCpt * a, ECCpt * b, ECC * ecc)
         BN_add(tmp1, a->y, b->y);
         if (BN_cmp(tmp1, ecc->modulus) == 0) {
             BN_free(tmp1);
-            r->x->neg = 1;    /*  Set to identity  */
+            BN_set_negative(r->x,1);    /*  Set to identity  */
             return;
         }
     }
@@ -244,7 +264,7 @@ void ECCpt_add(ECCpt * r, ECCpt * a, ECCpt * b, ECC * ecc)
         BN_mod_mul(lambda, tmp1, tmp2, ecc->modulus, ctx);
     } else {
         BN_sub(tmp1, b->x, a->x);
-        if (tmp1->neg)
+        if (bcrypt_Is_neg(tmp1))
             BN_add(tmp1, ecc->modulus, tmp1);
         BN_free(tmp2);  /* Abbas fix for memory leak fix, */
                                 /* should free tmp2 before calling the BN_mod_inverse with NULL parameter */
@@ -256,25 +276,25 @@ void ECCpt_add(ECCpt * r, ECCpt * a, ECCpt * b, ECC * ecc)
             goto out_free;
         }
         BN_sub(tmp1, b->y, a->y);
-        if (tmp1->neg)
+        if (bcrypt_Is_neg(tmp1))
             BN_add(tmp1, ecc->modulus, tmp1);
         BN_mod_mul(lambda, tmp1, tmp2, ecc->modulus, ctx);
     }
 
     BN_mod_mul(tmp1, lambda, lambda, ecc->modulus, ctx);
     BN_sub(tmp1, tmp1, a->x);
-    if (tmp1->neg)
+    if (bcrypt_Is_neg(tmp1))
         BN_add(tmp1, ecc->modulus, tmp1);
     BN_sub(tmp2, tmp1, b->x);
-    if (tmp2->neg)
+    if (bcrypt_Is_neg(tmp2))
         BN_add(tmp2, ecc->modulus, tmp2);
 
     BN_sub(tmp1, a->x, tmp2);
-    if (tmp1->neg)
+    if (bcrypt_Is_neg(tmp1))
         BN_add(tmp1, ecc->modulus, tmp1);
     BN_mod_mul(tmp1, lambda, tmp1, ecc->modulus, ctx);
     BN_sub(r->y, tmp1, a->y);
-    if (r->y->neg)
+    if (bcrypt_Is_neg(r->y))
         BN_add(r->y, ecc->modulus, r->y);
 
     BN_free(r->x);
@@ -291,11 +311,34 @@ out_free:
 void ECCpt_mul(ECCpt * r, ECCpt * a, BIGNUM * n, ECC * ecc)
 {
     ECCpt tmp;
-    int numbits, i;
+    int numbits, i, negnum=-1;
+    BIGNUM * negtmp=NULL;
+    BN_CTX *ctx;
 
     tmp.x = BN_dup(a->x);
     tmp.y = BN_dup(a->y);
+
+#if (OPENSSL_VERSION_NUMBER > 0x10100000L)
+    BN_set_negative(r->x,1);
+#else
     r->x->neg = 1;
+#endif
+
+    if (!bcrypt_Is_neg(r->x))
+    {
+        ctx = BN_CTX_new();
+        if(ctx == NULL) {
+            BDBG_ERR(("NULL context\n"));
+            goto out_free;
+        }
+        negtmp = BN_new();
+        negtmp = BN_bin2bn((const unsigned char *)&negnum, sizeof(negnum), negtmp);
+        BN_set_negative(negtmp,1);    /*  Set to identity  */
+        BN_copy(r->x, negtmp);
+        BN_CTX_free(ctx);
+        BN_free(negtmp);
+    }
+
     numbits = BN_num_bits(n);
 
     for (i = numbits - 1; i >= 0; i--) {
@@ -307,4 +350,7 @@ void ECCpt_mul(ECCpt * r, ECCpt * a, BIGNUM * n, ECC * ecc)
 
     /* Added by Alireza to fix the memory leak */
     ECCpt_free(&tmp);
+
+out_free:
+    return;
 }

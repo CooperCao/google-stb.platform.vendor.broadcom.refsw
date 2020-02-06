@@ -1504,6 +1504,23 @@ typedef struct  _HDMI_VideoFormat{
 }BAVC_HDMI_VideoFormat;
 
 
+
+/******************************************************************************
+Summary:
+Enumeration of IEEE Data Registrastion Identifier types
+*******************************************************************************/
+typedef enum
+{
+	BAVC_HDMI_IEEERegId_eUnknown,
+	BAVC_HDMI_IEEERegId_eVSDB,
+	BAVC_HDMI_IEEERegId_eHF_VSDB,
+	BAVC_HDMI_IEEERegId_eDolby,
+	BAVC_HDMI_IEEERegId_eHDR10P
+} BAVC_HDMI_IEEERegId ;
+
+
+const uint8_t * BAVC_HDMI_GetOuiId(const BAVC_HDMI_IEEERegId eRegId) ;
+
 /******************************************************************************
 Summary:
 Data structure containing pointer to EDID and the number of EDID bytes
@@ -1637,5 +1654,8 @@ void BAVC_HDMI_DisplayAudioInfoFramePacket(BAVC_HDMI_Port *pstHdmiPort, BAVC_HDM
 void BAVC_HDMI_DisplayVendorSpecificInfoFrame(BAVC_HDMI_Port *pstHdmiPort, const BAVC_HDMI_VendorSpecificInfoFrame *pstVSI) ;
 void BAVC_HDMI_DisplayDRMInfoFramePacket(BAVC_HDMI_Port *pstHdmiPort, BAVC_HDMI_DRMInfoFrame *pstDRMInfoFrame) ;
 void BAVC_HDMI_DisplayACRData(BAVC_HDMI_Port *pstHdmiPort, BAVC_HDMI_AudioClockRegenerationPacket *pstACR) ;
+
+const char * BAVC_HDMI_EDID_CeaTagToStr(const uint8_t uiCeaExtTagId) ;
+const char * BAVC_HDMI_EDID_CeaExtendedTagToStr(const uint8_t uiCeaExtTagId) ;
 
 #endif

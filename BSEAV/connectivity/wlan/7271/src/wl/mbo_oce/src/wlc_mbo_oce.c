@@ -298,7 +298,6 @@ wlc_mbo_oce_ie_calc_len(void *ctx, wlc_iem_calc_data_t *data)
 	attr_data.buf_len = 0;
 
 	if (mbo_oce->build_cbs && mbo_oce->count_build_cbs) {
-		total_len = MBO_OCE_IE_HDR_SIZE;
 		for (i = 0; i < mbo_oce->max_build_cbs; i++) {
 			entry = &mbo_oce->build_cbs[i];
 			if ((entry->fstbmp & FT2BMP(data->ft)) && entry->build_fn) {
@@ -306,6 +305,9 @@ wlc_mbo_oce_ie_calc_len(void *ctx, wlc_iem_calc_data_t *data)
 			}
 		}
 	}
+
+	if (total_len != 0)
+		total_len += MBO_OCE_IE_HDR_SIZE;
 	return total_len;
 }
 

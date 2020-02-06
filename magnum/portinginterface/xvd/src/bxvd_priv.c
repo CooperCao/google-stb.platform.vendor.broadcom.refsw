@@ -45,6 +45,7 @@
 #include "bxvd.h"
 #include "bxvd_platform.h"
 #include "bxvd_priv.h"
+#include "bxvd_dip.h"
 #include "bxvd_reg.h"
 #include "bxvd_errors.h"
 #include "bxvd_intr.h"
@@ -2365,6 +2366,9 @@ BERR_Code BXVD_P_RestartDecoder(BXVD_Handle hXvd)
    BAVC_XptContextMap  XptContextMap;
    BAVC_XptContextMap  aXptContextMap_Extended[BXVD_NUM_EXT_RAVE_CONTEXT];
    bool                bStillMode;
+   bool                bDone;
+   BXVD_DisplayInterruptProvider_P_ChannelHandle hXvdDipCh;
+   BXVD_DisplayInterruptProvider_P_InterruptSettings stInterruptConfig;
 
    BERR_Code rc = BERR_SUCCESS;
 
@@ -2451,6 +2455,81 @@ BERR_Code BXVD_P_RestartDecoder(BXVD_Handle hXvd)
                rc = BERR_TRACE(BXVD_StartDecode(hXvdCh, &hXvdCh->sDecodeSettings));
 
                hXvdCh->bPreserveState = false;
+            }
+         }
+      }
+   }
+
+   for ( eDisplayInterrupt = 0; eDisplayInterrupt < BXVD_DisplayInterrupt_eMax; eDisplayInterrupt++ )
+   {
+      bDone = false;
+
+      for (chanNum = 0; ((chanNum < BXVD_MAX_VIDEO_CHANNELS) && !bDone); chanNum++)
+      {
+         hXvdCh = hXvd->ahChannel[chanNum];
+
+         if (hXvdCh != NULL)
+         {
+            if (hXvdCh->eDecoderState == BXVD_P_DecoderState_eActive)
+            {
+               if ((hXvdCh->sDecodeSettings.bNRTModeEnable == true ) &&
+                   (hXvdCh->sDecodeSettings.eDisplayInterrupt == eDisplayInterrupt))
+               {
+                  hXvdDipCh = hXvd->hXvdDipCh[eDisplayInterrupt];
+
+                  rc = BXVD_DisplayInterruptProvider_P_GetInterruptConfiguration( hXvdDipCh, &stInterruptConfig );
+
+                  if ( rc == BERR_SUCCESS)
+                  {
+                     if (stInterruptConfig.stRULIDMasks_0.ui32TopFieldRULIDMask != 0)
+                     {
+                        BXVD_Reg_Write32(hXvd,
+                                         (hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdClear-4),
+                                         stInterruptConfig.stRULIDMasks_0.ui32TopFieldRULIDMask);
+                     }
+#if BXVD_P_RUL_DONE_MASK_64_BITS
+                     else if (stInterruptConfig.stRULIDMasks_1.ui32TopFieldRULIDMask != 0)
+                     {
+                        BXVD_Reg_Write32(hXvd,
+                                         (hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_11_AvdClear-4),
+                                         stInterruptConfig.stRULIDMasks_1.ui32TopFieldRULIDMask);
+                     }
+#endif
+                     else if (stInterruptConfig.stRULIDMasks_0.ui32BottomFieldRULIDMask != 0)
+                     {
+                        BXVD_Reg_Write32(hXvd,
+                                         (hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdClear-4),
+                                         stInterruptConfig.stRULIDMasks_0.ui32BottomFieldRULIDMask);
+                     }
+#if BXVD_P_RUL_DONE_MASK_64_BITS
+                     else if (stInterruptConfig.stRULIDMasks_1.ui32BottomFieldRULIDMask != 0)
+                     {
+                        BXVD_Reg_Write32(hXvd,
+                                         (hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_11_AvdClear-4),
+                                         stInterruptConfig.stRULIDMasks_1.ui32BottomFieldRULIDMask);
+                     }
+#endif
+                     else if (stInterruptConfig.stRULIDMasks_0.ui32ProgressiveFieldRULIDMask != 0)
+                     {
+                        BXVD_Reg_Write32(hXvd,
+                                         (hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdClear-4),
+                                         stInterruptConfig.stRULIDMasks_0.ui32ProgressiveFieldRULIDMask);
+                     }
+#if BXVD_P_RUL_DONE_MASK_64_BITS
+                     else if (stInterruptConfig.stRULIDMasks_1.ui32ProgressiveFieldRULIDMask != 0)
+                     {
+                        BXVD_Reg_Write32(hXvd,
+                                         (hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_11_AvdClear-4),
+                                         stInterruptConfig.stRULIDMasks_1.ui32ProgressiveFieldRULIDMask);
+                     }
+#endif
+                     bDone = true;
+                  }
+                  else
+                  {
+                     bDone = true;
+                  }
+               }
             }
          }
       }

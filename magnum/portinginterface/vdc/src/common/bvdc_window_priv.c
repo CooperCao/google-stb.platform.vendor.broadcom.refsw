@@ -3552,7 +3552,8 @@ static void BVDC_P_Window_SetBgColor_isr
 #endif
             BCHP_FIELD_DATA(CMP_0_V0_RECT_TOP_CTRL, RECT_COLOR_SRC, 1);
 
-        BVDC_P_WIN_GET_REG_DATA(CMP_0_V0_RECT_COLOR) = hCompositor->stCurInfo.ulBgColorYCrCb;
+        /* clear rect mask color is before CMP blender in CSC */
+        BVDC_P_WIN_GET_REG_DATA(CMP_0_V0_RECT_COLOR) = hCompositor->ulPreBlendInBgColor;
         BVDC_P_WIN_GET_REG_DATA(CMP_0_V0_RECT_ENABLE_MASK) = 1;
 
         BVDC_P_WIN_GET_REG_DATA_I(0, CMP_0_V0_RECT_SIZEi_ARRAY_BASE) =
@@ -5301,6 +5302,10 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
         /* Build the picture */
         pPicture->stFlags.bMuteFixedColor        = false;
         pPicture->stFlags.bMuteMad               = pMvdFieldData->bMute;
+        if(pMvdFieldData->bInvisible && !pPicture->bMosaicMode)
+        {
+            pPicture->ucAlpha = 0;
+        }
         pPicture->ulAdjQp                        = pMvdFieldData->ulAdjQp;
         pPicture->eSrcPolarity                   = pMvdFieldData->eSourcePolarity;
         pPicture->PicComRulInfo.eSrcOrigPolarity = pMvdFieldData->eSourcePolarity;
@@ -6472,6 +6477,7 @@ void BVDC_P_Window_GetBufSize_isr
       const BVDC_P_Rect                      *pSrcRect,
       const bool                              bInterlaced,
       const bool                              bMosaicMode,
+      const bool                              bFillBars,
       const bool                              b3DMode,
       const bool                              bMinSrc,
       const BPXL_Format                       eBufPxlFmt,
@@ -6489,6 +6495,7 @@ void BVDC_P_Window_GetBufSize_isr
 
 #if (!BVDC_P_BUFFER_ADD_GUARD_MEMORY)
     BSTD_UNUSED(bMosaicMode);
+    BSTD_UNUSED(bFillBars);
     BSTD_UNUSED(b3DMode);
 #endif
 
@@ -6566,6 +6573,13 @@ void BVDC_P_Window_GetBufSize_isr
                     : BVDC_P_MAX_CAP_GUARD_MEMORY_2D;
                 ulBufSize = (ulStride * pSrcRect->ulHeight) >> bInterlaced;
             }
+            else if(bFillBars)
+            {
+                ulStride = (stSrcRect.ulWidth * BVDC_P_DCXM_BITS_PER_PIXEL) / 8;
+                ulStride += b3DMode ? BVDC_P_MAX_CAP_GUARD_FILLBAR_3D
+                    : BVDC_P_MAX_CAP_GUARD_FILLBAR_2D;
+                ulBufSize = (ulStride * pSrcRect->ulHeight) >> bInterlaced;
+            }
             else
 #endif
             {
@@ -6582,6 +6596,13 @@ void BVDC_P_Window_GetBufSize_isr
             {
                 uiPitch += b3DMode ? BVDC_P_MAX_CAP_GUARD_MEMORY_3D
                     : BVDC_P_MAX_CAP_GUARD_MEMORY_2D;
+            }
+            else if(bFillBars)
+            {
+                ulStride = (stSrcRect.ulWidth * BVDC_P_DCXM_BITS_PER_PIXEL) / 8;
+                ulStride += b3DMode ? BVDC_P_MAX_CAP_GUARD_FILLBAR_3D
+                    : BVDC_P_MAX_CAP_GUARD_FILLBAR_2D;
+                ulBufSize = (ulStride * pSrcRect->ulHeight) >> bInterlaced;
             }
             else
 #endif
@@ -10992,7 +11013,7 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
         if(BVDC_P_VNET_USED_SCALER_AT_READER(hWindow->stVnetMode))
         {
             BVDC_P_Window_GetBufSize_isr(hWindow->eId, pCapBufRect,
-                bCapInterlaced, pCurInfo->bMosaicMode, false, false,
+                bCapInterlaced, pCurInfo->bMosaicMode, false, false, false,
                 pCurInfo->ePixelFormat, &hWindow->stCapCompression,
                 BVDC_P_BufHeapType_eCapture, &ulBufSize, eBitDepth);
         }
@@ -11004,7 +11025,10 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
             BFMT_Orientation eDspOrientation = BFMT_Orientation_e2D;
 
             pMinDspFmt = hWindow->stSettings.pMinDspFmt;
-            stCapBufRect = (pCurInfo->bMosaicMode)
+            /* allocate guard band if necessary according to mosaic mode if enabled fill bars */
+            stCapBufRect = (pCurInfo->bMosaicMode ||
+                (BVDC_Mode_eOff != hWindow->stCurInfo.eEnableBackgroundBars &&
+                 0 < hWindow->stCurInfo.ucZOrder))
                 ? pCurInfo->stScalerOutput : hWindow->stAdjDstRect;
 
             /* Max capture is 1080p in AutoDisable1080p mode */
@@ -11084,6 +11108,14 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
                 {
                     BDBG_ASSERT(ulBoxWindowWidthFraction);
                     BDBG_ASSERT(ulBoxWindowHeightFraction);
+                    /* constrain pip capture buffer to 1/2 x 1/2 if quarter screen pip size limit is specified; */
+                    if(hWindow->hCompositor->hVdc->stSettings.pMemConfigSettings &&
+                       hWindow->hCompositor->hVdc->stSettings.pMemConfigSettings->stDisplay[eDisplayId].stWindow[ulBoxWinId].bPip &&
+                       (ulBoxWindowWidthFraction * ulBoxWindowHeightFraction < 4))
+                    {
+                        ulBoxWindowWidthFraction  = 2;
+                        ulBoxWindowHeightFraction = 2;
+                    }
 
                     ulMaxWidth = pMinDspFmt ? pMinDspFmt->ulWidth / ulBoxWindowWidthFraction
                         : pDstFmtInfo->ulWidth / ulBoxWindowWidthFraction;
@@ -11118,13 +11150,19 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
                 /*stCapBufRect.ulWidth  = BVDC_P_MAX(stCapBufRect.ulWidth,  pAllocFmt->ulWidth);
                 stCapBufRect.ulHeight = BVDC_P_MAX(stCapBufRect.ulHeight, pAllocFmt->ulHeight);*/
                 BVDC_P_Window_GetBufSize_isr(hWindow->eId, &stMinBufRect,
-                    pAllocFmt->bInterlaced, pCurInfo->bMosaicMode, false, false,
+                    pAllocFmt->bInterlaced, pCurInfo->bMosaicMode,
+                    /* allocate guard band if necessary according to mosaic mode if enabled fill bars */
+                    (BVDC_Mode_eOff!=hWindow->stCurInfo.eEnableBackgroundBars &&
+                     0 < hWindow->stCurInfo.ucZOrder), false, false,
                     pCurInfo->ePixelFormat, &hWindow->stCapCompression,
                     BVDC_P_BufHeapType_eCapture, &ulMinDspSize, eBitDepth);
             }
 
             BVDC_P_Window_GetBufSize_isr(hWindow->eId, &stCapBufRect,
-                bCapInterlaced, pCurInfo->bMosaicMode, false, false,
+                bCapInterlaced, pCurInfo->bMosaicMode,
+                /* allocate guard band if necessary according to mosaic mode if enabled fill bars */
+                (BVDC_Mode_eOff!=hWindow->stCurInfo.eEnableBackgroundBars &&
+                 0 < hWindow->stCurInfo.ucZOrder), false, false,
                 pCurInfo->ePixelFormat, &hWindow->stCapCompression,
                 BVDC_P_BufHeapType_eCapture, &ulBufSize, eBitDepth);
 
@@ -11308,7 +11346,7 @@ static bool BVDC_P_Window_DecideMcvpBufsCfgs_isr
                     hWindow->stCurResource.hMcvp->ulMaxWidth);
         }
         BVDC_P_Window_GetBufSize_isr(hWindow->eId, &stMadBufRect,
-            bInterlace, false, false, false,
+            bInterlace, false, false, false, false,
             pCurInfo->stMadSettings.ePixelFmt,
             pWinCompression, bDeinterlace?BVDC_P_BufHeapType_eMad_Pixel: BVDC_P_BufHeapType_eAnr,
             &ulBufSize, eBitDepth);
@@ -11339,7 +11377,7 @@ static bool BVDC_P_Window_DecideMcvpBufsCfgs_isr
 
         /* Qm filed buffer */
         BVDC_P_Window_GetBufSize_isr(hWindow->eId, &stMadBufRect,
-            bInterlace, false, false, false,
+            bInterlace, false, false, false, false,
             pCurInfo->stMadSettings.ePixelFmt,
             pWinCompression, BVDC_P_BufHeapType_eMad_QM,
             &ulBufSize, eBitDepth);
@@ -11763,13 +11801,15 @@ static bool BVDC_P_Window_DecideBufsCfgs_isr
 
             /* rough estimation minSrc and Src buffer size requirement */
             BVDC_P_Window_GetBufSize_isr(hWindow->eId, &stMinBufRect,
-                pMinSrcFmt->bInterlaced, pCurInfo->bMosaicMode, false, true,
+                pMinSrcFmt->bInterlaced, pCurInfo->bMosaicMode,
+                false, false, true,
                 pCurInfo->ePixelFormat,
                 &hWindow->stCapCompression, BVDC_P_BufHeapType_eCapture,
                 &ulMinSrcSize, eBitDepth);
 
             BVDC_P_Window_GetBufSize_isr(hWindow->eId, &stCapBufRect,
-                bInterlace, pCurInfo->bMosaicMode, false, false,
+                bInterlace, pCurInfo->bMosaicMode,
+                false, false, false,
                 pCurInfo->ePixelFormat, &hWindow->stCapCompression,
                 BVDC_P_BufHeapType_eCapture, &ulSrcSize, eBitDepth);
 

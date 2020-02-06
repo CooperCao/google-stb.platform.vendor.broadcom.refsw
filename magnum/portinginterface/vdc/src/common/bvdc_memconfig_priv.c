@@ -975,8 +975,9 @@ static BERR_Code BVDC_P_MemConfig_GetWindowCapBufCnt
     pHeapSizeInfo = &pSystemConfigInfo->stHeapSizeInfo;
 
     BKNI_EnterCriticalSection();
+    /* estimate without compression for now; */
     BVDC_P_Window_GetBufSize_isr(ulWinIndex, &stCapRect,
-        pFmtInfo->bInterlaced && !bFrameCapture, pWinConfigInfo->bMosaicMode,
+        pFmtInfo->bInterlaced && !bFrameCapture, pWinConfigInfo->bMosaicMode, false,
         pWinConfigInfo->b3d, false, BVDC_P_CAP_PIXEL_FORMAT_8BIT422,
         NULL, BVDC_P_BufHeapType_eCapture, &ulBufSize, BAVC_VideoBitDepth_e8Bit);
 
@@ -1076,7 +1077,7 @@ static BERR_Code BVDC_P_MemConfig_GetWindowDeinterlacerBufCnt
     /* Get Pixel buffers */
     BKNI_EnterCriticalSection();
     BVDC_P_Window_GetBufSize_isr(ulWinIndex, &stMadBufRect, true,
-        false, false, false, ePxlFormat, &stCompression,
+        false, false, false, false, ePxlFormat, &stCompression,
         BVDC_P_BufHeapType_eMad_Pixel,  &ulBufSize, BAVC_VideoBitDepth_e8Bit);
     BKNI_LeaveCriticalSection();
 
@@ -1098,7 +1099,7 @@ static BERR_Code BVDC_P_MemConfig_GetWindowDeinterlacerBufCnt
     /* Get QM buffers */
     BKNI_EnterCriticalSection();
     BVDC_P_Window_GetBufSize_isr(ulWinIndex, &stMadBufRect, true,
-        false, false, false, ePxlFormat, &stCompression,
+        false, false, false, false, ePxlFormat, &stCompression,
         BVDC_P_BufHeapType_eMad_QM, &ulBufSize, BAVC_VideoBitDepth_e8Bit);
     BKNI_LeaveCriticalSection();
 

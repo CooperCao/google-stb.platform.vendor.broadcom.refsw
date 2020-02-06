@@ -231,6 +231,18 @@ typedef struct BHDM_EDID_P_VideoDescriptor
 typedef struct BHDM_EDID_VideoDescriptorHead BHDM_EDID_VideoDescriptorHead;
 BLST_Q_HEAD(BHDM_EDID_VideoDescriptorHead, BHDM_EDID_P_VideoDescriptor );
 
+typedef struct BHDM_EDID_P_DetailedTiming
+{
+	BLST_Q_ENTRY(BHDM_EDID_P_DetailedTiming) link ;
+	BHDM_EDID_DetailTiming stDetailedTiming ;
+
+	BFMT_VideoFmt eVideoFmt  ; /* BCM Video Format */
+} BHDM_EDID_P_DetailedTiming ;
+
+/* declaration of the head type for Video Descriptor list */
+typedef struct BHDM_EDID_DetailedTimingHead BHDM_EDID_DetailedTimingHead ;
+BLST_Q_HEAD(BHDM_EDID_DetailedTimingHead, BHDM_EDID_P_DetailedTiming);
+
 
 /******************************************************************************
 Summary:
@@ -311,16 +323,15 @@ typedef struct _BHDM_EDID_DATA_
         /* flag to indicate whether the block has been catched - true: cached, false: not cached */
         bool bBlockCached[BHDM_EDID_P_MAX_NUMBER_OF_EDID_BLOCK] ;
 
-        BHDM_EDID_BasicData        BasicData ;
-        bool BcmMonitorRangeParsed ;
-        BHDM_EDID_MonitorRange MonitorRange ;
+        BHDM_EDID_BasicData        BasicData;
+        bool BcmMonitorRangeParsed;
+        BHDM_EDID_MonitorRange MonitorRange;
         uint8_t                MonitorName[BHDM_EDID_DESC_ASCII_STRING_LEN] ;
-        BHDM_EDID_DetailTiming SupportedDetailTimings[2] ; /* keep Rx two most preferred timings */
+        BHDM_EDID_DetailedTimingHead SupportedDetailTimingList;
         uint8_t                SupportedDetailTimingsIn1stBlock ;
-        uint8_t                RxHasHdmiSupport ;
-        BHDM_EDID_DetailTiming TxPreferredDetailTiming ; /* keep Tx (1st) preferred timing */
-        BHDM_EDID_RxVendorSpecificDB RxVSDB ;
-        uint8_t uiRxVendorSpecificDBLength ;
+        uint8_t                RxHasHdmiSupport;
+        BHDM_EDID_RxVendorSpecificDB RxVSDB;
+        uint8_t uiRxVendorSpecificDBLength;
 
         BHDM_EDID_RxHfVsdb      RxHdmiForumVsdb ;
 
@@ -390,6 +401,16 @@ BERR_Code BHDM_P_DestroyTimer(const BHDM_Handle hHDM, BTMR_TimerHandle *timerHan
 void BHDM_MONITOR_P_CreateTimers(BHDM_Handle hHDMI) ;
 void BHDM_MONITOR_P_DestroyTimers(BHDM_Handle hHDMI) ;
 void BHDM_P_StopTimers_isr(const BHDM_Handle hHDMI) ;
+
+void BHDM_EDID_P_FreeVideoDescriptorList(BHDM_Handle hHDMI) ;
+void BHDM_EDID_P_FreeDetailedTimingList(BHDM_Handle hHDMI) ;
+uint8_t BHDM_EDID_P_ValidEdidCheckSum(uint8_t *pEDID) ;
+
+#define BHDM_EDID_P_MAX_EXTENSIONS_SUPPORTED 4
+BERR_Code BHDM_EDID_P_VerifyNumBlockExtensions(uint8_t *extensions) ;
+
+void BHDM_EDID_DEBUG_P_PrintEdidBlock(uint8_t * pEDID) ;
+
 
 #endif
 

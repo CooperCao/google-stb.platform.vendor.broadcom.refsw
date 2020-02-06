@@ -248,10 +248,14 @@ typedef BWL_PRE_PACKED_STRUCT struct bcm_event {
 #define WLC_E_PSTA_CREATE_IND		171	/* Indication for PSTA creation */
 #define WLC_E_AIRIQ_EVENT		172	/* AIRIQ driver event */
 #define WLC_E_LTE_U_EVENT		173	/* AIRIQ/LTE-U driver event */
-#define WLC_E_LAST			174	/* highest val + 1 for range checking */
-#if (WLC_E_LAST > 174)
-#error "WLC_E_LAST: Invalid value for last event; must be <= 174."
+#define WLC_E_ASSOC_REASSOC_IND_EXT	186	/* 802.11 Extended (Re)ASSOC indication with whole
+						 * frame even including MAC header
+						 */
+#define WLC_E_LAST			187	/* highest val + 1 for range checking */
+#if (WLC_E_LAST > 187)
+#error "WLC_E_LAST: Invalid value for last event; must be <= 187."
 #endif /* WLC_E_LAST */
+
 
 /* define an API for getting the string name of an event */
 extern const char *bcmevent_get_name(uint event_type);

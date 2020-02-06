@@ -145,7 +145,7 @@ void get_random_mac(unsigned char *outmac)
 void dump_datamodel()
 {
   printf("\n======================= Data Model START =======================\n");
-  i5_dm_device_type* selfDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  i5_dm_device_type* selfDevice = i5DmGetSelfDevice();
   if (NULL == selfDevice) {
     return;
   }
@@ -191,7 +191,7 @@ void test_ieee1905(void *hdl)
   bcm_usched_handle *usched_hdl = (bcm_usched_handle*)hdl;
   srand((unsigned)time(NULL));
 
-  i5_dm_device_type* selfDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  i5_dm_device_type* selfDevice = i5DmGetSelfDevice();
   if (NULL == selfDevice) {
     return;
   }

@@ -1545,9 +1545,9 @@ void BVDC_P_Vip_BuildRul_isr
 
         pBuffer->stPicture.ulWidth       = pFmtInfo->ulDigitalWidth;
         pBuffer->stPicture.ulHeight      = pFmtInfo->ulDigitalHeight>>(pFmtInfo->bInterlaced);
-#if BVDC_P_VIP_RDB_MASK(OUTPUT_PICTURE_SIZE, HSIZE_MB)
         pBuffer->stPicture.ulWidthInMbs  = DIV16_ROUNDUP(pFmtInfo->ulDigitalWidth);
         pBuffer->stPicture.ulHeightInMbs = DIV16_ROUNDUP(pFmtInfo->ulDigitalHeight>>(pFmtInfo->bInterlaced));
+#if BVDC_P_VIP_RDB_MASK(OUTPUT_PICTURE_SIZE, HSIZE_MB)
 #ifdef WORKAROUND_HW_ISSUE_VICE2_196
         if (( pBuffer->stPicture.bDcx == true ) && (( pBuffer->stPicture.ulWidthInMbs & 0x3) == 3))
         {
@@ -1580,9 +1580,6 @@ void BVDC_P_Vip_BuildRul_isr
                 pBuffer->stPicture.ulWidthInMbs = WORKAROUND_HW_ISSUE_VICE2_210_UPPER_LIMIT + 1;
         }
 #endif
-#else
-        pBuffer->stPicture.ulWidthInMbs  = DIV8_ROUNDUP(pFmtInfo->ulDigitalWidth);
-        pBuffer->stPicture.ulHeightInMbs = DIV8_ROUNDUP(pFmtInfo->ulDigitalHeight>>(pFmtInfo->bInterlaced));
 #endif
         pBuffer->stPicture.ulOriginalPTS = hDisplay->hCompositor->ulOrigPTS;
         pBuffer->stPicture.ePolarity  = eFieldPolarity;
@@ -1831,8 +1828,8 @@ void BVDC_P_Vip_BuildRul_isr
             BVDC_P_VIP_RDB_DATA(OUTPUT_PICTURE_SIZE, VSIZE_MB, pBuffer->stPicture.ulHeightInMbs));
 #else
         hVip->stRegs.ulOutputPicSize =  (
-            BVDC_P_VIP_RDB_DATA(OUTPUT_PICTURE_SIZE, HSIZE_8X8, pBuffer->stPicture.ulWidthInMbs) |
-            BVDC_P_VIP_RDB_DATA(OUTPUT_PICTURE_SIZE, VSIZE_8X8, pBuffer->stPicture.ulHeightInMbs));
+            BVDC_P_VIP_RDB_DATA(OUTPUT_PICTURE_SIZE, HSIZE_8X8, pBuffer->stPicture.ulWidthInMbs*2) |
+            BVDC_P_VIP_RDB_DATA(OUTPUT_PICTURE_SIZE, VSIZE_8X8, pBuffer->stPicture.ulHeightInMbs*2));
 #endif
 
 

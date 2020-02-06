@@ -3031,6 +3031,8 @@ static void wlc_ap_process_assocreq_exit(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg
 {
 	wlc_ap_info_pvt_t *appvt = (wlc_ap_info_pvt_t *) ap;
 	wlc_info_t *wlc = appvt->wlc;
+	uint8 *ext_assoc_pkt;
+	uint ext_assoc_pkt_len;
 	bool reassoc;
 
 	BCM_REFERENCE(dc);
@@ -3051,6 +3053,21 @@ static void wlc_ap_process_assocreq_exit(wlc_ap_info_t *ap, wlc_bsscfg_t *bsscfg
 	wlc_bss_mac_event(wlc, bsscfg, reassoc ? WLC_E_REASSOC_IND : WLC_E_ASSOC_IND,
 		&hdr->sa, WLC_E_STATUS_SUCCESS, param->status, scb->auth_alg,
 		param->e_data, param->e_datalen);
+	/* Send WLC_E_ASSOC_REASSOC_IND_EXT to interested App */
+	ext_assoc_pkt_len = sizeof(*hdr) + body_len;
+	if ((ext_assoc_pkt = (uint8*)MALLOC(bsscfg->wlc->osh, ext_assoc_pkt_len)) == NULL) {
+		WL_ERROR(("wl%d.%d: %s: MALLOC(%d) failed, malloced %d bytes\n",
+			WLCWLUNIT(bsscfg->wlc), WLC_BSSCFG_IDX(bsscfg), __FUNCTION__,
+			ext_assoc_pkt_len, MALLOCED(bsscfg->wlc->osh)));
+	} else {
+		memcpy(ext_assoc_pkt, hdr, sizeof(*hdr));
+		memcpy(ext_assoc_pkt + sizeof(*hdr), body, body_len);
+
+		wlc_bss_mac_event(wlc, bsscfg, WLC_E_ASSOC_REASSOC_IND_EXT,
+			&hdr->sa, WLC_E_STATUS_SUCCESS, param->status, scb->auth_alg,
+			ext_assoc_pkt, ext_assoc_pkt_len);
+		MFREE(bsscfg->wlc->osh, ext_assoc_pkt, ext_assoc_pkt_len);
+	}
 	/* Suspend STA sniffing if it is associated to AP  */
 	if (STAMON_ENAB(wlc->pub) && STA_MONITORING(wlc, &hdr->sa))
 		wlc_stamon_sta_sniff_enab(wlc->stamon_info, &hdr->sa, FALSE);
@@ -5489,7 +5506,16 @@ wlc_ap_doiovar(void *hdl, uint32 actionid,
 		break;
 #ifdef MULTIAP
 	case IOV_GVAL(IOV_MAP):
-		*ret_int_ptr = (int32)bsscfg->map_attr;
+		*ret_int_ptr = 0;
+		if (bsscfg->map_attr & MAP_EXT_ATTR_FRNTHAUL_BSS) {
+			setbit(ret_int_ptr, 0);
+		}
+		if (bsscfg->map_attr & MAP_EXT_ATTR_BACKHAUL_BSS) {
+			setbit(ret_int_ptr, 1);
+		}
+		if (bsscfg->map_attr & MAP_EXT_ATTR_BACKHAUL_STA) {
+			setbit(ret_int_ptr, 2);
+		}
 		break;
 	case IOV_SVAL(IOV_MAP): {
 		uint8 flags = 0;
@@ -5847,7 +5873,7 @@ wlc_ap_scb_deinit(void *context, struct scb *scb)
 	if (BSSCFG_AP(bsscfg) && SCB_ASSOCIATED(scb)) {
 		WL_ASSOC(("wl%d: AP: scb free: indicate disassoc for the STA-%s\n",
 			wlc->pub->unit, ea));
-		wlc_bss_mac_event(wlc, bsscfg, WLC_E_DISASSOC_IND, &scb->ea,
+		wlc_bss_mac_event(wlc, bsscfg, WLC_E_DISASSOC, &scb->ea,
 			WLC_E_STATUS_SUCCESS, DOT11_RC_DISASSOC_LEAVING, 0, 0, 0);
 	}
 

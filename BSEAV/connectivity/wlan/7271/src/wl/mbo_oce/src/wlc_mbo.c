@@ -33,6 +33,7 @@
 #include <wl_anqpo.h>
 #endif /* ANQPO */
 #include <wlc_wnm.h>
+#include <wlc_wnm_ext.h>
 #include <wlc_ie_mgmt_ft.h>
 #include "wlc_mbo_oce_priv.h"
 #include <wlc_iocv.h>
@@ -131,12 +132,34 @@ struct mbo_chan_pref_list {
 	uint8	reason;
 };
 
+typedef struct mbo_timer_ctx {
+	wlc_mbo_info_t *mbo;
+	uint16 cfg_ID;              /* bsscfg ID */
+	uint32 req_to;      /* time out value requested */
+	uint32 start_time;        /* timer added at */
+	/* pending time at the time of clone,
+	 * when we stop timer in wl and try to setup in
+	 * the other wl for remaining time.
+	 */
+	uint32 pending_to;
+	struct wl_timer *timer;
+	uint8 timer_active;
+} mbo_timer_ctx_t;
+
+typedef struct mbo_reassoc_delay_timer_list {
+	struct mbo_reassoc_delay_timer_list *next;
+	mbo_timer_ctx_t *timer_ctx;
+	struct ether_addr bssid;
+} mbo_reassoc_delay_timer_list_t;
+
 typedef struct wlc_mbo_data {
 	/* configured cellular data capability of device */
 	uint8 cell_data_cap;
 	uint8 max_chan_pref_entries;
 	wlc_mbo_oce_ie_build_hndl_t build_ie_hndl;
 	wlc_mbo_oce_ie_parse_hndl_t parse_ie_hndl;
+	uint8 max_reassoc_delay_timer_count;
+	uint32 event_mask;	/* event mask */
 } wlc_mbo_data_t;
 
 struct wlc_mbo_info {
@@ -161,6 +184,9 @@ typedef struct wlc_mbo_bsscfg_cubby {
 	uint16 np_chan_attr_buf_len;
 	/* bss transition reject reason */
 	uint8 bsstrans_reject_reason;
+	uint8 cell_conn_pref;
+	uint8 transn_reason_code;
+	uint16 reassoc_delay;
 	/* Time offset in seconds for a sending a BTM query on a new join */
 	uint16 btq_trigger_offset;
 	/* stored last BTM query token */
@@ -171,7 +197,11 @@ typedef struct wlc_mbo_bsscfg_cubby {
 	uint8 btq_trigger_rssi_delta;
 	/* stored roam trigger value when a BTM query was sent due to RSSI variation */
 	int prev_roam_trigger;
+	mbo_reassoc_delay_timer_list_t *reassoc_delay_timer_list;
+	/* Time offset in seconds for a sending a BTM query on a new join */
+	uint16 btq_trigger_timeout;
 } wlc_mbo_bsscfg_cubby_t;
+
 
 typedef struct wlc_mbo_scb_cubby {
 	/* flags for associated bss capability etc. */
@@ -342,6 +372,14 @@ wlc_mbo_get_force_assoc(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
 	uint8 *value);
 #endif /* WL_MBO_TB */
 
+static void
+wlc_mbo_notify(wlc_bsscfg_t *cfg, wl_mbo_event_type_t type, void *data, uint data_len);
+
+extern int
+wlc_set_roam_channel_cache(wlc_bsscfg_t *cfg, const chanspec_t *chanspecs, int num_chanspecs);
+void
+wlc_bss_mac_event(wlc_info_t* wlc, wlc_bsscfg_t *bsscfg, uint msg, const struct ether_addr* addr,
+	uint result, uint status, uint auth_type, void *data, int datalen);
 
 #define MAX_SET_GET_DATA_CAP_SIZE  8
 #define MAX_ADD_CHAN_PREF_CFG_SIZE  32
@@ -383,7 +421,7 @@ static const bcm_iov_cmd_info_t mbo_sub_cmds[] = {
 	{WL_MBO_CMD_DEL_CHAN_PREF, BCM_IOV_CMD_FLAG_NONE,
 	0, BCM_XTLV_OPTION_ALIGN32,
 	NULL, NULL, wlc_mbo_iov_del_chan_pref, 0,
-	MAX_DEL_CHAN_PREF_CFG_SIZE, MAX_DEL_CHAN_PREF_CFG_SIZE, 0, 0
+	0, MAX_DEL_CHAN_PREF_CFG_SIZE, 0, 0
 	},
 	{WL_MBO_CMD_LIST_CHAN_PREF, BCM_IOV_CMD_FLAG_NONE,
 	0, BCM_XTLV_OPTION_ALIGN32,
@@ -1111,16 +1149,47 @@ wlc_mbo_iov_del_chan_pref(void *hndl, const uint8 *ibuf,
 	wlc_mbo_info_t *mbo = (wlc_mbo_info_t *)hndl;
 	wlc_mbo_chan_pref_t ch_pref;
 
-	memset(&ch_pref, 0, sizeof(ch_pref));
-	ret = bcm_unpack_xtlv_buf(&ch_pref, ibuf, ilen, BCM_XTLV_OPTION_ALIGN32,
-		wlc_mbo_chan_pref_cbfn);
-	if (ret != BCME_OK) {
-		WL_MBO_ERR(("wl%d: %s: unpacking xtlv buf failed %d\n",
-			mbo->wlc->pub->unit, __FUNCTION__, ret));
-		goto fail;
+	if (ilen) {
+		memset(&ch_pref, 0, sizeof(ch_pref));
+		ret = bcm_unpack_xtlv_buf(&ch_pref, ibuf, ilen, BCM_XTLV_OPTION_ALIGN32,
+			wlc_mbo_chan_pref_cbfn);
+		if (ret != BCME_OK) {
+			WL_MBO_ERR(("wl%d: %s: unpacking xtlv buf failed %d\n",
+				mbo->wlc->pub->unit, __FUNCTION__, ret));
+			goto fail;
+		}
+		/* handle chan pref data */
+		ret = wlc_mbo_del_chan_pref(mbo, bsscfg, &ch_pref);
+	} else {
+		wlc_mbo_bsscfg_cubby_t *mbc = NULL;
+		wlc_info_t *wlc = mbo->wlc;
+
+		mbc = MBO_BSSCFG_CUBBY(mbo, bsscfg);
+		/* clear all chan preference configuration */
+		wlc_mbo_free_chan_pref_list(mbo, bsscfg);
+
+		/* update pre-built non preferred chan report */
+		if (mbc->np_chan_attr_buf == NULL) {
+			mbc->np_chan_attr_buf = MALLOCZ(wlc->osh, MBO_MAX_NON_PREF_CHAN_ATTRS_LEN);
+			if (mbc->np_chan_attr_buf == NULL) {
+				WL_ERROR(("wl%d: %s: out of mem, malloced %d bytes\n",
+					wlc->pub->unit, __FUNCTION__, MALLOCED(wlc->osh)));
+				ret = BCME_NOMEM;
+				goto fail;
+			}
+		}
+		/* reset old report */
+		bzero(mbc->np_chan_attr_buf, MBO_MAX_NON_PREF_CHAN_ATTRS_LEN);
+		mbc->np_chan_attr_buf_len = MBO_MAX_NON_PREF_CHAN_ATTRS_LEN;
+		ret = wlc_mbo_prep_non_pref_chan_report(mbo, bsscfg,
+			mbc->np_chan_attr_buf, &mbc->np_chan_attr_buf_len,
+			MBO_NON_PREF_CHAN_REPORT_ATTR);
+		if (ret != BCME_OK) {
+			WL_MBO_ERR(("wl%d.%d: %s: non pref chan attr report updation failed %d\n",
+				mbo->wlc->pub->unit, bsscfg->_idx, __FUNCTION__, ret));
+			return ret;
+		}
 	}
-	/* handle chan pref data */
-	ret = wlc_mbo_del_chan_pref(mbo, bsscfg, &ch_pref);
 fail:
 	return ret;
 }
@@ -1470,7 +1539,7 @@ wlc_mbo_send_wnm_notif(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
 {
 	int ret = BCME_OK;
 	uint8 *se_buf = NULL;
-	uint16 se_buf_len = 0;
+	uint16 se_buf_len = 0, se_buf_maxlen = MBO_MAX_NON_PREF_CHAN_SE_LEN;
 	wlc_info_t *wlc = bsscfg->wlc;
 
 	WL_MBO_DBG(("%s:Sub element type %d\n", __FUNCTION__, sub_elem_type));
@@ -1483,18 +1552,20 @@ wlc_mbo_send_wnm_notif(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
 	}
 
 	ASSERT(MBO_MAX_NON_PREF_CHAN_SE_LEN >= MBO_MAX_CELL_DATA_CAP_SE_LEN);
-	/* allocate buffer for np-chan report sub-element */
-	se_buf = MALLOCZ(wlc->osh, MBO_MAX_NON_PREF_CHAN_SE_LEN);
-	if (se_buf == NULL) {
-		WL_ERROR(("wl%d.%d: %s: out of mem, malloced %d bytes\n",
-			wlc->pub->unit, bsscfg->_idx, __FUNCTION__, MALLOCED(wlc->osh)));
-		ret = BCME_NOMEM;
-		goto fail;
-	}
-	se_buf_len = MBO_MAX_NON_PREF_CHAN_SE_LEN;
+	se_buf_len = se_buf_maxlen;
 	switch (sub_elem_type) {
 		case MBO_ATTR_CELL_DATA_CAP:
 		{
+			/* allocate buffer for np-chan report sub-element */
+			se_buf_len = se_buf_maxlen = MBO_MAX_CELL_DATA_CAP_SE_LEN;
+			se_buf = MALLOCZ(wlc->osh, se_buf_maxlen);
+			if (se_buf == NULL) {
+				WL_ERROR(("wl%d.%d: %s: out of mem, malloced %d bytes\n",
+					wlc->pub->unit, bsscfg->_idx, __FUNCTION__, MALLOCED(wlc->osh)));
+				ret = BCME_NOMEM;
+				goto fail;
+			}
+
 			wlc_mbo_prep_cell_data_cap_subelement(mbo->mbo_data->cell_data_cap,
 				se_buf, &se_buf_len);
 			if (se_buf_len == 0) {
@@ -1508,6 +1579,13 @@ wlc_mbo_send_wnm_notif(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
 		break;
 		case MBO_ATTR_NON_PREF_CHAN_REPORT:
 		{
+			se_buf = MALLOCZ(wlc->osh, se_buf_maxlen);
+			if (se_buf == NULL) {
+				WL_ERROR(("wl%d.%d: %s: out of mem, malloced %d bytes\n",
+					wlc->pub->unit, bsscfg->_idx, __FUNCTION__, MALLOCED(wlc->osh)));
+				ret = BCME_NOMEM;
+				goto fail;
+			}
 			/* prepare non pref chan sub-elem buffer */
 			ret = wlc_mbo_prep_non_pref_chan_report(mbo, bsscfg,
 				se_buf, &se_buf_len, MBO_NON_PREF_CHAN_REPORT_SUBELEM);
@@ -1535,7 +1613,7 @@ wlc_mbo_send_wnm_notif(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
 	}
 fail:
 	if (se_buf) {
-		MFREE(bsscfg->wlc->osh, se_buf, MBO_MAX_NON_PREF_CHAN_SE_LEN);
+		MFREE(bsscfg->wlc->osh, se_buf, se_buf_maxlen);
 		se_buf_len = 0;
 	}
 	return ret;
@@ -2952,6 +3030,435 @@ wlc_mbo_update_scb_band_cap(wlc_info_t* wlc, struct scb* scb, uint8* data)
 	mbo_scb->flags[0] = data[0];
 }
 
+static void
+wlc_mbo_updt_bsstrans_rej_resn_cntrs(wlc_mbo_bsscfg_cubby_t *mbc,
+	uint8 reason_code)
+{
+	switch (reason_code)
+	{
+		case MBO_TRANS_REJ_REASON_UNSPECIFIED:
+			break;
+		case MBO_TRANS_REJ_REASON_EXSSIV_FRM_LOSS_RATE:
+			WL_MBO_CNT_INR(mbc, trans_rejn_xcess_frm_loss);
+			break;
+		case MBO_TRANS_REJ_REASON_EXSSIV_TRAFFIC_DELAY:
+			WL_MBO_CNT_INR(mbc, trans_rejn_xcess_traffic_delay);
+			break;
+		case MBO_TRANS_REJ_REASON_INSUFF_QOS_CAPACITY:
+			WL_MBO_CNT_INR(mbc, trans_rejn_insuffic_qos_cap);
+			break;
+		case MBO_TRANS_REJ_REASON_LOW_RSSI:
+			WL_MBO_CNT_INR(mbc, trans_rejn_low_rssi);
+			break;
+		case MBO_TRANS_REJ_REASON_HIGH_INTERFERENCE:
+			WL_MBO_CNT_INR(mbc, trans_rejn_high_interference);
+			break;
+		case MBO_TRANS_REJ_REASON_SERVICE_UNAVAIL:
+			WL_MBO_CNT_INR(mbc, trans_rejn_service_unavail);
+			break;
+		default:
+			WL_MBO_ERR(("%s:Wrong reason code %d", __FUNCTION__, reason_code));
+			break;
+		}
+}
+
+/* Increment bss transition counters */
+static void
+wlc_mbo_updt_bsstrans_resn_cntrs(wlc_mbo_bsscfg_cubby_t *mbc,
+	uint8 reason_code)
+{
+	switch (reason_code)
+	{
+		case MBO_TRANS_REASON_UNSPECIFIED:
+			WL_MBO_CNT_INR(mbc, trans_resn_unspec);
+			break;
+		case MBO_TRANS_REASON_EXCESSV_FRM_LOSS_RATE:
+			WL_MBO_CNT_INR(mbc, trans_resn_frm_loss);
+			break;
+		case MBO_TRANS_REASON_EXCESSV_TRAFFIC_DELAY:
+			WL_MBO_CNT_INR(mbc, trans_resn_traffic_delay);
+			break;
+		case MBO_TRANS_REASON_INSUFF_BW:
+			WL_MBO_CNT_INR(mbc, trans_resn_insuff_bw);
+			break;
+		case MBO_TRANS_REASON_LOAD_BALANCING:
+			WL_MBO_CNT_INR(mbc, trans_resn_load_bal);
+			break;
+		case MBO_TRANS_REASON_LOW_RSSI:
+			WL_MBO_CNT_INR(mbc, trans_resn_low_rssi);
+			break;
+		case MBO_TRANS_REASON_EXCESSV_RETRANS_RCVD:
+			WL_MBO_CNT_INR(mbc, trans_resn_xcess_retransmn);
+			break;
+		case MBO_TRANS_REASON_HIGH_INTERFERENCE:
+			break;
+		case MBO_TRANS_REASON_GRAY_ZONE:
+			WL_MBO_CNT_INR(mbc, trans_resn_gray_zone);
+			break;
+		case MBO_TRANS_REASON_PREMIUM_AP_TRANS:
+			WL_MBO_CNT_INR(mbc, trans_resn_prem_ap_sw);
+			break;
+		default:
+			WL_MBO_ERR(("%s:Wrong reason code %d", __FUNCTION__, reason_code));
+			break;
+		}
+}
+
+mbo_reassoc_delay_timer_list_t*
+wlc_mbo_get_reassoc_delay_timer(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
+	struct ether_addr *bssid);
+/* Search reassoc delay timer from list */
+mbo_reassoc_delay_timer_list_t*
+wlc_mbo_get_reassoc_delay_timer(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
+	struct ether_addr *bssid)
+{
+	wlc_mbo_bsscfg_cubby_t *mbc = MBO_BSSCFG_CUBBY(mbo, bsscfg);
+	mbo_reassoc_delay_timer_list_t *cur = mbc->reassoc_delay_timer_list;
+	while (cur) {
+		if (!memcmp(&cur->bssid, bssid, ETHER_ADDR_LEN)) {
+			return cur;
+		}
+		cur = cur->next;
+	}
+	return cur;
+}
+
+/* Check if reassoc delay timer is active */
+bool
+wlc_mbo_is_reassoc_delay_timer_active(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
+	struct ether_addr *bssid)
+{
+	mbo_reassoc_delay_timer_list_t *entry = NULL;
+
+	entry = wlc_mbo_get_reassoc_delay_timer(mbo, bsscfg, bssid);
+	if (entry && entry->timer_ctx->timer_active) {
+		return TRUE;
+	} else {
+		return FALSE;
+	}
+}
+
+static void
+wlc_mbo_start_reassoc_delay_timer(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
+	mbo_reassoc_delay_timer_list_t *entry, uint32 duration)
+{
+	/* add timer */
+	wl_add_timer(bsscfg->wlc->wl, entry->timer_ctx->timer, duration, 0);
+	/* update context */
+	entry->timer_ctx->start_time = OSL_SYSUPTIME();
+	entry->timer_ctx->req_to = duration;
+	entry->timer_ctx->pending_to = 0;
+	entry->timer_ctx->timer_active = TRUE;
+	entry->timer_ctx->mbo = mbo;
+	entry->timer_ctx->cfg_ID = bsscfg->ID;
+}
+
+/* count current entries in reassoc delay timer list */
+static uint8
+wlc_mbo_reassoc_delay_timer_list_count(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg)
+{
+	wlc_mbo_bsscfg_cubby_t *mbc = MBO_BSSCFG_CUBBY(mbo, bsscfg);
+	uint8 count = 0;
+	mbo_reassoc_delay_timer_list_t *cur = mbc->reassoc_delay_timer_list;
+	while (cur) {
+		count++;
+		cur = cur->next;
+	}
+	return count;
+}
+
+/* Search and delete reassoc delay timer from list */
+static int
+wlc_mbo_del_reassoc_delay_timer(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
+	struct ether_addr *bssid)
+{
+	wlc_mbo_bsscfg_cubby_t *mbc = MBO_BSSCFG_CUBBY(mbo, bsscfg);
+	mbo_reassoc_delay_timer_list_t *prev = NULL;
+	mbo_reassoc_delay_timer_list_t *cur = mbc->reassoc_delay_timer_list;
+	while (cur) {
+		if (!memcmp(&cur->bssid, bssid, ETHER_ADDR_LEN)) {
+			wl_del_timer(bsscfg->wlc->wl, cur->timer_ctx->timer);
+			wl_free_timer(bsscfg->wlc->wl, cur->timer_ctx->timer);
+			if (prev) {
+				prev->next = cur->next;
+			} else {
+				mbc->reassoc_delay_timer_list = cur->next;
+			}
+			MFREE(mbo->wlc->osh, cur->timer_ctx, sizeof(*cur->timer_ctx));
+			MFREE(mbo->wlc->osh, cur, sizeof(*cur));
+			return BCME_OK;
+		}
+		prev = cur;
+		cur = cur->next;
+	}
+	return BCME_NOTFOUND;
+}
+
+/* Reassoc delay timer timeout callback */
+static void
+wlc_mbo_reassoc_delay_timeout(void *ctx)
+{
+	mbo_reassoc_delay_timer_list_t *ent = (mbo_reassoc_delay_timer_list_t *)ctx;
+	mbo_timer_ctx_t *timer_ctx = ent->timer_ctx;
+	wlc_mbo_info_t *mbo = timer_ctx->mbo;
+	wlc_bsscfg_t *bsscfg = NULL;
+	int ret = BCME_OK;
+
+	WL_MBO_DBG(("%s: BSS " MACF ": Retry delay timeout of %u (ms)\n", __FUNCTION__,
+		ETHERP_TO_MACF(&ent->bssid), timer_ctx->req_to));
+	bsscfg = wlc_bsscfg_find_by_ID(mbo->wlc, timer_ctx->cfg_ID);
+	if (bsscfg) {
+		/* remove from list */
+		ret = wlc_mbo_del_reassoc_delay_timer(mbo, bsscfg, &ent->bssid);
+		if (ret != BCME_OK) {
+			WL_MBO_ERR(("wl%d: %s:deleting assoc retry entry failed %d\n",
+				bsscfg->wlc->pub->unit, __FUNCTION__, ret));
+		}
+	}
+}
+
+static int
+wlc_mbo_add_reassoc_delay_timer(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
+	struct ether_addr *bssid, uint32 duration)
+{
+	mbo_reassoc_delay_timer_list_t *entry;
+	char timer_name[32];
+	char eabuf[ETHER_ADDR_STR_LEN];
+	wlc_mbo_bsscfg_cubby_t *mbc = MBO_BSSCFG_CUBBY(mbo, bsscfg);
+
+	WL_MBO_DBG(("%s:bssid " MACF " assoc retry delay %u(ms)\n",
+		__FUNCTION__, ETHERP_TO_MACF(bssid), duration));
+	entry = wlc_mbo_get_reassoc_delay_timer(mbo, bsscfg, bssid);
+	if (entry) {
+		mbo_timer_ctx_t *timer_ctx = entry->timer_ctx;
+		/* reset earlier timer */
+		if (timer_ctx->timer_active) {
+			wl_del_timer(bsscfg->wlc->wl, timer_ctx->timer);
+			timer_ctx->req_to = 0;
+			timer_ctx->start_time = 0;
+			timer_ctx->pending_to = 0;
+			timer_ctx->timer_active = FALSE;
+		}
+
+		/* start new one */
+		wlc_mbo_start_reassoc_delay_timer(mbo, bsscfg, entry, duration);
+	} else {
+		if (wlc_mbo_reassoc_delay_timer_list_count(mbo, bsscfg)
+			>= mbo->mbo_data->max_reassoc_delay_timer_count) {
+			WL_MBO_ERR(("%s:MAX limit reached", __FUNCTION__));
+			return BCME_ERROR;
+		}
+		entry = MALLOCZ(mbo->wlc->osh, sizeof(*entry));
+		if (entry == NULL) {
+			WL_ERROR(("wl%d: %s:out of mem. alloced %u bytes\n",
+				mbo->wlc->pub->unit, __FUNCTION__,  MALLOCED(mbo->wlc->osh)));
+			return BCME_NOMEM;
+		}
+		entry->timer_ctx = MALLOCZ(mbo->wlc->osh, sizeof(*entry->timer_ctx));
+		if (entry->timer_ctx == NULL) {
+			WL_ERROR(("wl%d: %s:out of mem. alloced %u bytes\n",
+				mbo->wlc->pub->unit, __FUNCTION__,  MALLOCED(mbo->wlc->osh)));
+			MFREE(mbo->wlc->osh, entry, sizeof(*entry));
+			return BCME_NOMEM;
+		}
+		/* copy bssid */
+		memcpy(&entry->bssid, bssid, ETHER_ADDR_LEN);
+		/* initialize the timer */
+		bcm_ether_ntoa(bssid, eabuf);
+		sprintf(timer_name, "reassoc_delay:%s", eabuf);
+		entry->timer_ctx->timer = wl_init_timer(bsscfg->wlc->wl,
+			wlc_mbo_reassoc_delay_timeout, entry, timer_name);
+		/* start the timer */
+		wlc_mbo_start_reassoc_delay_timer(mbo, bsscfg, entry, duration);
+		/* link it */
+		entry->next =  mbc->reassoc_delay_timer_list;
+		mbc->reassoc_delay_timer_list = entry;
+	}
+	return BCME_OK;
+}
+
+
+/* Process BTM Transition Request for Accept/Reject */
+int
+wlc_mbo_process_bsstrans_req(wlc_info_t* wlc, wlc_bsscfg_t *bsscfg,
+	dot11_bsstrans_req_t* req, int body_len, wnm_bsstrans_policy_type_t policy,
+	void *roam, uint16 *act_flags, uint8 btq_token, uint8 *decision)
+{
+	wifi_mbo_ie_t *mbo_ie = NULL;
+	wifi_mbo_cell_data_conn_pref_attr_t *cdp_attr = NULL;
+	wifi_mbo_trans_reason_code_attr_t *transn_rc_attr = NULL;
+	wifi_mbo_assoc_retry_delay_attr_t *retry_delay = NULL;
+	wlc_wnm_bss_trans_roam_data_t *roam_data = (wlc_wnm_bss_trans_roam_data_t *)roam;
+	wlc_mbo_info_t *mbo = wlc->mbo;
+	wlc_mbo_bsscfg_cubby_t *mbc = NULL;
+	uint8 attr_len = 0;
+	uint16 data_len = 0;
+	uint8 mbotype = MBO_OUI_TYPE;
+	wlc_cmn_info_t *wlc_cmn = wlc->cmn;
+
+	int ret = BCME_OK;
+	uint32 duration = 0;
+
+	/* Only STA */
+	if (!BSSCFG_INFRA_STA(bsscfg)) {
+		return BCME_OK;
+	}
+	/* bsscfg */
+	mbc = MBO_BSSCFG_CUBBY(mbo, bsscfg);
+	ASSERT(mbc);
+
+	/* reset old value */
+	mbc->transn_reason_code = mbc->cell_conn_pref = 0;
+	mbc->reassoc_delay = 0;
+
+	WL_MBO_CNT_INR(mbc, trans_req_rcvd);
+
+	/* Parse and store MBO related data */
+	data_len = body_len - DOT11_BSSTRANS_REQ_LEN;
+	mbo_ie = (wifi_mbo_ie_t *) bcm_find_vendor_ie(req->data, data_len,
+		MBO_OUI, &mbotype, 1);
+	if (mbo_ie && (mbo_ie->len > (WFA_OUI_LEN + sizeof(mbo_ie->oui_type)))) {
+		WL_MBO_DBG(("%s:MBO IE present\n", __FUNCTION__));
+		attr_len = mbo_ie->len - (WFA_OUI_LEN + sizeof(mbo_ie->oui_type));
+
+		/* "Cellular Data Connection Preference Attribute" */
+		cdp_attr = (wifi_mbo_cell_data_conn_pref_attr_t *)
+			bcm_parse_tlvs(mbo_ie->attr, attr_len,
+			MBO_ATTR_CELL_DATA_CONN_PREF);
+		if (cdp_attr) {
+			mbc->cell_conn_pref = cdp_attr->cell_pref;
+		}
+
+		/* "Transition Reason Code Attribute" */
+		transn_rc_attr = (wifi_mbo_trans_reason_code_attr_t *)
+			bcm_parse_tlvs(mbo_ie->attr, attr_len,
+			MBO_ATTR_TRANS_REASON_CODE);
+
+		if (transn_rc_attr) {
+			mbc->transn_reason_code = transn_rc_attr->trans_reason_code;
+			/* when host is in awake then send an btm event to host */
+			if (wlc_cmn->hostmem_access_enabled) {
+				wl_btm_event_type_data_t *evt_data = MALLOCZ(wlc->osh, sizeof(*evt_data));
+				if (evt_data) {
+					evt_data->version = WL_BTM_EVENT_DATA_VER_1;
+					evt_data->len = sizeof(*evt_data) - OFFSETOF(wl_btm_event_type_data_t, transition_reason);
+					evt_data->transition_reason = mbc->transn_reason_code;
+					wlc_mbo_notify(bsscfg, WL_MBO_E_BTM_RCVD, evt_data, sizeof(*evt_data));
+					MFREE(wlc->osh, evt_data, sizeof(*evt_data));
+				}
+			}
+			wlc_mbo_updt_bsstrans_resn_cntrs
+				(mbc, transn_rc_attr->trans_reason_code);
+		}
+
+		/* "Association Retry Delay Attribute" */
+		retry_delay = (wifi_mbo_assoc_retry_delay_attr_t *)
+			bcm_parse_tlvs(mbo_ie->attr, attr_len,
+			MBO_ATTR_ASSOC_RETRY_DELAY);
+		if (retry_delay) {
+			mbc->reassoc_delay = retry_delay->reassoc_delay;
+		}
+	}
+
+
+	if (policy == WL_BSSTRANS_POLICY_MBO) {
+#ifdef WL_MBO_TB
+		/* Forcefully reject bsstrans if MBO_FLAG_FORCE_BSSTRANS_REJECT is set
+		* This is to support test bed STA behavior.
+		*/
+		if (MBO_FLAG_IS_BIT_SET(mbc->flags, MBO_FLAG_FORCE_BSSTRANS_REJECT)) {
+			WL_MBO_CNT_INR(mbc, trans_rejn_sent);
+			wlc_mbo_updt_bsstrans_rej_resn_cntrs
+				(mbc, mbc->bsstrans_reject_reason);
+			return BCME_OK;
+		}
+#endif /* WL_MBO_TB */
+		if (BSSTRANS_IS_PREF_LIST_INCL(req->reqmode)) {
+			ret = wlc_wnm_bsstrans_get_pref_bss_data
+				(wlc->wnm_info, bsscfg, roam_data);
+			if (ret != BCME_OK) {
+				WL_MBO_ERR(("wl:%d: %s failed to get bss trans data\n",
+					wlc->pub->unit, __FUNCTION__));
+				return ret;
+			}
+		}
+		WL_MBO_INFO(("%s: nbrlist size %u\n",
+			__FUNCTION__, roam_data->nbrlist_size));
+		*act_flags = 0;
+
+		if (BSSTRANS_IS_DISASSOC_IMMINENT(req->reqmode)) {
+			WL_MBO_CNT_INR(mbc, trans_req_disassoc);
+			WL_MBO_INFO(("%s: Disassoc imminent bit is set\n", __FUNCTION__));
+		} else if (BSSTRANS_IS_BSS_TERM_SET(req->reqmode)) {
+			WL_MBO_CNT_INR(mbc, trans_req_bss_term);
+			WL_MBO_INFO(("%s: BSS termination bit is set\n", __FUNCTION__));
+		} else if (BSSTRANS_IS_ESS_TERM_SET(req->reqmode)) {
+			WL_MBO_INFO(("%s: ESS termination bit is set\n", __FUNCTION__));
+		} else {
+			WL_MBO_INFO(("%s: Default roam\n", __FUNCTION__));
+		}
+
+		if (BSSTRANS_IS_ESS_TERM_SET(req->reqmode)) {
+			*act_flags |= WLC_WNM_BSS_TRANS_ACTN_DISASSOC;
+		} else {
+			if (roam_data->pref &&
+				(roam_data->nbrlist_size == 1)) {
+				*act_flags |= WLC_WNM_BSS_TRANS_ACTN_REASSOC;
+				*act_flags |= WLC_WNM_BSS_TRANS_ACTN_RESPONSE;
+			} else {
+				*act_flags |= WLC_WNM_BSS_TRANS_ACTN_ROAM;
+				*act_flags |= WLC_WNM_BSS_TRANS_ACTN_POST_RESP;
+			}
+		}
+
+		*decision = WLC_WNM_BTM_REQ_PROC_ACCEPT;
+		/* start "assoc retry delay" timer */
+		WL_MBO_INFO(("%s:delay %u\n", __FUNCTION__, mbc->reassoc_delay));
+		if (mbc->reassoc_delay) {
+			duration = mbc->reassoc_delay * 1000; /* ms */
+			ret = wlc_mbo_add_reassoc_delay_timer
+				(mbo, bsscfg, &bsscfg->BSSID, duration);
+			if (ret != BCME_OK) {
+				WL_MBO_ERR(("wl:%d: %s failed to start reassoc "
+					"delay timer %u\n",
+					wlc->pub->unit, __FUNCTION__, duration));
+				return ret;
+			}
+		}
+	} else {
+		if ((mbc->btq_token == btq_token) &&
+			(mbc->btq_reason == DOT11_BSSTRANS_REASON_BETTER_AP_FOUND) &&
+			MBO_FLAG_IS_BIT_SET(mbc->flags, MBO_FLAG_NBR_INFO_CACHE)) {
+			mbc->btq_token = 0;
+			mbc->btq_reason = 0;
+			if (BSSTRANS_IS_PREF_LIST_INCL(req->reqmode)) {
+				ret = wlc_wnm_bsstrans_get_pref_bss_data
+					(wlc->wnm_info, bsscfg, roam_data);
+				if (ret != BCME_OK) {
+					WL_MBO_ERR(("wl:%d: %s failed to get bss trans data\n",
+						wlc->pub->unit, __FUNCTION__));
+					return ret;
+				}
+			}
+			WL_MBO_INFO(("%s:MBO hot chan cache updt: num of chan %u\n",
+				__FUNCTION__, roam_data->num_chsp));
+			/* update hot channel cache */
+			if (roam_data->num_chsp) {
+				wlc_set_roam_channel_cache(bsscfg,
+					roam_data->chsp_list,
+					roam_data->num_chsp);
+			}
+			*act_flags |= WLC_WNM_BSS_TRANS_ACTN_RESPONSE;
+			*decision = WLC_WNM_BTM_REQ_PROC_REJECT;
+		}
+		WL_MBO_CNT_INR(mbc, trans_rejn_sent);
+		wlc_mbo_updt_bsstrans_rej_resn_cntrs
+			(mbc, mbc->bsstrans_reject_reason);
+	}
+	WL_MBO_DBG(("%s: action %x\n", __FUNCTION__, *act_flags));
+	return ret;
+}
+
 int
 wlc_mbo_process_bsstrans_resp(wlc_info_t* wlc, struct scb* scb, uint8* body, int body_len)
 {
@@ -3052,6 +3559,50 @@ wlc_mbo_add_mbo_ie_bsstrans_req(wlc_info_t* wlc, uint8* data, bool assoc_retry_a
 	}
 
 	ie_hdr->len = total_len;
+}
+
+int
+wlc_mbo_add_mbo_ie_bsstrans_reject(wlc_info_t* wlc, uint8* data, uint8 resp_status,
+	uint8 reason_code)
+{
+	wifi_mbo_trans_rej_reason_code_attr_t *rej_attr = NULL;
+	uint8 *cp = NULL;
+	wifi_mbo_ie_t *ie_hdr = NULL;
+	uint16 buf_len = 0;
+	uint8 total_len = 0;
+
+	if ((resp_status >= DOT11_BSSTRANS_RESP_STATUS_REJECT) &&
+		(resp_status <= DOT11_BSSTRANS_RESP_STATUS_REJ_LEAVING_ESS)) {
+
+		buf_len = MBO_IE_HDR_SIZE + sizeof(wifi_mbo_trans_rej_reason_code_attr_t);
+
+		cp = data;
+		ie_hdr = (wifi_mbo_ie_t *)cp;
+
+		/* fill in MBO IE header */
+		ie_hdr->id = MBO_IE_ID;
+		memcpy(ie_hdr->oui, MBO_OUI, WFA_OUI_LEN);
+		ie_hdr->oui_type = MBO_OUI_TYPE;
+		cp += MBO_IE_HDR_SIZE;
+		total_len = MBO_IE_NO_ATTR_LEN;
+
+		/* fill in Transition Rejection Reason Code Attr */
+		rej_attr = (wifi_mbo_trans_rej_reason_code_attr_t *)cp;
+		rej_attr->id = MBO_ATTR_TRANS_REJ_REASON_CODE;
+		rej_attr->len = sizeof(*rej_attr) - MBO_ATTR_HDR_LEN;
+		/* TBD: Map WNM rej reason to MBO rejection reason */
+		rej_attr->trans_rej_reason_code = reason_code;
+
+		cp += sizeof(*rej_attr);
+		total_len += sizeof(*rej_attr);
+
+		/* update MBO IE len */
+		ie_hdr->len = total_len;
+
+		/* calculate total len of the IE */
+		total_len += MBO_ATTR_HDR_LEN;
+	}
+	return total_len;
 }
 
 bool
@@ -3387,6 +3938,104 @@ wlc_mbo_get_bsstrans_reject(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
 	return BCME_OK;
 }
 #endif /* WL_MBO_TB */
+
+static void
+wlc_mbo_notify(wlc_bsscfg_t *cfg, wl_mbo_event_type_t type, void *data, uint data_len)
+{
+	wlc_info_t *wlc = cfg->wlc;
+	wlc_mbo_info_t *mbo = wlc->mbo;
+	wl_event_mbo_t *evt = NULL;
+	uint evt_len = OFFSETOF(wl_event_mbo_t, data) + data_len;
+
+	if (!MBO_FLAG_IS_BIT_SET(mbo->mbo_data->event_mask, 1 << (type - 1))) {
+		return;
+	}
+	evt = MALLOC(wlc->osh, evt_len);
+	if (evt == NULL) {
+		WL_ERROR(("wl%d: %s:out of mem. alloced %u bytes\n",
+			wlc->pub->unit, __FUNCTION__,  MALLOCED(wlc->osh)));
+		return;
+	}
+	evt->version = WL_MBO_EVT_VER;
+	evt->length = sizeof(evt->type) + data_len;
+	evt->type = type;
+	memcpy(evt->data, data, data_len);
+	wlc_bss_mac_event(wlc, cfg, WLC_E_MBO,
+		&cfg->current_bss->BSSID, 0, 0, 0, evt, evt_len);
+	MFREE(wlc->osh, evt, evt_len);
+}
+#ifdef WLMCNX
+extern void wlc_mcnx_read_tsf64(wlc_mcnx_info_t *mcnx, wlc_bsscfg_t *cfg, uint32 *tsf_h, uint32 *tsf_l);
+#endif /* WLMCNX */
+int
+wlc_mbo_roamscan_complete(wlc_info_t *wlc, wlc_bsscfg_t *cfg,
+	uint8 status, uint8 req_mode, uint32 disassoc_dur,
+	uint32 bss_term_tsf_h, uint32 bss_term_tsf_l)
+{
+	wlc_mbo_info_t *mbo = wlc->mbo;
+	wlc_mbo_bsscfg_cubby_t *mbc = NULL;
+	wl_event_mbo_cell_nw_switch_t evt;
+
+	/* Only STA */
+	if (!BSSCFG_INFRA_STA(cfg)) {
+		return BCME_OK;
+	}
+	/* bsscfg */
+	mbc = MBO_BSSCFG_CUBBY(mbo, cfg);
+	ASSERT(mbc);
+
+	WL_MBO_DBG(("status %u: req_mode %x cell conn %d  cell data cap %d\n",
+		status, req_mode, mbc->cell_conn_pref, mbo->mbo_data->cell_data_cap));
+	/* If host want cellular network switch event,
+	 * roam scan failed and DiscImm = 1/BssTerm = 1 set
+	 * and AP recommended cellular data connection
+	 * send a notification to host.
+	 */
+	if ((mbo->mbo_data->cell_data_cap == MBO_CELL_DATA_CONN_AVAILABLE) &&
+		(status != DOT11_BSSTRANS_RESP_STATUS_ACCEPT) &&
+		(mbc->cell_conn_pref == MBO_CELLULAR_DATA_CONN_PREFERRED) &&
+		((BSSTRANS_IS_DISASSOC_IMMINENT(req_mode)) ||
+		(BSSTRANS_IS_BSS_TERM_SET(req_mode)))) {
+		WL_MBO_INFO(("%s:wl:%d.%d Cellular Switch Event !\n",
+			__FUNCTION__, cfg->wlc->pub->unit, cfg->_idx));
+		bzero(&evt, sizeof(evt));
+		evt.version = WL_MBO_CELLULAR_NW_SWITCH_VER;
+		evt.length = sizeof(evt) - OFFSETOF(wl_event_mbo_cell_nw_switch_t, reason);
+		evt.reason = mbc->transn_reason_code;
+		if (BSSTRANS_IS_DISASSOC_IMMINENT(req_mode)) {
+			evt.assoc_time_remain = disassoc_dur;
+		} else {
+			uint32 tsf_h = 0, tsf_l = 0;
+			/* read remote TSF */
+#ifdef WLMCNX
+			wlc_mcnx_read_tsf64(cfg->wlc->mcnx, cfg, &tsf_h, &tsf_l);
+#else
+			wlc_read_tsf(wlc, &tsf_h, &tsf_l);
+#endif /* WLMCNX */
+			if (wlc_uint64_lt(tsf_h, tsf_l, bss_term_tsf_h, bss_term_tsf_l)) {
+				/* Fill evt.assoc_time_remain only if can be contained within its
+				* limit. Otherwise send zero.
+				*/
+				wlc_uint64_sub(&bss_term_tsf_h, &bss_term_tsf_l,
+						tsf_h, tsf_l);
+				/* fill only if we dont have any value in tsf_h */
+				if (tsf_h == 0) {
+					evt.assoc_time_remain = bss_term_tsf_l/1000; /* in ms */
+				} else {
+					WL_MBO_INFO(("%s:wl:%d.%d Overflow BSS term duration!!\n",
+						__FUNCTION__, cfg->wlc->pub->unit, cfg->_idx));
+					evt.assoc_time_remain = 0;
+				}
+			}
+		}
+		evt.reassoc_delay = mbc->reassoc_delay;
+		WL_MBO_DBG(("reason %u remaining assoc time %u(ms)"
+			" reassoc delay %u\n", evt.reason,
+			evt.assoc_time_remain, evt.reassoc_delay));
+		wlc_mbo_notify(cfg, WL_MBO_E_CELLULAR_NW_SWITCH, &evt, sizeof(evt));
+	}
+	return BCME_OK;
+}
 
 #ifdef ANQPO
 static int

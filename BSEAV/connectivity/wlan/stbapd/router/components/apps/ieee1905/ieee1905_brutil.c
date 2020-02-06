@@ -129,7 +129,7 @@ static int _i5BrUtilFilterMac(struct __fdb_entry *fdb)
   }
 
 #if defined(WIRELESS)
-  pdevice = i5DmDeviceFind(&i5_config.i5_mac_address[0]);
+  pdevice = i5DmGetSelfDevice();
   if (pdevice) {
     i5_dm_interface_type *pinterface = pdevice->interface_list.ll.next;
     while (pinterface != NULL) {
@@ -389,7 +389,7 @@ void i5BrUtilUpdate( void *arg )
     pBrUpdateTimer = NULL;
   }
 
-  pdevice = i5DmDeviceFind(&i5_config.i5_mac_address[0]);
+  pdevice = i5DmGetSelfDevice();
   if ( pdevice != NULL ) {
     i5DmLegacyNeighborPending(&i5_config.i5_mac_address[0]);
     pbrtuple = (i5_dm_bridging_tuple_info_type *)pdevice->bridging_tuple_list.ll.next;

@@ -77,6 +77,7 @@
 #include <wlc_mfp.h>
 #include <wlc_ie_mgmt.h>
 #include <wlc_ie_mgmt_ft.h>
+#include <wlc_act_frame.h>
 
 #include <wlc_rm.h>
 #if defined(BCMCCX)
@@ -910,7 +911,7 @@ wlc_mfp_write_to_ie(void *ctx, wlc_iem_build_data_t *data)
 #endif /* AP */
 
 bool
-wlc_mfp_check_rsn_caps(const wlc_mfp_info_t* mfp, wlc_bsscfg_t *cfg, uint8 rsn,
+wlc_mfp_check_rsn_caps(const wlc_mfp_info_t* mfp, wlc_bsscfg_t *cfg, uint16 rsn,
 	bool *enable)
 {
 	bool ret = TRUE;
@@ -1057,7 +1058,7 @@ action 		toss	ok				toss		ok
  * PKTDATA(p) must point to body
  */
 bool
-wlc_mfp_rx(wlc_mfp_info_t *mfp, const wlc_bsscfg_t *bsscfg, struct scb *scb,
+wlc_mfp_rx(wlc_mfp_info_t *mfp, wlc_bsscfg_t *bsscfg, struct scb *scb,
 	d11rxhdr_t *rxhdr, struct dot11_management_header *hdr, void *p)
 {
 	uint16 fc = ltoh16(hdr->fc);
@@ -1145,11 +1146,17 @@ wlc_mfp_rx(wlc_mfp_info_t *mfp, const wlc_bsscfg_t *bsscfg, struct scb *scb,
 		body_offset += key_info.iv_len;
 		body_len -= (key_info.iv_len + key_info.icv_len);
 
-		if (fk == FC_ACTION) /* action must be robust */
-			ret = (body_len > 0) && mfp_robust_cat(bsscfg, body[0]);
+		if (fk == FC_ACTION) { /* action must be robust */
+			ret = (body_len > 1) && mfp_robust_cat(bsscfg, body[0]);
+			if (ret && (wlc_is_publicaction
+				(wlc, (struct dot11_header *)hdr, (DOT11_MGMT_HDR_LEN + body_len),
+					scb, bsscfg, body[0], body[1]) < 0)) {
+				ret = FALSE;
+			}
+		}
 		if (!ret) {
 			WL_WSEC(("wl%d: %s: received encrypted non-robust "
-				"action frame from %s, toss\n",
+				"or inappropriate public action frame from %s, toss\n",
 				WLCWLUNIT(wlc), __FUNCTION__,
 				bcm_ether_ntoa(&hdr->sa, ea_str)));
 			WLCNTINCR(wlc->pub->_cnt->rxbadproto);

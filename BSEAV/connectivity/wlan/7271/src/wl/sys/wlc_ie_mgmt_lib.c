@@ -445,8 +445,10 @@ wlc_iem_proc_uiel(wlc_bsscfg_t *cfg, wlc_iem_ft_t ft,
 		if (tie == NULL &&
 		    ie_tag == tag) {
 			IEM_TRACE(("%s: found %u\n", __FUNCTION__, ie_tag));
-			tie = ie;
-			tie_len = ie_len;
+			if (!(is_tag && ie_tag == DOT11_MNG_SSID_ID && !ie[TLV_LEN_OFF])) {
+				tie = ie;
+				tie_len = ie_len;
+			}
 		}
 
 		/* next IE */

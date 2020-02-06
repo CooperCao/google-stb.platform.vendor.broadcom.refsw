@@ -237,11 +237,7 @@ key_aes_set_data(wlc_key_t *key, const uint8 *data,
 		}
 
 		/* update the key. and re-init the tx/rx seq */
-		if (WLC_KEY_IS_MGMT_GROUP(&key->info)) {
-			memset(key->algo_impl.ctx, 0, sizeof(aes_igtk_t)); /* MFP related */
-		} else {
-			memset(key->algo_impl.ctx, 0, sizeof(aes_key_t));
-		}
+		memset(key->algo_impl.ctx, 0, AES_KEY_STRUCT_SIZE(key));
 
 		/* aes legacy mode support */
 		{

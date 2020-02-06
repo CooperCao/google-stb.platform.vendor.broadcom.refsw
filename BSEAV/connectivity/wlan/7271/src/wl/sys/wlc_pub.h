@@ -1712,7 +1712,8 @@ wlc_pkttag_bsscfg_get(void *p)
 					 WL_VHT_FEATURES_5G_80M |\
 					 WL_VHT_FEATURES_5G_20M)
 
-#define WL_VHT_FEATURES_DEFAULT		(WL_VHT_FEATURES_5G |\
+#define WL_VHT_FEATURES_DEFAULT		(WL_VHT_FEATURES_5G | \
+					 WL_VHT_FEATURES_2G | \
 					 WL_VHT_FEATURES_MCS_DEFAULT |\
 					 WL_VHT_FEATURES_PROP_MCS_DEFAULT)
 /*
@@ -3291,6 +3292,10 @@ extern uint wlc_ctrupd(wlc_info_t *wlc, uint macstat_offset);
 extern uint32 wlc_delta_txfunfl(struct wlc_info *wlc, int fifo);
 extern void wlc_rate_lookup_init(struct wlc_info *wlc, wlc_rateset_t *rateset);
 extern void wlc_default_rateset(struct wlc_info *wlc, wlc_rateset_t *rs);
+#ifdef STA
+extern void wlc_join_bss_prep(struct wlc_bsscfg *cfg);
+extern void wlc_join_BSS(struct wlc_bsscfg *cfg, wlc_bss_info_t* bi);
+#endif /* STA */
 
 /* wlc_phy.c helper functions */
 extern bool wlc_scan_inprog(struct wlc_info *wlc);

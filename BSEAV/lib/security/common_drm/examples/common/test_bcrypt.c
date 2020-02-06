@@ -1,40 +1,44 @@
 /******************************************************************************
- * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2019 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -700,50 +704,53 @@ void test_dsa()
 	uint32_t i = 0;
 
 static uint8_t p[]={
-	0x8d,0xf2,0xa4,0x94,0x49,0x22,0x76,0xaa,
-	0x3d,0x25,0x75,0x9b,0xb0,0x68,0x69,0xcb,
-	0xea,0xc0,0xd8,0x3a,0xfb,0x8d,0x0c,0xf7,
-	0xcb,0xb8,0x32,0x4f,0x0d,0x78,0x82,0xe5,
-	0xd0,0x76,0x2f,0xc5,0xb7,0x21,0x0e,0xaf,
-	0xc2,0xe9,0xad,0xac,0x32,0xab,0x7a,0xac,
-	0x49,0x69,0x3d,0xfb,0xf8,0x37,0x24,0xc2,
-	0xec,0x07,0x36,0xee,0x31,0xc8,0x02,0x91,
-	};
+    0xdc ,0x5e ,0x35 ,0x7f ,0x1b ,0xdc ,0xc0 ,
+    0x66 ,0x5e ,0x17 ,0x15 ,0xe0 ,0xda ,0xfd ,
+    0x3f ,0xe5 ,0x24 ,0x7e ,0x73 ,0x14 ,0xe2 ,
+    0xcd ,0x3d ,0xb9 ,0x42 ,0xe8 ,0x30 ,0x66 ,
+    0xa ,0xc2 ,0xee ,0xed ,0xb3 ,0x41 ,0x84 ,
+    0xce ,0xd5 ,0xb ,0xb4 ,0x3c ,0xf0 ,0xca ,
+    0x52 ,0xb2 ,0xf1 ,0x91 ,0xa2 ,0xf3 ,0x2a ,
+    0xc5 ,0x4 ,0x25 ,0xb4 ,0x35 ,0xc ,0x89 ,0xa7 ,
+    0x1b ,0xf1 ,0x71 ,0xb5 ,0x18 ,0xc7 ,0xed
+};
 
 static uint8_t q[]={
-	0xc7,0x73,0x21,0x8c,0x73,0x7e,0xc8,0xee,
-	0x99,0x3b,0x4f,0x2d,0xed,0x30,0xf4,0x8e,
-	0xda,0xce,0x91,0x5f,
-	};
+
+    0xea ,0x7e ,0xa3 ,0x5a ,0x8f ,0x84 ,0xe2 ,
+    0x38 ,0xe ,0xd9 ,0xef ,0x61 ,0x2f ,0x3a ,
+    0xca ,0x74 ,0xf1 ,0x84 ,0x37 ,0x5 ,
+};
 
 static uint8_t g[]={
-	0x62,0x6d,0x02,0x78,0x39,0xea,0x0a,0x13,
-	0x41,0x31,0x63,0xa5,0x5b,0x4c,0xb5,0x00,
-	0x29,0x9d,0x55,0x22,0x95,0x6c,0xef,0xcb,
-	0x3b,0xff,0x10,0xf3,0x99,0xce,0x2c,0x2e,
-	0x71,0xcb,0x9d,0xe5,0xfa,0x24,0xba,0xbf,
-	0x58,0xe5,0xb7,0x95,0x21,0x92,0x5c,0x9c,
-	0xc4,0x2e,0x9f,0x6f,0x46,0x4b,0x08,0x8c,
-	0xc5,0x72,0xaf,0x53,0xe6,0xd7,0x88,0x02,
-	};
+    0x32 ,0x29 ,0xb8 ,0x94 ,0xc4 ,0x98 ,0xa0 ,
+    0x1 ,0x1b ,0xae ,0x55 ,0x59 ,0x46 ,0x9f ,
+    0x87 ,0xa6 ,0x5c ,0xeb ,0x6b ,0x4f ,0xe0 ,
+    0x25 ,0xfa ,0x9 ,0x8a ,0x6d ,0xb5 ,0x45 ,
+    0x7e ,0x44 ,0xba ,0xd9 ,0x18 ,0x52 ,0x65 ,
+    0xec ,0x50 ,0xf7 ,0xe9 ,0x81 ,0x2e ,0xfd ,
+    0x3f ,0xd5 ,0x1f ,0x13 ,0x93 ,0x7e ,0xc0 ,
+    0xc2 ,0xec ,0x9b ,0x9d ,0xf9 ,0x62 ,0x8e ,
+    0x23 ,0xe3 ,0x2f ,0x10 ,0x75 ,0x64 ,0xbd ,0x34
+};
 
 
 static uint8_t priv_key[]={
-     	0xc5 ,0x37 ,0x73 ,0xf3 ,0x4d ,0xd0 ,0x48 ,0x81,
-     	0x51 ,0x87 ,0x1d ,0x62 ,0x72 ,0xc7 ,0x90 ,0x3c,
-     	0x58 ,0x02 ,0x45 ,0x09 };
+        0xcc ,0xaf ,0x53 ,0xb9 ,0x5a ,0x1b ,0x84 ,0xe1,
+        0x3c ,0x91 ,0x4d ,0x31 ,0x97 ,0xc9 ,0x6a ,0x68,
+        0x8f ,0xcf ,0x33 ,0x28
+};
 
-/*
+
 static uint8_t pub_key[]={
-    	0x38 ,0x14 ,0xe8 ,0xd1 ,0xf4 ,0xd1 ,0x5d ,0x4b ,
-    	0xdd ,0x22 ,0xb8 ,0x06 ,0x61 ,0x16 ,0x91 ,0x17 ,
-    	0x4d ,0xca ,0x3a ,0x45 ,0x6b ,0xce ,0xe1 ,0xea ,
-    	0xdd ,0x51 ,0x0b ,0xab ,0xf1 ,0xd2 ,0x4d ,0x8c ,
-    	0x06 ,0x6e ,0x42 ,0x4d ,0x31 ,0x0a ,0x32 ,0x1b ,
-    	0xef ,0x6e ,0x53 ,0x4b ,0xdb ,0x39 ,0xdf ,0x27 ,
-    	0x76 ,0x0e ,0xe6 ,0x4f ,0x82 ,0x93 ,0x1b ,0x8a ,
-    	0x1b ,0x22 ,0x04 ,0x75 ,0xf8 ,0x64 ,0xb9 ,0xa4 };
-*/
+        0x36,0xd,0x78,0xf0,0xfb,0x43,0xc9,0x3b,0x2a,0xd0,
+        0x7e,0x7d,0x90,0xe3,0x8b,0x87,0xc9,0x93,0x6,0xd9,
+        0x67,0xd7,0xa9,0x3e,0xc2,0x23,0x3d,0xba,0x66,0x22,
+        0x0,0x1c,0x33,0xa4,0x65,0x8,0x4e,0xbc,0xf2,0xea,
+        0x8,0xa0,0x17,0x7f,0x1,0xe0,0x1a,0xb8,0x25,0xd8,
+        0x92,0xe8,0xbe,0x15,0x58,0xf2,0x73,0xcc,0x74,0xd9,
+        0x36,0xbc,0x98,0xa3
+};
 
 static uint8_t k[]={
 	0x23, 0x11, 0x96, 0x06, 0x15, 0x60, 0xa6, 0x53,
@@ -773,6 +780,8 @@ static uint8_t signature[]= {
 	/* This is for DSA Sign */
 	key.privkey.pData = priv_key;
 	key.privkey.len = sizeof (priv_key);
+        key.pubkey.pData = pub_key;
+        key.pubkey.len = sizeof (pub_key);
 
 	dsaSwIO.bDSASign		= true;
 	dsaSwIO.key 		= &key;
@@ -782,22 +791,22 @@ static uint8_t signature[]= {
 
 	DRM_Common_SwDsa(&dsaSwIO);
 
-	printf("\t%s - Print signature is \n\t\t", BSTD_FUNCTION) ;
-	for (i=0; i< dsaSwIO.sigoutlen ; i++)
-	{
-		printf("%02x ", dsaSwIO.sigout[i]) ;
-		if( ((i+1)%16)==0)printf("\n\t\t");
-	}
-	printf("\n") ;
 
-	if (memcmp(dsaSwIO.sigout, signature, dsaSwIO.sigoutlen) != 0)
-	{
-		printf("\t%s - TEST FAILED Signature data is wrong!\n", BSTD_FUNCTION);
-		error_count++;
-	}
-	else{
-		printf("\t%s - TEST PASSED (correct signature data generated).\n", BSTD_FUNCTION);
-	}
+    /* Verify the signature */
+    dsaSwIO.bDSASign = false;
+    key.pubkey.pData = pub_key;
+    key.pubkey.len = sizeof (pub_key);
+
+    printf("\n\t%s - Verify DSA Signature test ^^^^^^^^^^^^^^^^^^^^^^^\n", __FUNCTION__);
+    if(DRM_Common_SwDsa(&dsaSwIO) != Drm_Success)
+    {
+        printf("\t%s - TEST FAILED Signature data is wrong!\n", __FUNCTION__);
+        error_count++;
+    }
+    else
+    {
+        printf("\t%s -  TEST PASSED (signature data generated is verified)\n", __FUNCTION__);
+    }
 
 	return;
 }

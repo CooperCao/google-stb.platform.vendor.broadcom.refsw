@@ -1606,8 +1606,6 @@ else ifeq ($(findstring $(NEXUS_PLATFORM), 97216), $(NEXUS_PLATFORM))
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/dhd.ko $(STAGING_DIR)
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/bcm97218*.txt $(STAGING_DIR)
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/bcm97216*.txt $(STAGING_DIR)
-	${Q_}$(CP) $(ATLAS_BIN_DIR)/bcm97211*.txt $(STAGING_DIR)
-	${Q_}$(CP) $(ATLAS_BIN_DIR)/bcm972622*.txt $(STAGING_DIR)
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/config_pcie_stb*.bin $(STAGING_DIR)
 	${Q_}$(CP) $(ATLAS_BIN_DIR)/*.clm_blob $(STAGING_DIR)
 endif

@@ -372,8 +372,6 @@ typedef struct wlc_mbo_oce_info wlc_mbo_oce_info_t;
 
 typedef struct wlc_esp_info wlc_esp_info_t;
 
-typedef sta_info_v4_t sta_info_t;
-
 typedef struct wl_roam_prof_band_v2 wl_roam_prof_band_t;
 typedef struct wl_roam_prof_v2 wl_roam_prof_t;
 
@@ -412,5 +410,9 @@ typedef struct bcmc_cubby bcmc_cubby_t;
 typedef wl_anqpo_peer_list_v2_t wl_anqpo_peer_list_t;
 typedef wl_anqpo_peer_v2_t wl_anqpo_peer_t;
 #endif /* WL_ANQPO_PEER_LIST_VERSION */
+
+typedef struct wl_event_mbo wl_event_mbo_t;
+typedef struct wl_event_mbo_cell_nw_switch wl_event_mbo_cell_nw_switch_t;
+typedef struct wl_btm_event_type_data wl_btm_event_type_data_t;
 
 #endif	/* _wlc_types_h_ */

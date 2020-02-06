@@ -79,6 +79,7 @@ void i5WlcfgApAutoconfigurationRenew(const char *ifname);
 void i5WlcfgApAutoconfigurationStop(const char *ifname);
 int i5WlcfgApAutoConfigProcessMessage( i5_message_type *pmsg, unsigned int freqband,
 unsigned char *pWscData, int wscDataLen, unsigned char *mac);
+void i5WlcfgMarkAllInterfacesUnconfigured();
 int i5WlcfgApAutoconfigurationRenewProcess(i5_message_type * pmsg, unsigned int freqband,
   unsigned char *neighbor_al_mac_address);
 void i5WlCfgInit(void);
@@ -115,7 +116,6 @@ void wlcfg_wsc_get_data(unsigned char *msg, int len, wsc_data_t *data);
 /* Process the Ap autoconfiguration search and response */
 int i5WlCfgProcessAPAutoConfigSearch(i5_message_type *pmsg, unsigned int freqband,
   unsigned char *searcher_al_mac_address);
-#ifdef MULTIAP_LOCALM1M2
 /* Process the Ap autoconfiguration WSC M1 message */
 int i5WlCfgProcessAPAutoConfigWSCM1(i5_message_type *pmsg, i5_dm_device_type *pdevice,
   unsigned char *pWscData, int wscDataLen, unsigned char *radioMac,
@@ -126,7 +126,6 @@ int i5WlCfgProcessAPAutoConfigWSCM2(i5_message_type *pmsg, unsigned char *radioM
 void i5WlCfgCreateMediaInfo(unsigned char *InterfaceId, unsigned char *bssid,
   unsigned short chanspec, unsigned char mapflags, unsigned char *MediaSpecificInfo);
 int i5WlCfgGetPrefix(const char *ifname, char *prefix, int prefix_len);
-#endif /* MULTIAP_LOCALM1M2 */
 int i5WlCfgIsVirtualInterface(const char *ifname);
 void i5WlCfgMultiApControllerSearch(void *arg);
 /* Checks whether the interface is backhaul or not */
@@ -138,7 +137,7 @@ int i5WlCfgChannelToband(unsigned char channel);
 /* Check if the AL MAC address present in the BSS info table which the controller has */
 int i5WlCfgIsALMACPresentInControllerTable(unsigned char *al_mac);
 /* Check is the wireless interface is in bridge or not */
-int i5WlCfgIsInterfaceInBridge(const char *ifname);
+int i5WlCfgIsInterfaceInFwder(const char *ifname);
 #if defined(__CONFIG_DHDAP__) && defined(__CONFIG_GMAC3__)
 /* Set IEEE1905 AL MAC or Multicast MAC, so that the driver will send the packet to socket created
  * on the interface directly instead of sending it to bridge socket

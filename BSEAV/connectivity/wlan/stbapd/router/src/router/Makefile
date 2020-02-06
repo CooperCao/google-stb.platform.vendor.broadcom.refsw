@@ -25,6 +25,9 @@ endif
 include .config
 include .config.plt
 
+ifeq ($(STBANDROID),1)
+include $(BROADCOM_STBAPD_SOURCE_PATH)/android.inc
+endif
 CPU ?=
 MAKE_ARGS ?=
 
@@ -95,16 +98,18 @@ AMIXER_DIR := $(ALSAUTILS_DIR)/amixer
 ALSACTL_DIR := $(ALSAUTILS_DIR)/alsactl
 MDNSRESPONDERDIR := $(OPENSOURCE_BASE_DIR)/mDNSResponder
 LIBSQLITE3_DIR := $(OPENSOURCE_BASE_DIR)/sqlite3
-ifeq ($(ANDROID),1)
-LIBJSONC_DIR := $(BASEDIR)/components/opensource/jsonc
+ifeq ($(STBANDROID),1)
+include ${REFSW_BASE_DIR}/BSEAV/opensource/jsonc/jsonc.inc
+LIBJSONC_DIR := $(B_STBAPD_OPENSRC_OBJ_ROOT)/jsonc/$(B_JSONC_NAME)
 else
 include $(OPENSOURCE_BASE_DIR)/jsonc/jsonc.inc
 endif
 #export for other makefiles
 export LIBJSONC_DIR
 LIBXML2_DIR := $(OPENSOURCE_BASE_DIR)/libxml2
-ifeq ($(ANDROID),1)
-EBTABLES_DIR := $(BASEDIR)/components/opensource/ebtables
+ifeq ($(STBANDROID),1)
+include ${REFSW_BASE_DIR}/BSEAV/opensource/ebtables/ebtables.inc
+EBTABLES_DIR := $(B_STBAPD_OPENSRC_OBJ_ROOT)/ebtables/$(B_EBTABLES_NAME)
 else
 include $(OPENSOURCE_BASE_DIR)/ebtables/ebtables.inc
 endif
@@ -192,7 +197,7 @@ export CONFIGURE := ./configure arm-linux --build=$(BUILD)
 export TOOLCHAIN ?= $(shell cd $(dir $(shell which $(CROSS_COMPILE)gcc))/.. && pwd -P)
 export CFLAGS += -fno-strict-aliasing
 SUBMAKE_SETTINGS += ARCH=$(ARCH)
-ifneq ($(ANDROID),1)
+ifneq ($(STBANDROID),1)
 EXTRA_LDFLAGS := -lgcc_s
 endif
 endif
@@ -207,21 +212,14 @@ export CONFIGURE := ./configure arm-linux --build=$(BUILD)
 export TOOLCHAIN := $(shell cd $(dir $(shell which $(CROSS_COMPILE)gcc))/../.. && pwd -P)
 export CFLAGS += -fno-strict-aliasing
 SUBMAKE_SETTINGS += ARCH=$(ARCH)
-ifneq ($(ANDROID),1)
+ifneq ($(STBANDROID),1)
 EXTRA_LDFLAGS := -lgcc_s
 endif
 endif
 
-ifneq ($(ANDROID),1)
+ifneq ($(STBANDROID),1)
 ARCH_TOOL := $(ARCHTOOL)-
-else
-ARCH_TOOL := $(CROSS_COMPILE)
-endif
-
-ifneq ($(ANDROID),1)
 HOST := $(ARCH)-unknown-linux
-else
-HOST := $(ARCH)-linux-androideabi
 endif
 
 ifneq ($(strip $(BCA_HNDROUTER)),)
@@ -229,7 +227,7 @@ export CFLAGS += -DBCA_HNDROUTER $(USR_CFLAGS)
 ifneq ($(strip $(BUILD_MCAST_PROXY)),)
 CFLAGS += -DMCPD_PROXY
 endif
-ifneq ($(ANDROID),1)
+ifneq ($(STBANDROID),1)
 export EXTRA_LDFLAGS := "-lgcc_s $(USR_LDFLAGS)"
 else
 export EXTRA_LDFLAGS := "$(USR_LDFLAGS)"
@@ -244,19 +242,39 @@ export CFLAGS += -fno-strict-aliasing
 export CFLAGS += -Wno-pointer-to-int-cast
 export CFLAGS += -Wno-int-to-pointer-cast
 SUBMAKE_SETTINGS += ARCH=$(ARCH)
-ifneq ($(ANDROID),1)
+ifneq ($(STBANDROID),1)
 EXTRA_LDFLAGS := -lgcc_s
 endif
 endif
 
 # Android CFLAGS
-ifeq ($(ANDROID),1)
-export CFLAGS += -Wl,--dynamic-linker=/system/bin/linker
-export CFLAGS += -pie -fPIE
-export CFLAGS += --sysroot=$(BROADCOM_ANDROID_SYSROOT)
-export CFLAGS += -isystem $(BROADCOM_ANDROID_SYSROOT)/usr/include/
+ifeq ($(STBANDROID),1)
+export CFLAGS += $(ANDROID_CFLAGS)
+export LDFLAGS := $(ANDROID_BASE_LDFLAGS)
+export SHARED_LDFLAGS := $(ANDROID_SHARE_LDFLAGS)
 export CFLAGS += -DTARGETENV_android
 export CFLAGS += -DDISABLE_HSEARCH
+JSONC_ANDROID_CFLAGS += -I$(ANDROID)/bionic/libc/include \
+	-I$(ANDROID)/bionic/libstdc++/include \
+	-I$(ANDROID)/bionic/libm/include \
+	-I$(ANDROID)/bionic/libthread_db/include \
+	-I$(ANDROID)/bionic/libm \
+	-I$(ANDROID)/out/target/product/${LOCAL_PRODUCT_OUT}/obj/SHARED_LIBRARIES/libm_intermediates \
+	-I$(ANDROID)/frameworks/native/include \
+	-I$(ANDROID)/bionic/libc/kernel/uapi \
+	-I$(ANDROID)/bionic/libc/kernel/android/uapi
+
+# includes - arch specific - only arm/aarch64 supported.
+ifeq ($(B_REFSW_ARCH), aarch64-linux)
+JSONC_ANDROID_CFLAGS += -I$(ANDROID)/bionic/libc/arch-arm64/include \
+	-I$(ANDROID)/bionic/libm/arm64 \
+	-I$(ANDROID)/bionic/libc/kernel/uapi/asm-arm64
+else
+JSONC_ANDROID_CFLAGS += -I$(ANDROID)/bionic/libc/arch-arm/include \
+	-I$(ANDROID)/bionic/libm/arm \
+	-I$(ANDROID)/bionic/libc/kernel/uapi/asm-arm
+endif
+
 endif
 
 ifeq ($(CONFIG_RTR_OPTIMIZE_SIZE),y)
@@ -469,6 +487,15 @@ endif # PLC_WBD
 endif # WBD
 endif # wlan_version_ge
 
+ifeq ($(STBANDROID),1)
+export CC      = $(strip ${B_REFSW_CCACHE} $(B_REFSW_CROSS_COMPILE)gcc)
+export AR      = $(B_REFSW_CROSS_COMPILE)ar
+export LD      = $(strip ${B_REFSW_CCACHE} $(B_REFSW_CROSS_COMPILE)gcc)
+export AS      = $(B_REFSW_CROSS_COMPILE)as
+export NM      = $(B_REFSW_CROSS_COMPILE)nm
+export RANLIB  = $(B_REFSW_CROSS_COMPILE)ranlib
+export STRIP = :
+else
 export CC := $(CROSS_COMPILE)gcc
 export AR := $(CROSS_COMPILE)ar
 export AS := $(CROSS_COMPILE)as
@@ -476,6 +503,7 @@ export LD := $(CROSS_COMPILE)ld
 export NM := $(CROSS_COMPILE)nm
 export RANLIB := $(CROSS_COMPILE)ranlib
 export STRIP := $(CROSS_COMPILE)strip
+endif
 export SIZE := $(CROSS_COMPILE)size
 
 ifneq ("$(LINUX_VERSION)","2_4")
@@ -845,7 +873,11 @@ all: version check_kernel_config obj_prelibs
 
 obj_prelibs:
 	mkdir -p ${INSTALLDIR}
+ifeq ($(STBANDROID),1)
+	+$(MAKE) parallel=true $(MAKE_ARGS) ARCH=$(ARCH) CONFIG_NVRAM_UTILITY= CONFIG_NVRAMD= $(obj-prelibs)
+else
 	+$(MAKE) parallel=true $(MAKE_ARGS) ARCH=$(ARCH) $(obj-prelibs)
+endif
 
 obj_postlibs:
 	+$(MAKE) parallel=true $(MAKE_ARGS) ARCH=$(ARCH) $(obj-postlibs)
@@ -991,7 +1023,9 @@ endif # CONFIG_STBAP
 
 router-clean: $(obj-clean) config-clean
 ifeq ($(CONFIG_STBAP),y)
-	+$(MAKE) $(MAKE_ARGS) stbap-modules-clean
+        # skip cleaning
+#these modules are cleaned separately, matching comment out of stbap-modules; don't invoke makefile here
+#	+$(MAKE) $(MAKE_ARGS) stbap-modules-clean
 endif # CONFIG_STBAP
 	rm -rf $(TARGETDIR)
 	rm -f $(PLATFORMDIR)/linux.trx $(PLATFORMDIR)/linux-gzip.trx
@@ -1954,8 +1988,13 @@ libflow-clean:
 	$(MAKE) -C $(LIBFLOW_DIR) clean
 
 libjsonc:
+ifneq ($(STBANDROID),1)
 	cd $(LIBJSONC_DIR); \
 	chmod 777 ./autogen.sh && ./autogen.sh CC=${ARCH_TOOL}gcc -host=${HOST} -build=x86_64-pc-linux-gnu STRIP=${ARCH_TOOL}strip LD=${ARCH_TOOL}ld --prefix=`pwd`;
+else
+	cd $(LIBJSONC_DIR); \
+	chmod 777 ./autogen.sh && ./autogen.sh CC=${P_REFSW_CC}gcc -host=arm-linux-androideabi -build=x86_64-pc-linux-gnu STRIP=${P_REFSW_CC}strip LD=${P_REFSW_CC}ld --prefix=`pwd` CFLAGS='--sysroot=$(BROADCOM_ANDROID_SYSROOT) -isystem $(BROADCOM_ANDROID_SYSROOT)/usr/include/ -fno-strict-aliasing -Wl,--dynamic-linker=/system/bin/linker -pie -fPIE -DTARGETENV_android -DDISABLE_HSEARCH -O2 -DBCMNVRAM -DBCMWPA2 -D__CONFIG_DHDAP__ -D__CONFIG_STBAP__ -DSTB -D__CONFIG_WPS__ -D__CONFIG_EMF__ -DTRAFFIC_MGMT_RSSI_POLICY -DBCM_DCS -DEXT_ACS -DBCM_BSD -DBCM_SSD -DBCM_EVENTD -D__CONFIG_TOAD__ -DBCM_APPEVENTD -DMFP -DNAS_GTK_PER_STA -DHSPOT_OSEN -DICONPATH=\"/www/hspot\" -DWLWNM -DWLHOSTFBT -DBCM_WBD -DMULTIAP -DMAP_TEMP_DEBUG -DCONFIG_HOSTAPD $(JSONC_ANDROID_CFLAGS)' LDFLAGS='-Bdynamic -Wl,-dynamic-linker,/system/bin/linker -Wl,--gc-sections -Wl,-z,nocopyreloc -Wl,--no-undefined -Wl,-rpath-link=$(B_REFSW_ANDROID_LIB) -Wl,-s -fPIE -pie -L$(B_REFSW_ANDROID_LIB) -nostdlib -lc -lm -lcutils -llog -lc++ -ldl ${ANDROID_TOP}/${B_REFSW_PREBUILT_LIBGCC_1ST_ARCH} -B${B_REFSW_CROSS_COMPILE_PATH_1ST_ARCH}' RANLIB='${P_REFSW_CC}ranlib';
+endif
 	+$(MAKE) -C $(LIBJSONC_DIR)
 	+$(MAKE) -C $(LIBJSONC_DIR) install-strip
 
@@ -1964,7 +2003,10 @@ libjsonc-install:
 	cp -rf $(LIBJSONC_DIR)/.libs/libjson-c.so* $(INSTALLDIR)/libjsonc/usr/lib
 
 libjsonc-clean:
+ifneq ($(wildcard $(JSONC_DIR)/Makefile),)
+	# Jsonc must run autogen first before Makefile exist
 	+$(MAKE) -C $(LIBJSONC_DIR) clean
+endif
 
 bshared:
 ifeq ($(CONFIG_BSHARED), y)

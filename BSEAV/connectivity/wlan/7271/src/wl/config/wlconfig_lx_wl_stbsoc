@@ -109,3 +109,7 @@ WLATM_PERC=1
 
 # IGMP Report Filter
 IGMPREP_FILTER=1
+
+# for max tx pwr per chanspec
+WL_CHANSPEC_TXPWR_MAX=1
+

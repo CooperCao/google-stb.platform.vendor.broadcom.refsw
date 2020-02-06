@@ -107,6 +107,7 @@ NEXUS_Error nexus_simpleaudiodecoder_p_start(NEXUS_SimpleAudioDecoderHandle hand
 /* internal stop if decoders stopped */
 void nexus_simpleencoder_p_stop(NEXUS_SimpleEncoderHandle encoder);
 bool nexus_simpleencoder_p_nonRealTime(NEXUS_SimpleEncoderHandle encoder);
+void nexus_simpleencoder_p_decoder_watchdog(void *context);
 
 void NEXUS_SimpleDecoderModule_P_PrintVideoDecoder(void);
 void NEXUS_SimpleDecoderModule_P_PrintAudioDecoder(void);

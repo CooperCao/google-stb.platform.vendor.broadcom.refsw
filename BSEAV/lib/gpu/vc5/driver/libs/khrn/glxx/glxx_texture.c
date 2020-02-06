@@ -1576,6 +1576,8 @@ get_base_level_image_and_num_levels(khrn_image **image, uint32_t *num_levels,
       if (texture->source && *num_levels == 1)
       {
          khrn_image *img_curr = egl_image_get_image(texture->source);
+         if (!img_curr)
+            return OUT_OF_MEMORY;
          *image = glxx_get_image_for_texturing(img_curr, fences);
          if (!*image)
             return OUT_OF_MEMORY;

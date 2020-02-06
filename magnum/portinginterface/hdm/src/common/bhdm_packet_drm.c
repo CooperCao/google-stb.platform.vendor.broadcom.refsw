@@ -73,6 +73,15 @@ BERR_Code BHDM_SetDRMInfoFramePacket(
 	    using the DRMInfoFrame stored in the HDMI handle
 	*/
 
+	if (BKNI_Memcmp(&hHDMI->DeviceSettings.stDRMInfoFrame, pstDRMInfoFrame,
+				sizeof(*pstDRMInfoFrame)) == 0)
+	{
+		/* No change in software setting, so no need to change HW */
+		BDBG_MSG(("Requested DRM Infoframe is the same as current setting, skip changing HW"));
+		goto done ;
+	}
+	BDBG_MSG(("Requested DRM Infoframe is not the same as current setting, changing HW"));
+
 	/* initialize packet information to zero */
 	BKNI_Memset(hHDMI->PacketBytes, 0, BHDM_NUM_PACKET_BYTES) ;
 
@@ -91,6 +100,9 @@ BERR_Code BHDM_SetDRMInfoFramePacket(
 	if (pstDRMInfoFrame->eEOTF == BAVC_HDMI_DRM_EOTF_eMax)
 	{
 		BDBG_WRN(("User requested to disable DRM packet transmission; no DRM packet sent")) ;
+
+		/* clear current DRM packet settings, so transitioning from legacy to new EOTF mode will be updated */
+		BKNI_Memset(&hHDMI->DeviceSettings.stDRMInfoFrame, 0, sizeof(hHDMI->DeviceSettings.stDRMInfoFrame)) ;
 		BHDM_DisablePacketTransmission(hHDMI, BHDM_PACKET_eDRM_ID) ;
 		goto done ;
 	}
@@ -188,7 +200,7 @@ BERR_Code BHDM_SetDRMInfoFramePacket(
 
 	/* Keep a copy of the  new DRM packet */
 	BKNI_Memcpy(&hHDMI->DeviceSettings.stDRMInfoFrame, pstDRMInfoFrame,
-		sizeof(BAVC_HDMI_DRMInfoFrame)) ;
+		sizeof(*pstDRMInfoFrame)) ;
 
 #if BDBG_DEBUG_BUILD
 	{
@@ -225,7 +237,7 @@ BERR_Code BHDM_GetDRMInfoFramePacket(
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
 	BKNI_Memcpy(stDRMInfoFrame, &(hHDMI->DeviceSettings.stDRMInfoFrame),
-		sizeof(BAVC_HDMI_DRMInfoFrame)) ;
+		sizeof(*stDRMInfoFrame)) ;
 
 	return rc ;
 }

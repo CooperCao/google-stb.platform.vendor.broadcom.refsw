@@ -77,6 +77,7 @@ static const uint32_t alDCTable1[NEXUS_DC_TABLE_ROWS * NEXUS_DC_TABLE_COLS] = {
 #define pVideo (&g_NEXUS_DisplayModule_State)
 static NEXUS_Error NEXUS_VideoWindow_P_ApplySplitScreenSettings(NEXUS_VideoWindowHandle window);
 static NEXUS_Error NEXUS_VideoWindow_P_RemoveInput(NEXUS_VideoWindowHandle window, NEXUS_VideoInput input, bool skipDisconnect);
+static void NEXUS_VideoWindow_GetDefaultMinSourceFormat_isrsafe(NEXUS_VideoWindowHandle window, NEXUS_VideoFormat *pMinDisplayFormat);
 
 static void
 NEXUS_VideoWindow_P_LboxCallbackFunc_isr(void *pvParm1, int iParm2, const BVDC_BoxDetectInfo *pBoxDetectInfo)
@@ -1014,7 +1015,7 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
     windowCfg.bAllocFullScreen =
         NEXUS_VideoWindow_IsSmoothScaling_isrsafe(window) &&
         (BBOX_Vdc_SclCapBias_eAutoDisable1080p != g_pCoreHandles->boxConfig->stVdc.astDisplay[window->display->index].astWindow[window->index].eSclCapBias) &&
-        (g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->windowId].sizeLimit != NEXUS_VideoWindowSizeLimit_eQuarter)
+        (g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->index].sizeLimit != NEXUS_VideoWindowSizeLimit_eQuarter)
         ?true:cfg->allocateFullScreen;
 
     if (cfg->minimumSourceFormat != NEXUS_VideoFormat_eUnknown) {
@@ -1033,11 +1034,10 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
         else
             rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(cfg->minimumDisplayFormat, &fmt);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_window;}
-        windowCfg.pMinDspFmt = (g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->windowId].sizeLimit == NEXUS_VideoWindowSizeLimit_eQuarter)
-            ? NULL : BFMT_GetVideoFormatInfoPtr(fmt);
+        windowCfg.pMinDspFmt = BFMT_GetVideoFormatInfoPtr(fmt);
     }
 
-    if(g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->windowId].deinterlacer == NEXUS_DeinterlacerMode_eBestQuality)
+    if(g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->index].deinterlacer == NEXUS_DeinterlacerMode_eBestQuality)
     {
         /* This causes MAD to allocate 5 fields. This allows apps to be written using NEXUS_VideoWindowGameMode_e5Fields_ForceSpatial instead of having
         to dynamically learn how many buffers are in use in order to use game mode. */
@@ -1061,7 +1061,7 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
 
     /* force sync lock for the first window of the mfd input */
     windowCfg.bForceSyncLock = nexus_p_synclock_capable(window->input, window) && (1>=link->ref_cnt) &&
-        g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->windowId].forceSyncLock;
+        g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->index].forceSyncLock;
     rc = BVDC_Window_Create( display->compositor, &window->vdcState.window,
                              windowId,
                              link->sourceVdc, &windowCfg);
@@ -1719,6 +1719,9 @@ NEXUS_VideoWindow_Open(NEXUS_DisplayHandle display, unsigned windowIndex)
     BDBG_CASSERT(BVDC_WindowId_eVideo1 == 1);
     window->windowId = windowIndex + BVDC_WindowId_eVideo0;
     window->phaseDelay = -1; /* invalid */
+    /* minimum format only set for parent window */
+    NEXUS_VideoWindow_GetDefaultMinSourceFormat_isrsafe(window, &window->cfg.minimumSourceFormat);
+    NEXUS_VideoWindow_GetDefaultMinDisplayFormat_isrsafe(window, &window->cfg.minimumDisplayFormat);
 
     if (BKNI_CreateEvent(&window->syncLockEvent)) {
         BDBG_ERR(("window sync lock event fault"));
@@ -2248,11 +2251,23 @@ bool NEXUS_VideoAdj_P_DefaultMadEnabled_priv(NEXUS_VideoWindowHandle window)
 
 void NEXUS_VideoWindow_GetDefaultMinDisplayFormat_isrsafe(NEXUS_VideoWindowHandle window, NEXUS_VideoFormat *pMinDisplayFormat)
 {
-    if (NEXUS_VideoWindow_IsSmoothScaling_isrsafe(window)) {
+    if (NEXUS_VideoWindow_IsSmoothScaling_isrsafe(window) ||
+        (g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->index].sizeLimit == NEXUS_VideoWindowSizeLimit_eQuarter)) {
         *pMinDisplayFormat = g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].maxFormat;
     }
     else {
         *pMinDisplayFormat = NEXUS_VideoFormat_eUnknown;
+    }
+}
+
+static void NEXUS_VideoWindow_GetDefaultMinSourceFormat_isrsafe(NEXUS_VideoWindowHandle window, NEXUS_VideoFormat *pMinSourceFormat)
+{
+    if (NEXUS_VideoWindow_IsSmoothScaling_isrsafe(window)) {
+        /* TODO: source size limit? */
+        *pMinSourceFormat = g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].maxFormat;
+    }
+    else {
+        *pMinSourceFormat = NEXUS_VideoFormat_eUnknown;
     }
 }
 
@@ -2305,8 +2320,6 @@ void NEXUS_VideoWindow_P_InitState(NEXUS_VideoWindowHandle window, unsigned pare
     window->cfg.colorKey.cb.mask = 0;
     NEXUS_CallbackDesc_Init(&window->cfg.letterBoxDetectionChange);
     NEXUS_CallbackDesc_Init(&window->cfg.outputRectChanged);
-    NEXUS_VideoWindow_GetDefaultMinDisplayFormat_isrsafe(window, &window->cfg.minimumSourceFormat);
-    NEXUS_VideoWindow_GetDefaultMinDisplayFormat_isrsafe(window, &window->cfg.minimumDisplayFormat);
     BKNI_Memcpy(&window->picContext.stCustomContrast.dcTable1[0], &alDCTable1[0], sizeof(window->picContext.stCustomContrast.dcTable1));
     BKNI_Memcpy(&window->picContext.stCustomContrast.dcTable2[0], &alDCTable1[0], sizeof(window->picContext.stCustomContrast.dcTable2));
     BKNI_Memcpy(&window->picContext.stCustomContrast.ireTable[0], &aIreTable[0], sizeof(window->picContext.stCustomContrast.ireTable));

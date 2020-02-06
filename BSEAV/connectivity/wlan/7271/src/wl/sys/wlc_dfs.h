@@ -43,6 +43,7 @@ extern uint wlc_dfs_get_cactime_ms(wlc_dfs_info_t *dfs);
 extern bool wlc_cac_is_clr_chanspec(wlc_dfs_info_t *dfs, chanspec_t chspec);
 
 extern bool wlc_dfs_valid_ap_chanspec(wlc_info_t *wlc, chanspec_t chspec);
+extern uint32 wlc_set_dfs_chan_info(wlc_info_t *wlc, wl_set_chan_info_t *chan_info);
 extern void wlc_dfs_send_action_frame_complete(wlc_info_t *wlc, uint txstauts, void *arg);
 
 /* accessors */
@@ -56,6 +57,8 @@ extern uint32 wlc_dfs_get_chan_info(wlc_dfs_info_t *dfs, uint channel);
 #define wlc_dfs_detach(dfs) do {} while (0)
 
 #define wlc_set_dfs_cacstate(dfs, state, cfg) do {} while (0)
+#define wlc_set_dfs_chan_info(wlc, chan_info) \
+	({BCM_REFERENCE(wlc); BCM_REFERENCE(chan_info); BCME_UNSUPPORTED;})
 #define wlc_dfs_sel_chspec(dfs, force, cfg) 0
 #define wlc_dfs_reset_all(dfs) do {} while (0)
 #define wlc_dfs_set_radar(dfs, radar)  BCME_UNSUPPORTED
@@ -64,6 +67,8 @@ extern uint32 wlc_dfs_get_chan_info(wlc_dfs_info_t *dfs, uint channel);
 
 #define wlc_dfs_get_radar(dfs) 0
 #define wlc_dfs_get_chan_info(dfs, channel) 0
+
+#define wlc_dfs_valid_ap_chanspec(wlc, chspec) 1
 
 #endif /* !WLDFS */
 

@@ -1367,7 +1367,7 @@ BERR_Code BHDM_Open(
 	BKNI_LeaveCriticalSection() ;
 
 	/* Reset the EDID for reading */
-	hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eNotInitialized;  /* Set EDID Initialization flag */
+	hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eInvalid ;
 
 
 	/* Create Events for use with Interrupts */
@@ -2224,6 +2224,12 @@ void BHDM_P_DisableDisplay_isr(
 	return;
 #endif
 
+#if BHDM_HAS_HDMI_20_SUPPORT
+	if (hHDMI->TimerTxScramble)
+	{
+		BTMR_StopTimer_isr(hHDMI->TimerTxScramble) ;
+	}
+#endif
 	BHDM_MONITOR_P_StopTimers_isr(hHDMI) ;
 
 /* disable RSEN interrupt BEFORE  turning OFF TMDS lines */
@@ -2296,8 +2302,6 @@ BERR_Code BHDM_Close(
 {
 	BERR_Code rc = BERR_SUCCESS ;
 	uint32_t i ;
-	BHDM_EDID_P_VideoDescriptor *pVideoDescriptor ;
-
 
 	BDBG_ENTER(BHDM_Close) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI ) ;
@@ -2380,17 +2384,8 @@ BERR_Code BHDM_Close(
 	if (rc) {rc = BERR_TRACE(rc) ;}
 #endif
 
-	/* delete previous video descriptors if they exist */
-	if (!BLST_Q_EMPTY(&hHDMI->AttachedEDID.VideoDescriptorList))
-	{
-		for (pVideoDescriptor=BLST_Q_FIRST(&hHDMI->AttachedEDID.VideoDescriptorList) ;
-			pVideoDescriptor ;
-			pVideoDescriptor=BLST_Q_FIRST(&hHDMI->AttachedEDID.VideoDescriptorList))
-		{
-			BLST_Q_REMOVE_HEAD(&hHDMI->AttachedEDID.VideoDescriptorList, link);
-			BKNI_Free(pVideoDescriptor); /* free memory */
-		}
-	}
+	BHDM_EDID_P_FreeVideoDescriptorList(hHDMI) ;
+	BHDM_EDID_P_FreeDetailedTimingList(hHDMI) ;
 
 	/* free any create Repeater KSV List */
 	if (hHDMI->HDCP_RepeaterKsvList != NULL)
@@ -3651,7 +3646,9 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 		BDBG_LOG(("Tx%d: HotPlug  (Dual Intr): DEVICE CONNECTED", hHDMI->eCoreId)) ;
 		hHDMI->RxDeviceAttached = 1;
 		hHDMI->hotplugInterruptFired = true;
-		hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eNotInitialized;	/* Set Initialize EDID read flag */
+		hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eInvalid ;
+
+		BHDM_P_SetDisplayStartupDefaults_isr(hHDMI) ;
 
 #if BHDM_CONFIG_HAS_HDCP22
 		/* reset WR_FIFO to prevent AKE_Init message to be sent out - For compliance test issue*/
@@ -3730,7 +3727,7 @@ void BHDM_P_Hotplug_isr(const BHDM_Handle hHDMI)
 		BDBG_LOG(("Tx%d: HotPlug: DEVICE CONNECTED", hHDMI->eCoreId)) ;
 	}
 
-	hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eNotInitialized;	/* Set Initialize EDID read flag */
+	hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eInvalid ;
 
 	BHDM_MONITOR_P_HpdChanges_isr(hHDMI) ;
 

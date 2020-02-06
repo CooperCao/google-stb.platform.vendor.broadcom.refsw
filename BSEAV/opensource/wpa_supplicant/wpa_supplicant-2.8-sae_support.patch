@@ -1,0 +1,390 @@
+diff -Naur wpa_supplicant-2.8-orig/src/common/brcm_vendor.h wpa_supplicant-2.8/src/common/brcm_vendor.h
+--- wpa_supplicant-2.8-orig/src/common/brcm_vendor.h	1969-12-31 16:00:00.000000000 -0800
++++ wpa_supplicant-2.8/src/common/brcm_vendor.h	2019-07-31 14:00:18.322016811 -0700
+@@ -0,0 +1,63 @@
++/*
++ * Broadcom Corporation OUI and vendor specific assignments
++ * Copyright (c) 2015, Broadcom Corporation.
++ *
++ * This software may be distributed under the terms of the BSD license.
++ * See README for more details.
++ */
++
++#ifndef BRCM_VENDOR_H
++#define BRCM_VENDOR_H
++
++/*
++ * This file is a registry of identifier assignments from the Broadcom
++ * OUI 00:10:18 for purposes other than MAC address assignment. New identifiers
++ * can be assigned through normal review process for changes to the upstream
++ * hostap.git repository.
++ */
++
++#define OUI_BRCM  0x001018
++
++/**
++ * enum brcm_nl80211_vendor_subcmds - BRCM nl80211 vendor command identifiers
++ *
++ * @BRCM_VENDOR_SUBCMD_UNSPEC: Reserved value 0
++ *
++ * @BRCM_VENDOR_SUBCMD_PRIV_STR: String command/event
++ */
++enum brcm_nl80211_vendor_subcmds {
++        BRCM_VENDOR_SUBCMD_UNSPEC,
++        BRCM_VENDOR_SUBCMD_PRIV_STR,
++        BRCM_VENDOR_SUBCMD_BCM_STR,
++	BRCM_VENDOR_SUBCMD_SET_PSK
++};
++
++/**
++ * enum brcm_nl80211_vendor_events - BRCM nl80211 asynchoronous event identifiers
++ *
++ * @BRCM_VENDOR_EVENT_UNSPEC: Reserved value 0
++ *
++ * @BRCM_VENDOR_EVENT_PRIV_STR: String command/event
++ */
++enum brcm_nl80211_vendor_events {
++        BRCM_VENDOR_EVENT_UNSPEC,
++        BRCM_VENDOR_EVENT_PRIV_STR,
++        BRCM_VENDOR_EVENT_HANGED	= 33,
++	BRCM_VENDOR_EVENT_SAE_KEY	= 34,
++	BRCM_VENDOR_EVENT_BEACON_RECV   = 35
++};
++#ifdef CONFIG_BRCM_SAE
++enum wifi_sae_key_attr {
++        BRCM_SAE_KEY_ATTR_BSSID,
++        BRCM_SAE_KEY_ATTR_PMK,
++        BRCM_SAE_KEY_ATTR_PMKID
++};
++#endif /* CONFIG_BRCM_SAE */
++
++enum brcm_nl80211_vendor_bcnrecv_attr_type {
++	BRCM_BCNRECV_ATTR_STATUS = 1,
++	BRCM_BCNRECV_ATTR_REASON,
++	BRCM_BCNRECV_ATTR_BCNINFO,
++	BRCM_BCNRECV_ATTR_MAX
++};
++#endif /* BRCM_VENDOR_H */
+diff -Naur wpa_supplicant-2.8-orig/src/drivers/driver.h wpa_supplicant-2.8/src/drivers/driver.h
+--- wpa_supplicant-2.8-orig/src/drivers/driver.h	2019-07-31 13:57:42.879551008 -0700
++++ wpa_supplicant-2.8/src/drivers/driver.h	2019-07-31 14:00:18.939035985 -0700
+@@ -4703,6 +4703,12 @@
+ 	 * This event is emitted when an interface is added/removed for WDS STA.
+ 	 */
+ 	EVENT_WDS_STA_INTERFACE_STATUS,
++
++	/**
++	 * EVENT_SAE_KEY - carries the pmk data after SAE auth is done
++	 * This is BRCM specific event (as there is no standard way)
++	 */
++	EVENT_SAE_KEY,
+ };
+ 
+ 
+@@ -4744,6 +4750,16 @@
+  * union wpa_event_data - Additional data for wpa_supplicant_event() calls
+  */
+ union wpa_event_data {
++	/* struct for sae key info for in-driver sae auth */
++#ifdef CONFIG_BRCM_SAE
++        struct sae_key {
++                u8 psk[PMK_LEN];
++                u8 psk_len;
++                u8 bssid[ETH_ALEN];
++                u8 pmkid[PMKID_LEN];
++        } sae_key_info;
++#endif /* CONFIG_BRCM_SAE */
++
+ 	/**
+ 	 * struct assoc_info - Data for EVENT_ASSOC and EVENT_ASSOCINFO events
+ 	 *
+diff -Naur wpa_supplicant-2.8-orig/src/drivers/driver_common.c wpa_supplicant-2.8/src/drivers/driver_common.c
+--- wpa_supplicant-2.8-orig/src/drivers/driver_common.c	2019-07-31 13:57:42.942336929 -0700
++++ wpa_supplicant-2.8/src/drivers/driver_common.c	2019-07-31 14:00:18.999678371 -0700
+@@ -87,6 +87,7 @@
+ 	E2S(STATION_OPMODE_CHANGED);
+ 	E2S(INTERFACE_MAC_CHANGED);
+ 	E2S(WDS_STA_INTERFACE_STATUS);
++	E2S(SAE_KEY);
+ 	}
+ 
+ 	return "UNKNOWN";
+diff -Naur wpa_supplicant-2.8-orig/src/drivers/driver_nl80211.c wpa_supplicant-2.8/src/drivers/driver_nl80211.c
+--- wpa_supplicant-2.8-orig/src/drivers/driver_nl80211.c	2019-07-31 13:57:42.873068944 -0700
++++ wpa_supplicant-2.8/src/drivers/driver_nl80211.c	2019-07-31 14:00:18.932322917 -0700
+@@ -38,7 +38,7 @@
+ #include "radiotap_iter.h"
+ #include "rfkill.h"
+ #include "driver_nl80211.h"
+-
++#include "common/brcm_vendor.h"
+ 
+ #ifndef NETLINK_CAP_ACK
+ #define NETLINK_CAP_ACK 10
+@@ -5537,7 +5537,11 @@
+ 	    params->key_mgmt_suite == WPA_KEY_MGMT_FT_FILS_SHA256 ||
+ 	    params->key_mgmt_suite == WPA_KEY_MGMT_FT_FILS_SHA384 ||
+ 	    params->key_mgmt_suite == WPA_KEY_MGMT_OWE ||
+-	    params->key_mgmt_suite == WPA_KEY_MGMT_DPP) {
++	    params->key_mgmt_suite == WPA_KEY_MGMT_DPP
++#ifdef CONFIG_BRCM_SAE
++	    || params->key_mgmt_suite == WPA_KEY_MGMT_SAE
++#endif /* CONFIG_BRCM_SAE */
++		) {
+ 		int mgmt = RSN_AUTH_KEY_MGMT_PSK_OVER_802_1X;
+ 
+ 		switch (params->key_mgmt_suite) {
+@@ -5676,6 +5680,42 @@
+ }
+ 
+ 
++#ifdef CONFIG_BRCM_SAE
++static int nl80211_set_conn_sae_keys(struct wpa_driver_nl80211_data *drv,
++        struct wpa_driver_associate_params *params)
++{
++        struct nl_msg *msg;
++        int ret;
++        const char *key = NULL;
++        size_t key_len = 0;
++
++        if (params->passphrase) {
++                key = params->passphrase;
++                key_len = os_strlen(params->passphrase);
++        }
++
++        if (!(msg = nl80211_drv_msg(drv, 0, NL80211_CMD_VENDOR)) ||
++            nla_put_u32(msg, NL80211_ATTR_VENDOR_ID, OUI_BRCM) ||
++            nla_put_u32(msg, NL80211_ATTR_VENDOR_SUBCMD,
++                                BRCM_VENDOR_SUBCMD_SET_PSK) ||
++            nla_put(msg, NL80211_ATTR_VENDOR_DATA, key_len, key)) {
++                nl80211_nlmsg_clear(msg);
++                nlmsg_free(msg);
++                wpa_printf(MSG_ERROR, "Passphrase set error");
++                return -1;
++        }
++        ret = send_and_recv_msgs(drv, msg, NULL, (void *) -1);
++        if (ret) {
++                wpa_printf(MSG_DEBUG,
++                                "nl80211: Key management set key failed: ret=%d (%s)",
++                                ret, strerror(-ret));
++        }
++
++        return ret;
++}
++#endif /* CONFIG_BRCM_SAE */
++
++
+ static int wpa_driver_nl80211_try_connect(
+ 	struct wpa_driver_nl80211_data *drv,
+ 	struct wpa_driver_associate_params *params,
+@@ -5727,6 +5767,12 @@
+ 		algs++;
+ 	if (params->auth_alg & WPA_AUTH_ALG_FT)
+ 		algs++;
++#ifdef CONFIG_BRCM_SAE
++	if (params->auth_alg & WPA_AUTH_ALG_SAE) {
++		algs++;
++		wpa_printf(MSG_ERROR, "auth alg is SAE");
++	}
++#endif /* CONFIG_BRCM_SAE */
+ 	if (algs > 1) {
+ 		wpa_printf(MSG_DEBUG, "  * Leave out Auth Type for automatic "
+ 			   "selection");
+@@ -5743,6 +5789,15 @@
+ 	ret = nl80211_set_conn_keys(params, msg);
+ 	if (ret)
+ 		goto fail;
++#ifdef CONFIG_BRCM_SAE
++	if (params->auth_alg & WPA_AUTH_ALG_SAE) {
++		ret = nl80211_set_conn_sae_keys(drv, params);
++		if (ret) {
++			wpa_printf(MSG_ERROR, "set_sae_key_failed %d", ret);
++			goto fail;
++		}
++	}
++#endif /* CONFIG_BRCM_SAE */
+ 
+ 	if (nl_connect)
+ 		ret = send_and_recv(drv->global, nl_connect, msg,
+diff -Naur wpa_supplicant-2.8-orig/src/drivers/driver_nl80211_event.c wpa_supplicant-2.8/src/drivers/driver_nl80211_event.c
+--- wpa_supplicant-2.8-orig/src/drivers/driver_nl80211_event.c	2019-07-31 13:57:42.960894218 -0700
++++ wpa_supplicant-2.8/src/drivers/driver_nl80211_event.c	2019-07-31 14:00:19.018006075 -0700
+@@ -17,6 +17,7 @@
+ #include "common/qca-vendor-attr.h"
+ #include "common/ieee802_11_defs.h"
+ #include "common/ieee802_11_common.h"
++#include "common/brcm_vendor.h"
+ #include "driver_nl80211.h"
+ 
+ 
+@@ -1640,6 +1641,54 @@
+ }
+ 
+ 
++static void nl80211_vendor_event_brcm( struct wpa_driver_nl80211_data *drv,
++	                             u32 subcmd, u8 *data, size_t len)
++{
++	union wpa_event_data event;
++        const struct nlattr *iter;
++        int rem = len;
++
++	wpa_printf(MSG_DEBUG, "got vendor event %d", subcmd);
++	memset(&event, 0, sizeof(event));
++	switch (subcmd) {
++	case BRCM_VENDOR_EVENT_PRIV_STR:
++	case BRCM_VENDOR_EVENT_HANGED:
++	       /* Dump the event on to the console */
++		wpa_msg(NULL, MSG_INFO, "%s", data);
++	break;
++#ifdef CONFIG_BRCM_SAE
++	case BRCM_VENDOR_EVENT_SAE_KEY: {
++		u16 pmkid_len = 0;
++                nla_for_each_attr(iter, (const struct nlattr *)data, len, rem) {
++	                wpa_printf(MSG_DEBUG, "attr type is %d", nla_type(iter));
++	                wpa_printf(MSG_DEBUG, "attr length is %d", nla_len(iter));
++	                if (nla_type(iter) == BRCM_SAE_KEY_ATTR_BSSID)
++	                        memcpy(event.sae_key_info.bssid, nla_data(iter), nla_len(iter));
++	                if (nla_type(iter) == BRCM_SAE_KEY_ATTR_PMK) {
++	                        memcpy(event.sae_key_info.psk, nla_data(iter), nla_len(iter));
++	                        event.sae_key_info.psk_len = nla_len(iter);
++	                }
++	                if (nla_type(iter) == BRCM_SAE_KEY_ATTR_PMKID) {
++	                        memcpy(event.sae_key_info.pmkid, nla_data(iter), nla_len(iter));
++				pmkid_len = nla_len(iter);
++			}
++		}
++		if (event.sae_key_info.psk_len && pmkid_len && !is_zero_ether_addr(event.sae_key_info.bssid)) {
++			wpa_supplicant_event(drv->ctx, EVENT_SAE_KEY, &event);
++		} else {
++			wpa_printf(MSG_ERROR, "PMK data missing");
++		}
++	}
++	break;
++#endif /* CONFIG_BRCM_SAE */
++	default:
++		wpa_printf(MSG_DEBUG, "nl80211: Ignore unsupported BRCM vendor event %u", subcmd);
++		break;
++	}
++
++}
++
++
+ #ifdef CONFIG_DRIVER_NL80211_QCA
+ 
+ static void qca_nl80211_avoid_freq(struct wpa_driver_nl80211_data *drv,
+@@ -2129,6 +2178,9 @@
+ 	case OUI_QCA:
+ 		nl80211_vendor_event_qca(drv, subcmd, data, len);
+ 		break;
++	case OUI_BRCM:
++		nl80211_vendor_event_brcm(drv, subcmd, data, len);
++		break;
+ 	default:
+ 		wpa_printf(MSG_DEBUG, "nl80211: Ignore unsupported vendor event");
+ 		break;
+diff -Naur wpa_supplicant-2.8-orig/wpa_supplicant/Android.mk wpa_supplicant-2.8/wpa_supplicant/Android.mk
+--- wpa_supplicant-2.8-orig/wpa_supplicant/Android.mk	2019-07-31 13:57:41.254286667 -0700
++++ wpa_supplicant-2.8/wpa_supplicant/Android.mk	2019-07-31 14:00:17.317225479 -0700
+@@ -240,6 +240,7 @@
+ 
+ ifdef CONFIG_SAE
+ L_CFLAGS += -DCONFIG_SAE
++L_CFLAGS += -DCONFIG_BRCM_SAE
+ OBJS += src/common/sae.c
+ NEED_ECC=y
+ NEED_DH_GROUPS=y
+diff -Naur wpa_supplicant-2.8-orig/wpa_supplicant/Makefile wpa_supplicant-2.8/wpa_supplicant/Makefile
+--- wpa_supplicant-2.8-orig/wpa_supplicant/Makefile	2019-07-31 13:57:40.870335509 -0700
++++ wpa_supplicant-2.8/wpa_supplicant/Makefile	2019-07-31 14:00:16.941478707 -0700
+@@ -272,6 +272,7 @@
+ 
+ ifdef CONFIG_SAE
+ CFLAGS += -DCONFIG_SAE
++CFLAGS += -DCONFIG_BRCM_SAE
+ OBJS += ../src/common/sae.o
+ NEED_ECC=y
+ NEED_DH_GROUPS=y
+diff -Naur wpa_supplicant-2.8-orig/wpa_supplicant/android.config wpa_supplicant-2.8/wpa_supplicant/android.config
+--- wpa_supplicant-2.8-orig/wpa_supplicant/android.config	2019-07-31 13:57:40.415910652 -0700
++++ wpa_supplicant-2.8/wpa_supplicant/android.config	2019-07-31 14:00:16.500772824 -0700
+@@ -542,4 +542,6 @@
+ # Experimental implementation of draft-harkins-owe-07.txt
+ #CONFIG_OWE=y
+ 
++CONFIG_SAE=y
++
+ include $(wildcard $(LOCAL_PATH)/android_config_*.inc)
+diff -Naur wpa_supplicant-2.8-orig/wpa_supplicant/driver_i.h wpa_supplicant-2.8/wpa_supplicant/driver_i.h
+--- wpa_supplicant-2.8-orig/wpa_supplicant/driver_i.h	2019-07-31 13:57:40.919366354 -0700
++++ wpa_supplicant-2.8/wpa_supplicant/driver_i.h	2019-07-31 14:00:16.986926688 -0700
+@@ -568,7 +568,7 @@
+ 	return wpa_s->driver->tdls_oper(wpa_s->drv_priv, oper, peer);
+ }
+ 
+-#ifdef ANDROID
++/*#ifdef ANDROID*/
+ static inline int wpa_drv_driver_cmd(struct wpa_supplicant *wpa_s,
+ 				     char *cmd, char *buf, size_t buf_len)
+ {
+@@ -576,7 +576,7 @@
+ 		return -1;
+ 	return wpa_s->driver->driver_cmd(wpa_s->drv_priv, cmd, buf, buf_len);
+ }
+-#endif /* ANDROID */
++/* #endif */ /* ANDROID */
+ 
+ static inline void wpa_drv_set_rekey_info(struct wpa_supplicant *wpa_s,
+ 					  const u8 *kek, size_t kek_len,
+diff -Naur wpa_supplicant-2.8-orig/wpa_supplicant/events.c wpa_supplicant-2.8/wpa_supplicant/events.c
+--- wpa_supplicant-2.8-orig/wpa_supplicant/events.c	2019-07-31 13:57:41.351631626 -0700
++++ wpa_supplicant-2.8/wpa_supplicant/events.c	2019-07-31 14:00:17.414240643 -0700
+@@ -4171,6 +4171,17 @@
+ 	}
+ #endif /* CONFIG_FILS */
+ 
++#ifdef CONFIG_BRCM_SAE
++	if(wpa_s->current_ssid &&
++		wpa_key_mgmt_sae(wpa_s->current_ssid->key_mgmt))
++	{
++		wpa_dbg(wpa_s, MSG_DEBUG,
++			"PMKSA caching attempt rejected - drop PMKSA cache entry and fall back to SAE authentication");
++		wpa_sm_aborted_cached(wpa_s->wpa);
++		wpa_sm_pmksa_cache_flush(wpa_s->wpa, wpa_s->current_ssid);
++	}
++#endif /* CONFIG_BRCM_SAE */
++
+ 	wpas_connection_failed(wpa_s, bssid);
+ 	wpa_supplicant_mark_disassoc(wpa_s);
+ }
+@@ -4212,6 +4223,13 @@
+ #endif /* CONFIG_NO_STDOUT_DEBUG */
+ 
+ 	switch (event) {
++#ifdef CONFIG_BRCM_SAE
++	case EVENT_SAE_KEY:
++		memcpy(wpa_s->bssid, data->sae_key_info.bssid, ETH_ALEN);
++		wpa_sm_set_pmk(wpa_s->wpa, data->sae_key_info.psk, PMK_LEN,
++			data->sae_key_info.pmkid, wpa_s->bssid);
++		break;
++#endif /* CONFIG_BRCM_SAE */
+ 	case EVENT_AUTH:
+ #ifdef CONFIG_FST
+ 		if (!wpas_fst_update_mbie(wpa_s, data->auth.ies,
+diff -Naur wpa_supplicant-2.8-orig/wpa_supplicant/wpa_supplicant.c wpa_supplicant-2.8/wpa_supplicant/wpa_supplicant.c
+--- wpa_supplicant-2.8-orig/wpa_supplicant/wpa_supplicant.c	2019-07-31 13:57:40.609703994 -0700
++++ wpa_supplicant-2.8/wpa_supplicant/wpa_supplicant.c	2019-07-31 14:00:16.687639777 -0700
+@@ -3215,6 +3215,14 @@
+ 			params.psk = ssid->psk;
+ 	}
+ 
++#ifdef CONFIG_BRCM_SAE
++		if ((wpa_s->drv_flags & WPA_DRIVER_FLAGS_SAE) &&
++			(params.key_mgmt_suite == WPA_KEY_MGMT_SAE)) {
++			params.passphrase = ssid->passphrase;
++			wpa_printf(MSG_DEBUG, "sae enabled join");
++		}
++#endif /* CONFIG_BRCM_SAE */
++
+ 	if ((wpa_s->drv_flags & WPA_DRIVER_FLAGS_4WAY_HANDSHAKE_8021X) &&
+ 	    (params.key_mgmt_suite == WPA_KEY_MGMT_IEEE8021X ||
+ 	     params.key_mgmt_suite == WPA_KEY_MGMT_IEEE8021X_SHA256 ||

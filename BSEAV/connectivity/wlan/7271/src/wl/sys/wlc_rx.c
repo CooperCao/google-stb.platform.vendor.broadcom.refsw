@@ -1359,7 +1359,7 @@ wlc_recvdata(wlc_info_t *wlc, osl_t *osh, wlc_d11rxhdr_t *wrxh, void *p)
 		}
 	}
 #endif
-	if (f.wds && !BSSCFG_MESH(bsscfg)) {
+	if (f.wds && !BSSCFG_MESH(bsscfg) && !SCB_DWDS_CAP(scb)) {
 		/* the packet should be from one of our WDS partners */
 		ASSERT(SCB_A4_DATA(scb));
 		f.WPA_auth = bsscfg->WPA_auth;
@@ -1496,13 +1496,24 @@ wlc_recvdata(wlc_info_t *wlc, osl_t *osh, wlc_d11rxhdr_t *wrxh, void *p)
 			!bsscfg->allmulti && wlc_bsscfg_mcastfilter(bsscfg, &(f.h->a1)))
 			goto toss_nolog;
 
+#ifdef DWDS
 		/* DWDS APs send 3 addr and 4 address multicast frames.
 		 * if bsscfg is sta and dwds then drop all 3 address multicast so we dont get dups
 		 */
+		/* In Multi-AP, Non-Broadcom AP (Eg., Marvel) might send only 3 address bcmc frame.
+		 * accept frame if SA is not found in loopback list.
+		 */
 		if (BSSCFG_STA(bsscfg) && SCB_DWDS(scb) && !f.wds) {
-			toss_reason = WLC_RX_STS_TOSS_STA_DWDS;
-			goto toss;
+			if (!MAP_ENAB(bsscfg) || !bsscfg->dwds_loopback_filter) {
+				goto toss_silently;
+			} else {
+				uint8 *sa = (uint8 *)&(f.h->a3);
+				if (wlc_dwds_findsa(wlc, bsscfg, sa) != NULL) {
+					goto toss_silently;
+				}
+			}
 		}
+#endif /* DWDS */
 
 #if defined(WL_RELMCAST)
 		/* Check the RMC multi-cast addresses and the seq number     */
@@ -1688,6 +1699,7 @@ toss:
 		WLCNTADD(wlc->pub->_wme_cnt->rx_failed[WME_PRIO2AC(PKTPRIO(f.p))].bytes,
 		                                     pkttotlen(osh, f.p));
 	}
+
 toss_nolog:
 	/* Handle error case here */
 
@@ -2439,17 +2451,35 @@ skip_conv:
 #endif /* WLTDLS */
 	}
 
-#ifndef DWDS_ACCEPT_3ADDR
+#ifdef DWDS
+	/* XXX - special flag to accept 3-addr frames in DWDS.
+	 * Defined in customer builds.
+	 */
+	/* In MultiAP, Non-broadcom AP's might send 3-addr multicast frames.
+	 * accept frame if SA is not found in loopback list.
+	 */
 	if (SCB_A4_DATA(scb) && !f->wds &&
-	    (ether_type != ETHER_TYPE_802_1X)) {
+		(ntoh16(f->eh->ether_type) != ETHER_TYPE_802_1X)) {
+
+		if (MAP_ENAB(bsscfg) && BSSCFG_STA(bsscfg) && bsscfg->dwds_loopback_filter &&
+			SCB_DWDS(scb) && f->ismulti) {
+			uint8 *sa = (uint8 *)&(f->h->a3);
+
+			if (wlc_dwds_findsa(wlc, bsscfg, sa) != NULL) {
+				goto toss_silently;
+			}
+		} else {
+#ifndef DWDS_ACCEPT_3ADDR
 #ifdef BCMDBG
-		WL_NONE(("wl%d: Tossing a 3-addr data frame from %s for DWDS\n",
-			wlc->pub->unit, bcm_ether_ntoa(&a2, eabuf)));
-#endif
-		toss_reason = WLC_RX_STS_TOSS_3_ADDR_FRAME;
-		goto toss;
-	}
+			WL_NONE(("wl%d: Tossing a 3-addr data frame from %s for DWDS\n",
+				wlc->pub->unit, bcm_ether_ntoa(&a2, eabuf)));
+#endif /* BCMDBG */
+			goto toss_silently;
 #endif /* DWDS_ACCEPT_3ADDR */
+		}
+	}
+#endif /* DWDS */
+
 #ifdef WLWNM
 	/* Do the WNM processing */
 	if (bsscfg && BSSCFG_STA(bsscfg) && WLWNM_ENAB(wlc->pub) && f->ismulti) {
@@ -3670,10 +3700,8 @@ wlc_recv_mgmt_ctl(wlc_info_t *wlc, osl_t *osh, wlc_d11rxhdr_t *wrxh, void *p)
 #endif
 
 		if (wlc_eventq_test_ind(wlc->eventq, WLC_E_PROBREQ_MSG)) {
-			wl_event_rx_frame_data_t rxframe_data;
-			wlc_recv_prep_event_rx_frame_data(wlc, wrxh, plcp, &rxframe_data);
-			wlc_bss_mac_rxframe_event(wlc, wlc->cfg, WLC_E_PROBREQ_MSG_RX, &hdr->sa,
-				0, 0, 0, (char *)hdr, body_len + DOT11_MGMT_HDR_LEN, &rxframe_data);
+			wlc_bss_mac_event(wlc, wlc->cfg, WLC_E_PROBREQ_MSG, &hdr->sa,
+				0, 0, 0, (char *)hdr, body_len + DOT11_MGMT_HDR_LEN);
 		}
 
 		if (wlc_eventq_test_ind(wlc->eventq, WLC_E_PROBREQ_MSG_RX)) {
@@ -3874,9 +3902,18 @@ wlc_recv_mgmt_ctl(wlc_info_t *wlc, osl_t *osh, wlc_d11rxhdr_t *wrxh, void *p)
 		/* make sure the deauth frame is addressed to the MAC for this bsscfg */
 		if (!ETHER_ISMULTI(&hdr->da) &&
 			(eacmp(hdr->da.octet, bsscfg_deauth->cur_etheraddr.octet) != 0)) {
-			WL_ASSOC(("wl%d: %s: FC_DEAUTH: bsscfg mismatch BSSID. "
+			WL_ASSOC(("wl%d: %s: FC_DEAUTH: bsscfg mismatch destination. "
 				"Ignore Deauth frame to %s", WLCWLUNIT(wlc), __FUNCTION__,
 				bcm_ether_ntoa(&hdr->da, bss_buf)));
+			break;
+		}
+
+		/* make sure DEAUTH is sent from the connected AP */
+		if (BSSCFG_STA(bsscfg_deauth) &&
+			eacmp(hdr->bssid.octet, bsscfg_deauth->BSSID.octet) != 0) {
+			WL_ASSOC(("wl%d: %s: FC_DEAUTH: bsscfg mismatch BSSID. "
+				"Ignore Deauth frame from %s \n", WLCWLUNIT(wlc), __FUNCTION__,
+				bcm_ether_ntoa(&hdr->bssid, bss_buf)));
 			break;
 		}
 
@@ -3992,7 +4029,21 @@ wlc_recv_mgmt_ctl(wlc_info_t *wlc, osl_t *osh, wlc_d11rxhdr_t *wrxh, void *p)
 			if (SCB_LEGACY_WDS(scb)) {
 				WL_ASSOC(("wl%d: %s: FC_DEAUTH frame over WDS link %s\n",
 				          WLCWLUNIT(wlc), __FUNCTION__, eabuf));
-				scb->flags &= ~SCB_WDS_LINKUP;
+				/* Do not delete linkup upon deauth.
+				   It causes driver to re-probe the peer and linkup again in a loop
+				   when peer is in sta mode
+				*/
+				// scb->flags &= ~SCB_WDS_LINKUP;
+				if (SCB_AUTHORIZED(scb)) {
+					/* Send WLC_E_DEAUTH_IND event with AUTH_INVAL.
+					 * This will reset the keys and initiate a 4way handshake
+					 * for WDS peer.
+					 */
+					wlc_scb_clearstatebit(wlc, scb, AUTHORIZED);
+					wlc_deauth_ind_complete(wlc, bsscfg_deauth,
+						WLC_E_STATUS_SUCCESS, &hdr->sa, DOT11_RC_AUTH_INVAL,
+						0, body, body_len);
+				}
 			}
 			/* Only clean up if this SCB is still pointing to the BSS config to
 			 * which the packet was destined.
@@ -4556,11 +4607,14 @@ wlc_recvfilter(wlc_info_t *wlc, wlc_bsscfg_t **pbsscfg, struct dot11_header *h,
 	struct scb *scb;
 	int class, rx_bandunit;
 	bool ibss_accept = FALSE;
+	bool wds_accept = FALSE;
 	wlc_bsscfg_t *bsscfg;
 #if defined(WLTDLS)
 	bool dpt_accept = FALSE;
 #endif
 	struct ether_addr *bssid;
+	uint8 cat;
+	uint8 act;
 
 	ASSERT(pbsscfg != NULL);
 	bsscfg = *pbsscfg;
@@ -4606,19 +4660,44 @@ wlc_recvfilter(wlc_info_t *wlc, wlc_bsscfg_t **pbsscfg, struct dot11_header *h,
 
 		/* Class 3 control and management frames */
 		case FC_ACTION:
+			 /*
+			  * Frame Integrity check in recv_filter call
+			  * has been deferred for action pkts packets
+			  * until mfp processing
+			  */
+			if (fc & FC_WEP) {
+				if (bsscfg == NULL) {
+					scb = wlc_scbbssfindband(wlc, &h->a1, &h->a2,
+						rx_bandunit, &bsscfg);
+					if (scb && !(SCB_AUTHORIZED(scb) && SCB_MFP(scb))) {
+						class = 3;
+						rc = DOT11_RC_INVAL_CLASS_3;
+						break;
+					}
+				}
+				goto done;
+			}
 			WLCNTINCR(wlc->pub->_cnt->rxaction);
+			if (len < (DOT11_MGMT_HDR_LEN + DOT11_ACTION_HDR_LEN)) {
+				goto bad;
+			}
+
+			/* peek for category and action code field */
+			cat = *((uint8 *)h + DOT11_MGMT_HDR_LEN);
+			act = *((uint8 *)h + DOT11_MGMT_HDR_LEN + 1);
+
 			if (wlc_is_vsaction((uint8 *)h, len)) {
 				goto done;
 			}
 			if (bsscfg == NULL) {
 				scb = wlc_scbbssfindband(wlc, &h->a1, &h->a2,
-				                         rx_bandunit, &bsscfg);
+					rx_bandunit, &bsscfg);
 			}
-			switch (wlc_is_publicaction(wlc, h, len, scb, bsscfg)) {
-			case -1:
-				goto bad;
-			case 1 :
-				goto done;
+			switch (wlc_is_publicaction(wlc, h, len, scb, bsscfg, cat, act)) {
+				case -1:
+					goto bad;
+				case 1 :
+					goto done;
 			}
 #ifdef WLMESH
 			if (WLMESH_ENAB(wlc->pub) && wlc_is_spaction((uint8 *)h, len)) {
@@ -4637,7 +4716,7 @@ wlc_recvfilter(wlc_info_t *wlc, wlc_bsscfg_t **pbsscfg, struct dot11_header *h,
 				goto done;
 			}
 #endif /* WLMESH */
-			/* Fall Through */
+		/* Fall Through */
 		case FC_PS_POLL:
 		case FC_BLOCKACK:
 		case FC_BLOCKACK_REQ:
@@ -4647,6 +4726,7 @@ wlc_recvfilter(wlc_info_t *wlc, wlc_bsscfg_t **pbsscfg, struct dot11_header *h,
 			WLCNTCONDINCR((fk == FC_BLOCKACK_REQ), wlc->pub->_cnt->rxbar);
 
 			class = 3;
+			wds_accept = TRUE;
 			rc = DOT11_RC_INVAL_CLASS_3;
 			if (bsscfg == NULL)
 				scb = wlc_scbbssfindband(wlc, &h->a1, &h->a2,
@@ -4664,6 +4744,7 @@ wlc_recvfilter(wlc_info_t *wlc, wlc_bsscfg_t **pbsscfg, struct dot11_header *h,
 			WLCNTCONDINCR((fk == FC_AUTH), wlc->pub->_cnt->rxauth);
 			WLCNTCONDINCR((fk == FC_PROBE_REQ), wlc->pub->_cnt->rxprobereq);
 			WLCNTCONDINCR((fk == FC_PROBE_RESP), wlc->pub->_cnt->rxprobersp);
+			wds_accept = TRUE;
 		default:
 			goto done;
 		}
@@ -4678,6 +4759,7 @@ wlc_recvfilter(wlc_info_t *wlc, wlc_bsscfg_t **pbsscfg, struct dot11_header *h,
 		if ((fc & (FC_TODS | FC_FROMDS)) == (FC_TODS | FC_FROMDS)) {
 			/* 802.11 does not define class 4, just used here for filtering */
 			class = 4;
+			wds_accept = TRUE;
 			rc = DOT11_RC_UNSPECIFIED;
 			if (bsscfg == NULL) {
 				scb = wlc_scbbssfindband(wlc, &h->a1, &h->a2,
@@ -4804,7 +4886,8 @@ wlc_recvfilter(wlc_info_t *wlc, wlc_bsscfg_t **pbsscfg, struct dot11_header *h,
 				wlc->pub->unit, __FUNCTION__, bcm_ether_ntoa(&h->a2, eabuf)));
 			WLCNTINCR(wlc->pub->_cnt->rxbadproto);
 		}
-		else if (!(SCB_A4_DATA(scb)) && !BSSCFG_MESH(bsscfg)) {
+		else if (!(SCB_A4_DATA(scb)) && !BSSCFG_MESH(bsscfg) &&
+			!((SCB_DWDS_CAP(scb) || SCB_MAP_CAP(scb)) && SCB_ASSOCIATED(scb))) {
 			WL_ASSOC(("wl%d: %s: invalid WDS frame from non-WDS station %s\n",
 				wlc->pub->unit, __FUNCTION__, bcm_ether_ntoa(&h->a2, eabuf)));
 			WLCNTINCR(wlc->pub->_cnt->rxbadproto);
@@ -4824,7 +4907,7 @@ wlc_recvfilter(wlc_info_t *wlc, wlc_bsscfg_t **pbsscfg, struct dot11_header *h,
 	/* early bail-out, all frames accepted at associated or wds state */
 	/* BAXXX: This allows all packets thru a WDS link; probably not a good idea */
 	/* Need to restrict to some subset */
-	else if (scb && (SCB_ASSOCIATED(scb) || SCB_LEGACY_WDS(scb) ||
+	else if (scb && (SCB_ASSOCIATED(scb) || (SCB_LEGACY_WDS(scb) && wds_accept) ||
 #if defined(WLTDLS)
 	                 dpt_accept ||
 #endif
@@ -4845,10 +4928,11 @@ wlc_recvfilter(wlc_info_t *wlc, wlc_bsscfg_t **pbsscfg, struct dot11_header *h,
 #endif /* WL_STA_MONITOR */
 
 		}
-		else
+		else {
 			WL_ASSOC(("wl%d: %s: invalid class %d frame from non-authenticated "
 				  "station %s\n", wlc->pub->unit, __FUNCTION__, class,
 				  bcm_ether_ntoa(&h->a2, eabuf)));
+		}
 		/* do not send a deauth if we are on the way to authenticating since
 		 * our deauth and an incoming auth response may cross paths
 		 * also, don't send if we're not currently on-channel
@@ -5138,6 +5222,10 @@ wlc_recv_mgmtact(wlc_info_t *wlc, struct scb *scb, struct dot11_management_heade
 		if (!WLWNM_ENAB(wlc->pub))
 			break;
 		wlc_wnm_recv_process_wnm(wlc->wnm_info, bsscfg, action_id, scb, hdr,
+			body, body_len);
+		break;
+	case (DOT11_ACTION_CAT_WNM | DOT11_ACTION_CAT_ERR_MASK):
+		wlc_bss_mac_event(wlc, bsscfg, WLC_E_WNM_ERR, &scb->ea, 0, 0, 0,
 			body, body_len);
 		break;
 #if defined STA

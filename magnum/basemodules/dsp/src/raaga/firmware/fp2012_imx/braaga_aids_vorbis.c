@@ -108,7 +108,7 @@ const uint32_t BDSP_IMG_vorbis_ids_array1[] = {
 	0x6add21cf,
 	0x981fe1cf,
 	0x6d739650,
-	0x63700450,
+	0x63600450,
 	0x241c9b27,
 	0xf8800207,
 	0x20007c17,
@@ -172,7 +172,7 @@ const uint32_t BDSP_IMG_vorbis_ids_array1[] = {
 	0x62d017de,
 	0x0805a1cf,
 	0x381131cf,
-	0x8622362f,
+	0x8621f62f,
 	0x0800010f,
 	0x2000f1cf,
 	0x20804127,
@@ -181,7 +181,7 @@ const uint32_t BDSP_IMG_vorbis_ids_array1[] = {
 	0x90018807,
 	0xc1840007,
 	0x53f931d7,
-	0x50fbf11e,
+	0x50fbf11c,
 	0x0801110f,
 	0x2000810f,
 	0x219a4057,
@@ -196,7 +196,7 @@ const uint32_t BDSP_IMG_vorbis_ids_array1[] = {
 	0x0804b1cf,
 	0x380441cf,
 	0x981151cf,
-	0x86223d7f,
+	0x8621fd7f,
 	0x0801210f,
 	0x200071cf,
 	0xabf171ff,
@@ -778,7 +778,7 @@ const uint32_t BDSP_IMG_vorbis_ids_array1[] = {
 	0x86273c57,
 	0xc8007e07,
 	0x53f031d7,
-	0x50fbf11a,
+	0x50fbf118,
 	0x54abc917,
 	0x10000005,
 	0x54ab4d17,
@@ -850,7 +850,7 @@ const uint32_t BDSP_IMG_vorbis_ids_array1[] = {
 	0x86273a17,
 	0xc8007e07,
 	0x53de31d7,
-	0x50fbf11a,
+	0x50fbf118,
 	0x200421cf,
 	0x28907e77,
 	0x30d1ffff,
@@ -1087,7 +1087,7 @@ const uint32_t BDSP_IMG_vorbis_ids_header [2] = {sizeof(BDSP_IMG_vorbis_ids_arra
 const void * const BDSP_IMG_vorbis_ids [2] = {BDSP_IMG_vorbis_ids_header, BDSP_IMG_vorbis_ids_array1};
 const uint32_t BDSP_IMG_vorbis_ids_inter_frame_array1[] = {
 	0x00000000,
-	0x0000107b
+	0x0000107c
 };
 const uint32_t BDSP_IMG_vorbis_ids_inter_frame_header [2] = {sizeof(BDSP_IMG_vorbis_ids_inter_frame_array1), 1};
 const void * const BDSP_IMG_vorbis_ids_inter_frame [2] = {BDSP_IMG_vorbis_ids_inter_frame_header, BDSP_IMG_vorbis_ids_inter_frame_array1};

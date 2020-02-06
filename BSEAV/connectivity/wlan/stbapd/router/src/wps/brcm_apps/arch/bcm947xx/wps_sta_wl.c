@@ -368,6 +368,7 @@ do_wps_escan()
 	params->action = htod16(WL_SCAN_ACTION_START);
 	srand((unsigned)time(NULL));
 	params->sync_id = htod16(rand() & 0xffff);
+
 	ret = wps_iovar_setbuf("escan", params, params_size, escan_result, sizeof(escan_result));
 	TUTRACE((TUTRACE_INFO, "escan iovar result: %d\n", ret));
 
@@ -376,11 +377,21 @@ do_wps_escan()
 		TUTRACE((TUTRACE_INFO, "do wps escan command failed: %d\n", ret));
 	}
 	#endif
-#ifdef MAP_TEMP_DEBUG
 	if (ret) {
-		printf("do_wps_escan : do wps escan command failed\n");
-	}
+#ifdef MAP_TEMP_DEBUG
+		printf("do_wps_escan : do wps escan command failed; abort\n");
 #endif
+		/* spurious assoc scans may be going on; stop. WPS should get priority */
+		params->action = htod16(WL_SCAN_ACTION_ABORT);
+		ret = wps_iovar_setbuf("escan", params, params_size, escan_result, sizeof(escan_result));
+		/* retry again */
+		params->action = htod16(WL_SCAN_ACTION_START);
+		srand((unsigned)time(NULL));
+		params->sync_id = htod16(rand() & 0xffff);
+		ret = wps_iovar_setbuf("escan", params, params_size, escan_result, sizeof(escan_result));
+
+	}
+
 	wps_escan_timeout_handler(WPS_ESCAN_STARTED);
 	free(params);
 	return ret;

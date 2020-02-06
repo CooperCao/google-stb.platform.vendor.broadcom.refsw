@@ -59,7 +59,6 @@
 #include <sys/time.h>
 #include <fcntl.h>
 
-#include "bstd.h"
 #include "bkni.h"
 #include "nxapps_cmdline.h"
 #include "namevalue.h"

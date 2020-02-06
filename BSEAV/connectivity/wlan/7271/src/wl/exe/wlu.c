@@ -436,6 +436,7 @@ void wl_txpwr_ppr_get_rateset(ppr_t* pprptr, ppr_rate_type_t type,
 static int wl_array_check_val(int8 *pwr, uint count, int8 val);
 static int wl_parse_rateset(void *wl, wl_rateset_args_t* rs, char **argv);
 static void wl_print_vhtmcsset(uint16 *mcsset);
+static void wl_print_hemcsset(uint16 *mcsset);
 static void dump_networks(char *buf);
 static void wl_dump_wpa_rsn_ies(uint8* cp, uint len);
 static void wl_rsn_ie_dump(bcm_tlv_t *ie);
@@ -1472,7 +1473,14 @@ cmd_t wl_cmds[] = {
 	"    -noreset  Do not reset counters after reading" },
 	{ "cap", wl_var_getandprintstr, WLC_GET_VAR, -1, "driver capabilities"},
 	{ "malloc_dump", wl_print_deprecate, -1, -1, "Deprecated. Folded under 'wl dump malloc"},
-	{ "chan_info", wl_chan_info, WLC_GET_VAR, -1, "channel info"},
+	{ "chan_info", wl_chan_info, WLC_GET_VAR, WLC_SET_VAR, "channel info"
+#define CHAN_INFO_CLEAR_PASSIVE "clear_passive"
+#define CHAN_INFO_SET_INACTIVE "set_inactive"
+	"\n - get channel information\n"
+	"\n - set channel information\n"
+	"\t" CHAN_INFO_CLEAR_PASSIVE " <chanspec> - clear passive bit of specific chanspec\n"
+	"\t" CHAN_INFO_SET_INACTIVE " <chanspec> - mark chanspec as inactive / out of service\n"
+	},
 	{ "add_ie", wl_add_ie, -1, WLC_SET_VAR,
 	"Add a vendor proprietary IE to 802.11 management packets\n"
 	"Usage: wl add_ie <pktflag> length OUI hexdata\n"
@@ -17746,15 +17754,44 @@ wl_chan_info(void *wl, cmd_t *cmd, char **argv)
 	uint bitmap;
 	uint channel;
 	uint32 chanspec_arg;
-	int buflen, err, first, last, minutes;
+	int buflen = 0, err = 0, first = 0, last = 0, minutes = 0;
 	char *param;
 	bool all;
-
+	chanspec_t chanspec;
+	wl_set_chan_info_t chan_info = {
+		.version = htod16(WL_SET_CHAN_INFO_VER),
+		.length = htod16(sizeof(wl_set_chan_info_t)),
+		.type = htod16(WL_SET_CHAN_INFO_TYPE),
+		.chanspec = 0,
+		.per_chan_info = 0
+	};
+	bool clear_passive = FALSE;
 	if (!*++argv) {
 		first = 0;
 		last = MAXCHANNEL;
 		all = TRUE;
 	} else {
+		if ((clear_passive = !stricmp(*argv, CHAN_INFO_CLEAR_PASSIVE)) ||
+				(!stricmp(*argv, CHAN_INFO_SET_INACTIVE))) {
+			chan_info.per_chan_info = clear_passive ? 0 : htod32(WL_CHAN_INACTIVE);
+			if (!*++argv) {
+				return BCME_USAGE_ERROR;
+			}
+			chanspec = wf_chspec_aton(*argv);
+			if (chanspec == 0) {
+				return BCME_USAGE_ERROR;
+			}
+			FOREACH_20_SB(chanspec, channel) {
+				chan_info.chanspec = htod16(CH20MHZ_CHSPEC(channel));
+				err = wlu_iovar_setbuf(wl, "per_chan_info", &chan_info,
+						sizeof(chan_info), buf, WLC_IOCTL_MAXLEN);
+				if (err != BCME_OK) {
+					printf("setting %s for ch %d returned %d\n",
+							*(argv - 1), channel, err);
+				}
+			}
+			return err;
+		}
 		last = first = atoi(*argv);
 		if (last <= 0) {
 			printf(" Usage: %s [channel | All ]\n", cmd->name);
@@ -17810,6 +17847,9 @@ wl_chan_info(void *wl, cmd_t *cmd, char **argv)
 		if (bitmap & WL_CHAN_PASSIVE) {
 			printf(", Passive");
 		}
+		if (bitmap & WL_CHAN_CLM_RESTRICTED) {
+			printf(", CLM Restrict");
+		}
 		if (bitmap & WL_CHAN_INACTIVE) {
 			printf(", Temporarily Out of Service for %d minutes", minutes);
 		}
@@ -17823,21 +17863,23 @@ wl_chan_info(void *wl, cmd_t *cmd, char **argv)
 int
 wl_sta_info(void *wl, cmd_t *cmd, char **argv)
 {
-	sta_info_v4_t *sta;
+	sta_info_t *sta;
+	sta_info_v4_t *sta_v4;
 	sta_info_v5_t *sta_v5;
+	sta_info_v7_t *sta_v7;
 	struct ether_addr ea;
 	char *param;
 	int buflen, err;
 	int i;
 	char buf_chanspec[20];
+	bool have_rateset_adv = FALSE;
+	wl_rateset_args_u_t *rateset_adv;
 	uint32 rxdur_total = 0;
 	bool have_rxdurtotal = FALSE;
 	chanspec_t chanspec;
 	bool have_chanspec = FALSE;
-	wl_rateset_args_t *rateset_adv;
-	bool have_rateset_adv = FALSE;
-
-
+	uint16 wpauth = 0;
+	uint8 algo = 0;
 	strcpy(buf, *argv);
 
 	/* convert the ea string into an ea struct */
@@ -17854,7 +17896,7 @@ wl_sta_info(void *wl, cmd_t *cmd, char **argv)
 		return err;
 
 	/* display the sta info */
-	sta = (sta_info_v4_t *)buf;
+	sta = (sta_info_t *)buf;
 	sta->ver = dtoh16(sta->ver);
 	sta->len = dtoh16(sta->len);
 
@@ -17864,14 +17906,15 @@ wl_sta_info(void *wl, cmd_t *cmd, char **argv)
 		return BCME_ERROR;
 	}
 	else if (sta->ver == WL_STA_VER_4) {
-		rxdur_total = dtoh32(sta->rx_dur_total);
+		sta_v4 = (sta_info_v4_t *)buf;
+		rxdur_total = dtoh32(sta_v4->rx_dur_total);
 		have_rxdurtotal = TRUE;
-		if (sta->len >= STRUCT_SIZE_THROUGH(sta, rateset_adv)) {
-			chanspec = dtoh16(sta->chanspec);
+		if (sta_v4->len >= STRUCT_SIZE_THROUGH(sta, rateset_adv)) {
+			chanspec = dtoh16(sta_v4->chanspec);
 			wf_chspec_ntoa(chanspec, buf_chanspec);
 			have_chanspec = TRUE;
 
-			rateset_adv = &sta->rateset_adv;
+			rateset_adv = (wl_rateset_args_u_t *)&sta_v4->rateset_adv;
 			have_rateset_adv = TRUE;
 		}
 	}
@@ -17881,7 +17924,23 @@ wl_sta_info(void *wl, cmd_t *cmd, char **argv)
 		wf_chspec_ntoa(chanspec, buf_chanspec);
 		have_chanspec = TRUE;
 
-		rateset_adv = &sta_v5->rateset_adv;
+		rateset_adv = (wl_rateset_args_u_t *)&sta_v5->rateset_adv;
+		have_rateset_adv = TRUE;
+	}
+	else if (sta->ver == WL_STA_VER_V7) {
+		sta_v7 = (sta_info_v7_t *)buf;
+
+		rxdur_total = dtoh32(sta_v7->rx_dur_total);
+		have_rxdurtotal = TRUE;
+
+		chanspec = dtoh16(sta_v7->chanspec);
+		wf_chspec_ntoa(chanspec, buf_chanspec);
+		have_chanspec = TRUE;
+
+		wpauth = dtoh16(sta_v7->wpauth);
+		algo = sta_v7->algo;
+
+		rateset_adv = (wl_rateset_args_u_t *)&sta_v7->rateset_adv;
 		have_rateset_adv = TRUE;
 	}
 	else {
@@ -17913,6 +17972,47 @@ wl_sta_info(void *wl, cmd_t *cmd, char **argv)
 	       (sta->flags & WL_STA_ASSOC) ? " ASSOCIATED" : "",
 	       (sta->flags & WL_STA_AUTHO) ? " AUTHORIZED" : "");
 
+	if (sta->ver == WL_STA_VER_V5) {
+		wpauth = dtoh16(sta->wpauth);
+		algo = sta->algo;
+	}
+	if (sta->len >= STRUCT_SIZE_THROUGH(sta, algo)) {
+
+		printf("\t connection:%s\n",
+			(wpauth > 0x01) ? " SECURED" : "OPEN");
+
+		if (wpauth == 0x00)
+			printf("\t auth: %s",  "AUTH-DISABLED");	/* Legacy (i.e., non-WPA) */
+		else if (wpauth == 0x1)
+			printf("\t auth: %s",  "AUTH-NONE");		/* none (IBSS) */
+		else if (wpauth == 0x2)
+			printf("\t auth: %s",  "AUTH-UNSPECIFIED");	/* over 802.1x */
+		else if (wpauth == 0x4)
+			printf("\t auth: %s",  "WPA-PSK");		/* Pre-shared key */
+		else if (wpauth == 0x40)
+			printf("\t auth: %s",  "WPA-PSK");		/* over 802.1x */
+		else if (wpauth == 0x80)
+			printf("\t auth: %s",  "WPA2-PSK");		/* Pre-shared key */
+		else if (wpauth == 0x84)
+			printf("\t auth: %s",  "WPA-PSK + WPA2-PSK");	/* Pre-shared key */
+		else if (wpauth == 0x100)
+			printf("\t auth: %s",  "BRCM_AUTH_PSK");	/* BRCM specific PSK */
+		else if (wpauth == 0x200)
+			printf("\t auth: %s",  "BRCM_AUTH_DPT");  /* DPT PSK without group keys */
+		else if (wpauth == 0x1000)
+			printf("\t auth: %s",  "WPA2_AUTH_MFP");  /* MFP (11w) in contrast to CCX */
+		else if (wpauth == 0x2000)
+			printf("\t auth: %s",  "WPA2_AUTH_TPK");	/* TDLS Peer Key */
+		else if (wpauth == 0x4000)
+			printf("\t auth: %s",  "WPA2_AUTH_FT");		/* Fast Transition */
+		else if (wpauth == 0x4080)
+			printf("\t auth: %s",  "WPA2-PSK+FT");		/* Fast Transition */
+		else if (wpauth == 0x4084)
+			printf("\t auth: %s",  "WPA-PSK + WPA2-PSK + FT");  /* Fast Transition */
+		else
+			printf("\t auth: %s",  "UNKNOWN AUTH");		/* Unidentified */
+		printf("\n\t crypto: %s\n",   bcm_crypto_algo_name(algo));
+	}
 	printf("\t flags 0x%x:%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
 	       sta->flags,
 	       (sta->flags & WL_STA_BRCM) ? " BRCM" : "",
@@ -18020,14 +18120,31 @@ wl_sta_info(void *wl, cmd_t *cmd, char **argv)
 		printf("\t rx total pkts retried: %d\n", dtoh32(sta->rx_pkts_retried));
 	}
 	/* Driver didn't return extended station info */
-	if (sta->len < sizeof(sta_info_v5_t)) {
+	if (sta->len < sizeof(sta_info_t)) {
 		return 0;
 	}
 
 	if (have_rateset_adv) {
-		wl_print_mcsset((char *)rateset_adv->mcs);
-		wl_print_vhtmcsset((uint16 *)rateset_adv->vht_mcs);
+		wl_print_mcsset((char*)rateset_adv->rsv2.mcs);
+		wl_print_vhtmcsset((uint16*)rateset_adv->rsv2.vht_mcs);
+		wl_print_hemcsset((uint16 *)rateset_adv->rsv2.he_mcs);
 	}
+
+	if (sta->ver >= WL_STA_VER_V7) {
+		printf("tx nrate\n");
+		wl_nrate_print(sta_v7->tx_rspec);
+		printf("rx nrate\n");
+		wl_nrate_print(sta_v7->rx_rspec);
+		printf("wnm\n");
+		wl_wnm_print(sta_v7->wnm_cap);
+	}
+
+	if (sta->ver == 5) {
+		wl_print_mcsset((char *)sta->rateset_adv.mcs);
+		wl_print_vhtmcsset((uint16 *)sta->rateset_adv.vht_mcs);
+	}
+
+	printf("\n");
 
 	return (0);
 }
@@ -22629,6 +22746,33 @@ wl_print_vhtmcsset(uint16 *mcsset)
 			else
 				printf("        : ");
 			/* std MCS 0-9 and prop MCS 10-11 */
+			for (j = 0; j <= 11; j++)
+				if (isbitset(mcsset[i], j))
+					printf("%dx%d ", j, i + 1);
+			printf("\n");
+		} else {
+			break;
+		}
+	}
+}
+
+static void
+wl_print_hemcsset(uint16 *mcsset)
+{
+	int i, j;
+	static const char zero[sizeof(uint16) * WL_HE_CAP_MCS_MAP_NSS_MAX] = { 0 };
+
+	if (mcsset == NULL ||
+			memcmp(mcsset, zero, sizeof(uint16) * WL_HE_CAP_MCS_MAP_NSS_MAX)) {
+		return;
+	}
+	for (i = 0; i < WL_HE_CAP_MCS_MAP_NSS_MAX; i++) {
+		if (mcsset[i]) {
+			if (i == 0)
+				printf("HE SET  : ");
+			else
+				printf("        : ");
+			/* std MCS 10-11 */
 			for (j = 0; j <= 11; j++)
 				if (isbitset(mcsset[i], j))
 					printf("%dx%d ", j, i + 1);

@@ -728,12 +728,17 @@ BERR_Code BHSM_Keyslot_RemovePidChannel( BHSM_KeyslotHandle handle,
 
     if( !pSlot ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
     BDBG_OBJECT_ASSERT( pSlot, BHSM_P_KeySlot );
+    if( !pSlot->pModule ) { return BERR_TRACE( BERR_INVALID_PARAMETER ); }
 
     BKNI_Memset( &bspRemovePid, 0, sizeof(bspRemovePid) );
     bspRemovePid.in.pidChanStart = pidChannelIndex;
     bspRemovePid.in.pidChanEnd = pidChannelIndex;
 
     rc = BHSM_P_KeySlot_PidRemove( _Keyslot_GetHsmHandle(handle), &bspRemovePid );
+    if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
+
+    /* Add pid to default bypass keyslot. */
+    rc = BHSM_Keyslot_AddPidChannel( pSlot->pModule->hBypassKeyslotG2GR, pidChannelIndex );
     if( rc != BERR_SUCCESS ) { return BERR_TRACE( rc ); }
 
     BDBG_LEAVE( BHSM_Keyslot_RemovePidChannel );

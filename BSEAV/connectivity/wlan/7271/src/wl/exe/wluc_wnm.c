@@ -627,6 +627,19 @@ static dbg_msg_t wl_wnm_msgs[] = {
 	{0, ""}
 };
 
+void
+wl_wnm_print(uint32 wnmmask)
+{
+	int i;
+	printf("0x%x:", wnmmask);
+	for (i = 0; wl_wnm_msgs[i].value; i++)
+		if (wnmmask & wl_wnm_msgs[i].value)
+			printf("  %s", wl_wnm_msgs[i].string);
+	printf("\n");
+	return;
+
+}
+
 static int
 wl_wnm(void *wl, cmd_t *cmd, char **argv)
 {
@@ -640,11 +653,7 @@ wl_wnm(void *wl, cmd_t *cmd, char **argv)
 		return ret;
 
 	if (!*++argv) {
-		printf("0x%x:", wnmmask);
-		for (i = 0; wl_wnm_msgs[i].value; i++)
-			if (wnmmask & wl_wnm_msgs[i].value)
-				printf("  %s", wl_wnm_msgs[i].string);
-		printf("\n");
+		wl_wnm_print(wnmmask);
 		return 0;
 	}
 

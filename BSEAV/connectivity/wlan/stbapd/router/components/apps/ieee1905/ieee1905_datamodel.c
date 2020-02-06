@@ -280,7 +280,7 @@ int i5DmIsWifiBandSupported(char *ifname, unsigned int freqBand)
   i5_dm_device_type *pdmdev;
   i5_dm_interface_type *pdmif;
 
-  if ((pdmdev = i5DmDeviceFind(i5_config.i5_mac_address)) != NULL) {
+  if ((pdmdev = i5DmGetSelfDevice()) != NULL) {
     pdmif = (i5_dm_interface_type *)pdmdev->interface_list.ll.next;
     while (pdmif != NULL) {
       unsigned int freqBandSupported = i5TlvGetFreqBandFromMediaType (pdmif->MediaType);
@@ -320,7 +320,7 @@ next:
   if (chan == 0)
 	  return -1;
 
-  if ((pdmdev = i5DmDeviceFind(i5_config.i5_mac_address)) != NULL) {
+  if ((pdmdev = i5DmGetSelfDevice()) != NULL) {
     pdmif = (i5_dm_interface_type *)pdmdev->interface_list.ll.next;
     while (pdmif != NULL) {
 	    if (pdmif->MediaSpecificInfoSize <= 8)
@@ -539,7 +539,7 @@ static int i5DmLegacyNeighborRemove(unsigned char *id)
 
   i5TraceInfo("\n");
 
-  pDmDevice = i5DmDeviceFind(&i5_config.i5_mac_address[0]);
+  pDmDevice = i5DmGetSelfDevice();
   if ( pDmDevice != NULL ) {
     pLegNeighbor = (i5_dm_legacy_neighbor_type *)pDmDevice->legacy_list.ll.next;
     while ( pLegNeighbor != NULL ) {
@@ -620,13 +620,13 @@ i5_dm_1905_neighbor_type *i5Dm1905NeighborNew(i5_dm_device_type *parent, unsigne
 int i5DmGetInterfacesWithNeighbor(unsigned char const *neighbor_al_mac,
                                   unsigned char * local_interface_mac_addrs, unsigned char * neighbor_interface_mac_addrs, int maxInterfaces)
 {
-  i5_dm_device_type * currentDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  i5_dm_device_type * currentDevice = i5DmGetSelfDevice();
   int totalInterfacesFound = 0;
 
   i5_dm_1905_neighbor_type * currentNeighbor = &currentDevice->neighbor1905_list;
   while (currentNeighbor != NULL) {
     if (memcmp (currentNeighbor->Ieee1905Id, neighbor_al_mac, MAC_ADDR_LEN) == 0) {
-      if (totalInterfacesFound < maxInterfaces) {
+      if (totalInterfacesFound < maxInterfaces && !i5DmIsMacNull(currentNeighbor->LocalInterfaceId)) {
         memcpy(local_interface_mac_addrs, currentNeighbor->LocalInterfaceId, MAC_ADDR_LEN);
         local_interface_mac_addrs += MAC_ADDR_LEN;
         memcpy(neighbor_interface_mac_addrs, currentNeighbor->NeighborInterfaceId, MAC_ADDR_LEN);
@@ -678,7 +678,7 @@ void i5DmProcessLocalInterfaceChange (i5_dm_device_type *parent, unsigned char *
 void i5DmRetryPlcRegistry(void)
 {
   unsigned char *localId = i5DmInterfaceGetLocalPlcInterface()->InterfaceId;
-  i5_dm_device_type *selfDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  i5_dm_device_type *selfDevice = i5DmGetSelfDevice();
   if (NULL == selfDevice) {
     return;
   }
@@ -752,7 +752,7 @@ int i5Dm1905NeighborFree(i5_dm_device_type *parent, i5_dm_1905_neighbor_type *ne
 void i5Dm1905NeighborFreeAllLinksRemoteDevice(unsigned char *remoteDeviceAlMac)
 {
   i5Trace(I5_MAC_DELIM_FMT "\n", I5_MAC_PRM(remoteDeviceAlMac));
-  i5_dm_device_type *localDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  i5_dm_device_type *localDevice = i5DmGetSelfDevice();
   i5_dm_1905_neighbor_type *neigh = localDevice->neighbor1905_list.ll.next;
   while (neigh) {
     i5_dm_1905_neighbor_type *nextNeigh = neigh->ll.next;
@@ -814,7 +814,7 @@ void i5DmUpdateNeighborLinkMetrics(void *arg)
 
   i5TimerFree(i5_dm_network_topology.pLinkMetricTimer);
 
-  pDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pDevice = i5DmGetSelfDevice();
   if ( NULL != pDevice ) {
     i5_dm_interface_type *pInterface = pDevice->interface_list.ll.next;
     while ( pInterface != NULL ) {
@@ -971,7 +971,7 @@ int i5Dm1905NeighborUpdate(     unsigned char *device_id,
    and returns the neighbor structure that corresponds to the given remote MAC */
 i5_dm_1905_neighbor_type *i5Dm1905GetLocalNeighbor (unsigned char const *neighbor1905_interface_id)
 {
-   i5_dm_device_type const *selfDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+   i5_dm_device_type const *selfDevice = i5DmGetSelfDevice();
    if (NULL == selfDevice) {
      return NULL;
    }
@@ -1130,7 +1130,7 @@ int i5Dm1905NeighborLinkMetricUpdate(i5_dm_1905_neighbor_type *neighbor,
 /* Given a neighbor device, return the interface structure of the interface that connects to it */
 i5_dm_interface_type *i5Dm1905GetLocalInterface(i5_dm_1905_neighbor_type const *neighbor)
 {
-   i5_dm_device_type* devSelf = i5DmDeviceFind(i5_config.i5_mac_address);
+   i5_dm_device_type* devSelf = i5DmGetSelfDevice();
    if (NULL == devSelf) {
       return NULL;
    }
@@ -1332,7 +1332,7 @@ int i5DmBridgingTupleDone(unsigned char *device_id)
 
 void i5Dm1905NeighborBridgeDiscoveryTimeout(void *arg)
 {
-  i5_dm_device_type* selfDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  i5_dm_device_type* selfDevice = i5DmGetSelfDevice();
   if (NULL == selfDevice) {
     return;
   }
@@ -1358,7 +1358,7 @@ void i5Dm1905NeighborUpdateIntermediateBridgeFlag(i5_dm_device_type *device, i5_
 
 i5_dm_interface_type *i5DmInterfaceGetLocalPlcInterface(void)
 {
-  i5_dm_device_type* selfDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  i5_dm_device_type* selfDevice = i5DmGetSelfDevice();
   if (NULL == selfDevice) {
     return NULL;
   }
@@ -1762,7 +1762,7 @@ void i5DmLinkMetricsActivate(void)
  */
 int i5DmIsDeviceConnected (i5_dm_device_type *device)
 {
-  i5_dm_device_type *self = i5DmDeviceFind(i5_config.i5_mac_address);
+  i5_dm_device_type *self = i5DmGetSelfDevice();
   i5_dm_1905_neighbor_type *neighbor = self->neighbor1905_list.ll.next;
   i5Trace(I5_MAC_DELIM_FMT "\n", I5_MAC_PRM(device->DeviceId));
   // check for direct neighbours
@@ -1811,6 +1811,10 @@ void i5DmDeviceWatchDogTimeout(void *arg)
     device->watchdogTimer = NULL;
   }
   i5DmDeviceFree(device);
+  /* Consider this as topology change, since the neighbor got freed in watchdog.
+   * This will help to add the device back if it got connected to some other node
+   */
+  i5DmGetSelfDevice()->hasChanged++;
 }
 
 void i5DmRefreshDeviceTimer(unsigned char *alMacAddress, char createFlag)
@@ -1897,6 +1901,7 @@ void i5DmSetLinkMetricInterval (unsigned int newIntervalMsec)
 void i5DmDeviceVersionTimeout(void *arg)
 {
   i5_dm_device_type *destDev = arg;
+  i5_dm_device_type *pdevice;
 
   i5TraceError("Device Version Timed Out: " I5_MAC_DELIM_FMT "\n", I5_MAC_PRM(destDev->DeviceId) );
 
@@ -1904,6 +1909,8 @@ void i5DmDeviceVersionTimeout(void *arg)
     i5Trace("  Treating as Legacy Device\n");
     // Since it didn't send us a Generic PHY in time, we regard it as a Legacy Node
     destDev->nodeVersion = I5_DM_NODE_VERSION_1905;
+    pdevice = i5DmGetSelfDevice();
+    pdevice->hasChanged++;
     i5MessageTopologyNotificationSend(NULL, NULL, 0);
   }
   else {
@@ -1952,6 +1959,7 @@ i5_dm_device_type *i5DmDeviceNew(unsigned char *device_id, int version, char con
     ++i5_dm_network_topology.DevicesNumberOfEntries;
     memcpy(new->DeviceId, device_id, MAC_ADDR_LEN);
     new->Version = version;
+    time(&new->active_time);
     /* Now initialize it with default ethernet rate and fill it when we get the rate from nieghbor
      * link metrics report
      */
@@ -2046,6 +2054,12 @@ unsigned char i5DmDeviceQueryStateGet(unsigned char const *device_id)
 
 void i5DmDeviceFree(i5_dm_device_type *device)
 {
+  int isController = 0;
+
+  if (device != i5DmGetSelfDevice() &&
+    I5_IS_MULTIAP_CONTROLLER(device->flags)) {
+    isController = 1;
+  }
   i5Trace(I5_MAC_FMT "\n", I5_MAC_PRM(device->DeviceId));
   while (device->interface_list.ll.next != NULL) {
     i5DmInterfaceFree(device, device->interface_list.ll.next);
@@ -2090,6 +2104,13 @@ void i5DmDeviceFree(i5_dm_device_type *device)
 
   i5LlItemFree(&i5_dm_network_topology.device_list, device);
   --i5_dm_network_topology.DevicesNumberOfEntries;
+
+  if (isController) {
+    /* If the controller got rmeoved, make all interfaces
+     * unconfigured and start controller search */
+    i5WlcfgMarkAllInterfacesUnconfigured();
+    i5WlCfgMultiApControllerSearch(NULL);
+  }
 }
 
 void i5DmDevicePending(void)
@@ -2104,15 +2125,24 @@ void i5DmDevicePending(void)
   }
 }
 
-void i5DmDeviceDone(void)
+void i5DmDeviceDone(bool idle_check)
 {
   i5_dm_device_type *device, *next;
+  time_t current_time;
+  time_t idle_time;
+
+  current_time = time(NULL);
 
   i5Trace("\n");
   device = (i5_dm_device_type *)i5_dm_network_topology.device_list.ll.next;
   while (device != NULL) {
     next = device->ll.next;
-    if (device->state == i5DmStatePending) {
+    idle_time = current_time - device->active_time;
+    i5Trace("device["I5_MAC_FMT"]: idle time[%ld] device active time [%ld] device state [%d]\n",
+      I5_MAC_PRM(device->DeviceId), idle_time, device->active_time, device->state);
+
+    if ((device->state == i5DmStatePending) && ((idle_check == FALSE) ? 1 :
+      (idle_time > I5_SEC_WAIT_TO_REMOVE_UNREACHABLE_DEVICE))) {
       i5DmDeviceFree(device);
     }
     device = next;
@@ -2180,7 +2210,7 @@ int i5DmDeviceTopologyChangeProcess(unsigned char *device_id)
   return 0;
 }
 
-void i5DmTopologyFreeUnreachableDevices(void)
+void i5DmTopologyFreeUnreachableDevices(bool idle_check)
 {
   i5_dm_device_type *device;
   i5_dm_device_type *neighbor_device;
@@ -2191,7 +2221,7 @@ void i5DmTopologyFreeUnreachableDevices(void)
 
   /* Start with self and traverse all devices based on reachable neighbors */
   i5DmDevicePending();
-  if ((device = i5DmDeviceFind(i5_config.i5_mac_address)) != NULL) {
+  if ((device = i5DmGetSelfDevice()) != NULL) {
     i5LlSearchItemPush(&search_list, device);
     device->state = i5DmStateDone;
   }
@@ -2210,7 +2240,7 @@ void i5DmTopologyFreeUnreachableDevices(void)
       neighbor_1905 = (i5_dm_1905_neighbor_type *)neighbor_1905->ll.next;
     }
   }
-  i5DmDeviceDone();
+  i5DmDeviceDone(idle_check);
 }
 
 void i5DmDeviceFreeUnreachableNeighbors(unsigned char *device_id, int ifindex, unsigned char *neighbor_interface_list, unsigned int length)
@@ -2242,7 +2272,14 @@ void i5DmDeviceFreeUnreachableNeighbors(unsigned char *device_id, int ifindex, u
     }
     item = next;
   }
-  i5DmTopologyFreeUnreachableDevices();
+  i5DmTopologyFreeUnreachableDevices(TRUE);
+}
+
+void i5DmDeviceRemoveStaleNeighborsTimer(void *arg)
+{
+    i5Trace("\n");
+    i5Dm1905NeighborDone(i5_config.i5_mac_address);
+    i5Dm1905NeighborPending(i5_config.i5_mac_address);
 }
 
 unsigned int i5DmInterfaceStatusGet(unsigned char *device_id, unsigned char *interface_id)
@@ -2387,10 +2424,10 @@ void i5DmCtlRetrieve(char *pMsgBuf)
   }
 }
 
-void i5DmSetFriendlyName(const char * name) {
-
+void i5DmSetFriendlyName(const char * name)
+{
     i5_dm_device_type *device;
-    device = i5DmDeviceFind(i5_config.i5_mac_address);
+    device = i5DmGetSelfDevice();
     if (device == NULL) {
         // can't find myself...
         i5TraceError("Self not found!\n");
@@ -3076,7 +3113,7 @@ int i5DmCopyAPCaps(ieee1905_ap_caps_type *ToApCaps, ieee1905_ap_caps_type *FromA
 /* Check if all the wireless interfaces configured */
 int i5DmIsAllInterfacesConfigured()
 {
-  i5_dm_device_type *pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  i5_dm_device_type *pdevice = i5DmGetSelfDevice();
   i5_dm_interface_type *pinterface = NULL;
 
   if (pdevice == NULL) {
@@ -3098,7 +3135,7 @@ int i5DmIsAllInterfacesConfigured()
 /* Check if M1 is sent for all the interfaces */
 int i5DmIsM1SentToAllWirelessInterfaces()
 {
-  i5_dm_device_type *pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  i5_dm_device_type *pdevice = i5DmGetSelfDevice();
   i5_dm_interface_type *pinterface = NULL;
 
   if (pdevice == NULL) {
@@ -3108,7 +3145,7 @@ int i5DmIsM1SentToAllWirelessInterfaces()
   pinterface = pdevice->interface_list.ll.next;
 
   while (pinterface) {
-    if (i5DmIsInterfaceWireless(pinterface->MediaType) && !pinterface->isM1Sent) {
+    if (i5DmIsInterfaceWireless(pinterface->MediaType) && !I5_IS_M1_SENT(pinterface->flags)) {
       return 0;
     }
     pinterface = pinterface->ll.next;
@@ -3116,10 +3153,33 @@ int i5DmIsM1SentToAllWirelessInterfaces()
 
   return 1;
 }
+
+/* Check if M2 is received by all the wireless interfaces */
+int i5DmIsM2ReceivedByAllWirelessInterfaces()
+{
+  i5_dm_device_type *pdevice = i5DmGetSelfDevice();
+  i5_dm_interface_type *pinterface = NULL;
+
+  if (pdevice == NULL) {
+    return 0;
+  }
+
+  pinterface = pdevice->interface_list.ll.next;
+
+  while (pinterface) {
+    if (i5DmIsInterfaceWireless(pinterface->MediaType) && !I5_IS_M2_RECEIVED(pinterface->flags)) {
+      return 0;
+    }
+    pinterface = pinterface->ll.next;
+  }
+
+  return 1;
+}
+
 /* Pre configure all virtual radios */
 void i5DmPreConfigureVirtualInterfaces()
 {
-  i5_dm_device_type *pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  i5_dm_device_type *pdevice = i5DmGetSelfDevice();
   i5_dm_interface_type *pdmif = NULL;
 
   if (pdevice == NULL) {
@@ -3333,7 +3393,7 @@ int i5DmIsNeighborDeviceOnSameDevice(i5_dm_device_type *neighbor_device)
   i5_dm_device_type *localDevice;
   i5_dm_1905_neighbor_type *neigh;
 
-  if ((localDevice = i5DmDeviceFind(i5_config.i5_mac_address)) == NULL) {
+  if ((localDevice = i5DmGetSelfDevice()) == NULL) {
     return 0;
   }
 
@@ -3388,7 +3448,7 @@ void i5DmFreeRadioCaps(ieee1905_radio_caps_type *RadioCaps)
 void i5DmUpdateMAPFlagsFromControllerBSSTable(i5_dm_device_type *pdevice,
   i5_dm_interface_type *pdmif)
 {
-  i5_dm_device_type *pDeviceCtrl = i5DmDeviceFind(i5_config.i5_mac_address);
+  i5_dm_device_type *pDeviceCtrl = i5DmGetSelfDevice();
   unsigned char tmpALMac[MAC_ADDR_LEN];
   unsigned char isDedicated = 1;
   dll_t *item_p, *next_p;
@@ -3504,4 +3564,24 @@ void i5DmUpdateParentDevice()
 
   i5DmFindNeighborsParentDevice(pDeviceCtrl, pDeviceCtrl);
 }
-
+#ifdef MULTIAP
+/* Find interface for iovar */
+char * i5DmGetInterfaceForIovar()
+{
+	i5_dm_device_type *sDevice = i5_dm_network_topology.selfDevice;
+	i5_dm_interface_type *if_list;
+	if (!sDevice) {
+		return NULL;
+	}
+	if_list = &sDevice->interface_list;
+	for (; if_list != NULL; if_list = if_list->ll.next) {
+		/* assumes wlan interfaces start with wl */
+		if (if_list->ifname[0] != '\0' &&
+			if_list->ifname[0] == 'w' &&
+			if_list->ifname[1] == 'l') {
+			return if_list->ifname;
+		}
+	}
+	return NULL;
+}
+#endif

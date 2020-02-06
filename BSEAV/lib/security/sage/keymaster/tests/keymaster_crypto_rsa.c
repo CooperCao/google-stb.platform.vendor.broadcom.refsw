@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2018 Broadcom.
+ *  Copyright (C) 2019 Broadcom.
  *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
@@ -556,7 +556,10 @@ static BERR_Code km_crypto_rsa_sign_verify_table_tests(KeymasterTl_Handle handle
 
                     if (md) {
                         KeymasterTl_ExportKeySettings expSettings;
-                        EVP_MD_CTX ctx;
+                        EVP_MD_CTX *ctx;
+#if (OPENSSL_VERSION_NUMBER <= 0x10100000L)
+                        EVP_MD_CTX md_ctx;
+#endif
                         EVP_PKEY_CTX *pkey_ctx;
                         EVP_PKEY *pkey = NULL;
                         uint8_t *p;
@@ -576,17 +579,31 @@ static BERR_Code km_crypto_rsa_sign_verify_table_tests(KeymasterTl_Handle handle
                             goto done;
                         }
 
-                        EVP_MD_CTX_init(&ctx);
-                        EXPECT_TRUE(EVP_DigestVerifyInit(&ctx, &pkey_ctx, md, NULL, pkey));
+#if (OPENSSL_VERSION_NUMBER > 0x10100000L)
+                        ctx = EVP_MD_CTX_new();
+                        if (!ctx) {
+                            TEST_FREE_BLOCK(expSettings.out_key_blob);
+                            BDBG_ERR(("%s: failed to allocate context", BSTD_FUNCTION));
+                            goto done;
+                        }
+#else
+                        ctx = &md_ctx;
+                        EVP_MD_CTX_init(&md_ctx);
+#endif
+                        EXPECT_TRUE(EVP_DigestVerifyInit(ctx, &pkey_ctx, md, NULL, pkey));
                         if (EVP_PKEY_CTX_set_rsa_padding(pkey_ctx, rsa_padding) <= 0) {
                             BDBG_ERR(("%s: failed to set padding", BSTD_FUNCTION));
                             err = BERR_UNKNOWN;
                             goto done;
                         }
-                        EXPECT_TRUE(EVP_DigestVerifyUpdate(&ctx, in_data.buffer, in_data.size));
-                        EXPECT_TRUE(EVP_DigestVerifyFinal(&ctx, signature.buffer, signature.size));
+                        EXPECT_TRUE(EVP_DigestVerifyUpdate(ctx, in_data.buffer, in_data.size));
+                        EXPECT_TRUE(EVP_DigestVerifyFinal(ctx, signature.buffer, signature.size));
 
-                        EVP_MD_CTX_cleanup(&ctx);
+#if (OPENSSL_VERSION_NUMBER > 0x10100000L)
+                        EVP_MD_CTX_free(ctx);
+#else
+                        EVP_MD_CTX_cleanup(&md_ctx);
+#endif
                         EVP_PKEY_free(pkey);
                         TEST_FREE_BLOCK(expSettings.out_key_blob);
                         BDBG_LOG(("%s: offline verify successful", BSTD_FUNCTION));
@@ -879,7 +896,10 @@ static BERR_Code km_crypto_rsa_sign_verify_misc_tests(KeymasterTl_Handle handle)
 
             if (md) {
                 KeymasterTl_ExportKeySettings expSettings;
-                EVP_MD_CTX ctx;
+                EVP_MD_CTX *ctx;
+#if (OPENSSL_VERSION_NUMBER <= 0x10100000L)
+                EVP_MD_CTX md_ctx;
+#endif
                 EVP_PKEY_CTX *pkey_ctx;
                 EVP_PKEY *pkey = NULL;
                 uint8_t *p;
@@ -899,17 +919,31 @@ static BERR_Code km_crypto_rsa_sign_verify_misc_tests(KeymasterTl_Handle handle)
                     goto done;
                 }
 
-                EVP_MD_CTX_init(&ctx);
-                EXPECT_TRUE(EVP_DigestVerifyInit(&ctx, &pkey_ctx, md, NULL, pkey));
+#if (OPENSSL_VERSION_NUMBER > 0x10100000L)
+                ctx = EVP_MD_CTX_new();
+                if (!ctx) {
+                    TEST_FREE_BLOCK(expSettings.out_key_blob);
+                    BDBG_ERR(("%s: failed to allocate context", BSTD_FUNCTION));
+                    goto done;
+                }
+#else
+                ctx = &md_ctx;
+                EVP_MD_CTX_init(&md_ctx);
+#endif
+                EXPECT_TRUE(EVP_DigestVerifyInit(ctx, &pkey_ctx, md, NULL, pkey));
                 if (EVP_PKEY_CTX_set_rsa_padding(pkey_ctx, rsa_padding) <= 0) {
                     BDBG_ERR(("%s: failed to set padding", BSTD_FUNCTION));
                     err = BERR_UNKNOWN;
                     goto done;
                 }
-                EXPECT_TRUE(EVP_DigestVerifyUpdate(&ctx, in_data.buffer, in_data.size));
-                EXPECT_TRUE(EVP_DigestVerifyFinal(&ctx, signature.buffer, signature.size));
+                EXPECT_TRUE(EVP_DigestVerifyUpdate(ctx, in_data.buffer, in_data.size));
+                EXPECT_TRUE(EVP_DigestVerifyFinal(ctx, signature.buffer, signature.size));
 
-                EVP_MD_CTX_cleanup(&ctx);
+#if (OPENSSL_VERSION_NUMBER > 0x10100000L)
+                EVP_MD_CTX_free(ctx);
+#else
+                EVP_MD_CTX_cleanup(&md_ctx);
+#endif
                 EVP_PKEY_free(pkey);
                 TEST_FREE_BLOCK(expSettings.out_key_blob);
                 BDBG_LOG(("%s: offline verify successful", BSTD_FUNCTION));

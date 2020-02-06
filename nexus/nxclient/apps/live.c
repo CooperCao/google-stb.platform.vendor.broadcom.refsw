@@ -1,39 +1,43 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2019 Broadcom.
+ * The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to
+ * the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied),
+ * right to use, or waiver of any kind with respect to the Software, and
+ * Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ * THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ * IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization,
+ * constitutes the valuable trade secrets of Broadcom, and you shall use all
+ * reasonable efforts to protect the confidentiality thereof, and to use this
+ * information only in connection with your use of Broadcom integrated circuit
+ * products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ * "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ * OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ * RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ * IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ * A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ * ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ * THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ * OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ * INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ * RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ * HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ * EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ * WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 #if NEXUS_HAS_INPUT_ROUTER && NEXUS_HAS_SIMPLE_DECODER && NEXUS_HAS_TRANSPORT
 #include "nxclient.h"
@@ -123,6 +127,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     print_list_option(
     "  -ar                      source aspect ratio",g_contentModeStrs);
     print_list_option(
+    "  -fillContentModeBars {auto|on|off}   video window pillarbox/letterbox bars filled with display background color\n"
     "  -sync                    sync_channel mode",g_syncModeStrs);
 }
 
@@ -492,6 +497,13 @@ static void *standby_monitor(void *context)
     return NULL;
 }
 
+static const namevalue_t s_triStateStrs[] = {
+    {"auto", NEXUS_TristateEnable_eAuto},
+    {"off",  NEXUS_TristateEnable_eDisable},
+    {"on",   NEXUS_TristateEnable_eEnable},
+    {NULL, 0}
+};
+
 int main(int argc, const char **argv)
 {
     NxClient_JoinSettings joinSettings;
@@ -527,6 +539,7 @@ int main(int argc, const char **argv)
     enum gui gui = gui_on;
     struct b_pig_inc pig_inc;
     NEXUS_VideoWindowContentMode contentMode = NEXUS_VideoWindowContentMode_eMax;
+    NEXUS_TristateEnable fillContentModeBars = NEXUS_TristateEnable_eMax;
 
     memset(&pig_inc, 0, sizeof(pig_inc));
     nxapps_cmdline_init(&cmdline);
@@ -590,6 +603,9 @@ int main(int argc, const char **argv)
         }
         else if (!strcmp(argv[curarg], "-ar") && curarg+1 < argc) {
             contentMode = lookup(g_contentModeStrs, argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-fillContentModeBars") && argc>curarg+1) {
+            fillContentModeBars = lookup(s_triStateStrs, argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-format") && argc>curarg+1) {
             start_settings.video.maxFormat = lookup(g_videoFormatStrs, argv[++curarg]);
@@ -665,6 +681,7 @@ int main(int argc, const char **argv)
     if (rc) return BERR_TRACE(rc);
     surfaceClient = NEXUS_SurfaceClient_Acquire(allocResults.surfaceClient[0].id);
     if (surfaceClient) {
+        NEXUS_SurfaceClientSettings settings;
         if (nxapps_cmdline_is_set(&cmdline, nxapps_cmdline_type_SurfaceComposition)) {
             NEXUS_SurfaceComposition comp;
             NxClient_GetSurfaceClientComposition(allocResults.surfaceClient[0].id, &comp);
@@ -674,9 +691,13 @@ int main(int argc, const char **argv)
         video_sc = NEXUS_SurfaceClient_AcquireVideoWindow(surfaceClient, 0);
         BDBG_ASSERT(video_sc);
         if (contentMode != NEXUS_VideoWindowContentMode_eMax) {
-            NEXUS_SurfaceClientSettings settings;
             NEXUS_SurfaceClient_GetSettings(video_sc, &settings);
             settings.composition.contentMode = contentMode;
+            NEXUS_SurfaceClient_SetSettings(video_sc, &settings);
+        }
+        if (fillContentModeBars != NEXUS_TristateEnable_eMax) {
+            NEXUS_SurfaceClient_GetSettings(video_sc, &settings);
+            settings.composition.fillContentModeBars = fillContentModeBars;
             NEXUS_SurfaceClient_SetSettings(video_sc, &settings);
         }
         if (pig_inc.x) {

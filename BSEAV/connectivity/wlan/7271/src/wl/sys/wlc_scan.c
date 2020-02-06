@@ -3756,14 +3756,14 @@ wlc_scan_channels(scan_info_t *scan_info, chanspec_t *chanspec_list,
 				!wlc_scan_quiet_chanspec(scan_info, chanspec)) ||
 			     (channel_type == CHAN_TYPE_QUIET &&
 				wlc_scan_quiet_chanspec(scan_info, chanspec) &&
-#ifdef SLAVE_RADAR
+#if defined(SLAVE_RADAR) || defined(CLIENT_CSA)
 				/*
 				 * If radar was detected on this chanspec and Non Occupancy
 				 * period is not yet over, then exclude this chanspec from
 				 * scan.
 				 */
 				wlc_dfs_valid_ap_chanspec(wlc, chanspec) &&
-#endif
+#endif /* SLAVE_RADAR || CLIENT_CSA */
 				TRUE))) {
 #ifdef WL_OCE
 				/* skip adding OCE channels to the list since its already done */

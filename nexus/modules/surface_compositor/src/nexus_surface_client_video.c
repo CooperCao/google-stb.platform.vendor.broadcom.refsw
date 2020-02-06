@@ -139,13 +139,13 @@ NEXUS_Error NEXUS_SurfaceCompositor_SwapWindows(NEXUS_SurfaceCompositorHandle ha
     if(state==NULL) {return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);}
 
     /* remove and re-insert for correct zorder */
-    if (client0 == client1) {
+    {
         state->settings = child0->settings;
         child0->settings = child1->settings;
         child1->settings = state->settings;
         nexus_surfacecmp_p_insert_child(client0, child0, true);
     }
-    else {
+    if (client0 != client1) {
         state->composition = client0->serverSettings.composition;
         client0->serverSettings.composition = client1->serverSettings.composition;
         client1->serverSettings.composition = state->composition;

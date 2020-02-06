@@ -143,6 +143,7 @@ static int i5CtlAssociatedSTALinkMetricsQuery(void *pCmd,int argc, char *argv[])
 static int i5CtlUnAssociatedSTALinkMetricsQuery(void *pCmd,int argc, char *argv[]);
 static int i5CtlSendBeaconMetricQuery(void *pCmd,int argc, char *argv[]);
 #endif /* MULTIAP */
+static int i5CtlGetDmVersion(void *pCmd, int argc, char *argv[]);
 
 t_I5_CTL_CMD i5CtlCmds[] = {
     {"dm",    "Display data model", I5_API_CMD_RETRIEVE_DM, i5CtlDataModelCmdHandler, 0,
@@ -234,6 +235,7 @@ t_I5_CTL_CMD i5CtlCmds[] = {
       I5_API_CMD_SEND_BEACON_METRIC_QUERY, i5CtlSendBeaconMetricQuery, 6, I5_CTL_CMD_AGENT | I5_CTL_CMD_CONTROLLER},
 	{"v", "app version", I5_API_CMD_NONE /* intentionally NONE */, NULL, 1, 0},	/* for displaying usage() */
 #endif /* MULTIAP */
+	{"getDmVer", "Show DM Version", I5_API_CMD_GET_DM_VERSION, i5CtlGetDmVersion, 0, I5_CTL_CMD_AGENT | I5_CTL_CMD_CONTROLLER},
 };
 
 typedef struct t_i5_ctl_tr_info
@@ -2073,3 +2075,20 @@ end:
   return rc;
 }
 #endif /* MULTIAP */
+
+/* Get DM version for BAS or similar apps */
+static int i5CtlGetDmVersion(void *pCmd, int argc, char *argv[])
+{
+  t_I5_CTL_CMD *pI5Cmd = (t_I5_CTL_CMD *)pCmd;
+  int rc;
+  void *p = 0;
+
+  rc = i5apiTransaction(pI5Cmd->cmd, 0, 0, &p, 0);
+  if (rc != -1) {
+	printf("DM version: %s\n", (char *)p);
+  } else {
+	printf("DM version get failed, retry!!\n");
+  }
+  if (p) free(p);
+  return 0;
+}

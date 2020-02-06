@@ -47,7 +47,7 @@ typedef struct {
  * @param	mtd	path to or partition name of MTD device
  * @return	0 on success and errno on failure
  */
-int confmtd_backup();
+int confmtd_backup(void);
 
 /*
  * Read MTD device to file
@@ -55,6 +55,6 @@ int confmtd_backup();
  * @param	mtd	path to or partition name of MTD device
  * @return	0 on success and errno on failure
  */
-int confmtd_restore();
+int confmtd_restore(void);
 
 #endif /* _CONFMTD_UTILS_H_ */

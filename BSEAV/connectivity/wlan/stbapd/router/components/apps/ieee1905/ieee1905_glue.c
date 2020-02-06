@@ -261,8 +261,12 @@ int i5GlueInterfaceFilter(char const *ifname)
   }
 #endif
 
+  /* If MULTIAP is defined, interfaces are filtered based on lan_ifnames.
+   * So no need to check if the device is on bridge or not
+   */
+#ifndef MULTIAP
   if ( !i5BrUtilDevIsBridge (ifname) ) {
-    i5_dm_device_type *selfDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+    i5_dm_device_type *selfDevice = i5DmGetSelfDevice();
 
     if (NULL == selfDevice) {
       i5TraceInfo("No device yet\n");
@@ -281,7 +285,7 @@ int i5GlueInterfaceFilter(char const *ifname)
          * In this case we check the br0_ifnames or br1_ifnames to find out the interfaces which
          * are on the bridge
          */
-        if (i5WlCfgIsInterfaceInBridge(ifname) == 1) {
+        if (i5WlCfgIsInterfaceInFwder(ifname) == 1) {
           return 1;
         }
 #endif
@@ -290,6 +294,7 @@ int i5GlueInterfaceFilter(char const *ifname)
       }
     }
   }
+#endif /* !MULTIAP */
 
   return 1;
 }
@@ -422,7 +427,7 @@ void i5GlueSaveConfig()
 
 void i5GlueLoadConfig(unsigned int supServiceFlag, int isRegistrar)
 {
-  i5_dm_device_type *pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  i5_dm_device_type *pdevice = i5DmGetSelfDevice();
 #if defined(DMP_DEVICE2_IEEE1905BASELINE_1)
   t_I5_API_CONFIG_BASE cfg;
   t_I5_API_CONFIG_SET_NETWORK_TOPOLOGY cfgNT;
@@ -464,6 +469,10 @@ void i5GlueLoadConfig(unsigned int supServiceFlag, int isRegistrar)
   ieee1905_glist_init(&i5_config.policyConfig.no_btm_steer_sta_list);
   ieee1905_glist_init(&i5_config.policyConfig.steercfg_bss_list);
   ieee1905_glist_init(&i5_config.policyConfig.metricrpt_config.ifr_list);
+
+  /* In controller this will have all the details filled. In Agent it will have only SSID,
+   * fronthaul and backhaul details
+   */
   ieee1905_glist_init(&i5_config.client_bssinfo_list);
   i5_config.discovery_timeout = strtoul(nvram_safe_get("map_discovery_timeout"), NULL, 0);
   i5_config.device_mode = (unsigned char)strtoul(nvram_safe_get("multiap_mode"), NULL, 0);

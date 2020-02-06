@@ -928,6 +928,14 @@ static void NEXUS_HdmiOutput_P_GetStatusEdidData(NEXUS_HdmiOutputHandle output, 
     uint8_t i;
 
     /*** HDMI Device ***/
+    if (output->edidState != BHDM_EDID_STATE_eOK)
+    {
+#if BDBG_DEBUG_BUILD
+        NEXUS_HdmiOutput_P_ReportInvalidEdid(output, "Invalid/Unavailable EDID; Report 640x480 as preferred video format");
+#endif
+        goto done ;
+    }
+
     errCode = BHDM_EDID_IsRxDeviceHdmi(output->hdmHandle, &vendorDb, &pStatus->hdmiDevice);
     if ( !errCode )  /* save the physical address if successfully retrieved from the EDID */
     {
@@ -1042,6 +1050,9 @@ static void NEXUS_HdmiOutput_P_GetStatusEdidData(NEXUS_HdmiOutputHandle output, 
     pStatus->autoLipsyncInfo.videoLatency = vendorDb.Video_Latency;
     pStatus->autoLipsyncInfo.interlacedAudioLatency = vendorDb.Interlaced_Audio_Latency;
     pStatus->autoLipsyncInfo.interlacedVideoLatency = vendorDb.Interlaced_Video_Latency;
+
+done:
+    return ;
 }
 
 
@@ -1071,10 +1082,10 @@ NEXUS_Error NEXUS_HdmiOutput_GetStatus( NEXUS_HdmiOutputHandle output, NEXUS_Hdm
     pStatus->connected = true ;
     pStatus->rxPowered = (output->rxState == NEXUS_HdmiOutputState_ePoweredOn);
 
-    if (output->edidState == BHDM_EDID_STATE_eInvalid)
+    if (output->edidState != BHDM_EDID_STATE_eOK)
     {
 #if BDBG_DEBUG_BUILD
-        NEXUS_HdmiOutput_P_ReportInvalidEdid(output, "Invalid EDID; Report 640x480 as preferred video format");
+        NEXUS_HdmiOutput_P_ReportInvalidEdid(output, "Invalid/Unavailable EDID; Report 640x480 as preferred video format");
 #endif
 
         pStatus->preferredVideoFormat = NEXUS_VideoFormat_eVesa640x480p60hz ;
@@ -1381,7 +1392,7 @@ NEXUS_Error NEXUS_HdmiOutput_GetEdidData(
     BDBG_ASSERT(NULL != pEdid);
 
     BKNI_Memset(pEdid, 0, sizeof(NEXUS_HdmiOutputEdidData)) ;
-    if (output->edidState == BHDM_EDID_STATE_eInvalid)
+    if (output->edidState != BHDM_EDID_STATE_eOK)
     {
 #if BDBG_DEBUG_BUILD
         NEXUS_HdmiOutput_P_ReportInvalidEdid(output, NULL);
@@ -1888,7 +1899,7 @@ void NEXUS_HdmiOutput_P_GetColorimetry(
     BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
 
 #if BDBG_DEBUG_BUILD
-    if (hdmiOutput->edidState == BHDM_EDID_STATE_eInvalid)
+    if (hdmiOutput->edidState != BHDM_EDID_STATE_eOK)
     {
         NEXUS_HdmiOutput_P_ReportInvalidEdid(hdmiOutput, NULL);
     }

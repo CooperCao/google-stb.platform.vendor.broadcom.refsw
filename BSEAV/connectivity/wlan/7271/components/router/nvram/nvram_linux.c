@@ -40,7 +40,7 @@
 
 #define SYSFS_DEV           "/dev"
 #define MTD_NAME_PATT       "mtd"
-#define MMCBLK_NAME_PATT    "mmcblk0"
+#define MMCBLK_NAME_PATT    "mmcblk"
 #define MMCBLK_PATT_SIZE    "Partition size"
 #define MMCBLK_PATT_NAME    "Partition name"
 #define MTD_NAME            "name"
@@ -290,6 +290,11 @@ static int add_default_setting()
 							_nvram_set("sromrev", "13");
 							ret = 0;
 							break;
+						case 0x72180:
+						case 0x72181:
+							nvramd_set("sromrev", "11");
+							ret = 0;
+							break;
 						}
 					}
 				}
@@ -350,6 +355,7 @@ static int mmcblk_open(char *name)
 	FILE *pipe_fp;
 	char dev[256];
 	char buf[256];
+	int blk_id;
 	int i;
 	char *delim1 = " ";
 	char *delim2 = "'";
@@ -363,9 +369,9 @@ static int mmcblk_open(char *name)
 			p = strstr(dev, MMCBLK_NAME_PATT);
 			if (p == NULL)
 				continue;
-			ret = sscanf(p, MMCBLK_NAME_PATT"p""%d", &i);
-			if (ret == 1) {
-				sprintf(dev, "sgdisk -i=%d %s/%s", i, SYSFS_DEV, MMCBLK_NAME_PATT);
+			ret = sscanf(p, MMCBLK_NAME_PATT"%d""p""%d", &blk_id, &i);
+			if (ret == 2) {
+				sprintf(dev, "sgdisk -i=%d %s/%s%d", i, SYSFS_DEV, MMCBLK_NAME_PATT, blk_id);
 				pipe_fp = popen(dev, "r");
 				if (pipe_fp) {
 					while (fgets(buf, sizeof(buf), pipe_fp) != NULL) {
@@ -384,8 +390,9 @@ static int mmcblk_open(char *name)
 								p = strtok(NULL, delim2);
 								if (strstr(p, name)) {
 									filesize = MMCBLK_SECTOR_SIZE * sector;
-									DBG_INFO("found %s partition on %s/%sp%d\n", name, SYSFS_DEV, MMCBLK_NAME_PATT, i);
-									sprintf(dev, "%s/"MMCBLK_NAME_PATT"p""%d", SYSFS_DEV, i);
+									DBG_INFO("found %s partition on %s/%s%dp%d\n", name, SYSFS_DEV, MMCBLK_NAME_PATT,
+										blk_id, i);
+									sprintf(dev, "%s/"MMCBLK_NAME_PATT"%d""p""%d", SYSFS_DEV, blk_id, i);
 									fd = open(dev, O_RDWR);
 									break;
 								}

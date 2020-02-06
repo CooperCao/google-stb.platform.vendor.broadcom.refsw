@@ -590,7 +590,7 @@ static NEXUS_Error NEXUS_HdmiOutput_P_ValidateVideoSettings4K(
     if (rc) {BERR_TRACE(rc); goto done ;}
 
     /* flag usage of invalid EDID */
-    if (hdmiOutput->edidState == BHDM_EDID_STATE_eInvalid)
+    if (hdmiOutput->edidState != BHDM_EDID_STATE_eOK)
     {
         BDBG_ERR(("Validating 4K format against an invalid/unknown EDID; defaulting to VGA")) ;
         NEXUS_HdmiOutput_P_SelectSafeFormat(preferred) ;
@@ -906,16 +906,8 @@ static NEXUS_Error NEXUS_HdmiOutput_P_ValidateVideoSettingsNon4K(
     if (rc) {BERR_TRACE(rc); goto done ;}
 
     /* if EDID has not been read/initialized yet; use safe format */
-    if (hdmiOutput->edidState == BHDM_EDID_STATE_eNotInitialized)
+    if (hdmiOutput->edidState != BHDM_EDID_STATE_eOK)
     {
-        NEXUS_HdmiOutput_P_SelectSafeFormat(preferred) ;
-        goto overrideVideoSettings ;
-    }
-
-    /* flag usage of invalid EDID */
-    if (hdmiOutput->edidState == BHDM_EDID_STATE_eInvalid)
-    {
-        BDBG_ERR(("Validating Non4K format against an invalid/unknown EDID; defaulting to safe format")) ;
         NEXUS_HdmiOutput_P_SelectSafeFormat(preferred) ;
         goto overrideVideoSettings ;
     }

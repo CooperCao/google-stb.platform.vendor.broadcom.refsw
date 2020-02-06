@@ -732,7 +732,8 @@ remove_from_list(const char *name, char *list, int listsize)
 	}
 	else if (occurrence[namelen] == ' ')
 	{
-		strncpy(occurrence, &occurrence[namelen+1 /* space */],
+		/* Using memmove because of possible overlapping source and destination buffers */
+		memmove(occurrence, &occurrence[namelen+1 /* space */],
 		        strlen(&occurrence[namelen+1 /* space */]) +1 /* terminate */);
 	}
 

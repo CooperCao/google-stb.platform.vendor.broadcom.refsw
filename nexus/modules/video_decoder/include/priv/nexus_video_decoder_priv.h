@@ -319,6 +319,7 @@ void NEXUS_VideoDecoder_Clear_priv(NEXUS_VideoDecoderHandle handle);
 NEXUS_VideoDecoderExclusiveMode NEXUS_P_VideoDecoderExclusiveMode_isrsafe(const BBOX_Config *boxConfig, unsigned avdIndex);
 
 NEXUS_Error NEXUS_VideoDecoderModule_GetStatus_priv(NEXUS_VideoDecoderModuleStatus *pStatus);
+void NEXUS_VideoDecoder_SetExternalWatchdogEvent_priv(BKNI_EventHandle event);
 #ifdef __cplusplus
 }
 #endif

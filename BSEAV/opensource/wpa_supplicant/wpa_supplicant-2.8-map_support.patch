@@ -1,0 +1,200 @@
+diff -Naur wpa_supplicant-2.8-orig/src/wps/wps.h wpa_supplicant-2.8/src/wps/wps.h
+--- wpa_supplicant-2.8-orig/src/wps/wps.h	2019-07-31 22:42:01.131417043 -0700
++++ wpa_supplicant-2.8/src/wps/wps.h	2019-07-31 22:42:50.466688410 -0700
+@@ -837,6 +837,9 @@
+ 	struct wpabuf *ap_nfc_dh_pubkey;
+ 	struct wpabuf *ap_nfc_dh_privkey;
+ 	struct wpabuf *ap_nfc_dev_pw;
++#ifdef CONFIG_DRIVER_BRCM_MAP
++	int map_bh_sta;
++#endif	/* CONFIG_DRIVER_BRCM_MAP */
+ };
+ 
+ struct wps_registrar *
+diff -Naur wpa_supplicant-2.8-orig/src/wps/wps_attr_build.c wpa_supplicant-2.8/src/wps/wps_attr_build.c
+--- wpa_supplicant-2.8-orig/src/wps/wps_attr_build.c	2019-07-31 22:42:01.275306534 -0700
++++ wpa_supplicant-2.8/src/wps/wps_attr_build.c	2019-07-31 22:45:55.286302586 -0700
+@@ -202,6 +202,56 @@
+ 	return 0;
+ }
+ 
++#ifdef CONFIG_DRIVER_BRCM_MAP
++int wps_build_map_wfa_ext(struct wpabuf *msg, int req_to_enroll, int map_bh_sta,
++		      const u8 *auth_macs, size_t auth_macs_count)
++{
++	u8 *len;
++
++	if (wpabuf_tailroom(msg) <
++	    7 + 3 + (req_to_enroll ? 3 : 0) + (map_bh_sta ? 3 : 0) +
++	    (auth_macs ? 2 + auth_macs_count * ETH_ALEN : 0))
++		return -1;
++	wpabuf_put_be16(msg, ATTR_VENDOR_EXT);
++	len = wpabuf_put(msg, 2); /* to be filled */
++	wpabuf_put_be24(msg, WPS_VENDOR_ID_WFA);
++
++	wpa_printf(MSG_DEBUG, "WPS:  * Version2 (0x%x)", WPS_VERSION);
++	wpabuf_put_u8(msg, WFA_ELEM_VERSION2);
++	wpabuf_put_u8(msg, 1);
++	wpabuf_put_u8(msg, WPS_VERSION);
++
++	if (req_to_enroll) {
++		wpa_printf(MSG_DEBUG, "WPS:  * Request to Enroll (1)");
++		wpabuf_put_u8(msg, WFA_ELEM_REQUEST_TO_ENROLL);
++		wpabuf_put_u8(msg, 1);
++		wpabuf_put_u8(msg, 1);
++	}
++
++	if (map_bh_sta) {
++		wpa_printf(MSG_DEBUG, "WPS:  * Multiap backhaul sta (1)");
++		wpabuf_put_u8(msg, WFA_ELEM_MULTI_AP);
++		wpabuf_put_u8(msg, 1);
++		wpabuf_put_u8(msg, WPS_MAP_BH_STA);
++	}
++
++	if (auth_macs && auth_macs_count) {
++		size_t i;
++		wpa_printf(MSG_DEBUG, "WPS:  * AuthorizedMACs (count=%d)",
++			   (int) auth_macs_count);
++		wpabuf_put_u8(msg, WFA_ELEM_AUTHORIZEDMACS);
++		wpabuf_put_u8(msg, auth_macs_count * ETH_ALEN);
++		wpabuf_put_data(msg, auth_macs, auth_macs_count * ETH_ALEN);
++		for (i = 0; i < auth_macs_count; i++)
++			wpa_printf(MSG_DEBUG, "WPS:    AuthorizedMAC: " MACSTR,
++				   MAC2STR(&auth_macs[i * ETH_ALEN]));
++	}
++
++	WPA_PUT_BE16(len, (u8 *) wpabuf_put(msg, 0) - len - 2);
++
++	return 0;
++}
++#endif	/* CONFIG_DRIVER_BRCM_MAP */
+ 
+ int wps_build_wfa_ext(struct wpabuf *msg, int req_to_enroll,
+ 		      const u8 *auth_macs, size_t auth_macs_count,
+diff -Naur wpa_supplicant-2.8-orig/src/wps/wps_defs.h wpa_supplicant-2.8/src/wps/wps_defs.h
+--- wpa_supplicant-2.8-orig/src/wps/wps_defs.h	2019-07-31 22:42:01.262168677 -0700
++++ wpa_supplicant-2.8/src/wps/wps_defs.h	2019-07-31 22:46:09.216486109 -0700
+@@ -380,5 +380,7 @@
+ #define WPS_PBC_WALK_TIME 120
+ 
+ #define WPS_MAX_AUTHORIZED_MACS 5
+-
++#ifdef CONFIG_DRIVER_BRCM_MAP
++#define WPS_MAP_BH_STA	0x80
++#endif	/* CONFIG_DRIVER_BRCM_MAP */
+ #endif /* WPS_DEFS_H */
+diff -Naur wpa_supplicant-2.8-orig/src/wps/wps_enrollee.c wpa_supplicant-2.8/src/wps/wps_enrollee.c
+--- wpa_supplicant-2.8-orig/src/wps/wps_enrollee.c	2019-07-31 22:42:01.178846314 -0700
++++ wpa_supplicant-2.8/src/wps/wps_enrollee.c	2019-07-31 22:46:20.375496226 -0700
+@@ -156,7 +156,11 @@
+ 	    wps_build_dev_password_id(msg, wps->dev_pw_id) ||
+ 	    wps_build_config_error(msg, WPS_CFG_NO_ERROR) ||
+ 	    wps_build_os_version(&wps->wps->dev, msg) ||
++#ifdef CONFIG_DRIVER_BRCM_MAP
++	    wps_build_map_wfa_ext(msg, 0, wps->wps->map_bh_sta, NULL, 0) ||
++#else
+ 	    wps_build_wfa_ext(msg, 0, NULL, 0, multi_ap_backhaul_sta) ||
++#endif	/* CONFIG_DRIVER_BRCM_MAP */
+ 	    wps_build_vendor_ext_m1(&wps->wps->dev, msg)) {
+ 		wpabuf_free(msg);
+ 		return NULL;
+diff -Naur wpa_supplicant-2.8-orig/src/wps/wps_i.h wpa_supplicant-2.8/src/wps/wps_i.h
+--- wpa_supplicant-2.8-orig/src/wps/wps_i.h	2019-07-31 22:42:01.239191566 -0700
++++ wpa_supplicant-2.8/src/wps/wps_i.h	2019-07-31 22:46:30.714210970 -0700
+@@ -167,6 +167,10 @@
+ int wps_build_wfa_ext(struct wpabuf *msg, int req_to_enroll,
+ 		      const u8 *auth_macs, size_t auth_macs_count,
+ 		      u8 multi_ap_subelem);
++#ifdef CONFIG_DRIVER_BRCM_MAP
++int wps_build_map_wfa_ext(struct wpabuf *msg, int req_to_enroll, int map_bh_sta,
++		      const u8 *auth_macs, size_t auth_macs_count);
++#endif	/* CONFIG_DRIVER_BRCM_MAP */
+ int wps_build_msg_type(struct wpabuf *msg, enum wps_msg_type msg_type);
+ int wps_build_enrollee_nonce(struct wps_data *wps, struct wpabuf *msg);
+ int wps_build_registrar_nonce(struct wps_data *wps, struct wpabuf *msg);
+diff -Naur wpa_supplicant-2.8-orig/wpa_supplicant/Makefile wpa_supplicant-2.8/wpa_supplicant/Makefile
+--- wpa_supplicant-2.8-orig/wpa_supplicant/Makefile	2019-07-31 22:41:58.062330368 -0700
++++ wpa_supplicant-2.8/wpa_supplicant/Makefile	2019-07-31 22:42:50.476327463 -0700
+@@ -86,9 +86,11 @@
+ install: $(addprefix $(DESTDIR)$(BINDIR)/,$(BINALL))
+ 	$(MAKE) -C ../src install
+ ifdef CONFIG_BUILD_WPA_CLIENT_SO
++ifndef CONFIG_DRIVER_BRCM_MAP
+ 	install -m 0644 -D libwpa_client.so $(DESTDIR)/$(LIBDIR)/libwpa_client.so
+ 	install -m 0644 -D ../src/common/wpa_ctrl.h $(DESTDIR)/$(INCDIR)/wpa_ctrl.h
+ endif
++endif
+ 
+ ifdef CONFIG_FIPS
+ CONFIG_NO_RANDOM_POOL=
+@@ -740,6 +742,9 @@
+ endif
+ 
+ ifdef CONFIG_WPS
++ifdef CONFIG_DRIVER_BRCM_MAP
++CFLAGS += -DCONFIG_DRIVER_BRCM_MAP
++endif
+ # EAP-WSC
+ CFLAGS += -DCONFIG_WPS -DEAP_WSC
+ OBJS += wps_supplicant.o
+diff -Naur wpa_supplicant-2.8-orig/wpa_supplicant/config.c wpa_supplicant-2.8/wpa_supplicant/config.c
+--- wpa_supplicant-2.8-orig/wpa_supplicant/config.c	2019-07-31 22:41:58.460691808 -0700
++++ wpa_supplicant-2.8/wpa_supplicant/config.c	2019-07-31 22:42:50.487055567 -0700
+@@ -4868,6 +4868,9 @@
+ 	{ INT_RANGE(gas_rand_mac_addr, 0, 2), 0 },
+ 	{ INT_RANGE(dpp_config_processing, 0, 2), 0 },
+ 	{ INT_RANGE(coloc_intf_reporting, 0, 1), 0 },
++#ifdef CONFIG_DRIVER_BRCM_MAP
++	{ INT(map_bh_sta), 0 },
++#endif	/* CONFIG_DRIVER_BRCM_MAP */
+ };
+ 
+ #undef FUNC
+diff -Naur wpa_supplicant-2.8-orig/wpa_supplicant/config.h wpa_supplicant-2.8/wpa_supplicant/config.h
+--- wpa_supplicant-2.8-orig/wpa_supplicant/config.h	2019-07-31 22:41:58.638188933 -0700
++++ wpa_supplicant-2.8/wpa_supplicant/config.h	2019-07-31 22:42:50.496458617 -0700
+@@ -1527,6 +1527,17 @@
+ 	 * By default, permanent MAC address is used.
+ 	 */
+ 	int p2p_interface_random_mac_addr;
++
++#ifdef CONFIG_DRIVER_BRCM_MAP
++	/**
++	 * map_bh_sta - Multiap backhaul station
++	 *
++	 * 0 = disabled (false)
++	 * 1 = enabled (true) includes the multiap atrribute as
++	 *	part of wfa vndr ext tlv in M1 msg
++	 */
++	int map_bh_sta;
++#endif	/* CONFIG_DRIVER_BRCM_MAP */
+ };
+ 
+ 
+diff -Naur wpa_supplicant-2.8-orig/wpa_supplicant/wps_supplicant.c wpa_supplicant-2.8/wpa_supplicant/wps_supplicant.c
+--- wpa_supplicant-2.8-orig/wpa_supplicant/wps_supplicant.c	2019-07-31 22:41:57.804393082 -0700
++++ wpa_supplicant-2.8/wpa_supplicant/wps_supplicant.c	2019-07-31 22:42:50.506378759 -0700
+@@ -569,6 +569,12 @@
+ 	}
+ 	ssid->priority = wpa_s->conf->wps_priority;
+ 
++#ifdef CONFIG_DRIVER_BRCM_MAP
++	if (wpa_s->wps->map_bh_sta) {
++		ssid->scan_ssid = 1;
++	}
++#endif	/* CONFIG_DRIVER_BRCM_MAP */
++
+ 	wpas_wps_security_workaround(wpa_s, ssid, cred);
+ 
+ 	wpas_wps_remove_dup_network(wpa_s, ssid);
+@@ -1578,7 +1584,9 @@
+ 	wps->dev.num_sec_dev_types = wpa_s->conf->num_sec_device_types;
+ 	os_memcpy(wps->dev.sec_dev_type, wpa_s->conf->sec_device_type,
+ 		  WPS_DEV_TYPE_LEN * wps->dev.num_sec_dev_types);
+-
++#ifdef CONFIG_DRIVER_BRCM_MAP
++	wps->map_bh_sta = wpa_s->conf->map_bh_sta;
++#endif	/* CONFIG_DRIVER_BRCM_MAP */
+ 	wpas_wps_set_vendor_ext_m1(wpa_s, wps);
+ 
+ 	wps->dev.os_version = WPA_GET_BE32(wpa_s->conf->os_version);

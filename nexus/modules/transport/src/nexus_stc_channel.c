@@ -827,10 +827,14 @@ NEXUS_Error NEXUS_StcChannel_GetStatus(NEXUS_StcChannelHandle stcChannel, NEXUS_
     NEXUS_StcChannel_GetSerialStc_priv(stcChannel, &status->serialStc);
     if (!stcChannel->swPcrOffsetEnabled) {
         status->stc = status->serialStc + BXPT_PcrOffset_GetOffset(stcChannel->pcrOffset);
-        status->stcValid = BXPT_PcrOffset_IsOffsetValid(stcChannel->pcrOffset);
     }
     else {
         status->stc = status->serialStc + stcChannel->swPcrOffset;
+    }
+    if (!stcChannel->swPcrOffsetEnabled && stcChannel->settings.mode == NEXUS_StcChannelMode_ePcr) {
+        status->stcValid = BXPT_PcrOffset_IsOffsetValid(stcChannel->pcrOffset);
+    }
+    else {
         status->stcValid = stcChannel->stcValid;
     }
 

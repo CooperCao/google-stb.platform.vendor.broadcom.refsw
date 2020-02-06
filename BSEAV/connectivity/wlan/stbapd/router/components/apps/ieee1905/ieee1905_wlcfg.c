@@ -1046,13 +1046,9 @@ void i5WlcfgApAutoConfigTimer(void * arg)
         else
         {
             i5_socket_type *psock;
-#ifdef MULTIAP_LOCALM1M2
-            unsigned char ifr_mac[MAC_ADDR_LEN];
-#else
             int             rc;
             unsigned char  *pData;
             int             dataLen = 0;
-#endif /* MULTIAP_LOCALM1M2 */
 
             psock = i5SocketFindDevSocketByName(pentry->rxIfname);
             if ( NULL == psock )
@@ -1067,27 +1063,6 @@ void i5WlcfgApAutoConfigTimer(void * arg)
                 /* clear active session */
                 wps1905StopApAutoConf();
 
-#ifdef MULTIAP_LOCALM1M2
-                if (i5_config.m1 != NULL && i5_config.keys != NULL) {
-                  wlcfg_wsc_free(i5_config.m1, i5_config.keys);
-                  i5_config.m1 = NULL;
-                  i5_config.keys = NULL;
-                }
-                if (Wlcfg_proto_create_m1(pentry->freqBand, &i5_config.m1, &i5_config.m1_len,
-                  &i5_config.keys) == 0) {
-                  i5TraceError("freqband[%d] ifname[%s] Fetch M1 Failed\n", pentry->freqBand,
-                    pentry->ifname);
-                  return;
-                }
-                i5GetInterfaceIDFromIfname(pentry->ifname, ifr_mac);
-
-                i5Trace("Send M1 freqband[%d] Ifname[%s] MAC "I5_MAC_DELIM_FMT"\n", pentry->freqBand,
-                  pentry->ifname, I5_MAC_PRM(ifr_mac));
-                i5MessageApAutoconfigurationWscM1Send(psock, pentry->registrarMac, i5_config.m1,
-                  i5_config.m1_len, ifr_mac);
-                pentry->expiryTime = I5_MESSAGE_AP_SEARCH_M1_M2_WAITING_MSEC;
-                timeout = pentry->expiryTime;
-#else
                 /* Fetch M1 from Wireless */
                 rc = wps1905WscProcess(pentry->ifname, WPS_1905_CTL_STARTAUTOCONF, NULL, 0, &pData, &dataLen);
                 if (WPS_1905_RESHANDLE_M1DATA == rc)
@@ -1097,7 +1072,6 @@ void i5WlcfgApAutoConfigTimer(void * arg)
                     pentry->expiryTime = I5_MESSAGE_AP_SEARCH_M1_M2_WAITING_MSEC;
                     timeout = pentry->expiryTime;
                 }
-#endif /* MULTIAP_LOCALM1M2 */
                 pentry->expectedMsg = i5MessageApAutoconfigurationWscValue;
                 pentry->renew = 0;
                 pentry->callCounter = I5_MESSAGE_AP_SEARCH_START_COUNT;
@@ -1106,7 +1080,7 @@ void i5WlcfgApAutoConfigTimer(void * arg)
     } while( 0 );
     pApSearch->timer = i5TimerNew(timeout, i5WlcfgApAutoConfigTimer, pApSearch);
 }
-#endif /* MULTIAP */
+#endif /* !MULTIAP */
 
 #ifndef MULTIAP
 static void i5WlcfgApAutoconfigurationWscValueDone(apSearchEntry *pentry)
@@ -1134,7 +1108,7 @@ static void i5WlcfgApAutoconfigurationWscValueDone(apSearchEntry *pentry)
 }
 #endif
 
-#ifdef MULTIAP_LOCALM1M2
+#ifdef MULTIAP
 
 /* Check if the AL MAC address present in the BSS info table which the controller has */
 int i5WlCfgIsALMACPresentInControllerTable(unsigned char *al_mac)
@@ -1549,6 +1523,7 @@ int i5WlCfgProcessAPAutoConfigWSCM2(i5_message_type *pmsg, unsigned char *radioM
     count++;
   }
 
+  pdmif->flags |= I5_FLAG_IFR_M2_RECEIVED;
   /* If a new bss created and M1 is sent to all interfaces at least once, restart */
   if (i5_config.isNewBssCreated && i5DmIsM1SentToAllWirelessInterfaces()) {
     i5_config.cbs.create_bss_on_ifr(pdmif->ifname, 0, NULL, 1);
@@ -1859,7 +1834,7 @@ int i5WlcfgApAutoConfigProcessMessage( i5_message_type *pmsg, unsigned int freqb
 
     return 0;
 }
-#endif /* MULTIAP_LOCALM1M2 */
+#endif /* MULTIAP */
 
 #ifdef MULTIAP
 void i5WlCfgMultiApControllerSearch(void *arg)
@@ -2100,34 +2075,48 @@ int i5WlcfgApAutoconfigurationRenewProcess(i5_message_type *pmsg, unsigned int f
 }
 #else /* MULTIAP */
 
+/* make all the interface as not configured */
+void i5WlcfgMarkAllInterfacesUnconfigured()
+{
+    i5_dm_device_type *pdevice = i5DmGetSelfDevice();
+    i5_dm_interface_type *pdmif;
+
+    pdmif = (i5_dm_interface_type *)pdevice->interface_list.ll.next;
+    while (pdmif != NULL) {
+      if (i5DmIsInterfaceWireless(pdmif->MediaType) && !i5WlCfgIsVirtualInterface(pdmif->ifname)) {
+        pdmif->isConfigured = 0;
+		pdmif->flags &= ~I5_FLAG_IFR_M1_SENT;
+		pdmif->flags &= ~I5_FLAG_IFR_M2_RECEIVED;
+      }
+      pdmif = pdmif->ll.next;
+    }
+    i5_config.isNewBssCreated = 0;
+
+  /* set current WSC MAC to NULL to make sure that it sends M1 for all interfaces */
+  memset(i5_config.curWSCMac, 0, sizeof(i5_config.curWSCMac));
+}
+
 int i5WlcfgApAutoconfigurationRenewProcess(i5_message_type *pmsg, unsigned int freqband,
   unsigned char *neighbor_al_mac_address)
 {
-    i5_dm_device_type *pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
-    i5_dm_interface_type *pdmif;
+    i5_dm_device_type *pdevice = i5DmGetSelfDevice();
 
     i5Trace(" band %d\n", freqband);
 
     if (NULL == pdevice) {
+        i5MessageTopologyQuerySend(pmsg->psock, neighbor_al_mac_address);
         i5TraceError("NO device found\n");
         return -1;
     }
 
+    time(&pdevice->active_time);
     if (I5_IS_REGISTRAR(i5_config.flags)) {
         i5Trace(" Device is registrar - ignore renew\n");
         return -1;
     }
 
     /* make all the interface as not configured */
-    pdmif = (i5_dm_interface_type *)pdevice->interface_list.ll.next;
-    while (pdmif != NULL) {
-        if (i5DmIsInterfaceWireless(pdmif->MediaType) && !i5WlCfgIsVirtualInterface(pdmif->ifname)) {
-          pdmif->isConfigured = 0;
-          pdmif->isM1Sent = 0;
-        }
-        pdmif = pdmif->ll.next;
-    }
-    i5_config.isNewBssCreated = 0;
+    i5WlcfgMarkAllInterfacesUnconfigured();
 
     /* Start the WSC message timer(M1) to renew all the interfaces */
     i5WlCfgMultiApWSCTimeout(NULL);
@@ -3963,23 +3952,18 @@ i5WlCfgChannelToband(unsigned char channel)
   return band;
 }
 
-/* Check is the wireless interface is in bridge or not */
-int i5WlCfgIsInterfaceInBridge(const char *ifname)
+/* Check is the wireless interface is in forwarder or not */
+int i5WlCfgIsInterfaceInFwder(const char *ifname)
 {
-  i5_dm_device_type *selfDevice = i5DmDeviceFind(i5_config.i5_mac_address);
-  i5_dm_bridging_tuple_info_type* bridge;
-  char nvname[IFNAMSIZ], name[IFNAMSIZ], *next = NULL;
+  char name[IFNAMSIZ], *next = NULL;
   char *ifnames;
 
-  for (bridge = selfDevice->bridging_tuple_list.ll.next; bridge; bridge = bridge->ll.next) {
-    snprintf(nvname, sizeof(nvname), "%s_ifnames", bridge->ifname);
-    ifnames = nvram_safe_get(nvname);
-    foreach(name, ifnames, next) {
-      /* Check for the ifname */
-      if (strcmp(name, ifname) == 0) {
-        i5TraceInfo("ifname[%s] is in nvname[%s]=[%s]\n", ifname, nvname, ifnames);
-        return 1;
-      }
+  ifnames = nvram_safe_get("fwd_wlandevs");
+  foreach(name, ifnames, next) {
+    /* Check for the ifname */
+    if (strcmp(name, ifname) == 0) {
+      i5TraceInfo("ifname[%s] is in fwd_wlandevs=[%s]\n", ifname, ifnames);
+      return 1;
     }
   }
 

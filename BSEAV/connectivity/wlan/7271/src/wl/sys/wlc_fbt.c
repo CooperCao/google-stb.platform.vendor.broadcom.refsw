@@ -5323,6 +5323,7 @@ wlc_fbtap_parse_fbties(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg,
 			return;
 		}
 		memcpy(fbt_ies->rsnie, ie, ie->len + TLV_HDR_LEN);
+		fbt_ies->rsnie_len = ie->len + TLV_HDR_LEN;
 
 		if (offsets[RSNE_OFFSETS_PMKID_INDEX]) {
 			ptr = (uint8 *)ie;

@@ -1129,7 +1129,7 @@ void BVDC_P_GetMaxMosaicDeinterlacerInfo
 
         BKNI_EnterCriticalSection();
         BVDC_P_Window_GetBufSize_isr(0, &stMadBufRect, true,
-            false, false, false, ePxlFormat, &stCompression,
+            false, false, false, false, ePxlFormat, &stCompression,
             BVDC_P_BufHeapType_eMad_Pixel,  &ulSize, BAVC_VideoBitDepth_e8Bit);
         BKNI_LeaveCriticalSection();
         ulSize *= (i+1);

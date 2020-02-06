@@ -363,14 +363,14 @@ static void BHDM_EDID_P_ParseVSDB_HdmiVICs(const BHDM_Handle hHDMI, uint8_t Data
 				(BFMT_VideoInfo *) BFMT_GetVideoFormatInfoPtr(BFMT_VideoFmt_e3840x2160p_24Hz) ;
 			break ;
 
-#if UNSUPPORTED
 		/* HDMI Extended VIC 4096 x 2160p is not supported */
 		case BAVC_HDMI_VSInfoFrame_HDMIVIC_e4Kx2K_SMPTE_24Hz :
+#if UNSUPPORTED
 			hHDMI->AttachedEDID.BcmSupportedVideoFormats[BFMT_VideoFmt_e4096x2160p_24Hz] = true ;
 			pVideoFormatInfo =
 				(BFMT_VideoInfo *) BFMT_GetVideoFormatInfoPtr(BFMT_VideoFmt_e4096x2160p_24Hz) ;
-			break ;
 #endif
+			break ;
 #endif
 		default :
 			BDBG_WRN(("No Support for HDMI VIC %d", hdmiVic)) ;

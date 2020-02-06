@@ -1,0 +1,62 @@
+diff -Naur hostapd-2.8-orig/hostapd/Makefile hostapd-2.8/hostapd/Makefile
+--- hostapd-2.8-orig/hostapd/Makefile	2019-07-30 11:16:44.627825922 -0700
++++ hostapd-2.8/hostapd/Makefile	2019-07-30 12:00:00.677459368 -0700
+@@ -26,6 +26,7 @@
+ CFLAGS += -I$(abspath ../src/utils)
+ 
+ export BINDIR ?= /usr/local/bin/
++export LIBDIR ?= /usr/local/lib/
+ 
+ -include .config
+ 
+@@ -293,6 +294,10 @@
+ ifdef CONFIG_IEEE80211R
+ CFLAGS += -DCONFIG_IEEE80211R -DCONFIG_IEEE80211R_AP
+ OBJS += ../src/ap/wpa_auth_ft.o
++ifdef CONFIG_DRIVER_BRCM
++CFLAGS += -DCONFIG_DRIVER_BRCM
++OBJS += ../src/ap/wpa_auth_brcm.o
++endif
+ NEED_SHA256=y
+ NEED_AES_OMAC1=y
+ NEED_AES_UNWRAP=y
+@@ -1240,8 +1245,9 @@
+ endif
+ 
+ ALL=hostapd hostapd_cli
++LIBALL=libhostapd_client.so
+ 
+-all: verify_config $(ALL)
++all: verify_config $(ALL) $(LIBALL)
+ 
+ Q=@
+ E=echo
+@@ -1276,7 +1282,10 @@
+ $(DESTDIR)$(BINDIR)/%: %
+ 	install -D $(<) $(@)
+ 
+-install: $(addprefix $(DESTDIR)$(BINDIR)/,$(ALL))
++$(DESTDIR)$(LIBDIR)/%: %
++	install -D $(<) $(@)
++
++install: $(addprefix $(DESTDIR)$(BINDIR)/,$(ALL)) $(addprefix $(DESTDIR)$(LIBDIR)/,$(LIBALL))
+ 
+ ../src/drivers/build.hostapd:
+ 	@if [ -f ../src/drivers/build.wpa_supplicant ]; then \
+@@ -1340,11 +1349,16 @@
+ 	lcov -c -d .. > lcov.info
+ 	genhtml lcov.info --output-directory lcov-html
+ 
++libhostapd_client.so: ../src/common/wpa_ctrl.c
++	@$(E) "  CC  $@ ($^)"
++	$(Q)$(CC) $(LDFLAGS) -o $@ $(CFLAGS) -shared -fPIC $^
++
+ clean:
+ 	$(MAKE) -C ../src clean
+ 	rm -f core *~ *.o hostapd hostapd_cli nt_password_hash hlr_auc_gw
+ 	rm -f *.d *.gcno *.gcda *.gcov
+ 	rm -f lcov.info
+ 	rm -rf lcov-html
++	rm -f libhostapd_client.so
+ 
+ -include $(OBJS:%.o=%.d)

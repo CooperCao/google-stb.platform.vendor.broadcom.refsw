@@ -195,6 +195,7 @@ static const bcmevent_name_str_t bcmevent_names[] = {
 	BCMEVENT_NAME(WLC_E_PKT_FILTER),
 	BCMEVENT_NAME(WLC_E_DMA_TXFLUSH_COMPLETE),
 	BCMEVENT_NAME(WLC_E_PSK_AUTH),
+	BCMEVENT_NAME(WLC_E_WNM_ERR),
 };
 
 

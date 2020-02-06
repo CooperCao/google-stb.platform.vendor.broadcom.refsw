@@ -1,4 +1,60 @@
-﻿15_30_55
+15_30_62-
+15_30_59
+release wbd src files
+support MBO STA
+Merge BCA MAP fixes
+MAP cert sigma changes
+Fix for assertion when DWDS STA is disassociated
+fix WDS link re-establishment is taking ~30secs in WPA2
+avoid sending DELBA in a loop for legacy WDS links
+Multiple fixes to support multiple hops of MAP devices
+MAP: fix Crash is seen when 2nd hop agent wifi onboards
+Add Nvram for BCM97271DB4L, BCM97271DB4L_V20, BCM97271VC4L, BCM97271WLAN (Qorvo QPF4800 FEM Option)
+Add timer for assoc request.
+add System Level Support for Automated PA Trimming in DVT
+enable WL_CHANSPEC_TXPWR_MAX
+disable probe request suppress in HW
+
+15_30_58 -
+15_30_56
+Fix wlan driver handling probe req msg event for wps pbc
+add setting dfs chan_info
+fix wl_cfg80211_scan EBUSY error with CONNECTING
+fix MAP : Sniffer check failed
+fix RSSI value will become lower and lower
+add event for BSS Transition request with error mask
+hostAPD fix existing sta could not reassociate
+add control for 802.11k pilot IE in beacon
+avoid resetting country during down/up sequence
+fix 4-Way EAPOL handshake fails during second PTK rekey...
+get phy_lesi is crashing when driver is down
+Avoid CSA loop
+Corrupted rrm reports if mfp enabled
+Fix for unexpected RSNE values on STA side
+Add Operating Classes field lists in Supported Operatin
+fix The RSN Capabilities field of RSN IE Tag
+Fix for authorization failure for WDS links
+MBO fix faild to do del_chan_pref
+Cleaning former AMPDU session when WDS link is reestable
+turn on spatial_policy by default
+Enable VHT operation in 2.4GHz band by default
+WoWL needs to return error when the device is configured
+Processing unicast CSA action frames from WDS links
+Clear channel blocked info when change country code
+MBO fix Not able to send WNM-Notification
+MBO fix Not able to send a GAS ANQP
+Fix wlan driver to look for all possible emmc block id
+fix bss_load report crash on IOV
+Fix nvram to look for all possible emmc block id in flash
+txcore mask fix for spatial_policy -1
+hostapd: fix Driver does not support configured HT capability
+Fix WFA Cert WPS-4.2.13: WSC IE is not included in Assoc
+Add wl sta info version 7.
+log message modifications
+for WDS Do not delete linkup upon deauth
+Skip dfs-to-dfs jump if radar detected
+
+15_30_55
 resolved driver assert for 802.11k
 resolved issue with phy_rxiqest IOVAR
 resolved issue with Multi-AP cert MAP-4.3.2, MAP-4.8.5, MAP-4.10.3, MAP-4.10.4

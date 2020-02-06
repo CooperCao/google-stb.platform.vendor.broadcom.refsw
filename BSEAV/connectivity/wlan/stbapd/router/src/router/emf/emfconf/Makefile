@@ -2,14 +2,18 @@
 # $Id: Makefile 403251 2013-05-20 05:15:55Z $
 #
 
+ifneq ($(STBANDROID),1)
 CROSS =
 CC = $(CROSS)gcc
 AR = $(CROSS)ar
-STRIP = $(CROSS)strip
+endif
 
 ALL_OBJS = emfu.o emfu_linux.o
 
-CCFLAGS = -Os -Wall -Werror -I../../../include ${WLAN_StdIncPathA} -I../../../common/include -I../../shared -I../../../include/emf/emf
+CCFLAGS = -Os -I../../../include ${WLAN_StdIncPathA} -I../../../common/include -I../../shared -I../../../include/emf/emf
+ifneq ($(STBANDROID),1)
+CCFLAGS	+= -Wall -Werror
+endif
 
 ifneq ($(wildcard ./prebuilt),)
 all:

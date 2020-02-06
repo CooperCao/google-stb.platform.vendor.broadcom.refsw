@@ -8195,24 +8195,29 @@ static s32 wl_cfg80211_suspend(struct wiphy *wiphy)
 
 #if ((LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 39)) || \
 	defined(WL_COMPAT_WIRELESS))
+	if (wl_get_drv_status(cfg, AP_CREATED, ndev)) {
+		WL_ERR(("wlan cannot be configured to wowl during AP role\n"));
+		err = BCME_NOTSTA;
+	} else {
 #if defined(WOWL_DRV_NORELOAD)
-	if (wl_get_drv_status(cfg, CONNECTED, ndev))
-		err = wl_wowlan_config(wiphy, wow);
-	else
+		if (wl_get_drv_status(cfg, CONNECTED, ndev))
+			err = wl_wowlan_config(wiphy, wow);
+		else
 #endif
-	{
-		u32 val;
-		/* Set interface down */
-		val = 0;
-		err = wldev_iovar_getint(ndev, "mpc", &mpc_state);
-		if (err < 0)
-			WL_ERR(("get mpc state %d\n", err));
-		err = wldev_iovar_setint(ndev, "mpc", 0);
-		if (err < 0)
-			WL_ERR(("set mpc 0 error = %d\n", err));
-		err = wldev_ioctl(ndev, WLC_DOWN, (void *)&val, sizeof(val), true);
-		if (err < 0)
-			WL_ERR(("set interface up failed, error = %d\n", err));
+		{
+			u32 val;
+			/* Set interface down */
+			val = 0;
+			err = wldev_iovar_getint(ndev, "mpc", &mpc_state);
+			if (err < 0)
+				WL_ERR(("get mpc state %d\n", err));
+			err = wldev_iovar_setint(ndev, "mpc", 0);
+			if (err < 0)
+				WL_ERR(("set mpc 0 error = %d\n", err));
+			err = wldev_ioctl(ndev, WLC_DOWN, (void *)&val, sizeof(val), true);
+			if (err < 0)
+				WL_ERR(("set interface up failed, error = %d\n", err));
+		}
 	}
 #endif /* (KERNEL_VERSION(2, 6, 39) || WL_COMPAT_WIRELES) */
 
@@ -11501,30 +11506,45 @@ wl_cfg80211_set_ies(
 		WL_DBG(("Applied Vndr IEs for Beacon \n"));
 	}
 
+	/* Get Probe Response IEs */
 	vndr = (const u8 *)info->proberesp_ies;
 	vndr_ie_len = info->proberesp_ies_len;
-
+	if (vndr && vndr_ie_len) {
 #if defined(BCMDONGLEHOST)
-	if (dhd->op_mode & DHD_FLAG_HOSTAP_MODE) {
+		if (dhd->op_mode & DHD_FLAG_HOSTAP_MODE) {
 #else
-	if (FALSE) {
+		if (FALSE) {
 #endif /* BCMDONGLEHOST */
-		/* SoftAP mode */
-		const struct ieee80211_mgmt *mgmt;
-		mgmt = (const struct ieee80211_mgmt *)info->probe_resp;
-		if (mgmt != NULL) {
-			vndr = (const u8 *)&mgmt->u.probe_resp.variable;
-			vndr_ie_len = info->probe_resp_len -
-				offsetof(struct ieee80211_mgmt, u.probe_resp.variable);
+			/* SoftAP mode */
+			const struct ieee80211_mgmt *mgmt;
+			mgmt = (const struct ieee80211_mgmt *)info->probe_resp;
+			if (mgmt != NULL) {
+				vndr = (const u8 *)&mgmt->u.probe_resp.variable;
+				vndr_ie_len = info->probe_resp_len -
+					offsetof(struct ieee80211_mgmt, u.probe_resp.variable);
+			}
+		}
+
+		/* Set Probe Response IEs to FW */
+		if ((err = wl_cfg80211_set_mgmt_vndr_ies(cfg, ndev_to_cfgdev(dev), bssidx,
+			VNDR_IE_PRBRSP_FLAG, vndr, vndr_ie_len)) < 0) {
+			WL_ERR(("Set Probe Resp IE Failed \n"));
+		} else {
+			WL_DBG(("Applied Vndr IEs for Probe Resp \n"));
 		}
 	}
 
-	/* Set Probe Response IEs to FW */
-	if ((err = wl_cfg80211_set_mgmt_vndr_ies(cfg, ndev_to_cfgdev(dev), bssidx,
-		VNDR_IE_PRBRSP_FLAG, vndr, vndr_ie_len)) < 0) {
-		WL_ERR(("Set Probe Resp IE Failed \n"));
-	} else {
-		WL_DBG(("Applied Vndr IEs for Probe Resp \n"));
+	/* Get Assoc Response IEs */
+	vndr = (const u8 *)info->assocresp_ies;
+	vndr_ie_len = info->assocresp_ies_len;
+	if (vndr && vndr_ie_len) {
+		/* Set Assoc Response IEs to FW */
+		if ((err = wl_cfg80211_set_mgmt_vndr_ies(cfg, ndev_to_cfgdev(dev), bssidx,
+			VNDR_IE_ASSOCRSP_FLAG, vndr, vndr_ie_len)) < 0) {
+			WL_ERR(("Set Assoc Resp IE Failed \n"));
+		} else {
+			WL_DBG(("Applied Vndr IEs for Assoc Resp \n"));
+		}
 	}
 
 #ifdef WLFBT
@@ -12076,12 +12096,8 @@ wl_cfg80211_start_ap(
 
 	/* Enable Probe Req filter, WPS-AP certification 4.2.13 */
 	if ((dev_role == NL80211_IFTYPE_AP) && (ies.wps_ie != NULL)) {
-		bool pbc = 0;
-		wl_validate_wps_ie((const char *) ies.wps_ie, ies.wps_ie_len, &pbc);
-		if (pbc) {
-			WL_DBG(("set WLC_E_PROBREQ_MSG\n"));
-			wl_add_remove_eventmsg(dev, WLC_E_PROBREQ_MSG, true);
-		}
+		WL_DBG(("set WLC_E_PROBREQ_MSG\n"));
+		wl_add_remove_eventmsg(dev, WLC_E_PROBREQ_MSG, true);
 	}
 
 #ifdef SUPPORT_AP_RADIO_PWRSAVE
@@ -12174,6 +12190,9 @@ wl_cfg80211_stop_ap(
 		goto exit;
 	}
 
+	/* Disable Prob req event mask */
+	wl_add_remove_eventmsg(dev, WLC_E_PROBREQ_MSG, false);
+
 	/* Clear AP/GO connected status */
 	wl_clr_drv_status(cfg, CONNECTED, dev);
 	if ((err = wl_cfg80211_bss_up(cfg, dev, bssidx, 0)) < 0) {
@@ -12252,7 +12271,6 @@ wl_cfg80211_change_beacon(
 	struct parsed_ies ies;
 	u32 dev_role = 0;
 	s32 bssidx = 0;
-	bool pbc = 0;
 
 	WL_DBG(("Enter \n"));
 
@@ -12307,13 +12325,9 @@ wl_cfg80211_change_beacon(
 		}
 
 		/* Enable Probe Req filter, WPS-AP certification 4.2.13 */
-		if ((dev_role == NL80211_IFTYPE_AP) && (ies.wps_ie != NULL)) {
-			wl_validate_wps_ie((const char *) ies.wps_ie, ies.wps_ie_len, &pbc);
-			WL_DBG((" WPS AP, wps_ie is exists pbc=%d\n", pbc));
-			if (pbc)
-				wl_add_remove_eventmsg(dev, WLC_E_PROBREQ_MSG, true);
-			else
-				wl_add_remove_eventmsg(dev, WLC_E_PROBREQ_MSG, false);
+		if (ies.wps_ie != NULL) {
+			WL_DBG((" WPS AP, wps_ie exists\n"));
+			wl_add_remove_eventmsg(dev, WLC_E_PROBREQ_MSG, true);
 		}
 	}
 
@@ -12332,7 +12346,6 @@ wl_cfg80211_add_set_beacon(struct wiphy *wiphy, struct net_device *dev,
 	u32 dev_role = NL80211_IFTYPE_AP;
 	struct parsed_ies ies;
 	bcm_tlv_t *ssid_ie;
-	bool pbc = 0;
 	bool privacy;
 	bool is_bss_up = 0;
 #ifdef BCMDONGLEHOST
@@ -12486,9 +12499,7 @@ wl_cfg80211_add_set_beacon(struct wiphy *wiphy, struct net_device *dev,
 	/* Enable Probe Req filter */
 	if (((dev_role == NL80211_IFTYPE_P2P_GO) ||
 		(dev_role == NL80211_IFTYPE_AP)) && (ies.wps_ie != NULL)) {
-		wl_validate_wps_ie((char *) ies.wps_ie, ies.wps_ie_len, &pbc);
-		if (pbc)
-			wl_add_remove_eventmsg(dev, WLC_E_PROBREQ_MSG, true);
+		wl_add_remove_eventmsg(dev, WLC_E_PROBREQ_MSG, true);
 	}
 
 	WL_DBG(("** ADD/SET beacon done **\n"));
@@ -14424,7 +14435,7 @@ wl_notify_connect_status(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgdev,
 		} else if (wl_is_linkdown(cfg, e) ||
 				((event == WLC_E_SET_SSID) &&
 				(ntoh32(e->status) != WLC_E_STATUS_SUCCESS) &&
-				(wl_get_drv_status(cfg, CONNECTED, ndev)))) {
+				(wl_get_drv_status(cfg, CONNECTED, ndev) || wl_get_drv_status(cfg, CONNECTING, ndev)))) {
 #endif /* CUSTOMER_HW6 */
 			WL_INFORM(("connection state bit status: [%d:%d:%d:%d]\n",
 				wl_get_drv_status(cfg, CONNECTING, ndev),
@@ -19192,6 +19203,7 @@ static s32 __wl_update_wiphybands(struct bcm_cfg80211 *cfg, bool notify)
 	s32 bw_cap = 0;
 	s32 cur_band = -1;
 	struct ieee80211_supported_band *bands[IEEE80211_NUM_BANDS] = {NULL, };
+	u32 param[2] = {0, 0};
 
 	memset(bandlist, 0, sizeof(bandlist));
 	err = wldev_ioctl_get(dev, WLC_GET_BANDLIST, bandlist,
@@ -19284,6 +19296,13 @@ static s32 __wl_update_wiphybands(struct bcm_cfg80211 *cfg, bool notify)
 			bands[IEEE80211_BAND_5GHZ] =
 				&__wl_band_5ghz_a;
 			index = IEEE80211_BAND_5GHZ;
+			param[0] = WLC_BAND_5G;
+			err = wldev_iovar_getint(dev, "bw_cap", param);
+			if (unlikely(err)) {
+				WL_ERR(("Get bw_cap Failed (%d)\n", err));
+			} else if (WL_BW_CAP_40MHZ(param[0])) {
+				bands[index]->ht_cap.cap |= IEEE80211_HT_CAP_SUP_WIDTH_20_40;
+			}
 			if (nmode && (bw_cap == WLC_N_BW_40ALL || bw_cap == WLC_N_BW_20IN2G_40IN5G))
 				bands[index]->ht_cap.cap |= IEEE80211_HT_CAP_SGI_40;
 
@@ -19377,6 +19396,13 @@ static s32 __wl_update_wiphybands(struct bcm_cfg80211 *cfg, bool notify)
 			bands[IEEE80211_BAND_2GHZ] =
 				&__wl_band_2ghz;
 			index = IEEE80211_BAND_2GHZ;
+			param[0] = WLC_BAND_2G;
+			err = wldev_iovar_getint(dev, "bw_cap", param);
+			if (unlikely(err)) {
+				WL_ERR(("Get bw_cap Failed (%d)\n", err));
+			} else if (WL_BW_CAP_40MHZ(param[0])) {
+				bands[index]->ht_cap.cap |= IEEE80211_HT_CAP_SUP_WIDTH_20_40;
+			}
 			if (bw_cap == WLC_N_BW_40ALL)
 				bands[index]->ht_cap.cap |= IEEE80211_HT_CAP_SGI_40;
 		}
@@ -23200,10 +23226,9 @@ static s32 wl_radar_event_handler(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *c
 		/* TODO: Do we need to send NL80211_RADAR_DETECTED separately for
 		 *  AP and STA?
 		 */
-		WL_ERR(("cfg80211_cac_event with NL80211_RADAR_DETECTED\n"));
-		cfg80211_cac_event(ndev,
+		WL_ERR(("cfg80211_radar_event with NL80211_RADAR_DETECTED\n"));
+		cfg80211_radar_event(wiphy,
 			&chandef,
-			NL80211_RADAR_DETECTED,
 			GFP_ATOMIC);
 	}
 

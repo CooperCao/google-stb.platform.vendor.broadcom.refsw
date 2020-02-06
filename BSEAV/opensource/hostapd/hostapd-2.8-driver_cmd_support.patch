@@ -1,0 +1,1270 @@
+diff -Naur hostapd-2.8-orig/hostapd/ctrl_iface.c hostapd-2.8/hostapd/ctrl_iface.c
+--- hostapd-2.8-orig/hostapd/ctrl_iface.c	2019-04-21 00:10:22.000000000 -0700
++++ hostapd-2.8/hostapd/ctrl_iface.c	2019-07-31 10:17:01.916905080 -0700
+@@ -2808,6 +2808,27 @@
+ 	return pos - buf;
+ }
+ 
++static inline int hostapd_driver_cmd(struct hostapd_data *hapd,
++				     char *cmd, char *buf, size_t buf_len)
++{
++	if (!hapd->driver->driver_cmd)
++		return -1;
++	return hapd->driver->driver_cmd(hapd->drv_priv, cmd, buf, buf_len);
++}
++
++static int hostapd_ctrl_driver_cmd(struct hostapd_data *hapd, char *cmd,
++				     char *buf, size_t buflen)
++{
++	int ret;
++
++	ret = hostapd_driver_cmd(hapd, cmd, buf, buflen);
++	if (ret == 0) {
++		ret = os_snprintf(buf, buflen, "%s\n", "OK");
++		if (os_snprintf_error(buflen, ret))
++			ret = -1;
++	}
++	return ret;
++}
+ 
+ static int hostapd_ctrl_iface_acl_del_mac(struct mac_acl_entry **acl, int *num,
+ 					  const char *txtaddr)
+@@ -3350,7 +3371,10 @@
+ 	} else if (os_strncmp(buf, "GET_CAPABILITY ", 15) == 0) {
+ 		reply_len = hostapd_ctrl_iface_get_capability(
+ 			hapd, buf + 15, reply, reply_size);
+-	} else {
++	} else if (os_strncmp(buf, "DRIVER ", 7) == 0) {
++ 		reply_len = hostapd_ctrl_driver_cmd(hapd, buf + 7, reply,
++ 						      reply_size);
++ 	} else {
+ 		os_memcpy(reply, "UNKNOWN COMMAND\n", 16);
+ 		reply_len = 16;
+ 	}
+diff -Naur hostapd-2.8-orig/hostapd/hostapd_cli.c hostapd-2.8/hostapd/hostapd_cli.c
+--- hostapd-2.8-orig/hostapd/hostapd_cli.c	2019-04-21 00:10:22.000000000 -0700
++++ hostapd-2.8/hostapd/hostapd_cli.c	2019-07-31 10:17:01.926912473 -0700
+@@ -1213,6 +1213,10 @@
+ 	return wpa_ctrl_command(ctrl, "DISABLE");
+ }
+ 
++static int hostapd_cli_cmd_driver(struct wpa_ctrl *ctrl, int argc, char *argv[])
++{
++	return hostapd_cli_cmd(ctrl, "DRIVER", 1, argc, argv);
++}
+ 
+ static int hostapd_cli_cmd_vendor(struct wpa_ctrl *ctrl, int argc, char *argv[])
+ {
+@@ -1608,6 +1612,8 @@
+ 	{ "hs20_deauth_req", hostapd_cli_cmd_hs20_deauth_req, NULL,
+ 	  "<addr> <code (0/1)> <Re-auth-Delay(sec)> [url]\n"
+ 	  "  = send WNM-Notification imminent deauthentication indication" },
++	{ "driver", hostapd_cli_cmd_driver, NULL,
++ 	  "<command> = driver private commands" },	  
+ 	{ "vendor", hostapd_cli_cmd_vendor, NULL,
+ 	  "<vendor id> <sub command id> [<hex formatted data>]\n"
+ 	  "  = send vendor driver command" },
+diff -Naur hostapd-2.8-orig/src/ap/brcm_nl80211.h hostapd-2.8/src/ap/brcm_nl80211.h
+--- hostapd-2.8-orig/src/ap/brcm_nl80211.h	1969-12-31 16:00:00.000000000 -0800
++++ hostapd-2.8/src/ap/brcm_nl80211.h	2019-07-31 10:17:01.933025578 -0700
+@@ -0,0 +1,52 @@
++/*
++ * Definitions for nl80211 vendor command/event access to host driver
++ *
++ * $ Copyright Open Broadcom Corporation $
++ *
++ *
++ * <<Broadcom-WL-IPTag/Open:>>
++ *
++ * $Id: brcm_nl80211.h 601873 2015-11-24 11:04:28Z ajayda $
++ *
++ */
++
++#ifndef _brcm_nl80211_h_
++#define _brcm_nl80211_h_
++
++#define OUI_BRCM  0x001018
++#define OUI_GOOGLE  0x001A11
++#define DHD_IOCTL_MAGIC 0x00444944
++
++enum wl_vendor_subcmd {
++	BRCM_VENDOR_SCMD_UNSPEC,
++	BRCM_VENDOR_SCMD_PRIV_STR,
++	BRCM_VENDOR_SCMD_BCM_STR
++};
++
++
++struct bcm_nlmsg_hdr {
++	uint cmd;	/* common ioctl definition */
++	int len;	/* expected return buffer length */
++	uint offset;	/* user buffer offset */
++	uint set;	/* get or set request optional */
++	uint magic;	/* magic number for verification */
++};
++
++enum bcmnl_attrs {
++	BCM_NLATTR_UNSPEC,
++
++	BCM_NLATTR_LEN,
++	BCM_NLATTR_DATA,
++
++	__BCM_NLATTR_AFTER_LAST,
++	BCM_NLATTR_MAX = __BCM_NLATTR_AFTER_LAST - 1
++};
++
++struct nl_prv_data {
++	int err;			/* return result */
++	void *data;			/* ioctl return buffer pointer */
++	uint len;			/* ioctl return buffer length */
++	struct bcm_nlmsg_hdr *nlioc;	/* bcm_nlmsg_hdr header pointer */
++};
++
++#endif /* _brcm_nl80211_h_ */
+diff -Naur hostapd-2.8-orig/src/ap/drv_callbacks.c hostapd-2.8/src/ap/drv_callbacks.c
+--- hostapd-2.8-orig/src/ap/drv_callbacks.c	2019-04-21 00:10:22.000000000 -0700
++++ hostapd-2.8/src/ap/drv_callbacks.c	2019-07-31 10:17:01.940329547 -0700
+@@ -40,7 +40,9 @@
+ #include "dpp_hostapd.h"
+ #include "fils_hlp.h"
+ #include "neighbor_db.h"
+-
++#ifdef CONFIG_DRIVER_BRCM
++#include "wpa_auth_brcm.h"
++#endif
+ 
+ #ifdef CONFIG_FILS
+ void hostapd_notify_assoc_fils_finish(struct hostapd_data *hapd,
+@@ -1020,7 +1022,11 @@
+ 		       HOSTAPD_LEVEL_DEBUG, "authentication OK (FT)");
+ 	sta->flags |= WLAN_STA_AUTH;
+ 
++#ifdef CONFIG_DRIVER_BRCM
++	brcm_build_ft_auth_resp_send(ctx, dst, status, ies, ies_len);
++#else
+ 	hostapd_sta_auth(hapd, dst, auth_transaction, status, ies, ies_len);
++#endif
+ }
+ #endif /* CONFIG_IEEE80211R_AP */
+ 
+diff -Naur hostapd-2.8-orig/src/ap/hostapd.c hostapd-2.8/src/ap/hostapd.c
+--- hostapd-2.8-orig/src/ap/hostapd.c	2019-04-21 00:10:22.000000000 -0700
++++ hostapd-2.8/src/ap/hostapd.c	2019-07-31 10:17:01.950418380 -0700
+@@ -1508,9 +1508,18 @@
+ 		if (os_strncmp(previous_country, country, 2) != 0) {
+ 			wpa_printf(MSG_DEBUG, "Continue interface setup after channel list update");
+ 			iface->wait_channel_update = 1;
++#ifdef CONFIG_DRIVER_BRCM
++			/* Since the driver is not sending channel list update event,
++			 * we are reducing the timeout from 5 to 0 sec.
++			 */
++			eloop_register_timeout(0, 0,
++					       channel_list_update_timeout,
++					       iface, NULL);
++#else
+ 			eloop_register_timeout(5, 0,
+ 					       channel_list_update_timeout,
+ 					       iface, NULL);
++#endif /* CONFIG_DRIVER_BRCM */
+ 			return 0;
+ 		}
+ 	}
+diff -Naur hostapd-2.8-orig/src/ap/ieee802_11.c hostapd-2.8/src/ap/ieee802_11.c
+--- hostapd-2.8-orig/src/ap/ieee802_11.c	2019-04-21 00:10:22.000000000 -0700
++++ hostapd-2.8/src/ap/ieee802_11.c	2019-07-31 10:38:03.249665976 -0700
+@@ -2335,6 +2335,14 @@
+ 
+ 		sta->added_unassoc = 1;
+ 	}
++#ifdef CONFIG_DRIVER_BRCM
++	/* XXX Added this WAR for now, need to revisit this once we have
++	 * more clarity about NL80211_FEATURE_FULL_AP_CLIENT_STATE feature
++	 */
++	else {
++		sta->added_unassoc = 1;
++	}
++#endif /* CONFIG_DRIVER_BRCM */
+ 
+ 	switch (auth_alg) {
+ 	case WLAN_AUTH_OPEN:
+@@ -3204,6 +3212,7 @@
+ }
+ 
+ 
++#ifndef CONFIG_DRIVER_BRCM
+ static void send_deauth(struct hostapd_data *hapd, const u8 *addr,
+ 			u16 reason_code)
+ {
+@@ -3224,7 +3233,7 @@
+ 		wpa_printf(MSG_INFO, "Failed to send deauth: %s",
+ 			   strerror(errno));
+ }
+-
++#endif
+ 
+ static int add_associated_sta(struct hostapd_data *hapd,
+ 			      struct sta_info *sta, int reassoc)
+@@ -3831,6 +3840,24 @@
+ 			wpa_auth_sm_event(sta->wpa_sm, WPA_AUTH);
+ 			sta->auth_alg = WLAN_AUTH_OPEN;
+ 		} else {
++#ifdef CONFIG_DRIVER_BRCM
++			sta = ap_sta_add(hapd, mgmt->sa);
++			if (!sta) {
++				hostapd_logger(hapd, mgmt->sa,
++					       HOSTAPD_MODULE_IEEE80211,
++					       HOSTAPD_LEVEL_INFO,
++					       "Failed to add STA");
++				resp = WLAN_STATUS_AP_UNABLE_TO_HANDLE_NEW_STA;
++				goto fail;
++			}
++			hostapd_logger(hapd, sta->addr,
++				       HOSTAPD_MODULE_IEEE80211,
++				       HOSTAPD_LEVEL_DEBUG,
++				       "Skip authentication for DMG/IEEE 802.11ad");
++			sta->flags |= WLAN_STA_AUTH;
++			wpa_auth_sm_event(sta->wpa_sm, WPA_AUTH);
++			sta->auth_alg = WLAN_AUTH_OPEN;
++#else
+ 			hostapd_logger(hapd, mgmt->sa,
+ 				       HOSTAPD_MODULE_IEEE80211,
+ 				       HOSTAPD_LEVEL_INFO,
+@@ -3840,6 +3867,7 @@
+ 			send_deauth(hapd, mgmt->sa,
+ 				    WLAN_REASON_CLASS2_FRAME_FROM_NONAUTH_STA);
+ 			return;
++#endif /* CONFIG_DRIVER_BRCM */
+ 		}
+ 	}
+ 
+diff -Naur hostapd-2.8-orig/src/ap/wpa_auth_brcm.c hostapd-2.8/src/ap/wpa_auth_brcm.c
+--- hostapd-2.8-orig/src/ap/wpa_auth_brcm.c	1969-12-31 16:00:00.000000000 -0800
++++ hostapd-2.8/src/ap/wpa_auth_brcm.c	2019-07-31 10:17:01.967566568 -0700
+@@ -0,0 +1,193 @@
++#include "includes.h"
++#include <sys/socket.h>
++#include <net/if.h>
++#include <linux/types.h>
++#include <sys/ioctl.h>
++#include <linux/sockios.h>
++#include "common.h"
++#include "hostapd.h"
++#include "brcm_nl80211.h"
++#include "sta_info.h"
++#include "wpa_auth.h"
++#include "wpa_auth_i.h"
++#include "common/ieee802_11_defs.h"
++#include "ap_drv_ops.h"
++#include "wpa_auth_brcm.h"
++
++#define WLC_GET_VAR		262 /* get value of named variable */
++#define WLC_SET_VAR		263 /* set named variable to value */
++
++/**Linux network driver ioctl encoding */
++typedef struct wl_ioctl {
++        u32 cmd;     /**< common ioctl definition */
++        void *buf;      /**< pointer to user buffer */
++        u32 len;     /**< length of user buffer */
++        u8 set;              /**< 1=set IOCTL; 0=query IOCTL */
++        u32 used;    /**< bytes read or written (optional) */
++        u32 needed;  /**< bytes needed (optional) */
++} wl_ioctl_t;
++
++
++static int
++wl_ioctl(char *name, int cmd, void *buf, int len)
++{
++	struct ifreq ifr;
++	wl_ioctl_t ioc;
++	int ret = 0;
++	int s;
++	char buffer[100];
++
++	/* open socket to kernel */
++	if ((s = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
++		perror("socket");
++		return errno;
++	}
++
++	/* do it */
++	ioc.cmd = cmd;
++	ioc.buf = buf;
++	ioc.len = len;
++
++	/* initializing the remaining fields */
++	ioc.set = FALSE;
++	ioc.used = 0;
++	ioc.needed = 0;
++
++	strncpy(ifr.ifr_name, name, sizeof(ifr.ifr_name) - 1);
++	ifr.ifr_name[sizeof(ifr.ifr_name) - 1] = '\0';
++	ifr.ifr_data = (caddr_t) &ioc;
++	if ((ret = ioctl(s, SIOCDEVPRIVATE, &ifr)) < 0) {
++		if ((cmd == WLC_GET_VAR) || (cmd == WLC_SET_VAR)) {
++			snprintf(buffer, sizeof(buffer), "%s: WLC_%s_VAR(%s)", name,
++			         cmd == WLC_GET_VAR ? "GET" : "SET", (char *)buf);
++		}
++		perror(buffer);
++	}
++	/* cleanup */
++	close(s);
++	return ret;
++}
++
++void
++brcm_build_ft_auth_resp_send(void *ctx, const u8 *addr,
++		u16 status_code, const u8 *ies, size_t ies_len)
++{
++	struct sta_info *sta;
++	wlc_fbt_auth_resp_t *ft_authresp;
++	struct wpa_state_machine *sm;
++	struct wpa_group *gsm;
++	int len, cmd_len = 0;
++	struct hostapd_data *hapd = ctx;
++	u8 *resp_ies = NULL;
++
++	sta = ap_get_sta(hapd, addr);
++	if (sta == NULL) {
++		wpa_printf(MSG_DEBUG, "BRCM: Failed to get station info " MACSTR "\n",
++				MAC2STR(addr));
++		return;
++	}
++	sm = sta->wpa_sm;
++
++	cmd_len = strlen("fbt_auth_resp") + 1;
++
++	len = cmd_len +  sizeof(wlc_fbt_auth_resp_t) - sizeof(ft_authresp->ies) + ies_len;
++
++	resp_ies = os_zalloc(len);
++
++	if (resp_ies == NULL) {
++		wpa_printf(MSG_DEBUG, "BRCM: Failed to allocate memory "
++				"for response ies for ft auth resp\n");
++		return;
++	}
++
++	memcpy(resp_ies, "fbt_auth_resp", cmd_len);
++	ft_authresp = (wlc_fbt_auth_resp_t *) (resp_ies + cmd_len);
++	memcpy(ft_authresp->macaddr, addr, ETHER_ADDR_LEN);
++	memcpy(ft_authresp->pmk_r1_name, sm->pmk_r1_name, WPA_PMK_NAME_LEN);
++	ft_authresp->ie_len = ies_len;
++	memcpy(ft_authresp->ies, ies, ies_len);
++
++	memcpy(ft_authresp->ptk.kck, sm->PTK.kck, sm->PTK.kck_len);
++	memcpy(ft_authresp->ptk.kek, sm->PTK.kek, sm->PTK.kek_len);
++	memcpy(ft_authresp->ptk.tk1, sm->PTK.tk, sizeof(ft_authresp->ptk.tk1));
++	memcpy(ft_authresp->ptk.tk2, sm->PTK.tk + sizeof(ft_authresp->ptk.tk1),
++		sizeof(ft_authresp->ptk.tk2));
++
++	gsm = sm->group;
++	if (gsm == NULL) {
++		wpa_printf(MSG_DEBUG, "BRCM: Failed to find GTK "
++				"state machine for ft auth resp\n");
++		free(resp_ies);
++		return;
++	}
++	ft_authresp->gtk.idx = gsm->GN;
++	ft_authresp->gtk.key_len = gsm->GTK_len;
++	memcpy(ft_authresp->gtk.key, gsm->GTK[gsm->GN - 1], gsm->GTK_len);
++
++	ft_authresp->status = status_code;
++	wl_ioctl(hapd->conf->iface, WLC_SET_VAR, resp_ies, len);
++	free(resp_ies);
++	return;
++}
++
++void brcm_add_ft_ds_sta(struct wpa_state_machine *sm,
++		const u8 *addr, u16 status, u8 *ies, size_t ies_len)
++{
++	struct sta_info *sta;
++	wlc_fbt_auth_resp_t *ft_authresp;
++	struct wpa_group *gsm;
++	int len = 0, cmd_len = 0;
++	struct hostapd_data *hapd = sm->wpa_auth->cb_ctx;
++	u8 *resp_ies = NULL;
++
++	sta = ap_get_sta(hapd, addr);
++	if (sta == NULL) {
++		wpa_printf(MSG_DEBUG, "BRCM: Failed to get station info " MACSTR "\n",
++				MAC2STR(addr));
++		return;
++	}
++
++	wpa_printf(MSG_DEBUG, "BRCM: Set ds ft add station " MACSTR "\n",
++			MAC2STR(addr));
++
++	cmd_len = strlen("fbt_ds_add_sta") + 1;
++
++	len = cmd_len + sizeof(wlc_fbt_auth_resp_t) - sizeof(ft_authresp->ies) + ies_len;
++
++	resp_ies = os_zalloc(len);
++
++	if (resp_ies == NULL) {
++		wpa_printf(MSG_DEBUG, "BRCM: Failed to allocate memory "
++			"for response ies \n");
++		return;
++	}
++
++	ft_authresp = (wlc_fbt_auth_resp_t *) (resp_ies + cmd_len);
++	memcpy(ft_authresp->macaddr, addr, ETHER_ADDR_LEN);
++	memcpy(ft_authresp->pmk_r1_name, sm->pmk_r1_name, WPA_PMK_NAME_LEN);
++
++	ft_authresp->ie_len = ies_len;
++	memcpy(ft_authresp->ies, ies, ies_len);
++
++	memcpy(ft_authresp->ptk.kck, sm->PTK.kck, sm->PTK.kck_len);
++	memcpy(ft_authresp->ptk.kek, sm->PTK.kek, sm->PTK.kek_len);
++	memcpy(ft_authresp->ptk.tk1, sm->PTK.tk, sizeof(ft_authresp->ptk.tk1));
++	memcpy(ft_authresp->ptk.tk2, sm->PTK.tk + sizeof(ft_authresp->ptk.tk1),
++		sizeof(ft_authresp->ptk.tk2));
++
++	gsm = sm->group;
++	if (gsm == NULL) {
++		wpa_printf(MSG_DEBUG, "BRCM: Failed to find GTK "
++			"state machine \n");
++		free(resp_ies);
++		return;
++	}
++	ft_authresp->gtk.idx = gsm->GN;
++	ft_authresp->gtk.key_len = gsm->GTK_len;
++	memcpy(ft_authresp->gtk.key, gsm->GTK[gsm->GN - 1], gsm->GTK_len);
++
++	ft_authresp->status = status;
++	wl_ioctl(hapd->conf->iface, WLC_SET_VAR, resp_ies, len);
++	free(resp_ies);
++	return;
++}
+diff -Naur hostapd-2.8-orig/src/ap/wpa_auth_brcm.h hostapd-2.8/src/ap/wpa_auth_brcm.h
+--- hostapd-2.8-orig/src/ap/wpa_auth_brcm.h	1969-12-31 16:00:00.000000000 -0800
++++ hostapd-2.8/src/ap/wpa_auth_brcm.h	2019-07-31 10:17:01.971025621 -0700
+@@ -0,0 +1,53 @@
++#ifndef _wpa_auth_brcm_h_
++#define _wpa_auth_brcm_h_
++
++#include "includes.h"
++#include "common.h"
++
++#define DOT11_MAX_KEY_SIZE 32
++
++/** PTK key maintained per SCB */
++#define RSN_TEMP_ENCR_KEY_LEN 16
++#define RSN_KCK_LENGTH	16
++#define RSN_KEK_LENGTH	16
++#define ETHER_ADDR_LEN	6
++#define DHD_IOCTL_MAGIC 0x00444944
++
++typedef struct wpa_ptk_fbt {
++	u8 kck[RSN_KCK_LENGTH]; /**< EAPOL-Key Key Confirmation Key (KCK) */
++	u8 kek[RSN_KEK_LENGTH]; /**< EAPOL-Key Key Encryption Key (KEK) */
++	u8 tk1[RSN_TEMP_ENCR_KEY_LEN]; /**< Temporal Key 1 (TK1) */
++	u8 tk2[RSN_TEMP_ENCR_KEY_LEN]; /**< Temporal Key 2 (TK2) */
++} wpa_ptk_fbt_t;
++
++/** GTK key maintained per SCB */
++typedef struct wpa_bcm_gtk {
++	u32 idx;
++	u32 key_len;
++	u8  key[DOT11_MAX_KEY_SIZE];
++} wpa_bcm_gtk_t;
++
++#define WPA2_PMKID_LEN 16
++
++/** FBT Auth Response Data structure */
++typedef struct wlc_fbt_auth_resp {
++	u8 macaddr[ETHER_ADDR_LEN]; /**< station mac address */
++	u8 pad[2];
++	u8 pmk_r1_name[WPA2_PMKID_LEN];
++	wpa_ptk_fbt_t ptk; /**< pairwise key */
++	wpa_bcm_gtk_t gtk; /**< group key */
++	u32 ie_len;
++	u8 status;  /**< Status of parsing FBT authentication
++					Request in application
++					*/
++	u8 ies[1]; /**< IEs contains MDIE, RSNIE,
++					FBTIE (ANonce, SNonce,R0KH-ID, R1KH-ID)
++					*/
++} wlc_fbt_auth_resp_t;
++
++void
++brcm_build_ft_auth_resp_send(void *ctx, const u8 *addr,
++	u16 status_code, const u8 *resp_ies, size_t resp_ie_len);
++void brcm_add_ft_ds_sta(struct wpa_state_machine *sm,  const u8 *addr,
++		u16 status, u8 *resp_ies, size_t resp_ies_len);
++#endif /* _wpa_auth_brcm_h_ */
+diff -Naur hostapd-2.8-orig/src/ap/wpa_auth_ft.c hostapd-2.8/src/ap/wpa_auth_ft.c
+--- hostapd-2.8-orig/src/ap/wpa_auth_ft.c	2019-04-21 00:10:22.000000000 -0700
++++ hostapd-2.8/src/ap/wpa_auth_ft.c	2019-07-31 10:17:56.812129272 -0700
+@@ -25,7 +25,9 @@
+ #include "wmm.h"
+ #include "wpa_auth.h"
+ #include "wpa_auth_i.h"
+-
++#ifdef CONFIG_DRIVER_BRCM
++#include "wpa_auth_brcm.h"
++#endif
+ 
+ #ifdef CONFIG_IEEE80211R_AP
+ 
+@@ -2631,8 +2633,8 @@
+ 		/* Must avoid TK reconfiguration to prevent clearing of TX/RX
+ 		 * PN in the driver */
+ 		wpa_printf(MSG_DEBUG,
+-			   "FT: Do not re-install same PTK to the driver");
+-		return;
++			   "FT: re-install same PTK to the driver");
++		//return; BRCM change reinstall same key since driver clears the key
+ 	}
+ 
+ 	/* FIX: add STA entry to kernel/driver here? The set_key will fail
+@@ -3433,6 +3435,9 @@
+ 
+ 	res = wpa_ft_send_rrb_auth_resp(sm, current_ap, sta_addr, status,
+ 					resp_ies, resp_ies_len);
++#ifdef CONFIG_DRIVER_BRCM
++	brcm_add_ft_ds_sta(sm, sta_addr, status, resp_ies, resp_ies_len);
++#endif
+ 	os_free(resp_ies);
+ 	return res;
+ }
+diff -Naur hostapd-2.8-orig/src/ap/wpa_auth_ie.c hostapd-2.8/src/ap/wpa_auth_ie.c
+--- hostapd-2.8-orig/src/ap/wpa_auth_ie.c	2019-04-21 00:10:22.000000000 -0700
++++ hostapd-2.8/src/ap/wpa_auth_ie.c	2019-07-31 10:17:01.988128016 -0700
+@@ -433,8 +433,15 @@
+ 
+ int wpa_auth_gen_wpa_ie(struct wpa_authenticator *wpa_auth)
+ {
++#ifdef CONFIG_DRIVER_BRCM
++	u8 *pos, buf[256];
++#else
+ 	u8 *pos, buf[128];
++#endif /* CONFIG_DRIVER_BRCM */
+ 	int res;
++#ifdef CONFIG_DRIVER_BRCM
++	int use_sha384;
++#endif
+ 
+ #ifdef CONFIG_TESTING_OPTIONS
+ 	if (wpa_auth->conf.own_ie_override_len) {
+@@ -472,6 +479,23 @@
+ 		if (res < 0)
+ 			return res;
+ 		pos += res;
++#ifdef CONFIG_DRIVER_BRCM
++		if (wpa_auth->conf.r0_key_holder_len == 0) {
++			os_free(wpa_auth->wpa_ie);
++			wpa_auth->wpa_ie = NULL;
++			return -1;
++		}
++
++		wpa_printf(MSG_DEBUG, "Writing FT IE r0kh_id_len %d\n",  wpa_auth->conf.r0_key_holder_len);
++		use_sha384 = wpa_key_mgmt_sha384(wpa_auth->conf.wpa_key_mgmt);
++		res = wpa_write_ftie(&wpa_auth->conf, use_sha384, wpa_auth->conf.r0_key_holder,
++		   wpa_auth->conf.r0_key_holder_len, NULL, NULL,
++		   pos, buf + sizeof(buf) - pos, NULL, 0);
++
++		if (res < 0)
++			return res;
++		pos += res;
++#endif /* CONFIG_DRIVER_BRCM */
+ 	}
+ #endif /* CONFIG_IEEE80211R_AP */
+ 	if (wpa_auth->conf.wpa & WPA_PROTO_WPA) {
+diff -Naur hostapd-2.8-orig/src/ap/wps_hostapd.c hostapd-2.8/src/ap/wps_hostapd.c
+--- hostapd-2.8-orig/src/ap/wps_hostapd.c	2019-04-21 00:10:22.000000000 -0700
++++ hostapd-2.8/src/ap/wps_hostapd.c	2019-07-31 10:45:57.928681548 -0700
+@@ -403,17 +403,116 @@
+ 	return 0;
+ }
+ 
++#ifdef CONFIG_DRIVER_BRCM
++static void hapd_wps_write_creds_to_file(FILE *nconf, struct hostapd_data *hapd,
++		const struct wps_credential *cred)
++{
++	int wpa;
++	int i;
++
++	fprintf(nconf, "# WPS configuration - START\n");
++
++	fprintf(nconf, "wps_state=2\n");
++
++	if (is_hex(cred->ssid, cred->ssid_len)) {
++		fprintf(nconf, "ssid2=");
++		for (i = 0; i < cred->ssid_len; i++)
++			fprintf(nconf, "%02x", cred->ssid[i]);
++		fprintf(nconf, "\n");
++	} else {
++		fprintf(nconf, "ssid=");
++		for (i = 0; i < cred->ssid_len; i++)
++			fputc(cred->ssid[i], nconf);
++		fprintf(nconf, "\n");
++	}
++
++	if ((cred->auth_type & (WPS_AUTH_WPA2 | WPS_AUTH_WPA2PSK)) &&
++	    (cred->auth_type & (WPS_AUTH_WPA | WPS_AUTH_WPAPSK)))
++		wpa = 3;
++	else if (cred->auth_type & (WPS_AUTH_WPA2 | WPS_AUTH_WPA2PSK))
++		wpa = 2;
++	else if (cred->auth_type & (WPS_AUTH_WPA | WPS_AUTH_WPAPSK))
++		wpa = 1;
++	else
++		wpa = 0;
++
++	if (wpa) {
++		char *prefix;
++		fprintf(nconf, "wpa=%d\n", wpa);
++
++		fprintf(nconf, "wpa_key_mgmt=");
++		prefix = "";
++		if (cred->auth_type & (WPS_AUTH_WPA2 | WPS_AUTH_WPA)) {
++			fprintf(nconf, "WPA-EAP");
++			prefix = " ";
++		}
++		if (cred->auth_type & (WPS_AUTH_WPA2PSK | WPS_AUTH_WPAPSK))
++			fprintf(nconf, "%sWPA-PSK", prefix);
++		fprintf(nconf, "\n");
++
++		fprintf(nconf, "wpa_pairwise=");
++		prefix = "";
++		if (cred->encr_type & WPS_ENCR_AES) {
++			if (hapd->iconf->hw_mode == HOSTAPD_MODE_IEEE80211AD)
++				fprintf(nconf, "GCMP");
++			else
++				fprintf(nconf, "CCMP");
++
++			prefix = " ";
++		}
++		if (cred->encr_type & WPS_ENCR_TKIP) {
++			fprintf(nconf, "%sTKIP", prefix);
++		}
++		fprintf(nconf, "\n");
++
++		if (cred->key_len >= 8 && cred->key_len < 64) {
++			fprintf(nconf, "wpa_passphrase=");
++			for (i = 0; i < cred->key_len; i++)
++				fputc(cred->key[i], nconf);
++			fprintf(nconf, "\n");
++		} else if (cred->key_len == 64) {
++			fprintf(nconf, "wpa_psk=");
++			for (i = 0; i < cred->key_len; i++)
++				fputc(cred->key[i], nconf);
++			fprintf(nconf, "\n");
++		} else {
++			wpa_printf(MSG_WARNING, "WPS: Invalid key length %lu "
++				   "for WPA/WPA2",
++				   (unsigned long) cred->key_len);
++		}
++
++		fprintf(nconf, "auth_algs=1\n");
++	} else {
++		/*
++		 * WPS 2.0 does not allow WEP to be configured, so no need to
++		 * process that option here either.
++		 */
++		fprintf(nconf, "auth_algs=1\n");
++	}
++
++	fprintf(nconf, "# WPS configuration - END\n");
++}
++#endif	/* CONFIG_DRIVER_BRCM */
+ 
+ static int hapd_wps_cred_cb(struct hostapd_data *hapd, void *ctx)
+ {
+ 	const struct wps_credential *cred = ctx;
+ 	FILE *oconf, *nconf;
+-	size_t len, i;
++	size_t len;
+ 	char *tmp_fname;
+ 	char buf[1024];
+ 	int multi_bss;
++#ifndef CONFIG_DRIVER_BRCM
+ 	int wpa;
++	size_t i;
++#ifdef CONFIG_IEEE80211W
+ 	int pmf_changed = 0;
++#endif
++#endif
++#ifdef CONFIG_DRIVER_BRCM
++	char ifr_token[32], bss_token[32];
++	int bss_found, wps_cred_updated_in_newconf, bss_token_len, ifr_token_len;
++#endif	/* CONFIG_DRIVER_BRCM */
+ 
+ 	if (hapd->wps == NULL)
+ 		return 0;
+@@ -505,6 +604,51 @@
+ 		return -1;
+ 	}
+ 
++#ifdef CONFIG_DRIVER_BRCM
++	os_snprintf(ifr_token, sizeof(ifr_token), "interface=%s", hapd->conf->iface);
++	ifr_token_len = strlen(ifr_token);
++	os_snprintf(bss_token, sizeof(bss_token), "bss=%s", hapd->conf->iface);
++	bss_token_len = strlen(bss_token);
++	bss_found = wps_cred_updated_in_newconf = 0;
++	multi_bss = 0;
++	while (fgets(buf, sizeof(buf), oconf)) {
++		/* This is to handle the case for multiple bss lets say we have 3 bss enabled bss1,
++		 * bss2 and bss3. Wps running on bss2 should not update the settings of bss3.
++		 */
++		if (bss_found && os_strncmp(buf, "bss=", 4) == 0) {
++			multi_bss = 1;
++		}
++
++		/* Find the bss entry which needs to be updated */
++		if (!bss_found && (os_strncmp(buf, bss_token, bss_token_len) == 0 ||
++			os_strncmp(buf, ifr_token, ifr_token_len) == 0)) {
++			bss_found = 1;
++		}
++
++		if (bss_found && !multi_bss &&
++		    (str_starts(buf, "ssid=") ||
++		     str_starts(buf, "ssid2=") ||
++		     str_starts(buf, "auth_algs=") ||
++		     str_starts(buf, "wep_default_key=") ||
++		     str_starts(buf, "wep_key") ||
++		     str_starts(buf, "wps_state=") ||
++		     str_starts(buf, "wpa=") ||
++		     str_starts(buf, "wpa_psk=") ||
++		     str_starts(buf, "wpa_pairwise=") ||
++		     str_starts(buf, "rsn_pairwise=") ||
++		     str_starts(buf, "wpa_key_mgmt=") ||
++		     str_starts(buf, "wpa_passphrase="))) {
++			fprintf(nconf, "#WPS# %s", buf);
++		} else
++			fprintf(nconf, "%s", buf);
++
++		/* Write the wps credentials in new conf file */
++		if (bss_found && !wps_cred_updated_in_newconf) {
++			hapd_wps_write_creds_to_file(nconf, hapd, cred);
++			wps_cred_updated_in_newconf = 1;
++		}
++	}
++#else	/* !CONFIG_DRIVER_BRCM */
+ 	fprintf(nconf, "# WPS configuration - START\n");
+ 
+ 	fprintf(nconf, "wps_state=2\n");
+@@ -633,6 +777,7 @@
+ 		} else
+ 			fprintf(nconf, "%s", buf);
+ 	}
++#endif	/* CONFIG_DRIVER_BRCM */
+ 
+ 	fclose(nconf);
+ 	fclose(oconf);
+@@ -818,14 +963,28 @@
+ 
+ 	if (fail->error_indication > 0 &&
+ 	    fail->error_indication < NUM_WPS_EI_VALUES) {
++#ifdef CONFIG_DRIVER_BRCM
++		wpa_msg(hapd->msg_ctx, MSG_INFO,
++			WPS_EVENT_FAIL "msg=%d peer_macaddr="MACSTR" config_error=%d "
++			"reason=%d (%s)", fail->msg, MAC2STR(fail->peer_macaddr),
++			fail->config_error, fail->error_indication,
++			wps_ei_str(fail->error_indication));
++#else
+ 		wpa_msg(hapd->msg_ctx, MSG_INFO,
+ 			WPS_EVENT_FAIL "msg=%d config_error=%d reason=%d (%s)",
+ 			fail->msg, fail->config_error, fail->error_indication,
+ 			wps_ei_str(fail->error_indication));
++#endif	/* CONFIG_DRIVER_BRCM */
+ 	} else {
++#ifdef CONFIG_DRIVER_BRCM
++		wpa_msg(hapd->msg_ctx, MSG_INFO,
++			WPS_EVENT_FAIL "msg=%d peer_macaddr="MACSTR" config_error=%d",
++			fail->msg, MAC2STR(fail->peer_macaddr), fail->config_error);
++#else
+ 		wpa_msg(hapd->msg_ctx, MSG_INFO,
+ 			WPS_EVENT_FAIL "msg=%d config_error=%d",
+ 			fail->msg, fail->config_error);
++#endif	/* CONFIG_DRIVER_BRCM */
+ 	}
+ }
+ 
+diff -Naur hostapd-2.8-orig/src/common/dpp.c hostapd-2.8/src/common/dpp.c
+--- hostapd-2.8-orig/src/common/dpp.c	2019-04-21 00:10:22.000000000 -0700
++++ hostapd-2.8/src/common/dpp.c	2019-07-31 10:17:02.008909865 -0700
+@@ -4237,10 +4237,20 @@
+ 		pos += 6;
+ 		end = os_strchr(pos, ' ');
+ 		conf->ssid_len = end ? (size_t) (end - pos) : os_strlen(pos);
++#ifndef CONFIG_DRIVER_BRCM
+ 		conf->ssid_len /= 2;
+ 		if (conf->ssid_len > sizeof(conf->ssid) ||
+ 		    hexstr2bin(pos, conf->ssid, conf->ssid_len) < 0)
++#else /* CONFIG_DRIVER_BRCM */
++		if (conf->ssid_len > sizeof(conf->ssid))
++#endif /* CONFIG_DRIVER_BRCM */
+ 			goto fail;
++#ifdef CONFIG_DRIVER_BRCM
++		else {
++			memset(conf->ssid, 0, conf->ssid_len);
++			memcpy(conf->ssid, pos, conf->ssid_len);
++		}
++#endif /* CONFIG_DRIVER_BRCM */
+ 	} else {
+ #ifdef CONFIG_TESTING_OPTIONS
+ 		/* use a default SSID for legacy testing reasons */
+diff -Naur hostapd-2.8-orig/src/common/wpa_common.c hostapd-2.8/src/common/wpa_common.c
+--- hostapd-2.8-orig/src/common/wpa_common.c	2019-04-21 00:10:22.000000000 -0700
++++ hostapd-2.8/src/common/wpa_common.c	2019-07-31 10:17:02.018809243 -0700
+@@ -1105,6 +1105,11 @@
+ 		return WPA_CIPHER_BIP_CMAC_256;
+ 	if (RSN_SELECTOR_GET(s) == RSN_CIPHER_SUITE_NO_GROUP_ADDRESSED)
+ 		return WPA_CIPHER_GTK_NOT_USED;
++#ifdef CONFIG_DRIVER_BRCM
++	if (RSN_SELECTOR_GET(s) == BRCM_CIPHER_SUITE_NO_GROUP_ADDRESSED)
++		return WPA_CIPHER_CCMP;
++#endif /* CONFIG_DRIVER_BRCM */
++
+ 	return 0;
+ }
+ 
+diff -Naur hostapd-2.8-orig/src/common/wpa_common.h hostapd-2.8/src/common/wpa_common.h
+--- hostapd-2.8-orig/src/common/wpa_common.h	2019-04-21 00:10:22.000000000 -0700
++++ hostapd-2.8/src/common/wpa_common.h	2019-07-31 10:17:02.026744061 -0700
+@@ -94,6 +94,9 @@
+ #define RSN_CIPHER_SUITE_CMIC RSN_SELECTOR(0x00, 0x40, 0x96, 2)
+ /* KRK is defined for nl80211 use only */
+ #define RSN_CIPHER_SUITE_KRK RSN_SELECTOR(0x00, 0x40, 0x96, 255)
++#ifdef CONFIG_DRIVER_BRCM
++#define BRCM_CIPHER_SUITE_NO_GROUP_ADDRESSED RSN_SELECTOR(0x00, 0x10, 0x18, 0)
++#endif /* CONFIG_DRIVER_BRCM */
+ 
+ /* EAPOL-Key Key Data Encapsulation
+  * GroupKey and PeerKey require encryption, otherwise, encryption is optional.
+diff -Naur hostapd-2.8-orig/src/crypto/random.c hostapd-2.8/src/crypto/random.c
+--- hostapd-2.8-orig/src/crypto/random.c	2019-04-21 00:10:22.000000000 -0700
++++ hostapd-2.8/src/crypto/random.c	2019-07-31 10:17:02.036440047 -0700
+@@ -255,6 +255,14 @@
+ 	res = -1;
+ #endif /* CONFIG_GETRANDOM */
+ 	if (res < 0) {
++#ifdef CONFIG_DRIVER_BRCM
++		fd = open("/dev/urandom", O_RDONLY | O_NONBLOCK);
++		if (fd < 0) {
++			wpa_printf(MSG_ERROR, "random: Cannot open /dev/urandom: %s",
++					strerror(errno));
++			return -1;
++		}
++#else
+ 		fd = open("/dev/random", O_RDONLY | O_NONBLOCK);
+ 		if (fd < 0) {
+ 			wpa_printf(MSG_ERROR,
+@@ -262,6 +270,7 @@
+ 				   strerror(errno));
+ 			return -1;
+ 		}
++#endif /* CONFIG_DRIVER_BRCM */
+ 
+ 		res = read(fd, dummy_key + dummy_key_avail,
+ 			   sizeof(dummy_key) - dummy_key_avail);
+@@ -338,6 +347,17 @@
+ 
+ 	res = read(sock, dummy_key + dummy_key_avail,
+ 		   sizeof(dummy_key) - dummy_key_avail);
++#ifdef CONFIG_DRIVER_BRCM
++	if (res < 0) {
++		wpa_printf(MSG_ERROR, "random: Cannot read from /dev/urandom: "
++			   "%s", strerror(errno));
++		return;
++	}
++
++	wpa_printf(MSG_DEBUG, "random: Got %u/%u bytes from /dev/urandom",
++		   (unsigned) res,
++		   (unsigned) (sizeof(dummy_key) - dummy_key_avail));
++#else
+ 	if (res < 0) {
+ 		wpa_printf(MSG_ERROR, "random: Cannot read from /dev/random: "
+ 			   "%s", strerror(errno));
+@@ -347,6 +367,7 @@
+ 	wpa_printf(MSG_DEBUG, "random: Got %u/%u bytes from /dev/random",
+ 		   (unsigned) res,
+ 		   (unsigned) (sizeof(dummy_key) - dummy_key_avail));
++#endif /* CONFIG_DRIVER_BRCM */
+ 	dummy_key_avail += res;
+ 
+ 	if (dummy_key_avail == sizeof(dummy_key)) {
+@@ -451,6 +472,16 @@
+ 	}
+ #endif /* CONFIG_GETRANDOM */
+ 
++#ifdef CONFIG_DRIVER_BRCM
++	random_fd = open("/dev/urandom", O_RDONLY | O_NONBLOCK);
++	if (random_fd < 0) {
++		wpa_printf(MSG_ERROR, "random: Cannot open /dev/urandom: %s",
++			   strerror(errno));
++		return;
++	}
++	wpa_printf(MSG_DEBUG, "random: Trying to read entropy from "
++		   "/dev/urandom");
++#else
+ 	random_fd = open("/dev/random", O_RDONLY | O_NONBLOCK);
+ 	if (random_fd < 0) {
+ 		wpa_printf(MSG_ERROR, "random: Cannot open /dev/random: %s",
+@@ -459,6 +490,7 @@
+ 	}
+ 	wpa_printf(MSG_DEBUG, "random: Trying to read entropy from "
+ 		   "/dev/random");
++#endif /* CONFIG_DRIVER_BRCM */
+ 
+ 	eloop_register_read_sock(random_fd, random_read_fd, NULL, NULL);
+ #endif /* __linux__ */
+diff -Naur hostapd-2.8-orig/src/drivers/driver.h hostapd-2.8/src/drivers/driver.h
+--- hostapd-2.8-orig/src/drivers/driver.h	2019-04-21 00:10:22.000000000 -0700
++++ hostapd-2.8/src/drivers/driver.h	2019-07-31 10:17:02.048005443 -0700
+@@ -3449,7 +3449,7 @@
+ 	 */
+ 	int (*set_authmode)(void *priv, int authmode);
+ 
+-#ifdef ANDROID
++/*#ifdef ANDROID*/
+ 	/**
+ 	 * driver_cmd - Execute driver-specific command
+ 	 * @priv: Private driver interface data
+@@ -3459,7 +3459,7 @@
+ 	 * Returns: 0 on success, -1 on failure
+ 	 */
+ 	int (*driver_cmd)(void *priv, char *cmd, char *buf, size_t buf_len);
+-#endif /* ANDROID */
++/*#endif*/ /* ANDROID */
+ 
+ 	/**
+ 	 * vendor_cmd - Execute vendor specific command
+diff -Naur hostapd-2.8-orig/src/drivers/driver_nl80211.c hostapd-2.8/src/drivers/driver_nl80211.c
+--- hostapd-2.8-orig/src/drivers/driver_nl80211.c	2019-04-21 00:10:22.000000000 -0700
++++ hostapd-2.8/src/drivers/driver_nl80211.c	2019-07-31 10:50:13.144149290 -0700
+@@ -1628,6 +1628,7 @@
+ }
+ 
+ 
++#ifndef CONFIG_DRIVER_BRCM
+ /**
+  * wpa_driver_nl80211_set_country - ask nl80211 to set the regulatory domain
+  * @priv: driver_nl80211 private data
+@@ -1661,6 +1662,7 @@
+ 		return -EINVAL;
+ 	return 0;
+ }
++#endif /* CONFIG_DRIVER_BRCM */
+ 
+ 
+ static int nl80211_get_country(struct nl_msg *msg, void *arg)
+@@ -2462,6 +2464,21 @@
+ 
+ static int nl80211_mgmt_subscribe_ap_dev_sme(struct i802_bss *bss)
+ {
++#ifdef CONFIG_DRIVER_BRCM
++	static const int stypes[] = {
++		WLAN_FC_STYPE_AUTH,
++		WLAN_FC_STYPE_ASSOC_REQ,
++		WLAN_FC_STYPE_REASSOC_REQ,
++		/* Beacon doesn't work as mac80211 doesn't currently allow
++		 * it, but it wouldn't really be the right thing anyway as
++		 * it isn't per interface ... maybe just dump the scan
++		 * results periodically for OLBC?
++		 */
++		/* WLAN_FC_STYPE_BEACON, */
++	};
++	unsigned int i;
++#endif /* CONFIG_DRIVER_BRCM */
++
+ 	if (nl80211_alloc_mgmt_handle(bss))
+ 		return -1;
+ 	wpa_printf(MSG_DEBUG, "nl80211: Subscribe to mgmt frames with AP "
+@@ -2471,6 +2488,16 @@
+ 		goto out_err;
+ 
+ 	if (bss->drv->device_ap_sme) {
++#ifdef CONFIG_DRIVER_BRCM
++	for (i = 0; i < ARRAY_SIZE(stypes); i++) {
++		if (nl80211_register_frame(bss, bss->nl_mgmt,
++					   (WLAN_FC_TYPE_MGMT << 2) |
++					   (stypes[i] << 4),
++					   NULL, 0) < 0) {
++			goto out_err;
++		}
++	}
++#else
+ 		u16 type = (WLAN_FC_TYPE_MGMT << 2) | (WLAN_FC_STYPE_AUTH << 4);
+ 
+ 		/* Register for all Authentication frames */
+@@ -2478,6 +2505,7 @@
+ 		    < 0)
+ 			wpa_printf(MSG_DEBUG,
+ 				   "nl80211: Failed to subscribe to handle Authentication frames - SAE offload may not work");
++#endif /* CONFIG_DRIVER_BRCM */
+ 	}
+ 
+ 	nl80211_mgmt_handle_register_eloop(bss);
+@@ -4865,6 +4893,9 @@
+ 	msg = nl80211_cmd_msg(drv->first_bss, 0, NL80211_CMD_NEW_INTERFACE);
+ 	if (!msg ||
+ 	    nla_put_string(msg, NL80211_ATTR_IFNAME, ifname) ||
++#ifdef CONFIG_DRIVER_BRCM
++	    nla_put(msg, NL80211_ATTR_MAC, ETH_ALEN, addr) ||
++#endif /* CONFIG_DRIVER_BRCM */
+ 	    nla_put_u32(msg, NL80211_ATTR_IFTYPE, iftype))
+ 		goto fail;
+ 
+@@ -9172,7 +9203,130 @@
+ 
+ 	return NL_SKIP;
+ }
++/*#include "../../wpa_supplicant/wpa_supplicant_i.h"*/
++#include "android_drv.h"
++
++
++#include "includes.h"
++#include <sys/ioctl.h>
++
++#include "linux_wext.h"
++#include "common.h"
++#include "driver.h"
++#include "driver_wext.h"
++#include "eloop.h"
++
++
++#include <net/if_arp.h>
++#include <netpacket/packet.h>
++
++
++#include "netlink.h"
++#include "linux_ioctl.h"
++#include "common/ieee802_11_defs.h"
++#include "common/ieee802_11_common.h"
++
+ 
++typedef struct android_wifi_priv_cmd {
++#ifdef BCMDHD_64_BIT_IPC
++	u64 bufaddr;
++#else
++	char *bufaddr;
++#endif
++	int used_len;
++	int total_len;
++} android_wifi_priv_cmd;
++
++static int drv_errors = 0;
++
++static void wpa_driver_send_hang_msg(struct wpa_driver_nl80211_data *drv)
++{
++	drv_errors++;
++	if (drv_errors > DRV_NUMBER_SEQUENTIAL_ERRORS) {
++		drv_errors = 0;
++		wpa_msg(drv->ctx, MSG_INFO, WPA_EVENT_DRIVER_STATE "HANGED");
++	}
++}
++
++static int wpa_driver_nl80211_driver_cmd(void *priv, char *cmd, char *buf,
++				  size_t buf_len )
++{
++	struct i802_bss *bss = priv;
++	struct wpa_driver_nl80211_data *drv = bss->drv;
++	struct ifreq ifr;
++	android_wifi_priv_cmd priv_cmd;
++	int ret = 0;
++	char p2pname[IFNAMSIZ + 1] = "p2p0";
++
++	if (bss->ifindex <= 0 && bss->wdev_id > 0) {
++		/* DRIVER CMD received on the DEDICATED P2P Interface which doesn't
++		 * have an NETDEVICE associated with it. So we have to re-route the
++		 * command to the parent NETDEVICE
++		 */
++		 /*struct hostapd_data *hapd = ctx; */
++		
++		wpa_printf(MSG_ERROR, "Don't know the parent iface for Re-routing DRIVER cmd. Revisit here");
++#if 0
++		struct wpa_supplicant *wpa_s = (struct wpa_supplicant *)(drv->ctx);
++
++		wpa_printf(MSG_DEBUG, "Re-routing DRIVER cmd to parent iface");
++		if (wpa_s && wpa_s->parent) {
++			/* Update the nl80211 pointers corresponding to parent iface */
++			bss = wpa_s->parent->drv_priv;
++			drv = bss->drv;
++			
++			wpa_printf(MSG_DEBUG, "Re-routing command to iface: %s"
++					      " cmd (%s)", bss->ifname, cmd);
++		}
++#endif
++	}
++
++	if (os_strcasecmp(cmd, "STOP") == 0) {
++		linux_set_iface_flags(drv->global->ioctl_sock, bss->ifname, 0);
++		wpa_msg(drv->ctx, MSG_INFO, WPA_EVENT_DRIVER_STATE "STOPPED");
++	} else if (os_strcasecmp(cmd, "START") == 0) {
++		linux_set_iface_flags(drv->global->ioctl_sock, bss->ifname, 1);
++		wpa_msg(drv->ctx, MSG_INFO, WPA_EVENT_DRIVER_STATE "STARTED");
++	} else if (os_strcasecmp(cmd, "MACADDR") == 0) {
++		u8 macaddr[ETH_ALEN] = {};
++
++		ret = linux_get_ifhwaddr(drv->global->ioctl_sock, p2pname, macaddr);
++		if (!ret)
++			ret = os_snprintf(buf, buf_len,
++					  "Macaddr = " MACSTR "\n", MAC2STR(macaddr));
++	} else { /* Use private command */
++		os_memcpy(buf, cmd, strlen(cmd) + 1);
++		memset(&ifr, 0, sizeof(ifr));
++		memset(&priv_cmd, 0, sizeof(priv_cmd));
++		os_strlcpy(ifr.ifr_name, p2pname, IFNAMSIZ);
++
++#ifdef BCMDHD_64_BIT_IPC
++		priv_cmd.bufaddr = (u64)(uintptr_t)buf;
++#else
++		priv_cmd.bufaddr = buf;
++#endif
++		priv_cmd.used_len = buf_len;
++		priv_cmd.total_len = buf_len;
++		ifr.ifr_data = (void *)&priv_cmd;
++
++		if ((ret = ioctl(drv->global->ioctl_sock, SIOCDEVPRIVATE + 1, &ifr)) < 0) {
++			wpa_printf(MSG_ERROR, "%s: failed to issue private command: %s", __func__, cmd);
++		
++			wpa_driver_send_hang_msg(drv);
++		} else {
++			drv_errors = 0;
++			ret = 0;
++			if ((os_strcasecmp(cmd, "LINKSPEED") == 0) ||
++			    (os_strcasecmp(cmd, "RSSI") == 0) ||
++			    (os_strcasecmp(cmd, "GETBAND") == 0) ||
++			    (os_strncasecmp(cmd, "WLS_BATCHING", 12) == 0))
++				ret = strlen(buf);
++			
++			wpa_msg(drv->ctx, MSG_INFO," %s %s", __func__, buf);
++		}
++	}
++	return ret;
++}
+ 
+ static int nl80211_vendor_cmd(void *priv, unsigned int vendor_id,
+ 			      unsigned int subcmd, const u8 *data,
+@@ -10914,7 +11068,11 @@
+ 	.get_capa = wpa_driver_nl80211_get_capa,
+ 	.set_operstate = wpa_driver_nl80211_set_operstate,
+ 	.set_supp_port = wpa_driver_nl80211_set_supp_port,
++#ifdef CONFIG_DRIVER_BRCM
++	.set_country = NULL,
++#else
+ 	.set_country = wpa_driver_nl80211_set_country,
++#endif /* CONFIG_DRIVER_BRCM  */
+ 	.get_country = wpa_driver_nl80211_get_country,
+ 	.set_ap = wpa_driver_nl80211_set_ap,
+ 	.set_acl = wpa_driver_nl80211_set_acl,
+@@ -10980,11 +11138,11 @@
+ 	.get_noa = wpa_driver_get_p2p_noa,
+ 	.set_ap_wps_ie = wpa_driver_set_ap_wps_p2p_ie,
+ #endif /* ANDROID_P2P */
+-#ifdef ANDROID
++/*#ifdef ANDROID */
+ #ifndef ANDROID_LIB_STUB
+ 	.driver_cmd = wpa_driver_nl80211_driver_cmd,
+ #endif /* !ANDROID_LIB_STUB */
+-#endif /* ANDROID */
++/* #endif */ /* ANDROID */
+ 	.vendor_cmd = nl80211_vendor_cmd,
+ 	.set_qos_map = nl80211_set_qos_map,
+ 	.set_wowlan = nl80211_set_wowlan,
+diff -Naur hostapd-2.8-orig/src/drivers/driver_nl80211_event.c hostapd-2.8/src/drivers/driver_nl80211_event.c
+--- hostapd-2.8-orig/src/drivers/driver_nl80211_event.c	2019-04-21 00:10:22.000000000 -0700
++++ hostapd-2.8/src/drivers/driver_nl80211_event.c	2019-07-31 10:17:02.070082715 -0700
+@@ -171,17 +171,19 @@
+ 	os_memcpy(drv->auth_bssid, mgmt->sa, ETH_ALEN);
+ 	os_memset(drv->auth_attempt_bssid, 0, ETH_ALEN);
+ 	os_memset(&event, 0, sizeof(event));
+-	os_memcpy(event.auth.peer, mgmt->sa, ETH_ALEN);
+-	event.auth.auth_type = le_to_host16(mgmt->u.auth.auth_alg);
+-	event.auth.auth_transaction =
+-		le_to_host16(mgmt->u.auth.auth_transaction);
+-	event.auth.status_code = le_to_host16(mgmt->u.auth.status_code);
+-	if (len > 24 + sizeof(mgmt->u.auth)) {
+-		event.auth.ies = mgmt->u.auth.variable;
+-		event.auth.ies_len = len - 24 - sizeof(mgmt->u.auth);
+-	}
++	{
++		os_memcpy(event.auth.peer, mgmt->sa, ETH_ALEN);
++		event.auth.auth_type = le_to_host16(mgmt->u.auth.auth_alg);
++		event.auth.auth_transaction =
++			le_to_host16(mgmt->u.auth.auth_transaction);
++		event.auth.status_code = le_to_host16(mgmt->u.auth.status_code);
++		if (len > 24 + sizeof(mgmt->u.auth)) {
++			event.auth.ies = mgmt->u.auth.variable;
++			event.auth.ies_len = len - 24 - sizeof(mgmt->u.auth);
++		}
+ 
+-	wpa_supplicant_event(drv->ctx, EVENT_AUTH, &event);
++		wpa_supplicant_event(drv->ctx, EVENT_AUTH, &event);
++	}
+ }
+ 
+ 
+@@ -1316,10 +1318,42 @@
+ 	if (is_ap_interface(drv->nlmode) && drv->device_ap_sme) {
+ 		u8 *ies = NULL;
+ 		size_t ies_len = 0;
++#ifdef CONFIG_DRIVER_BRCM
++		struct nl80211_sta_flag_update *sta_flags;
++		static struct nla_policy stats_policy[NL80211_STA_INFO_MAX + 1] = {
++			[NL80211_STA_INFO_STA_FLAGS] =
++				{ .minlen = sizeof(struct nl80211_sta_flag_update) },
++		};
++		struct nlattr *sinfo[NL80211_STA_INFO_MAX + 1];
++#endif
+ 		if (tb[NL80211_ATTR_IE]) {
+ 			ies = nla_data(tb[NL80211_ATTR_IE]);
+ 			ies_len = nla_len(tb[NL80211_ATTR_IE]);
+ 		}
++#ifdef CONFIG_DRIVER_BRCM
++		if (tb[NL80211_ATTR_STA_INFO]) {
++			if (nla_parse_nested(sinfo, NL80211_STA_INFO_MAX,
++				tb[NL80211_ATTR_STA_INFO], stats_policy)) {
++				wpa_printf(MSG_DEBUG, "nl80211: Failed to parse Station info attribute ");
++				return ;
++			}
++			if (sinfo[NL80211_STA_INFO_STA_FLAGS]) {
++				sta_flags = (struct nl80211_sta_flag_update *)
++					    nla_data(sinfo[NL80211_STA_INFO_STA_FLAGS]);
++
++				wpa_printf(MSG_DEBUG, "nl80211: sinfo sta_flags mask %d set %d ",
++							sta_flags->mask, sta_flags->set);
++				if ((sta_flags->mask & BIT(NL80211_STA_FLAG_ASSOCIATED)) &&
++				    (sta_flags->mask & BIT(NL80211_STA_FLAG_AUTHENTICATED))) {
++					if ((sta_flags->set & BIT(NL80211_STA_FLAG_ASSOCIATED)) &&
++					   (sta_flags->set & BIT(NL80211_STA_FLAG_AUTHENTICATED))) {
++						drv_event_assoc(bss->ctx, addr, ies, ies_len, 1);
++						return;
++					}
++				}
++			}
++		}
++#endif
+ 		wpa_hexdump(MSG_DEBUG, "nl80211: Assoc Req IEs", ies, ies_len);
+ 		drv_event_assoc(bss->ctx, addr, ies, ies_len, 0);
+ 		return;
+diff -Naur hostapd-2.8-orig/src/wps/http_server.c hostapd-2.8/src/wps/http_server.c
+--- hostapd-2.8-orig/src/wps/http_server.c	2019-04-21 00:10:22.000000000 -0700
++++ hostapd-2.8/src/wps/http_server.c	2019-07-31 10:17:02.078097554 -0700
+@@ -244,7 +244,12 @@
+ 	if (srv->fd < 0)
+ 		goto fail;
+ 
++#if defined(CONFIG_DRIVER_BRCM) && !defined(CMWIFI)
++	//CMWIFI to upgrade toolchain to have SO_RESUEPORT
++	if (setsockopt(srv->fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &on, sizeof(on)) < 0)
++#else
+ 	if (setsockopt(srv->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) < 0)
++#endif /* CONFIG_DRIVER_BRCM */
+ 	{
+ 		wpa_printf(MSG_DEBUG,
+ 			   "HTTP: setsockopt(SO_REUSEADDR) failed: %s",
+diff -Naur hostapd-2.8-orig/src/wps/wps_upnp_ssdp.c hostapd-2.8/src/wps/wps_upnp_ssdp.c
+--- hostapd-2.8-orig/src/wps/wps_upnp_ssdp.c	2019-04-21 00:10:22.000000000 -0700
++++ hostapd-2.8/src/wps/wps_upnp_ssdp.c	2019-07-31 10:17:02.085014200 -0700
+@@ -935,7 +935,11 @@
+  */
+ int ssdp_open_multicast(struct upnp_wps_device_sm *sm)
+ {
++#ifndef CONFIG_DRIVER_BRCM
+ 	sm->multicast_sd = ssdp_open_multicast_sock(sm->ip_addr, NULL);
++#else
++	sm->multicast_sd = sm->ssdp_sd;
++#endif /* CONFIG_DRIVER_BRCM */
+ 	if (sm->multicast_sd < 0)
+ 		return -1;
+ 	return 0;

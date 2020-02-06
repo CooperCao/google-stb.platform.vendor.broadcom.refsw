@@ -205,68 +205,65 @@ const BHDM_EDID_P_ALT_PREFERRED_VIDEOFMT BHDM_EDID_P_AltPreferredFormats[] = {
 	(sizeof(BHDM_EDID_P_Cea861bFormats) / sizeof(BHDM_EDID_P_CEA_861B_VIDEO_FORMAT))
 
 
-static uint8_t BHDM_EDID_P_EdidCheckSum(uint8_t *pEDID) ;
-
-
-static BERR_Code BHDM_EDID_P_ParseVideoDB(
+static void BHDM_EDID_P_ParseVideoDB(
 	const BHDM_Handle hHDMI,                   /* [in] HDMI handle  */
 	uint8_t DataBlockIndex,              /* [in] start offset of Video Data Block */
 	uint8_t DataBlockLength              /* [in] length (number) of Video ID codes */
 ) ;
 
 
-static BERR_Code BHDM_EDID_P_ParseFormatPreferenceDB(
+static void BHDM_EDID_P_ParseFormatPreferenceDB(
 	const BHDM_Handle hHDMI,             /* [in] HDMI handle  */
 	uint8_t DataBlockIndex,        /* [in] start offset of Video Data Block */
 	uint8_t DataBlockLength              /* [in] length (number) of Video ID codes */
 ) ;
 
-static BERR_Code BHDM_EDID_P_ParseVideoCapablityDB(
+static void BHDM_EDID_P_ParseVideoCapablityDB(
 	const BHDM_Handle hHDMI,             /* [in] HDMI handle  */
 	uint8_t DataBlockIndex,        /* [in] start offset of Video Data Block */
 	uint8_t DataBlockLength              /* [in] length (number) of Video ID codes */
 ) ;
 
-static BERR_Code BHDM_EDID_P_ParseYCbCr420VideoDB(
+static void BHDM_EDID_P_ParseYCbCr420VideoDB(
 	const BHDM_Handle hHDMI,                   /* [in] HDMI handle  */
 	uint8_t DataBlockIndex,              /* [in] start offset of Video Data Block */
 	uint8_t DataBlockLength              /* [in] length (number) of Video ID codes */
 ) ;
 
 
-static BERR_Code BHDM_EDID_P_ParseYCbCr420CapabilityMapDB(
+static void BHDM_EDID_P_ParseYCbCr420CapabilityMapDB(
 	const BHDM_Handle hHDMI,             /* [in] HDMI handle  */
 	uint8_t DataBlockIndex,        /* [in] start offset of Video Data Block */
 	uint8_t DataBlockLength              /* [in] length (number) of Video ID codes */
 ) ;
 
 
-static BERR_Code BHDM_EDID_P_ParseAudioDB(
+static void BHDM_EDID_P_ParseAudioDB(
 	const BHDM_Handle hHDMI,                   /* [in] HDMI handle  */
 	uint8_t DataBlockIndex,              /* [in] start offset of Video Data Block */
 	uint8_t DataBlockLength             /* [in] length (number) of Video ID codes */
 ) ;
 
-static BERR_Code BHDM_EDID_P_ParseHDRStaticMetadataDB(
+static void BHDM_EDID_P_ParseHDRStaticMetadataDB(
 	const BHDM_Handle hHDMI,             /* [in] HDMI handle  */
 	uint8_t DataBlockIndex,        /* [in] start offset of Video Data Block */
 	uint8_t DataBlockLength              /* [in] length (number) of Video ID codes */
 ) ;
 
-static BERR_Code BHDM_EDID_P_ParseEstablishedTimingFormats(
+static void BHDM_EDID_P_ParseEstablishedTimingFormats(
 	const BHDM_Handle hHDMI) ;                  /* [in] HDMI handle  */
 
-static BERR_Code BHDM_EDID_P_ParseV1V2TimingExtension(const BHDM_Handle hHDMI) ;
+static void BHDM_EDID_P_ParseV1V2TimingExtension(const BHDM_Handle hHDMI) ;
 
-static BERR_Code BHDM_EDID_P_ParseV3TimingExtension(const BHDM_Handle hHDMI);
+static void BHDM_EDID_P_ParseV3TimingExtension(const BHDM_Handle hHDMI);
 
-static BERR_Code BHDM_EDID_P_ProcessTimingExtension (const BHDM_Handle hHDMI) ;
+static void BHDM_EDID_P_ProcessTimingExtension (const BHDM_Handle hHDMI) ;
 
-static BERR_Code BHDM_EDID_P_GetVerticalFrequency(
+static void BHDM_EDID_P_GetVerticalFrequency(
 	uint32_t ulVertFreqMask,            /* [in] Vertical Frequency Mask (bfmt) */
 	uint16_t *uiVerticalFrequency)  ;   /* [out] Vertical Frequency value */
 
-static BERR_Code BHDM_EDID_P_ParseMonitorRange(
+static void BHDM_EDID_P_ParseMonitorRange(
 	const BHDM_Handle hHDMI, uint8_t offset) ;
 
 static BERR_Code BHDM_EDID_P_DetailTiming2VideoFmt(
@@ -277,49 +274,12 @@ static BERR_Code BHDM_EDID_P_DetailTiming2VideoFmt(
 static void BHDM_EDID_P_SelectAlternateFormat(
 	const BHDM_Handle hHDMI, BFMT_VideoFmt *alternateFormat) ;
 
+static const unsigned char EDIDUnknownText[]    = "EDID UNKNOWN" ;
+
 #if BDBG_DEBUG_BUILD
-static const char * const CeaTagName[] =
-{
-	"Reserved0  ",
-	"Audio    DB",
-	"Video    DB",
-	"Vendor Specific DB",
-	"Speaker  DB",
-	"Reserved5  ",
-	"Reserved6  ",
-	"Extended DB"
-} ;
-
-static const char * const ExtendedCeaTagName[] =
-{
-	"Video Capability Data Block",
-	"Vendor-Specific Video Data Block",
-	"VESA Display Device Data Block",
-	"VESA Video Timing Block Extension",
-	"Reserved for HDMI Video Data Block",
-	"Colorimetry Data Block",
-	"HDR Static Metadata Data Block",
-	"Reserved", /* 7 */
-	"Reserved",
-	"Reserved",
-	"Reserved",
-	"Reserved",
-	"Reserved", /* 12 */
-	"Video Format Preference Data Block",
-	"YCbCr 4:2:0 Video Data Block",
-	"YCbCr 4:2:0 Capability Map Data Block",
-	"Reserved for CEA Miscellaneous Audio Fields",
-	"Vendor-Specific Audio Data Block",
-	"Reserved for HDMI Audio Data Block",
-	/* 1931 Reserved for audio-related blocks",*/
-	/* "InfoFrame Data Block" */
-} ;
-
-
 static const char * const g_status[] = {"No", "Yes"} ;
 
 static const unsigned char EDIDByPassedText[] = "BYPASSED EDID" ;
-
 
 static const char * const CeaAudioTypeText[] =
 {
@@ -413,14 +373,11 @@ static const char * const CeaAudioSampleRateTypeText[] =
 #endif
 
 
-
-
-
 /******************************************************************************
-uint8_t BHDM_EDID_P_EdidCheckSum
+uint8_t BHDM_EDID_P_ValidEdidCheckSum
 Summary:Verify the checksum on an EDID block
 *******************************************************************************/
-static uint8_t BHDM_EDID_P_EdidCheckSum(uint8_t *pEDID)
+uint8_t BHDM_EDID_P_ValidEdidCheckSum(uint8_t *pEDID)
 {
 	uint8_t i ;
 	uint8_t checksum = 0 ;
@@ -443,8 +400,57 @@ static uint8_t BHDM_EDID_P_EdidCheckSum(uint8_t *pEDID)
 #endif
 
 	return ( (checksum % 256) ? 0 : 1) ;
-} /* end BHDM_EDID_P_EdidCheckSum */
+} /* end BHDM_EDID_P_ValidEdidCheckSum */
 
+
+BERR_Code BHDM_EDID_P_VerifyNumBlockExtensions(uint8_t *extensions)
+{
+	BERR_Code rc = BERR_SUCCESS ;
+
+	if (!*extensions)
+	{
+		rc = BHDM_EDID_HDMI_NOT_SUPPORTED ;
+		goto done ;
+	}
+
+	if (*extensions > BHDM_EDID_P_MAX_EXTENSIONS_SUPPORTED)
+	{
+		BDBG_ERR(("EDID Is probably INVALID!!! due to the large number of extensions: %d",
+			*extensions)) ;
+		*extensions = BHDM_EDID_P_MAX_EXTENSIONS_SUPPORTED ;
+		rc = BHDM_EDID_NUM_EXTENSIONS_ERROR ;
+		goto done ;
+	}
+
+done:
+	return rc ;
+}
+
+
+static BERR_Code BHDM_EDID_P_ValidEdidAvailable(
+	const BHDM_Handle hHDMI)   /* [in] HDMI handle */
+{
+	BERR_Code rc ;
+	uint8_t bRxDeviceAttached ;
+
+	/* make sure HDMI Cable is connected to something... */
+	BHDM_CHECK_RC(rc, BHDM_RxDeviceAttached(hHDMI, &bRxDeviceAttached));
+	if (!bRxDeviceAttached)
+	{
+		rc = BHDM_NO_RX_DEVICE ;
+		goto done ;
+	}
+
+	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
+	{
+		rc = BHDM_EDID_NOT_FOUND ;
+		goto done ;
+	}
+
+done:
+	return rc ;
+
+}
 
 
 /******************************************************************************
@@ -473,7 +479,7 @@ BERR_Code BHDM_EDID_GetNthBlock(
 	BHDM_CHECK_RC(rc, BHDM_RxDeviceAttached(hHDMI, &RxDeviceAttached));
 	if (!RxDeviceAttached)
 	{
-		rc = BERR_TRACE(BHDM_NO_RX_DEVICE) ;
+		rc = BHDM_NO_RX_DEVICE;
 		goto done ;
 	}
 
@@ -482,7 +488,7 @@ BERR_Code BHDM_EDID_GetNthBlock(
 	&& (hHDMI->AttachedEDID.bBlockCached[BlockNumber])
 	&& (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eOK))
 	{
-		BDBG_LOG(("Skip reading EDID; Block %d already cached", BlockNumber)) ;
+		BDBG_MSG(("Skip reading EDID; Block %d already cached", BlockNumber)) ;
 
 		/* copy the cached EDID block to the user buffer (if external) */
 		BKNI_EnterCriticalSection();
@@ -523,9 +529,8 @@ BERR_Code BHDM_EDID_GetNthBlock(
 			{
 				const uint8_t *DebugRxEdid ;
 
-				BDBG_WRN(("<$$$ BHDM_CONFIG_DEBUG_EDID_PROCESSING  $$$>")) ;
-				BDBG_WRN(("<$$$ DEBUG_EDID: Using EDID declared in bhdm_edid_debug.c Block: %d $$$>",
-					BlockNumber)) ;
+				BDBG_WRN(("<$$$ DEBUG_EDID: Using EDID[%d] declared in bhdm_edid_debug.c Block: %d $$$>",
+					hHDMI->DeviceSettings.uiDebugEdid, BlockNumber)) ;
 
 				DebugRxEdid = BHDM_EDID_P_GetDebugEdid(hHDMI) ;
 
@@ -545,7 +550,7 @@ BERR_Code BHDM_EDID_GetNthBlock(
 			if (rc == BERR_SUCCESS)
 			{
 				/* check for a valid checksum */
-				validChecksum = BHDM_EDID_P_EdidCheckSum(pBuffer) ;
+				validChecksum = BHDM_EDID_P_ValidEdidCheckSum(pBuffer) ;
 
 				/*
 				-- EDID with a valid checksum has been read
@@ -638,61 +643,17 @@ BERR_Code BHDM_EDID_GetBasicData(
 )
 {
 	BERR_Code rc = BERR_SUCCESS ;
-	uint8_t RxDeviceAttached ;
-	uint8_t i ;
 
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	/* make sure HDMI Cable is connected to something... */
-	BHDM_CHECK_RC(rc, BHDM_RxDeviceAttached(hHDMI, &RxDeviceAttached));
-	if (!RxDeviceAttached)
+	BKNI_Memset(pMonitorData, 0, sizeof(BHDM_EDID_BasicData)) ;
+
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
 	{
-		rc = BERR_TRACE(BHDM_NO_RX_DEVICE) ;
+		rc = BERR_TRACE(rc) ;
 		goto done ;
 	}
-
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
-	{
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
-		goto done ;
-	}
-
-
-	if (hHDMI->AttachedEDID.SupportedDetailTimingsIn1stBlock)
-	{
-		for (i = 0 ;
-		(i < hHDMI->AttachedEDID.SupportedDetailTimingsIn1stBlock) && (i < BHDM_EDID_MAX_PREFERRED_FORMATS) ;
-		i++)
-		{
-			BERR_Code errCode ;
-			/*
-			** convert the first and second supported descriptor to BFMT
-			** and return as a preferred format #1 and #2
-			*/
-			errCode = BHDM_EDID_P_DetailTiming2VideoFmt(hHDMI,
-				&hHDMI->AttachedEDID.SupportedDetailTimings[i],
-				&hHDMI->AttachedEDID.BasicData.PreferredVideoFmts[i]) ;
-			if (errCode) {BERR_TRACE(errCode) ;}
-		}
-
-		hHDMI->AttachedEDID.BasicData.PreferredVideoFmt =
-			hHDMI->AttachedEDID.BasicData.PreferredVideoFmts[0] ;
-	}
-	else
-	{
-		BDBG_ERR(("No BCM Supported Detail/Preferred Timing Descriptors found; selecting an alternate...")) ;
-		BHDM_EDID_P_SelectAlternateFormat(hHDMI, &hHDMI->AttachedEDID.BasicData.PreferredVideoFmts[0]) ;
-
-		/* since no detail timing blocks found
-		   set all preferred formats to the same format
-		*/
-		for (i = 1 ; i < BHDM_EDID_MAX_PREFERRED_FORMATS; i++)
-		{
-			hHDMI->AttachedEDID.BasicData.PreferredVideoFmts[i] =
-				hHDMI->AttachedEDID.BasicData.PreferredVideoFmts[0] ;
-		}
-	}
-
 
 	/* copy the EDID Basic Data */
 	BKNI_Memcpy(pMonitorData, (void *) &(hHDMI->AttachedEDID.BasicData),
@@ -715,26 +676,18 @@ BERR_Code BHDM_EDID_GetHdmiVsdb(
                                             Block to hold the retrieved data */
 )
 {
-	uint8_t RxDeviceAttached ;
 	BERR_Code rc = BERR_SUCCESS ;
-
 
 	BDBG_ENTER(BHDM_EDID_GetHdmiVsdb) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
 	BKNI_Memset(RxVSDB, 0, sizeof(BHDM_EDID_RxVendorSpecificDB)) ;
 
-	/* make sure HDMI Cable is connected to something... */
-	BHDM_CHECK_RC(rc, BHDM_RxDeviceAttached(hHDMI, &RxDeviceAttached));
-	if (!RxDeviceAttached)
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
 	{
-		rc = BERR_TRACE(BHDM_NO_RX_DEVICE) ;
+		rc = BERR_TRACE(rc) ;
 		goto done ;
-	}
-
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
-		BDBG_WRN(("No Valid EDID Found. Default to DVI Device"));
-		goto done;
 	}
 
 	if (!hHDMI->AttachedEDID.RxHasHdmiSupport)
@@ -761,7 +714,6 @@ BERR_Code BHDM_EDID_GetHdmiForumVsdb(
                                             Block to hold the retrieved data */
 )
 {
-	uint8_t RxDeviceAttached ;
 	BERR_Code rc = BERR_SUCCESS ;
 
 
@@ -770,17 +722,11 @@ BERR_Code BHDM_EDID_GetHdmiForumVsdb(
 
 	BKNI_Memset(RxHdmiForumVSDB, 0, sizeof(BHDM_EDID_RxHfVsdb)) ;
 
-	/* make sure HDMI Cable is connected to something... */
-	BHDM_CHECK_RC(rc, BHDM_RxDeviceAttached(hHDMI, &RxDeviceAttached));
-	if (!RxDeviceAttached)
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
 	{
-		rc = BERR_TRACE(BHDM_NO_RX_DEVICE) ;
+		rc = BERR_TRACE(rc) ;
 		goto done ;
-	}
-
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
-		BDBG_WRN(("No Valid EDID Found. Default to DVI Device"));
-		goto done;
 	}
 
 	if (!hHDMI->AttachedEDID.RxHasHdmiSupport)
@@ -794,7 +740,6 @@ done:
 	BDBG_LEAVE(BHDM_EDID_GetHdmiForumVsdb) ;
 	return 	rc ;
 } /* BHDM_EDID_GetHdmiForumVsdb */
-
 
 
 /******************************************************************************
@@ -893,6 +838,8 @@ static BERR_Code BHDM_EDID_P_DetailTiming2VideoFmt(
 	uint16_t AdjustedHorizPixels ;
 	uint16_t AdjustedVerticalLines ;
 
+	BSTD_UNUSED(hHDMI) ;
+
 	/* default to VGA format */
 	*Detail_VideoFmt = BFMT_VideoFmt_eDVI_640x480p  ;
 	/* adjust Detailed Timing vertical parameters for interlaced formats */
@@ -982,21 +929,6 @@ static BERR_Code BHDM_EDID_P_DetailTiming2VideoFmt(
 		BHDM_EDID_P_GetVerticalFrequency(
 			pVideoFormatInfo->ulVertFreqMask, &uiVerticalFrequency) ;
 
-#if !defined(BHDM_CONFIG_1080P_5060HZ_SUPPORT)
-		if ((eVideoFmt == BFMT_VideoFmt_e1080p)
-		&& (uiVerticalFrequency >= 50))
-		{
-			/* 1080p 60hz */
-			/* assign format but return unsupported */
-
-			*Detail_VideoFmt = eVideoFmt ;
-			BDBG_WRN(("This %d device does not support %s",
-				BCHP_CHIP, pVideoFormatInfo->pchFormatStr)) ;
-			rc = BHDM_EDID_DETAILTIMING_NOT_SUPPORTED ;
-			break ;
-		}
-#endif
-
 #if !defined(BHDM_CONFIG_4Kx2K_30HZ_SUPPORT)
 		if ((eVideoFmt == BFMT_VideoFmt_e3840x2160p_24Hz)
 		|| (eVideoFmt == BFMT_VideoFmt_e3840x2160p_25Hz)
@@ -1029,20 +961,6 @@ static BERR_Code BHDM_EDID_P_DetailTiming2VideoFmt(
 			hHDMI->AttachedEDID.MonitorRange.MaxVertical));
 #endif
 
-		if  ((hHDMI->AttachedEDID.BcmMonitorRangeParsed)
-		&& !((uiVerticalFrequency >= hHDMI->AttachedEDID.MonitorRange.MinVertical)
-		&&  (uiVerticalFrequency <= hHDMI->AttachedEDID.MonitorRange.MaxVertical)))
-		{
-			BDBG_MSG(("Inconsistent EDID: Format %s refresh rate of %dHz does not fall in the specified Vertical Frequency range of %dHz to %dHz",
-				pVideoFormatInfo->pchFormatStr,  uiVerticalFrequency,
-				hHDMI->AttachedEDID.MonitorRange.MinVertical,
-				hHDMI->AttachedEDID.MonitorRange.MaxVertical)) ;
-
-			/* while an inconsistency, it is assumed the EDID is incorrect */
-			/* and the format is supported */
-			/* DO NOT prevent display of format due to EDID error */
-			/* continue ; */
-		}
 
 		/* 5th Detailed Timings indicate support for 2D formats Only
 		make sure the selected format is 2D */
@@ -1146,20 +1064,11 @@ BERR_Code BHDM_EDID_GetDetailTiming(
 	uint8_t MaxDescriptors ;
 	uint8_t extensions, DataOffset ;
 	uint8_t NumDetailedTimingsFound = 0 ;
-	uint8_t RxDeviceAttached ;
 
 	BDBG_ENTER(BHDM_EDID_GetDetailTiming) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
 	*BCM_VideoFmt = BFMT_VideoFmt_eDVI_640x480p ; /* initialize the out param for error path */
-
-	/* make sure HDMI Cable is connected to something... */
-	BHDM_CHECK_RC(rc, BHDM_RxDeviceAttached(hHDMI, &RxDeviceAttached));
-	if (!RxDeviceAttached)
-	{
-		rc = BERR_TRACE(BHDM_NO_RX_DEVICE) ;
-		goto done ;
-	}
 
 #if BDBG_DEBUG_BUILD
 	if (hHDMI->DeviceSettings.BypassEDIDChecking)
@@ -1168,10 +1077,11 @@ BERR_Code BHDM_EDID_GetDetailTiming(
 	}
 #endif
 
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
 	{
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
-		goto done;
+		rc = BERR_TRACE(rc) ;
+		goto done ;
 	}
 
 	if (!NthTimingRequested)
@@ -1187,18 +1097,18 @@ BERR_Code BHDM_EDID_GetDetailTiming(
 	/* up to two preferred formats should be stored in handle; if requested copy and exit */
 	if ((NumDetailedTimingsFound) && (NthTimingRequested <= NumDetailedTimingsFound))
 	{
-		BKNI_Memcpy(pBHDM_EDID_DetailTiming,
-			&(hHDMI->AttachedEDID.SupportedDetailTimings[NthTimingRequested - 1]),
-			sizeof(BHDM_EDID_DetailTiming)) ;
+		BHDM_EDID_P_DetailedTiming *pDetailedTimingDescriptor;
 
-		/* function below displays just the BFMT name; parse/display done at Initialize */
-		rc = BHDM_EDID_P_DetailTiming2VideoFmt(hHDMI, pBHDM_EDID_DetailTiming, BCM_VideoFmt);
-		if (rc == BERR_SUCCESS)
+		for (i = 1, pDetailedTimingDescriptor = BLST_Q_FIRST(&hHDMI->AttachedEDID.SupportedDetailTimingList) ;
+			pDetailedTimingDescriptor ;
+			pDetailedTimingDescriptor = BLST_Q_NEXT(pDetailedTimingDescriptor, link))
 		{
-			goto BcmSupportedFormatFound;
-		}
-		else {
-			goto BcmSupportedFormatNotFound;
+			if (i++ == NthTimingRequested)
+			{
+				BKNI_Memcpy(pBHDM_EDID_DetailTiming, &pDetailedTimingDescriptor->stDetailedTiming, sizeof(*pBHDM_EDID_DetailTiming)) ;
+				*BCM_VideoFmt = pDetailedTimingDescriptor->eVideoFmt ;
+				goto BcmSupportedFormatFound;
+			}
 		}
 	}
 
@@ -1311,10 +1221,8 @@ BERR_Code BHDM_EDID_GetDetailTiming(
 BcmSupportedFormatFound:
 	if (*BCM_VideoFmt == BFMT_VideoFmt_eCUSTOM_1366x768p
 	|| *BCM_VideoFmt == BFMT_VideoFmt_eCUSTOM_1366x768p_50Hz
-#if BHDM_CONFIG_1366_FORMAT_CHECK
-	|| *BCM_VideoFmt == BFMT_VideoFmt_eDVI_1366x768p_60Hz
 	|| *BCM_VideoFmt == BFMT_VideoFmt_eDVI_1360x768p_60Hz
-#endif
+	|| *BCM_VideoFmt == BFMT_VideoFmt_eDVI_1366x768p_60Hz
 	)
 	{
 		BFMT_VideoFmt eVideoFmt ;
@@ -1367,7 +1275,7 @@ BcmSupportedFormatFound:
 
 BcmSupportedFormatNotFound:
 	/* Detailed Timing format is not supporrted by BCM, use BCM alternate supported format instead*/
-	BDBG_WRN(("Requested Detailed Timing %d NOT SUPPORTED - Detailed Timings found: %d",
+	BDBG_MSG(("Requested Detailed Timing %d NOT SUPPORTED - Detailed Timings found: %d",
 		NthTimingRequested, NumDetailedTimingsFound)) ;
 	BHDM_EDID_P_SelectAlternateFormat(hHDMI, BCM_VideoFmt) ;
 	rc = BERR_SUCCESS ; /* return success for alternate format */
@@ -1395,19 +1303,15 @@ BERR_Code BHDM_EDID_GetVideoDescriptor(
 	BERR_Code rc = BERR_SUCCESS ;
 
 	uint8_t i ;
-	uint8_t RxDeviceAttached ;
 	BHDM_EDID_P_VideoDescriptor  *pVideoDescriptor ;
 
 	BDBG_ENTER(BHDM_EDID_GetVideoDescriptor) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	/* make sure HDMI Cable is connected to something... */
-	BHDM_CHECK_RC(rc, BHDM_RxDeviceAttached(hHDMI, &RxDeviceAttached));
-	if (!RxDeviceAttached)
-	{
-		rc = BERR_TRACE(BHDM_NO_RX_DEVICE) ;
-		goto done ;
-	}
+	/* initialize the out params for error/bypass EDID path */
+	*VideoIdCode  = 1 ;
+	*BCM_VideoFmt = BFMT_VideoFmt_eDVI_640x480p ;
+	*NativeFormat = 0 ;
 
 #if BDBG_DEBUG_BUILD
 	if (hHDMI->DeviceSettings.BypassEDIDChecking)
@@ -1416,10 +1320,11 @@ BERR_Code BHDM_EDID_GetVideoDescriptor(
 	}
 #endif
 
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
 	{
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
-		goto done;
+		rc = BERR_TRACE(rc) ;
+		goto done ;
 	}
 
 	if (!hHDMI->AttachedEDID.RxHasHdmiSupport)
@@ -1465,194 +1370,8 @@ done:
 */
 
 
-#if !B_REFSW_MINIMAL
-/******************************************************************************
-BERR_Code BHDM_EDID_GetDescriptor
-Summary: Retrieve a specified EDID descriptor
-*******************************************************************************/
-BERR_Code BHDM_EDID_GetDescriptor(
-   const BHDM_Handle hHDMI, /* [in] HDMI handle */
-   BHDM_EDID_Tag tag, /* [in] id of the descriptor tag to retrieve */
-   uint8_t *pDescriptorText, /* [out] pointer to memory to hold retrieved tag data */
-   uint8_t uiBufSize         /* [in ] mem size in bytes of pDescriptorText */
-)
+static void BHDM_EDID_P_ParseMonitorRange(const BHDM_Handle hHDMI, uint8_t offset)
 {
-	uint8_t TagId ;
-	uint8_t i, j ;
-	uint8_t offset ;
-	uint8_t extensions ;
-	uint8_t MaxDescriptors ;
-	uint8_t RxDeviceAttached ;
-	bool bChecksumError ;
-
-	BERR_Code rc = BERR_SUCCESS ;
-
-	BDBG_ENTER(BHDM_EDID_GetDescriptor) ;
-	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
-
-	/* make sure HDMI Cable is connected to something... */
-	BHDM_CHECK_RC(rc, BHDM_RxDeviceAttached(hHDMI, &RxDeviceAttached));
-	if (!RxDeviceAttached)
-	{
-		rc = BERR_TRACE(BHDM_NO_RX_DEVICE) ;
-		goto done ;
-	}
-
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
-	{
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
-		goto done;
-	}
-
-
-#if BDBG_DEBUG_BUILD
-	if (hHDMI->DeviceSettings.BypassEDIDChecking)
-	{
-		BKNI_Memcpy(pDescriptorText, EDIDByPassedText,
-			BHDM_EDID_MONITOR_DESC_SIZE - BHDM_EDID_DESC_HEADER_LEN) ;
-		goto done ;
-	}
-#endif
-
-	if ((!uiBufSize)
-	||  (uiBufSize > BHDM_EDID_MONITOR_DESC_SIZE)
-	||  (uiBufSize < BHDM_EDID_MONITOR_DESC_SIZE - BHDM_EDID_DESC_HEADER_LEN))
-	{
-		BDBG_ERR(("Incorrect Specified Descriptor Length: %d", uiBufSize)) ;
-		rc = BERR_TRACE(BERR_INVALID_PARAMETER) ;
-		goto done ;
-	}
-
-
-	/* check for valid tag */
-	switch (tag)
-	{
-	case BHDM_EDID_Tag_eMONITOR_NAME  :
-		/* monitor name should have been read at EDID_Initialize */
-		if (hHDMI->AttachedEDID.MonitorName[0] == 0x00)
-		{
-			BKNI_Memcpy(pDescriptorText, &hHDMI->AttachedEDID.MonitorName,
-				BHDM_EDID_MONITOR_DESC_SIZE - BHDM_EDID_DESC_HEADER_LEN) ;
-
-			rc = BERR_SUCCESS ;  /* Descriptor Found and Copied */
-			goto done ;
-		}
-		TagId = BHDM_EDID_TAG_MONITOR_NAME ;
-		break ;
-
-	case BHDM_EDID_Tag_eMONITOR_ASCII :
-		TagId = BHDM_EDID_TAG_MONITOR_ASCII ;
-		break ;
-
-	case BHDM_EDID_Tag_eMONITOR_SN    :
-		TagId = BHDM_EDID_TAG_MONITOR_SN ;
-		break ;
-
-	default :
-		BDBG_ERR(("Invalid Descriptor Tag: %d", tag)) ;
-		rc = BERR_TRACE(BERR_INVALID_PARAMETER) ;
-		goto done ;
-	}
-
-	/* Insert the Tag we are searching for in the Descriptor Header */
-	BKNI_Memset((void *) &hHDMI->AttachedEDID.DescriptorHeader, 0x0, BHDM_EDID_DESC_HEADER_LEN);
-	hHDMI->AttachedEDID.DescriptorHeader[BHDM_EDID_DESC_TAG] = TagId ;
-
-	/* read the 1st EDID Block */
-	BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI,
-		0, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError)) ;
-
-	/* Check the four Descriptor Blocks in the initial 128 EDID  bytes */
-	for (i = 0 ; i < 4; i++)   /* 1-4 Detailed Timing Descriptor */
-	{
-		offset = BHDM_EDID_MONITOR_DESC_1 + BHDM_EDID_MONITOR_DESC_SIZE * i ;
-
-		/*
-		** Check if we've found the Descriptor tag we're looking for
-		** Descriptor Blocks begin with 0x00 0x00 0x00 <tag> 0x00
-		** Detailed Timings do not...
-		*/
-		if (BKNI_Memcmp(&hHDMI->AttachedEDID.Block[offset], (void *) &hHDMI->AttachedEDID.DescriptorHeader,
-			BHDM_EDID_DESC_HEADER_LEN) == 0)
-		{
-			BKNI_Memcpy(pDescriptorText, &hHDMI->AttachedEDID.Block[offset + BHDM_EDID_DESC_DATA],
-				BHDM_EDID_MONITOR_DESC_SIZE - BHDM_EDID_DESC_HEADER_LEN) ;
-
-			rc = BERR_SUCCESS ;  /* Descriptor Found and Copied */
-			goto done ;
-		}
-	}
-
-	/* Descriptor Not Found...check extension blocks */
-	extensions = hHDMI->AttachedEDID.BasicData.Extensions;
-	if (!extensions)
-	{
-		rc = BERR_TRACE(BHDM_EDID_DESCRIPTOR_NOT_FOUND) ;
-		goto done ;
-	}
-
-
-	/* Search EDID Extension blocks for additional descriptors */
-	for (i = 1 ; i <= extensions; i++)
-	{
-		/* read the next 128 Byte EDID block */
-		BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI,
-			i, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError)) ;
-
-
-		/* check Extension Tag type for Timing Data */
-		offset = 0 ;
-		if (hHDMI->AttachedEDID.Block[offset] != BHDM_EDID_EXT_TIMING_DATA)
-			continue ;
-
-		/* determine the number of Detailed Timing Descripors */
-		switch (hHDMI->AttachedEDID.Block[offset+1])
-		{
-		case 0x01 :  /* Check all blocks regardless of */
-			MaxDescriptors = 6 ;   /* (128 - 6) / 18 */
-			break ;
-
-		case 0x02 :  /* the version of the EDID Extension */
-		case 0x03 :  /* See EA-861 B Spec */
-			MaxDescriptors = hHDMI->AttachedEDID.Block[BHDM_EDID_EXT_MONITOR_SUPPORT] ;
-			MaxDescriptors = MaxDescriptors & 0x0F ;
-			break ;
-
-		default :
-			BDBG_WRN(("Timing Extension Version '%d' Not Supported",
-				hHDMI->AttachedEDID.Block[offset+1])) ;
-			rc = BHDM_EDID_EXT_VERSION_NOT_SUPPORTED ;
-			goto done ;
-		}
-
-
-		/* skip start of EDID Extension Block */
-		offset = hHDMI->AttachedEDID.Block[offset + 2] ;
-
-		for (j = 0 ; j < MaxDescriptors; j++)
-		{
-			if (BKNI_Memcmp(&hHDMI->AttachedEDID.Block[offset + BHDM_EDID_MONITOR_DESC_SIZE*j],
-				       (void *) &hHDMI->AttachedEDID.DescriptorHeader, BHDM_EDID_DESC_HEADER_LEN) == 0)
-			{
-				BKNI_Memcpy(pDescriptorText, &hHDMI->AttachedEDID.Block[offset + BHDM_EDID_DESC_DATA],
-					BHDM_EDID_MONITOR_DESC_SIZE - BHDM_EDID_DESC_HEADER_LEN) ;
-				rc = BERR_SUCCESS ;  /* Descriptor Found and Copied */
-				goto done ;
-			}
-		}
-	}
-
-done:
-	BDBG_LEAVE(BHDM_EDID_GetDescriptor) ;
-	return rc ;
-} /* end BHDM_EDID_GetDescriptor */
-#endif
-
-
-static BERR_Code BHDM_EDID_P_ParseMonitorRange(const BHDM_Handle hHDMI, uint8_t offset)
-{
-	BERR_Code rc = BERR_SUCCESS ;
-
 	/* indicate a Monitor Range descriptor has been parsed */
 	hHDMI->AttachedEDID.BcmMonitorRangeParsed = true ;
 
@@ -1691,7 +1410,6 @@ static BERR_Code BHDM_EDID_P_ParseMonitorRange(const BHDM_Handle hHDMI, uint8_t 
 	}
 #endif
 
-	return rc ;
 }
 
 
@@ -1707,28 +1425,18 @@ BERR_Code BHDM_EDID_GetMonitorRange(
 )
 {
 	BERR_Code rc = BERR_SUCCESS ;
-	uint8_t RxDeviceAttached ;
 
 	BDBG_ENTER(BHDM_EDID_GetMonitorRange) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	if (hHDMI->DeviceSettings.BypassEDIDChecking)
-	{
-		goto done ;
-	}
-
-	/* make sure HDMI Cable is connected to something... */
-	BHDM_CHECK_RC(rc, BHDM_RxDeviceAttached(hHDMI, &RxDeviceAttached));
-	if (!RxDeviceAttached)
-	{
-		rc = BERR_TRACE(BHDM_NO_RX_DEVICE) ;
-		goto done ;
-	}
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
 
 	/* If MonitorRange has not been parsed, EDID has not been found, etc. */
 	/* create a basic monitor range */
-	if (!hHDMI->AttachedEDID.BcmMonitorRangeParsed)
+	if (rc || !hHDMI->AttachedEDID.BcmMonitorRangeParsed)
 	{
+		BKNI_Memset(&hHDMI->AttachedEDID.MonitorRange, 0, sizeof(hHDMI->AttachedEDID.MonitorRange)) ;
+
 		hHDMI->AttachedEDID.MonitorRange.MinVertical = 60 ;
 		hHDMI->AttachedEDID.MonitorRange.MaxVertical = 60 ;
 
@@ -1750,7 +1458,6 @@ BERR_Code BHDM_EDID_GetMonitorRange(
 
 	BKNI_Memcpy(pMonitorRange, &hHDMI->AttachedEDID.MonitorRange, sizeof(BHDM_EDID_MonitorRange)) ;
 
-done:
 	BDBG_LEAVE(BHDM_EDID_GetMonitorRange) ;
 	return rc ;
 } /* BHDM_EDID_GetMonitorRange */
@@ -1769,37 +1476,29 @@ BERR_Code BHDM_EDID_IsRxDeviceHdmi(
    bool *bHdmiDevice
 )
 {
-	uint8_t RxDeviceAttached ;
 	BERR_Code rc = BERR_SUCCESS ;
 
 
 	BDBG_ENTER(BHDM_EDID_IsRxDeviceHdmi) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	BKNI_Memset(RxVSDB, 0, sizeof(BHDM_EDID_RxVendorSpecificDB)) ;
-
-
-	*bHdmiDevice = false ;  /* assume device is not HDMI */
-
-	/* make sure HDMI Cable is connected to something... */
-	BHDM_CHECK_RC(rc, BHDM_RxDeviceAttached(hHDMI, &RxDeviceAttached));
-	if (!RxDeviceAttached)
-	{
-		rc = BERR_TRACE(BHDM_NO_RX_DEVICE) ;
-		goto done ;
-	}
-
 #if BDBG_DEBUG_BUILD
 	if (hHDMI->DeviceSettings.BypassEDIDChecking)
 	{
+		BKNI_Memset(RxVSDB, 1, sizeof(BHDM_EDID_RxVendorSpecificDB)) ;
 		*bHdmiDevice = true ;
 		goto done ;
 	}
 #endif
 
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
-		BDBG_WRN(("No Valid EDID Found. Default to DVI Device"));
-		goto done;
+	BKNI_Memset(RxVSDB, 0, sizeof(BHDM_EDID_RxVendorSpecificDB)) ;
+	*bHdmiDevice = false ;  /* assume device is not HDMI */
+
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
+	{
+		rc = BERR_TRACE(rc) ;
+		goto done ;
 	}
 
 	*bHdmiDevice = hHDMI->AttachedEDID.RxHasHdmiSupport ;
@@ -1809,372 +1508,10 @@ BERR_Code BHDM_EDID_IsRxDeviceHdmi(
 	/* EDID processed at initialization; copy information */
 	BKNI_Memcpy(RxVSDB,  &hHDMI->AttachedEDID.RxVSDB, sizeof(BHDM_EDID_RxVendorSpecificDB)) ;
 
-
-#if BDBG_DEBUG_BUILD
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eNotInitialized)
-	{
-		BDBG_MSG(("HDMI Rx Supported Features (%p):", (void *)RxVSDB)) ;
-		BDBG_MSG(("   Underscan:    %s", g_status[RxVSDB->Underscan ? 1 : 0])) ;
-		BDBG_MSG(("   Audio Caps:   %s", g_status[RxVSDB->Audio ? 1 : 0])) ;
-		BDBG_MSG(("   YCbCr: 4:2:2 %s   4:4:4 %s",
-			g_status[RxVSDB->YCbCr422 ? 1 : 0],
-			g_status[RxVSDB->YCbCr444 ? 1 : 0])) ;
-
-		BDBG_MSG(("   Native Formats in Descriptors: %d",
-			RxVSDB->NativeFormatsInDescriptors)) ;
-
-		BDBG_MSG(("END HDMI Rx Supported Features")) ;
-		hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eProcessing ;
-	}
-#endif
-
-
 done:
 	BDBG_LEAVE(BHDM_EDID_IsRxDeviceHdmi) ;
 	return 	rc ;
 } /* BHDM_EDID_IsRxDeviceHdmi */
-
-
-
-#if !B_REFSW_MINIMAL
-/******************************************************************************
-BERR_Code BHDM_EDID_CheckRxHdmiAudioSupport
-Summary: Check if the input Audio Format is supported by the attached HDMI
-Receiver
-*******************************************************************************/
-BERR_Code BHDM_EDID_CheckRxHdmiAudioSupport(
-   const BHDM_Handle hHDMI,                         /* [in] HDMI handle  */
-   BAVC_AudioFormat       eAudioFormat,       /* [in] Audio Format */
-   BAVC_AudioSamplingRate eAudioSamplingRate, /* [in] Audio Rate to check for */
-   BAVC_AudioBits         eAudioBits,         /* [in] Quantization Bits to search for */
-   uint16_t               iCompressedBitRate, /* [in] Bit Rate if Compressed Audio */
-   uint8_t                *iSupported         /* [out] audio format is supported */
-)
-{
-	BERR_Code rc = BERR_SUCCESS ;
-
-	uint8_t
-		i,
-		FormatFound,
-		EdidAudioSamplingRate ;
-
-	uint8_t RxDeviceAttached ;
-	BAVC_AudioCompressionStd eAudioCompressionStd ;
-
-	BDBG_ENTER(BHDM_EDID_CheckRxHdmiAudioSupport) ;
-	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
-
-	*iSupported = 0 ;
-
-	/* make sure HDMI Cable is connected to something... */
-	BHDM_CHECK_RC(rc, BHDM_RxDeviceAttached(hHDMI, &RxDeviceAttached));
-	if (!RxDeviceAttached)
-	{
-		rc = BERR_TRACE(BHDM_NO_RX_DEVICE) ;
-		goto done ;
-	}
-
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
-	{
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
-		goto done ;
-	}
-
-	switch (eAudioFormat)
-	{
-	case BAVC_AudioFormat_ePCM    : eAudioCompressionStd = BAVC_AudioCompressionStd_ePcm ; break ;
-	case BAVC_AudioFormat_eAC3    : eAudioCompressionStd = BAVC_AudioCompressionStd_eAc3 ; break ;
-	case BAVC_AudioFormat_eMPEG1  : eAudioCompressionStd = BAVC_AudioCompressionStd_eMpegL1; break ;
-	case BAVC_AudioFormat_eMP3    : eAudioCompressionStd = BAVC_AudioCompressionStd_eMpegL3; break ;
-	case BAVC_AudioFormat_eMPEG2  : eAudioCompressionStd = BAVC_AudioCompressionStd_eMpegL2; break ;
-	case BAVC_AudioFormat_eAAC    : eAudioCompressionStd = BAVC_AudioCompressionStd_eAac; break ;
-	case BAVC_AudioFormat_eDTS    : eAudioCompressionStd = BAVC_AudioCompressionStd_eDts; break ;
-	case BAVC_AudioFormat_eDDPlus : eAudioCompressionStd = BAVC_AudioCompressionStd_eAc3Plus; break ;
-	case BAVC_AudioFormat_eDTSHD  : eAudioCompressionStd = BAVC_AudioCompressionStd_eDtshd; break ;
-	case BAVC_AudioFormat_eMATMLP : eAudioCompressionStd = BAVC_AudioCompressionStd_eMlp; break ;
-	case BAVC_AudioFormat_eWMAPro : eAudioCompressionStd = BAVC_AudioCompressionStd_eWmaPro; break ;
-
-	/* Unsupported Audio formats over HDMI */
-	case BAVC_AudioFormat_eAVS	  :
-	case BAVC_AudioFormat_eATRAC  :
-	case BAVC_AudioFormat_eDST	  :
-	case BAVC_AudioFormat_eOneBit :
-	case BAVC_AudioFormat_eMaxCount :
-	default :
-		BDBG_ERR(("Unknown/Unsupported BAVC_AudioFormat %d", eAudioFormat)) ;
-		rc = BERR_TRACE(BERR_INVALID_PARAMETER) ;
-		goto done ;
-	}
-
-
-	/* 1st check for requested format */
-	if(!hHDMI->AttachedEDID.BcmSupportedAudioFormats[eAudioFormat].Supported)
-		goto done ;
-
-	/**********************************************/
-	/* 2nd, Check for requested Audio Sample Rate */
-	/* convert the BAVC_AudioSampleRate to EdidAudioSampleRate */
-
-	EdidAudioSamplingRate = BAVC_AudioSamplingRate_eUnknown  ;
-	for (i = 0; i < sizeof(BcmSupportedAudioSampleRates) / sizeof(*BcmSupportedAudioSampleRates) ; i++)
-		if (eAudioSamplingRate == BcmSupportedAudioSampleRates[i].BcmAudioSampleRate)
-		{
-			EdidAudioSamplingRate = BcmSupportedAudioSampleRates[i].EdidAudioSampleRate ;
-			break ;
-		}
-
-	if (EdidAudioSamplingRate == BAVC_AudioSamplingRate_eUnknown)
-		goto done ;
-
-	if (!hHDMI->AttachedEDID.BcmSupportedAudioFormats[eAudioFormat].bSampleRates[eAudioSamplingRate])
-		goto done ;
-
-
-	/********************************************************/
-	/* 3rd, Get the number of Audio Bits (quantization) the */
-	/* monitor supports for the requested Audio Format etc  */
-
-
-	FormatFound = 0 ;
-	/* get the number of bits supported by this format */
-	if (eAudioCompressionStd != BAVC_AudioCompressionStd_ePcm) /* compressed formats */
-	{
-		if (iCompressedBitRate <= hHDMI->AttachedEDID.BcmSupportedAudioFormats[i].dataType.compressed.BitRate)
-		{
-			BDBG_MSG(("<%.*s> Max Bit Rate Supported: %d",
-				BHDM_EDID_DESC_ASCII_STRING_LEN, hHDMI->AttachedEDID.MonitorName,
-				hHDMI->AttachedEDID.BcmSupportedAudioFormats[i].dataType.compressed.BitRate)) ;
-			FormatFound = 1 ;
-		}
-	}
-	else                                            /* else uncompressed PCM */
-	{
-		if (eAudioBits >= BAVC_AudioBits_eMax)
-		{
-			BDBG_ERR(("Unknown Supported Bit Rate: %d", eAudioBits)) ;
-			rc = BERR_TRACE(BHDM_EDID_HDMI_UNKNOWN_BIT_RATE) ;
-			goto done ;
-		}
-
-		if (hHDMI->AttachedEDID.BcmSupportedAudioFormats[i].dataType.pcm.bBitDepths[eAudioBits])
-		{
-			FormatFound = 1 ;
-		}
-	} /* else uncompressed formats */
-
-
-	if (FormatFound)
-		*iSupported = 1 ;
-
-done:
-	BDBG_LEAVE(BHDM_EDID_CheckRxHdmiAudioSupport) ;
-	return 	rc ;
-} /* BHDM_EDID_CheckRxHdmiAudioSupport */
-
-
-
-/******************************************************************************
-BERR_Code BHDM_EDID_CheckRxHdmiVideoSupport
-Summary: Check if the input Video Format is supported by the attached HDMI Receiver
-*******************************************************************************/
-BERR_Code BHDM_EDID_CheckRxHdmiVideoSupport(
-	const BHDM_Handle hHDMI,                    /* [in] HDMI handle  */
-	uint16_t           HorizontalPixels,  /* [in] Horiz Active Pixels */
-	uint16_t           VerticalPixels,    /* [in] Vertical Active Pixels */
-	BAVC_ScanType      eScanType,         /* [in] Progressive, Interlaced */
-	BAVC_FrameRateCode eFrameRateCode,    /* [in] Vertical Frequency */
-	BFMT_AspectRatio   eAspectRatio,      /* [in] Horiz to Vertical Ratio */
-	uint8_t            *pNativeFormat	  /* [out] Requested format is a
-										      native format to the monitor */
-)
-{
-	BERR_Code rc = BHDM_EDID_HDMI_VIDEO_FORMAT_UNSUPPORTED ;
-
-	uint8_t
-		i, j, k, /* indexes */
-		extensions,
-		DataOffset,
-		DataBlockIndex,
-		DataBlockTag,
-		DataBlockLength,
-		FormatFound,
-		NumVideoDescriptors,
-		EdidVideoIDCode ;
-
-	uint8_t RxDeviceAttached ;
-	bool bChecksumError ;
-
-	BDBG_ENTER(BHDM_EDID_CheckRxHdmiVideoSupport) ;
-	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
-
-
-	/* make sure HDMI Cable is connected to something... */
-	BHDM_CHECK_RC(rc, BHDM_RxDeviceAttached(hHDMI, &RxDeviceAttached));
-	if (!RxDeviceAttached)
-	{
-		rc = BERR_TRACE(BHDM_NO_RX_DEVICE) ;
-		goto done ;
-	}
-
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
-	{
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
-		goto done ;
-	}
-
-	/* first get the number of extensions in the EDID */
-	/* audio support is always in first V3 Timing Extension; never in block 0 */
-	extensions = hHDMI->AttachedEDID.BasicData.Extensions ;
-
-	if (!extensions)
-	{
-		BDBG_WRN(("No EDID Extensions Found... Monitor supports DVI (Video) only")) ;
-		rc = BHDM_EDID_HDMI_VIDEO_FORMAT_UNSUPPORTED ;
-		goto done ;
-	}
-
-	/* check ALL extensions for Version 3 Timing Extensions */
-	for (i = 1 ; i <= extensions; i++)
-	{
-		if (hHDMI->DeviceStatus.edidState != BHDM_EDID_STATE_eOK)
-		{
-			BHDM_CHECK_RC(rc,
-				BHDM_EDID_GetNthBlock(hHDMI, i, (uint8_t *) &hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError)) ;
-		}
-
-		/* check for Timing Data Extension */
-		if (hHDMI->AttachedEDID.Block[BHDM_EDID_EXT_TAG] != BHDM_EDID_EXT_TIMING_DATA)
-			continue ;
-
-		/* check for Version 3 Timing Data Extension */
-		if (hHDMI->AttachedEDID.Block[BHDM_EDID_EXT_VERSION] != BHDM_EDID_TIMING_VERSION_3)
-			continue ;
-
-
-		/* check if data blocks exist before the 18 Byte Detailed Timing data */
-		DataOffset = hHDMI->AttachedEDID.Block[BHDM_EDID_EXT_DATA_OFFSET] ;
-		if ((DataOffset == 0)
-		||  (DataOffset == 4)) /* no Reserved Data is Available */
-		{
-			BDBG_WRN(("-----V3 Timing Extension contains no CEA Data Blocks")) ;
-			continue ;          /* continue to the next Timing Extension */
-		}
-
-
-		/* set the index to the start of Data Blocks */
-		DataBlockIndex = BHDM_EDID_EXT_DATA_BLOCK_COLLECTION ;
-
-		/* scan through the data blocks and retrieve the necessary information */
-		while (DataBlockIndex < DataOffset)
-		{
-			/* get the Data Block type */
-			DataBlockTag =
-				hHDMI->AttachedEDID.Block[DataBlockIndex] >> 5 ;
-
-			/* get the Data Block length */
-			DataBlockLength =
-				hHDMI->AttachedEDID.Block[DataBlockIndex] & 0x1F ;
-
-			BDBG_MSG(("[%02X] CEA-861 %s (0x%02x) found; %d bytes",
-				hHDMI->AttachedEDID.Block[DataBlockIndex],
-				CeaTagName[DataBlockTag], DataBlockTag, DataBlockLength)) ;
-
-			switch (DataBlockTag)
-			{
-
-			/* return error on unknown Tags */
-			default :
-				BDBG_WRN((" ")) ;
-				BDBG_WRN(("CEA-861 Data Block Tag Code <%d> is not supported",
-					DataBlockTag)) ;
-				rc = BHDM_EDID_HDMI_UNKNOWN_CEA_TAG ;
-				goto done ;
-
-			/* skip Block Tags that are of no interest to this function */
-			case BHDM_EDID_CeaDataBlockTag_eVSDB :      /* Vendor Specific DB */
-			case BHDM_EDID_CeaDataBlockTag_eAudioDB :   /* Audio DB */
-			case BHDM_EDID_CeaDataBlockTag_eSpeakerDB : /* Speaker Allocation DB */
-			case BHDM_EDID_CeaDataBlockTag_eReserved0 :
-			case BHDM_EDID_CeaDataBlockTag_eReserved5 :
-			case BHDM_EDID_CeaDataBlockTag_eReserved6 :
-			case BHDM_EDID_CeaDataBlockTag_eExtendedDB:
-				break ;
-
-			case BHDM_EDID_CeaDataBlockTag_eVideoDB :   /* Video DB */
-				/* check each video descriptor for requested video support */
-
-				FormatFound = 0 ;
-				NumVideoDescriptors = DataBlockLength ;
-
-				/* for each CEA Video ID Code Found */
-				for (j = 0 ; j < NumVideoDescriptors && !FormatFound ; j++ )
-				{
-					/* get the supported Video Code ID; check if a native format */
-					EdidVideoIDCode = hHDMI->AttachedEDID.Block[DataBlockIndex + j + 1] ;
-					EdidVideoIDCode = EdidVideoIDCode  & 0x7F ;
-
-					*pNativeFormat = EdidVideoIDCode & 0x80 ;
-
-					BDBG_MSG(("Find CEA Video ID Code %02d parameters...",
-						EdidVideoIDCode)) ;
-
-					/* search BCM 861-B supported formats for format found in EDID */
-					for (k = 0 ; k < BHDM_EDID_P_BCM_VIDEO_FORMATS_MAX ; k++)
-					{
-						if (EdidVideoIDCode != BHDM_EDID_P_Cea861bFormats[k].CeaVideoCode)
-							continue ;
-
-						BDBG_MSG(("Found supported CEA Video ID Code: %02d (%d x %d)",
-							EdidVideoIDCode,
-							BHDM_EDID_P_Cea861bFormats[k].HorizontalPixels,
-							BHDM_EDID_P_Cea861bFormats[k].VerticalPixels)) ;
-
-						/* check if the specified parameters match the requested formats */
-						/* 1st, Check if Pixel Format matches */
-						if ((HorizontalPixels != BHDM_EDID_P_Cea861bFormats[k].HorizontalPixels)
-						||	(VerticalPixels != BHDM_EDID_P_Cea861bFormats[k].VerticalPixels))
-							break  ;
-						BDBG_MSG(("Pixel Format Match")) ;
-
-
-						/* 2nd, Check Scan Type (i/p) */
-						if (eScanType != BHDM_EDID_P_Cea861bFormats[k].eScanType)
-							break  ;
-						BDBG_MSG(("Scan Type Match..")) ;
-
-
-						/* 3rd, Check Vertical Frequency */
-						if (eFrameRateCode != BHDM_EDID_P_Cea861bFormats[k].eFrameRateCode)
-							break ;
-						BDBG_MSG(("Frame Rate Match..")) ;
-
-
-						/* 4th  Check Aspect Ratio (4:3, 16:9) etc. */
-						if (eAspectRatio != BHDM_EDID_P_Cea861bFormats[k].eAspectRatio)
-							break ;
-
-						BDBG_MSG(("Requested format is supported..")) ;
-						rc = BERR_SUCCESS ;
-						goto done ;
-					} /* for each BCM Supported CEA Video ID Code */
-				} /* for each Supported CEA Video ID Code */
-			} /* for each CEA Video ID Code found */
-
-
-			DataBlockIndex += DataBlockLength + 1;
-
-		} /* while DataBlockIndex < DataOffset */
-
-	} /* for each extension */
-
-	rc = BHDM_EDID_HDMI_VIDEO_FORMAT_UNSUPPORTED ;
-
-done:
-	BDBG_LEAVE(BHDM_EDID_CheckRxHdmiVideoSupport) ;
-	return 	rc ;
-} /* BHDM_EDID_CheckRxHdmiVideoSupport */
-#endif
-
 
 
 /******************************************************************************
@@ -2190,17 +1527,12 @@ BERR_Code BHDM_EDID_VideoFmtSupported(
 {
 	BERR_Code rc = BERR_SUCCESS  ;
 	const BFMT_VideoInfo *pVideoFormatInfo ;
-	uint8_t RxDeviceAttached ;
 
 	BDBG_ENTER(BHDM_EDID_VideoFmtSupported) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
 	/* default to format not supported */
 	*Supported = 0 ;
-
-	BHDM_CHECK_RC(rc, BHDM_RxDeviceAttached(hHDMI, &RxDeviceAttached));
-	if (!RxDeviceAttached)
-		goto done ;
 
 #if BDBG_DEBUG_BUILD
 	if (hHDMI->DeviceSettings.BypassEDIDChecking)
@@ -2210,23 +1542,18 @@ BERR_Code BHDM_EDID_VideoFmtSupported(
 	}
 #endif
 
-	/* VGA is supported by all RXs */
-	if (eVideoFmt == BFMT_VideoFmt_eDVI_640x480p)
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
 	{
-		*Supported = 1 ;
+		rc = BERR_TRACE(rc) ;
 		goto done ;
-	}
-
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
-		goto error;
 	}
 
 	if ((hHDMI->AttachedEDID.BcmVideoFormatsChecked == 0)
 	&&  (hHDMI->AttachedEDID.BcmSupported420VideoFormatsChecked == 0))
 	{
 		rc = BERR_TRACE(BHDM_EDID_VIDEO_FORMATS_UNAVAILABLE) ;
-		goto error ;
+		goto done ;
 	}
 
 	if ((hHDMI->AttachedEDID.BcmSupportedVideoFormats[eVideoFmt])
@@ -2261,24 +1588,25 @@ BERR_Code BHDM_EDID_VideoFmtSupported(
 		goto done;
 	}
 
-error:
-	if (eVideoFmt == BFMT_VideoFmt_eDVI_640x480p) {
+done:
+	/* all devices must support VGA */
+	if ((eVideoFmt == BFMT_VideoFmt_eDVI_640x480p)
+	&& (rc != BHDM_NO_RX_DEVICE))
+	{
 
 		BDBG_MSG(("Can't find/read EDID. Assume HDMI receiver supports VGA (640x480p)"));
 		*Supported = 1;
 		rc = BERR_SUCCESS;
 	}
 
-done:
 	BDBG_LEAVE(BHDM_EDID_VideoFmtSupported) ;
 	return 	rc ;
 } /* BHDM_EDID_VideoFmtSupported */
 
 
-static BERR_Code BHDM_EDID_P_GetVerticalFrequency(
+static void BHDM_EDID_P_GetVerticalFrequency(
 	uint32_t ulVertFreqMask, uint16_t *uiVerticalFrequency)
 {
-	BERR_Code rc = BERR_SUCCESS ;
 	uint8_t i ;
 
 static const struct {
@@ -2294,7 +1622,7 @@ static const struct {
 		{BFMT_VERT_119_88Hz,   119},
 		{BFMT_VERT_120Hz,      120},
 
-	 	{BFMT_VERT_59_94Hz | BFMT_VERT_60Hz,        60},
+		{BFMT_VERT_59_94Hz | BFMT_VERT_60Hz,        60},
 		{BFMT_VERT_50Hz | BFMT_VERT_59_94Hz | BFMT_VERT_60Hz,        60},
 
 		{BFMT_VERT_66Hz,        66},
@@ -2319,14 +1647,13 @@ static const struct {
 		if (ulVertFreqMask & VerticalFrequencies[i].ulVertFreqMask)
 		{
 			*uiVerticalFrequency = VerticalFrequencies[i].uiVerticalFrequency ;
-			return rc ;
+			return;
 		}
 	}
 
 	BDBG_WRN(("Unknown Vertical Frequency Mask %#08X; using 60", ulVertFreqMask)) ;
 	*uiVerticalFrequency = 60 ;
 
-	return rc ;
 }
 
 
@@ -2334,11 +1661,10 @@ static const struct {
 Summary:
 Parse the Established Timings to check for CEA 861 B video formats
 *******************************************************************************/
-static BERR_Code BHDM_EDID_P_ParseEstablishedTimingFormats(
+static void BHDM_EDID_P_ParseEstablishedTimingFormats(
 	const BHDM_Handle hHDMI                  /* [in] HDMI handle  */
 )
 {
-	BERR_Code rc = BERR_SUCCESS ;
 	uint8_t EstablishedTimings ;
 
 	/* assumes current block is 0 */
@@ -2370,7 +1696,6 @@ static BERR_Code BHDM_EDID_P_ParseEstablishedTimingFormats(
 done:
 	/* indicate formats have been checked */
 	hHDMI->AttachedEDID.BcmVideoFormatsChecked = 1 ;
-	return rc ;
 }
 
 
@@ -2379,13 +1704,12 @@ Summary:
 Return all CEA 861 B video formats supported by the attached monitor as
 sepecified in the V3 Timing Ext Video Data Block.
 *******************************************************************************/
-static BERR_Code BHDM_EDID_P_ParseVideoDB(
+static void BHDM_EDID_P_ParseVideoDB(
 	const BHDM_Handle hHDMI,              /* [in] HDMI handle  */
 	uint8_t DataBlockIndex,         /* [in] start offset of Video Data Block */
 	uint8_t DataBlockLength         /* [in] length (number) of Video ID codes */
 )
 {
-	BERR_Code rc = BERR_SUCCESS ;
 	const BFMT_VideoInfo *pVideoFormatInfo ;
 	uint8_t
 		j, k, l, /* indexes */
@@ -2558,8 +1882,8 @@ static BERR_Code BHDM_EDID_P_ParseVideoDB(
 						BKNI_Malloc(sizeof(BHDM_EDID_P_VideoDescriptor )) ;
 					if (pVideoDescriptor == NULL)
 					{
-						rc = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-						return rc;
+						BDBG_ERR(("Unable to allocate memory for video descriptor")) ;
+						goto done ;
 					}
 					pVideoDescriptor->VideoIdCode  = EdidVideoIDCode ;
 					pVideoDescriptor->NativeFormat = NativeFormat ;
@@ -2590,18 +1914,17 @@ static BERR_Code BHDM_EDID_P_ParseVideoDB(
 
 	hHDMI->AttachedEDID.First16VideoDescriptorsChecked = true ;
 
-
-	return rc ;
+done:
+	return ;
 }
 
 
-static BERR_Code BHDM_EDID_P_ParseFormatPreferenceDB(
+static void BHDM_EDID_P_ParseFormatPreferenceDB(
 	const BHDM_Handle hHDMI,             /* [in] HDMI handle  */
 	uint8_t DataBlockIndex,        /* [in] start offset of the Data Block */
 	uint8_t DataBlockLength              /* [in] length (number) of bytes */
 )
 {
-	BERR_Code rc = BERR_SUCCESS ;
 	uint8_t j, NumSVRs, KDtd ;
 	uint8_t SVR ; /* Short Video Reference Code */
 
@@ -2643,18 +1966,15 @@ static BERR_Code BHDM_EDID_P_ParseFormatPreferenceDB(
 	}
 
 	BDBG_WRN(("TODO: Video Format Preferences Not Stored")) ;
-
-	return rc ;
 }
 
 
-static BERR_Code BHDM_EDID_P_ParseVideoCapablityDB(
+static void BHDM_EDID_P_ParseVideoCapablityDB(
 	const BHDM_Handle hHDMI,             /* [in] HDMI handle  */
 	uint8_t DataBlockIndex,        /* [in] start offset of Video Data Block */
 	uint8_t DataBlockLength              /* [in] length (number) of Video ID codes */
 )
 {
-	BERR_Code rc = BERR_SUCCESS ;
 	uint8_t VideoCapabilityByte ;
 
 	BSTD_UNUSED(DataBlockLength) ;
@@ -2675,17 +1995,15 @@ static BERR_Code BHDM_EDID_P_ParseVideoCapablityDB(
 	hHDMI->AttachedEDID.VideoCapabilityDB.bQuantizationSelectatbleYCC =
 		VideoCapabilityByte & 0x80 ;
 
-	return rc ;
 }
 
 
-static BERR_Code BHDM_EDID_P_ParseYCbCr420VideoDB(
+static void BHDM_EDID_P_ParseYCbCr420VideoDB(
 	const BHDM_Handle hHDMI,                   /* [in] HDMI handle  */
 	uint8_t DataBlockIndex,              /* [in] start offset of Video Data Block */
 	uint8_t DataBlockLength              /* [in] length (number) of Video ID codes */
 )
 {
-	BERR_Code rc = BERR_SUCCESS ;
 	const BFMT_VideoInfo *pVideoFormatInfo ;
 	uint8_t
 		j, k, l, /* indexes */
@@ -2833,19 +2151,16 @@ static BERR_Code BHDM_EDID_P_ParseYCbCr420VideoDB(
 	} /* for each CEA-861-B Video Descriptor */
 
 	hHDMI->AttachedEDID.BcmSupported420VideoFormatsChecked = 1 ;
-
-	return rc ;
 }
 
 
 
-static BERR_Code BHDM_EDID_P_ParseYCbCr420CapabilityMapDB(
+static void BHDM_EDID_P_ParseYCbCr420CapabilityMapDB(
 	const BHDM_Handle hHDMI,             /* [in] HDMI handle  */
 	uint8_t DataBlockIndex,        /* [in] start offset of Video Data Block */
 	uint8_t DataBlockLength              /* [in] length (number) of Video ID codes */
 )
 {
-	BERR_Code rc = BERR_SUCCESS ;
 	BFMT_VideoInfo *pVideoFormatInfo ;
 
 	BHDM_EDID_P_VideoDescriptor *pVideoDescriptor = NULL ;
@@ -2892,8 +2207,6 @@ static BERR_Code BHDM_EDID_P_ParseYCbCr420CapabilityMapDB(
 	}
 
 	hHDMI->AttachedEDID.BcmSupported420VideoFormatsChecked = 1 ;
-
-	return rc ;
 }
 
 
@@ -2929,15 +2242,12 @@ Summary:
 Return all CEA 861 B video formats supported by the attached monitor as
 sepecified in the V3 Timing Ext Video Data Block.
 *******************************************************************************/
-static BERR_Code BHDM_EDID_P_ParseAudioDB(
+static void BHDM_EDID_P_ParseAudioDB(
 	const BHDM_Handle hHDMI,             /* [in] HDMI handle  */
 	uint8_t DataBlockIndex,        /* [in] start offset of Video Data Block */
 	uint8_t DataBlockLength        /* [in] length (number) of Video ID codes */
 )
 {
-
-	BERR_Code rc = BERR_SUCCESS ;
-
 	uint8_t
 		i, j, /* indexes */
 		NumAudioDescriptors,
@@ -3054,7 +2364,6 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 			else
 			{
 				BDBG_WRN(("Unknown/Un-Supported Bit Rate")) ;
-				rc = BHDM_EDID_HDMI_UNKNOWN_BIT_RATE ;
 				continue ;
 			}
 
@@ -3091,7 +2400,6 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 		}
 	} /* for each CEA Audio Format Code Found in EDID */
 
-	return rc ;
 }
 
 
@@ -3179,7 +2487,7 @@ static void BHDM_EDID_P_SetSupportedMatchingFmts(
 		{
 			if (uiVerticalFrequency != uiSupportedVerticalFrequency)
 			        continue;
- 		}
+		}
 
 		/* set as supported */
 		hHDMI->AttachedEDID.BcmSupportedVideoFormats[i] = true ;
@@ -3204,8 +2512,20 @@ BERR_Code BHDM_EDID_GetSupported420VideoFormats(
 	BDBG_ENTER(BHDM_EDID_GetSupported420VideoFormats) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
-		rc = BERR_TRACE( BHDM_EDID_NOT_FOUND) ;
+#if BDBG_DEBUG_BUILD
+	if (hHDMI->DeviceSettings.BypassEDIDChecking)
+	{
+		BKNI_Memset(VideoFormats, 1, sizeof(*VideoFormats)) ;
+		goto done ;
+	}
+#endif
+
+	BKNI_Memset(VideoFormats, 0, sizeof(*VideoFormats)) ;
+
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
+	{
+		rc = BERR_TRACE(rc) ;
 		goto done ;
 	}
 
@@ -3238,9 +2558,20 @@ BERR_Code BHDM_EDID_GetSupportedVideoFormats(
 	BDBG_ENTER(BHDM_EDID_GetSupportedVideoFormats) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
+#if BDBG_DEBUG_BUILD
+	if (hHDMI->DeviceSettings.BypassEDIDChecking)
 	{
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
+		BKNI_Memset(VideoFormats, 1, sizeof(*VideoFormats)) ;
+		goto done ;
+	}
+#endif
+
+	BKNI_Memset(VideoFormats, 0, sizeof(*VideoFormats)) ;
+
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
+	{
+		rc = BERR_TRACE(rc) ;
 		goto done ;
 	}
 
@@ -3268,7 +2599,7 @@ See BHDM_EDID_GetSupportedVideoFormats
 *******************************************************************************/
 BERR_Code BHDM_EDID_GetSupportedVideoInfo(
 	const BHDM_Handle hHDMI,					 /* [in] HDMI handle  */
-	BHDM_EDID_VideoDescriptorInfo *stSupportedVideoInfo       /* [out] supported true/false */
+	BHDM_EDID_VideoDescriptorInfo *pstSupportedVideoInfo       /* [out] supported true/false */
 )
 {
 	BERR_Code rc = BERR_SUCCESS ;
@@ -3276,9 +2607,23 @@ BERR_Code BHDM_EDID_GetSupportedVideoInfo(
 	BDBG_ENTER(BHDM_EDID_GetSupportedVideoInfo) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
-		goto done;
+#if BDBG_DEBUG_BUILD
+	if (hHDMI->DeviceSettings.BypassEDIDChecking)
+	{
+		BKNI_Memset(pstSupportedVideoInfo, 1, sizeof(*pstSupportedVideoInfo)) ;
+		pstSupportedVideoInfo->numDescriptors = BHDM_EDID_MAX_CEA_VIDEO_ID_CODES ;
+		goto done ;
+	}
+#endif
+
+	/* zero out return structure */
+	BKNI_Memset(pstSupportedVideoInfo, 0, sizeof(BHDM_EDID_VideoDescriptorInfo));
+
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
+	{
+		rc = BERR_TRACE(rc) ;
+		goto done ;
 	}
 
 	if (hHDMI->AttachedEDID.BcmVideoFormatsChecked == 0) {
@@ -3286,18 +2631,11 @@ BERR_Code BHDM_EDID_GetSupportedVideoInfo(
 		goto done;
 	}
 
-	/* zero out return structure */
-	BKNI_Memset(stSupportedVideoInfo, 0, sizeof(BHDM_EDID_VideoDescriptorInfo));
-
-
-	stSupportedVideoInfo->numDescriptors
+	pstSupportedVideoInfo->numDescriptors
 		= hHDMI->AttachedEDID.NumBcmSupportedVideoDescriptors ;
 
-	BDBG_MSG(("Num Supported Descriptors: %d",
-		hHDMI->AttachedEDID.NumBcmSupportedVideoDescriptors)) ;
-
 	BKNI_Memcpy(
-		stSupportedVideoInfo->VideoIDCode, hHDMI->AttachedEDID.BcmSupportedVideoIdCodes,
+		pstSupportedVideoInfo->VideoIDCode, hHDMI->AttachedEDID.BcmSupportedVideoIdCodes,
 		hHDMI->AttachedEDID.NumBcmSupportedVideoDescriptors) ;
 
 done:
@@ -3323,11 +2661,20 @@ BERR_Code BHDM_EDID_GetSupportedAudioFormats(
 	BDBG_ENTER(BHDM_EDID_GetSupportedAudioFormats) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	BKNI_Memset(BcmAudioFormats, 0, sizeof(hHDMI->AttachedEDID.BcmSupportedAudioFormats)) ;
-
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
+#if BDBG_DEBUG_BUILD
+	if (hHDMI->DeviceSettings.BypassEDIDChecking)
 	{
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
+		BKNI_Memset(BcmAudioFormats, 1, sizeof(*BcmAudioFormats)) ;
+		goto done ;
+	}
+#endif
+
+	BKNI_Memset(BcmAudioFormats, 0, sizeof(*BcmAudioFormats)) ;
+
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
+	{
+		rc = BERR_TRACE(rc) ;
 		goto done ;
 	}
 
@@ -3430,11 +2777,6 @@ static void BHDM_EDID_P_ParseHdmi_1_4VSDB(const BHDM_Handle hHDMI, uint8_t DataB
 	hHDMI->AttachedEDID.RxVSDB.PhysAddr_B = (hHDMI->AttachedEDID.Block[DataBlockIndex+4] & 0x0F) ;
 	hHDMI->AttachedEDID.RxVSDB.PhysAddr_C = (hHDMI->AttachedEDID.Block[DataBlockIndex+5] & 0xF0) >> 4 ;
 	hHDMI->AttachedEDID.RxVSDB.PhysAddr_D = (hHDMI->AttachedEDID.Block[DataBlockIndex+5] & 0x0F) ;
-
-#if BHDM_CONFIG_CEC_LEGACY_SUPPORT && BHDM_CEC_SUPPORT
-	BKNI_Memcpy(hHDMI->cecConfiguration.CecPhysicalAddr,
-		&hHDMI->AttachedEDID.Block[DataBlockIndex+4], 2) ;
-#endif
 
 	/* DataBlockLength is N (which is 1 less than actual length). */
 	if (DataBlockLength >= 6)
@@ -3584,9 +2926,14 @@ static void BHDM_EDID_P_ParseHdmi_HF_VSDB(const BHDM_Handle hHDMI, uint8_t DataB
 	hHDMI->AttachedEDID.RxHdmiForumVsdb.IndependentView =
 		(hHDMI->AttachedEDID.Block[DataBlockIndex+6] & 0x04) >> 2 ;
 
-	/* Sink supports scrambling for pixel clocks <= 340MHz */
+	/* Sink supports scrambling for TMDS Rates <= 340Mcsc */
 	hHDMI->AttachedEDID.RxHdmiForumVsdb.LTE_340MScrambleSupport =
 		(hHDMI->AttachedEDID.Block[DataBlockIndex+6] & 0x08) >> 3 ;
+	if (hHDMI->AttachedEDID.RxHdmiForumVsdb.LTE_340MScrambleSupport)
+	{
+		BDBG_WRN(("Disabling scrambling support for formats with TMDS Rate <= 340Mcsc")) ;
+		hHDMI->AttachedEDID.RxHdmiForumVsdb.LTE_340MScrambleSupport = 0 ;
+	}
 
 	/* Sink can initiate SCDC Read Request */
 	hHDMI->AttachedEDID.RxHdmiForumVsdb.RRCapable =
@@ -3594,7 +2941,6 @@ static void BHDM_EDID_P_ParseHdmi_HF_VSDB(const BHDM_Handle hHDMI, uint8_t DataB
 	hHDMI->AttachedEDID.RxHdmiForumVsdb.SCDCSupport =
 		(hHDMI->AttachedEDID.Block[DataBlockIndex+6] & 0x80) >> 7 ;
 
-	/* TODO  */
 	hHDMI->AttachedEDID.RxHdmiForumVsdb.DeepColor_420_30bit =
 		(hHDMI->AttachedEDID.Block[DataBlockIndex+7] & 0x01)  ;
 	hHDMI->AttachedEDID.RxHdmiForumVsdb.DeepColor_420_36bit =
@@ -3618,32 +2964,137 @@ static void BHDM_EDID_P_ParseHdmi_HF_VSDB(const BHDM_Handle hHDMI, uint8_t DataB
 
 static void BHDM_EDID_P_ParseVendorSpecificDB(const BHDM_Handle hHDMI, uint8_t DataBlockIndex, uint8_t DataBlockLength)
 {
-	static const uint8_t ucpIEEE_HDMI_1_4_RegId[3] = {0x03, 0x0C, 0x00} ; /* LSB.. MSB */
-	static const uint8_t ucpIEEE_HF_2_0_RegId[3] = {0xD8, 0x5D, 0xC4} ; /* LSB.. MSB */
-	uint8_t *ucpIEEE_RegId ;
+	const uint8_t *ucpEDID_IEEE_RegId ;
 
-	ucpIEEE_RegId = &hHDMI->AttachedEDID.Block[DataBlockIndex+1] ;
-
+	ucpEDID_IEEE_RegId = &hHDMI->AttachedEDID.Block[DataBlockIndex+1] ;
 	BDBG_MSG(("*** VSDB IEEE Reg ID <%02X%02X%02X> ***",
-			ucpIEEE_RegId[2], ucpIEEE_RegId[1], ucpIEEE_RegId[0])) ;
+			ucpEDID_IEEE_RegId[2], ucpEDID_IEEE_RegId[1], ucpEDID_IEEE_RegId[0])) ;
 
 	/* make sure it is the correct IEEE Registration ID */
-	if (BKNI_Memcmp(ucpIEEE_RegId, ucpIEEE_HDMI_1_4_RegId, 3) == 0)
+	if (BKNI_Memcmp(ucpEDID_IEEE_RegId, BAVC_HDMI_GetOuiId(BAVC_HDMI_IEEERegId_eVSDB), 3) == 0)
 	{
 		BHDM_EDID_P_ParseHdmi_1_4VSDB(hHDMI, DataBlockIndex, DataBlockLength) ;
 	}
-	else if (BKNI_Memcmp(ucpIEEE_RegId, ucpIEEE_HF_2_0_RegId, 3) == 0)
+	else if (BKNI_Memcmp(ucpEDID_IEEE_RegId, BAVC_HDMI_GetOuiId(BAVC_HDMI_IEEERegId_eHF_VSDB), 3) == 0)
 	{
 		BHDM_EDID_P_ParseHdmi_HF_VSDB(hHDMI, DataBlockIndex, DataBlockLength) ;
+	}
+#ifdef BHDM_HDR10_PLUS_SUPPORT
+	else if (BKNI_Memcmp(ucpEDID_IEEE_RegId, BAVC_HDMI_GetOuiId(BAVC_HDMI_IEEERegId_eHDR10P), 3) == 0)
+	{
+		BHDM_EDID_P_ParseHdr10Plus_VSDB(hHDMI, DataBlockIndex, DataBlockLength) ;
+	}
+#endif
+	else if (BKNI_Memcmp(ucpEDID_IEEE_RegId, BAVC_HDMI_GetOuiId(BAVC_HDMI_IEEERegId_eDolby), 3) == 0)
+	{
+		BDBG_MSG(("Dolby VSDB not parsed")) ;
 	}
 	else
 	{
 		BDBG_ERR(("VSDB IEEE Reg ID <%02X%02X%02X> not recognized/supported and will not be processed",
-			ucpIEEE_RegId[2], ucpIEEE_RegId[1], ucpIEEE_RegId[0])) ;
+			ucpEDID_IEEE_RegId[2], ucpEDID_IEEE_RegId[1], ucpEDID_IEEE_RegId[0])) ;
 	}
 
 	return;
 
+}
+
+
+static void BHDM_EDID_P_ParseExtensionOverrideDB(
+	const BHDM_Handle hHDMI, uint8_t DataBlockIndex)
+{
+	hHDMI->AttachedEDID.BasicData.Extensions =
+		hHDMI->AttachedEDID.Block[DataBlockIndex+2] ;
+
+	BDBG_LOG(("Found HDMI 2.1 EEODB; Num Timing Extensions is now %d",
+		hHDMI->AttachedEDID.BasicData.Extensions)) ;
+}
+
+
+static void BHDM_EDID_P_CheckForTimingExtensionOverrideDB(const BHDM_Handle hHDMI)
+{
+	BERR_Code rc ;
+	bool bChecksumError ;
+	uint8_t
+		DataBlockIndex,
+		DataBlockLength,
+		DataOffset,
+		DataBlockTag,
+		ExtendedTagCode;
+
+	/* In most cases, the EDID extension count in Block 0 will be the */
+	/* number of extensions that is read/set when Block 0 is parsed */
+	/* HOWEVER the extension count can be overrwritten by an EEODB */
+	/* EEODB (EDID Extension Override Data Block) */
+
+	/* Read the 2nd block (EDID Block 1) to search for an EEODB */
+	BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI, 1, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError)) ;
+	if (bChecksumError)
+	{
+		BDBG_WRN(("Checksum Error in found in 1st EDID extension block ignored")) ;
+	}
+
+	DataOffset = hHDMI->AttachedEDID.Block[BHDM_EDID_EXT_DATA_OFFSET] ;
+
+	/* check if data blocks exist before the detailed timing data */
+	if ((DataOffset != 0)
+	&& (DataOffset != 4)) /* yes, data blocks exist. */
+	{
+		/* Set the index to the start of Data Blocks */
+		DataBlockIndex = BHDM_EDID_EXT_DATA_BLOCK_COLLECTION ;
+
+		while (DataBlockIndex < DataOffset)
+		{
+			/* get the Data Block tag and length */
+			DataBlockTag    = hHDMI->AttachedEDID.Block[DataBlockIndex] >> 5 ;
+			DataBlockLength = hHDMI->AttachedEDID.Block[DataBlockIndex] & 0x1F ;
+
+			switch (DataBlockTag)
+			{
+
+			case BHDM_EDID_CeaDataBlockTag_eExtendedDB:
+				ExtendedTagCode = hHDMI->AttachedEDID.Block[DataBlockIndex+1];
+
+				switch (ExtendedTagCode)
+				{
+
+				case BHDM_EDID_CeaExtendedDBTag_eExtensionOverrideDB :
+					BHDM_EDID_P_ParseExtensionOverrideDB(hHDMI, DataBlockIndex) ;
+					goto done ; /* no more EDID Extension Override DBs -- EEODB */
+					break ;
+
+				/* skip all other CEA Extended DB tags */
+				case BHDM_EDID_CeaExtendedDBTag_eVendorSpecificVideoDB:
+				case BHDM_EDID_CeaExtendedDBTag_eColorimetryDB :
+				case BHDM_EDID_CeaExtendedDBTag_eVideoCapabilityDB :
+				case BHDM_EDID_CeaExtendedDBTag_eYCBCR420CapabilityMapDB :
+				case BHDM_EDID_CeaExtendedDBTag_eVideoFormatPreferenceDB :
+				case BHDM_EDID_CeaExtendedDBTag_eYCBCR420VideoDB :
+				case BHDM_EDID_CeaExtendedDBTag_eHDRStaticMetaDB :
+				case BHDM_EDID_CeaExtendedDBTag_eVendorSpecificAudioDB :
+				default :
+					break ;
+				}
+
+				break;
+
+			/* skip all other CEA DB tags */
+			case BHDM_EDID_CeaDataBlockTag_eAudioDB :   /* Audio DB */
+			case BHDM_EDID_CeaDataBlockTag_eVSDB :      /* Vendor Specific DB */
+			case BHDM_EDID_CeaDataBlockTag_eSpeakerDB : /* Speaker Allocation DB */
+			case BHDM_EDID_CeaDataBlockTag_eReserved0 :
+			case BHDM_EDID_CeaDataBlockTag_eReserved5 :
+			case BHDM_EDID_CeaDataBlockTag_eReserved6 :
+			default :
+				break ;
+			}
+
+			/* skip over the block */
+			DataBlockIndex += DataBlockLength + 1;
+		} /* while DataBlockIndex < DataOffset */
+	}
+
+done: ;
 }
 
 
@@ -3657,12 +3108,11 @@ static BERR_Code BHDM_EDID_P_ProcessDetailedTimingBlock(const BHDM_Handle hHDMI,
 	rc = BHDM_EDID_P_DetailTiming2VideoFmt(hHDMI, DetailTimingBlock, eVideoFmt) ;
 	if (rc)
 	{
-		BDBG_WRN(("Unknown/Unsupported Detailed Timing Format %4d x %d (%4d%c)",
+		BDBG_MSG(("Unknown/Unsupported Detailed Timing Format %4d x %d (%4d%c)",
 			DetailTimingBlock->HorizActivePixels, DetailTimingBlock->VerticalActiveLines,
 			DetailTimingBlock->Mode ?
 				DetailTimingBlock->VerticalActiveLines * 2 : DetailTimingBlock->VerticalActiveLines,
 			Mode[DetailTimingBlock->Mode])) ;
-		BDBG_WRN((" ")) ;
 
 		/* no need to error trace here; format is unknown or unsupported by the STB */
 	}
@@ -3670,13 +3120,12 @@ static BERR_Code BHDM_EDID_P_ProcessDetailedTimingBlock(const BHDM_Handle hHDMI,
 	return rc;
 }
 
-static BERR_Code BHDM_EDID_P_ParseHDRStaticMetadataDB(
+static void BHDM_EDID_P_ParseHDRStaticMetadataDB(
 	const BHDM_Handle hHDMI,             /* [in] HDMI handle  */
 	uint8_t DataBlockIndex,        /* [in] start offset of Video Data Block */
 	uint8_t DataBlockLength              /* [in] length (number) of Video ID codes */
 )
 {
-	BERR_Code rc = BERR_SUCCESS ;
 	uint8_t EotfByte  ;
 
 
@@ -3724,13 +3173,10 @@ static BERR_Code BHDM_EDID_P_ParseHDRStaticMetadataDB(
 	default :
 		BDBG_ERR(("Invalid/Unsupported HDR Data Block length %d", DataBlockLength)) ;
 	}
-
-	return rc ;
 }
 
-static BERR_Code BHDM_EDID_P_ParseV1V2TimingExtension(const BHDM_Handle hHDMI)
+static void BHDM_EDID_P_ParseV1V2TimingExtension(const BHDM_Handle hHDMI)
 {
-	BERR_Code rc = BERR_SUCCESS ;
 	uint8_t
 		i, offset,
 		DataOffset ;
@@ -3745,7 +3191,7 @@ static BERR_Code BHDM_EDID_P_ParseV1V2TimingExtension(const BHDM_Handle hHDMI)
 	/* check if data blocks exist before the detailed timing data */
 	DataOffset = hHDMI->AttachedEDID.Block[BHDM_EDID_EXT_DATA_OFFSET] ;
 	if (DataOffset == 0)  /* no detailed timing descriptors */
-		return rc ;
+		goto done ;
 
 	i = 0 ;
 	offset = DataOffset ;
@@ -3785,13 +3231,14 @@ static BERR_Code BHDM_EDID_P_ParseV1V2TimingExtension(const BHDM_Handle hHDMI)
 
 		offset = DataOffset + BHDM_EDID_MONITOR_DESC_SIZE * i++ ;
 	}
-	return rc ;
+
+done: ;
 }
 
 
-static BERR_Code BHDM_EDID_P_ParseV3TimingExtension (const BHDM_Handle hHDMI)
+static void BHDM_EDID_P_ParseV3TimingExtension (const BHDM_Handle hHDMI)
 {
-	BERR_Code rc = BERR_SUCCESS;
+	BERR_Code rc ;
 	uint8_t
 		DataOffset,
 		DataBlockIndex,
@@ -3826,7 +3273,7 @@ static BERR_Code BHDM_EDID_P_ParseV3TimingExtension (const BHDM_Handle hHDMI)
 				BDBG_MSG(("******************** DATA BLOCK *******************")) ;
 				BDBG_MSG(("[%#02X] CEA-861 %s (%#02x) (%d bytes)",
 						  hHDMI->AttachedEDID.Block[DataBlockIndex],
-						  CeaTagName[DataBlockTag], DataBlockTag, DataBlockLength)) ;
+						  BAVC_HDMI_EDID_CeaTagToStr(DataBlockTag), DataBlockTag, DataBlockLength)) ;
 
 				/* adds to supported BCM video formats */
 				BHDM_EDID_P_ParseVideoDB(hHDMI, DataBlockIndex, DataBlockLength) ;
@@ -3860,7 +3307,7 @@ static BERR_Code BHDM_EDID_P_ParseV3TimingExtension (const BHDM_Handle hHDMI)
 			BDBG_MSG(("******************** DATA BLOCK *******************")) ;
 			BDBG_MSG(("*** [%#02X] CEA-861 %s (%#02x)  (%d bytes) ***",
 					  hHDMI->AttachedEDID.Block[DataBlockIndex],
-					  CeaTagName[DataBlockTag], DataBlockTag, DataBlockLength)) ;
+					  BAVC_HDMI_EDID_CeaTagToStr(DataBlockTag), DataBlockTag, DataBlockLength)) ;
 
 			switch (DataBlockTag)
 			{
@@ -3869,13 +3316,6 @@ static BERR_Code BHDM_EDID_P_ParseV3TimingExtension (const BHDM_Handle hHDMI)
 				/* adds to supported BCM audio formats */
 				BHDM_EDID_P_ParseAudioDB(hHDMI, DataBlockIndex, DataBlockLength) ;
 				break ;
-
-			/* Video Data Block already parse at this point */
-#if 0
-			/* coverity[dead_error_condition] */
-			case BHDM_EDID_CeaDataBlockTag_eVideoDB :	/* Video DB */
-				break ;
-#endif
 
 			case BHDM_EDID_CeaDataBlockTag_eVSDB :		/* Vendor Specific DB */
 				/* populates RxVSDB */
@@ -3887,29 +3327,15 @@ static BERR_Code BHDM_EDID_P_ParseV3TimingExtension (const BHDM_Handle hHDMI)
 
 			case BHDM_EDID_CeaDataBlockTag_eExtendedDB:
 				ExtendedTagCode = hHDMI->AttachedEDID.Block[DataBlockIndex+1];
-				if (ExtendedTagCode <= 18)
-				{
-					BDBG_MSG(("   Extended Tag <%02d>  [%s]",
-						ExtendedTagCode, ExtendedCeaTagName[ExtendedTagCode])) ;
-
-#if BDBG_DEBUG_BUILD
-#if 0
-					{
-						/* code to debug raw data bytes */
-						uint8_t i ;
-						BDBG_MSG(("   Extended DB bytes:")) ;
-						for (i = 0 ; i <= DataBlockLength; i++)
-						{
-							BDBG_MSG(("      Data Block[%d] %02x",
-								DataBlockIndex+i , hHDMI->AttachedEDID.Block[DataBlockIndex+i])) ;
-						}
-					}
-#endif
-#endif
-				}
+				BDBG_MSG(("   Extended Tag <%02d>  [%s]", ExtendedTagCode,
+					BAVC_HDMI_EDID_CeaExtendedTagToStr(ExtendedTagCode))) ;
 
 				switch (ExtendedTagCode)
 				{
+				case BHDM_EDID_CeaExtendedDBTag_eVendorSpecificVideoDB:
+					BHDM_EDID_P_ParseVendorSpecificDB(hHDMI, DataBlockIndex+1, DataBlockLength);
+					break;
+
 				case BHDM_EDID_CeaExtendedDBTag_eColorimetryDB :
 					BHDM_EDID_P_ParseColorimetryDB(hHDMI, DataBlockIndex) ;
 					break ;
@@ -3935,10 +3361,18 @@ static BERR_Code BHDM_EDID_P_ParseV3TimingExtension (const BHDM_Handle hHDMI)
 					BHDM_EDID_P_ParseHDRStaticMetadataDB(hHDMI, DataBlockIndex, DataBlockLength) ;
 					break ;
 
+				case BHDM_EDID_CeaExtendedDBTag_eExtensionOverrideDB :
+					/* already parsed to determine number of extensions */
+					break ;
+
+				case BHDM_EDID_CeaExtendedDBTag_eHFSinkCapDB :
+					BHDM_EDID_P_ParseHdmi_HF_VSDB(hHDMI, DataBlockIndex, DataBlockLength) ;
+					break ;
+
 				default :
 					{
-						BDBG_MSG((" Extended Tag Code <%d> is not supported",
-								ExtendedTagCode)) ;
+						BDBG_LOG((" Extended Tag Code <%d> is not supported",
+							ExtendedTagCode)) ;
 					}
 					break ;
 				}
@@ -4033,15 +3467,11 @@ static BERR_Code BHDM_EDID_P_ParseV3TimingExtension (const BHDM_Handle hHDMI)
 
 		hHDMI->AttachedEDID.BcmAudioFormatsChecked = 1 ;
 	}
-
-	return rc;
-
 }
 
 
-static BERR_Code BHDM_EDID_P_ProcessTimingExtension (const BHDM_Handle hHDMI)
+static void BHDM_EDID_P_ProcessTimingExtension (const BHDM_Handle hHDMI)
 {
-	BERR_Code rc = BERR_SUCCESS;
 
 	/* check for Version 1/2/3 Timing Data Extensions */
 	switch (hHDMI->AttachedEDID.Block[BHDM_EDID_EXT_VERSION])
@@ -4066,13 +3496,10 @@ static BERR_Code BHDM_EDID_P_ProcessTimingExtension (const BHDM_Handle hHDMI)
 		BDBG_WRN(("Unknown/Unsupported Timing Extension Version %d",
 			hHDMI->AttachedEDID.Block[BHDM_EDID_EXT_VERSION])) ;
 	}
-
-	return rc;
 }
 
-static BERR_Code BHDM_EDID_P_ProcessExtensionBlock (const BHDM_Handle hHDMI)
+static void BHDM_EDID_P_ProcessExtensionBlock (const BHDM_Handle hHDMI)
 {
-	BERR_Code rc = BERR_SUCCESS;
 
 	/* check for Extension type */
 	switch (hHDMI->AttachedEDID.Block[BHDM_EDID_EXT_TAG])
@@ -4091,8 +3518,6 @@ static BERR_Code BHDM_EDID_P_ProcessExtensionBlock (const BHDM_Handle hHDMI)
 		BDBG_WRN(("Uknown/Unsupported Extension  %d",
 			hHDMI->AttachedEDID.Block[BHDM_EDID_EXT_TAG])) ;
 	}
-
-	return rc;
 }
 
 static BERR_Code BHDM_EDID_P_ProcessBlockMap (const BHDM_Handle hHDMI)
@@ -4111,6 +3536,7 @@ static BERR_Code BHDM_EDID_P_ProcessBlockMap (const BHDM_Handle hHDMI)
 
 	i = 1;
 	while((i < (BHDM_EDID_BLOCKSIZE-1)) && (block_map[i])){
+		BDBG_MSG(("Process Map Block # %d", i)) ;
 		BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI, (i + index), hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError)) ;
 		BHDM_EDID_P_ProcessExtensionBlock (hHDMI);
 		i++;
@@ -4131,6 +3557,8 @@ done:
 	return rc;
 }
 
+
+
 /******************************************************************************
 Summary:
 Notify the EDID Block to re-read the EDID; initializing the values read from the EDID
@@ -4143,8 +3571,10 @@ BERR_Code BHDM_EDID_Initialize(
 	uint8_t
 		offset,
 		Tag ;
-	uint8_t SupportedTimingsFound = 0 ;
+	uint8_t SupportedDetailedTimingDescriptorsFound = 0 ;
+	uint8_t uiPreferredFormatIndex ;
 	BFMT_VideoFmt eVideoFmt ;
+	BFMT_VideoInfo *pVideoFormatInfo ;
 
 	uint8_t i; /* indexes */
 
@@ -4153,7 +3583,8 @@ BERR_Code BHDM_EDID_Initialize(
 	uint8_t uiChecksumErrors = 0 ;
 
 	BHDM_EDID_DetailTiming DetailTiming ;
-	BHDM_EDID_P_VideoDescriptor *pVideoDescriptor ;
+	BHDM_EDID_P_DetailedTiming *pDetailedTimingDescriptor, *pNextDetailedTimingDescriptor ;
+
 	bool bScramblingSupport ;
 
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
@@ -4198,17 +3629,10 @@ BERR_Code BHDM_EDID_Initialize(
 	}
 #endif
 
-	/* delete previous video descriptors if they exist */
-	if (!BLST_Q_EMPTY(&hHDMI->AttachedEDID.VideoDescriptorList))
-	{
-		for (pVideoDescriptor=BLST_Q_FIRST(&hHDMI->AttachedEDID.VideoDescriptorList) ;
-			pVideoDescriptor ;
-			pVideoDescriptor=BLST_Q_FIRST(&hHDMI->AttachedEDID.VideoDescriptorList))
-		{
-			BLST_Q_REMOVE_HEAD(&hHDMI->AttachedEDID.VideoDescriptorList, link);
-			BKNI_Free(pVideoDescriptor); /* free memory */
-		}
-	}
+	/* delete previous video descriptors and detailed timings if they exist */
+	BHDM_EDID_P_FreeVideoDescriptorList(hHDMI) ;
+	BHDM_EDID_P_FreeDetailedTimingList(hHDMI) ;
+
 	/* clear all current EDID information */
 	BKNI_Memset((void *) &hHDMI->AttachedEDID, 0, sizeof(BHDM_EDID_DATA)) ;
 	hHDMI->AttachedEDID.RxHdmiForumVsdb.Max_TMDS_Clock_Rate = BHDM_HDMI_1_4_MAX_RATE ;
@@ -4224,7 +3648,7 @@ BERR_Code BHDM_EDID_Initialize(
 
 	/* during InitializeEDID, always force the reading of EDID block 0 */
 	/* incorrectly implemented Hot Plug signals sometimes cause a problem */
-	hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eNotInitialized;
+	hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eInvalid;
 
 	rc = BHDM_EDID_GetNthBlock(hHDMI, 0, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError) ;
 
@@ -4387,50 +3811,57 @@ BERR_Code BHDM_EDID_Initialize(
 			/* indicate formats have been checked */
 			hHDMI->AttachedEDID.BcmVideoFormatsChecked = 1 ;
 
+			/* parse and store the detailed timing descriptors */
 			rc = BHDM_EDID_P_ProcessDetailedTimingBlock(hHDMI,
 				&hHDMI->AttachedEDID.Block[offset], &DetailTiming, &eVideoFmt) ;
 
 			switch (rc)
 			{
 			case BERR_SUCCESS :
-				/* save the first detailed timing that the Tx Supports - this will be Tx preferred format */
-				if (hHDMI->AttachedEDID.TxPreferredDetailTiming.PixelClock == 0)
+				pDetailedTimingDescriptor = (BHDM_EDID_P_DetailedTiming *)
+					BKNI_Malloc(sizeof(BHDM_EDID_P_DetailedTiming)) ;
+				if (pDetailedTimingDescriptor == NULL)
 				{
-					BKNI_Memcpy(
-						&(hHDMI->AttachedEDID.TxPreferredDetailTiming),
-						&DetailTiming, sizeof(hHDMI->AttachedEDID.TxPreferredDetailTiming)) ;
+					rc = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+					return rc;
 				}
-				/* FALL THROUGH */
+
+				SupportedDetailedTimingDescriptorsFound++ ;
+				pDetailedTimingDescriptor->eVideoFmt = eVideoFmt ;
+				BKNI_Memcpy(&pDetailedTimingDescriptor->stDetailedTiming, &DetailTiming,
+					sizeof(pDetailedTimingDescriptor->stDetailedTiming)) ;
+
+				BLST_Q_INSERT_TAIL(&hHDMI->AttachedEDID.SupportedDetailTimingList, pDetailedTimingDescriptor, link) ;
+				break ;
 
 			case BHDM_EDID_DETAILTIMING_NOT_SUPPORTED :
-				/* keep a copy of first two Rx supported detailed timings for quick retrieval */
-				if (SupportedTimingsFound < 2)
-				{
-					BKNI_Memcpy(
-						&(hHDMI->AttachedEDID.SupportedDetailTimings[SupportedTimingsFound]),
-						&DetailTiming, sizeof(BHDM_EDID_DetailTiming)) ;
-				}
-				break ;
+				BDBG_WRN(("Detail Timing %d is not supported", SupportedDetailedTimingDescriptorsFound+1)) ;
+				continue ;
 
 			default :
 				BDBG_WRN(("Error %d processing Detailed Timing Block", rc)) ;
 				/* unable to process Detailed Timing Block continue to next descriptor */
 				continue ;
 			}
-
-
-
-			/* set BFMTs that match this Detailed Timing Format as being supported */
-			BHDM_EDID_P_SetSupportedMatchingFmts(hHDMI, eVideoFmt) ;
-
-			SupportedTimingsFound++ ;
-
 		}
 	}
 
 	BHDM_EDID_P_ParseEstablishedTimingFormats(hHDMI) ;
 
-	hHDMI->AttachedEDID.SupportedDetailTimingsIn1stBlock = SupportedTimingsFound ;
+	if (!SupportedDetailedTimingDescriptorsFound)
+	{
+		BDBG_ERR(("No BCM Supported Detail/Preferred Timing Descriptors found; selecting an alternate...")) ;
+		BHDM_EDID_P_SelectAlternateFormat(hHDMI, &hHDMI->AttachedEDID.BasicData.PreferredVideoFmts[0]) ;
+
+		/* since no detail timing blocks found
+		   set all preferred formats to the same format
+		*/
+		for (i = 1 ; i < BHDM_EDID_MAX_PREFERRED_FORMATS; i++)
+		{
+			hHDMI->AttachedEDID.BasicData.PreferredVideoFmts[i] =
+				hHDMI->AttachedEDID.BasicData.PreferredVideoFmts[0] ;
+		}
+	}
 
 	/******************************************************************
 	 Parse Extension Blocks - primarily interested in Timing Extensions
@@ -4446,26 +3877,28 @@ BERR_Code BHDM_EDID_Initialize(
 		goto done ;
 	}
 
-	/* Read the 2nd block (EDID Block 1) and parse to see if its a block map or an extension block(extensions count should be 1). */
+	/* Read the 2nd block (EDID Block 1); check for an Extension or Block Map */
 	BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI, 1, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError)) ;
 	if (bChecksumError) { uiChecksumErrors++ ; }
 
-	if(hHDMI->AttachedEDID.BasicData.Extensions == 1) {
-		rc = BHDM_EDID_P_ProcessExtensionBlock(hHDMI);
-	}
-	else if(hHDMI->AttachedEDID.Block[0] == BHDM_EDID_EXT_BLOCK_MAP){
+	if (hHDMI->AttachedEDID.Block[0] == BHDM_EDID_EXT_BLOCK_MAP)
+	{
 		rc = BHDM_EDID_P_ProcessBlockMap(hHDMI);
+		if (rc) {BERR_TRACE(rc) ; goto done ; }
 
 		/* If the number of extension blocks are more than 127, the standard needs  one more block map to accomodate their extension tags. */
-		if(hHDMI->AttachedEDID.BasicData.Extensions >= BHDM_EDID_BLOCKSIZE){
+		if (hHDMI->AttachedEDID.BasicData.Extensions >= BHDM_EDID_BLOCKSIZE)
+		{
 			/* Read the 128th EDID Block which should be a block map. */
 			BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI, 128, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError));
 			if (bChecksumError) { uiChecksumErrors++ ; }
 
-			if(hHDMI->AttachedEDID.Block[0] == BHDM_EDID_EXT_BLOCK_MAP){
+			if (hHDMI->AttachedEDID.Block[0] == BHDM_EDID_EXT_BLOCK_MAP)
+			{
 				rc = BHDM_EDID_P_ProcessBlockMap(hHDMI);
 			}
-			else {
+			else
+			{
 				BDBG_ERR(("Wrong EDID extension tag of %d found in Block 128(Block Map); should be 0xF0",
 					hHDMI->AttachedEDID.Block[0])) ;
 				rc = BERR_TRACE(BERR_INVALID_PARAMETER) ;
@@ -4473,10 +3906,24 @@ BERR_Code BHDM_EDID_Initialize(
 			}
 		}
 	}
-	else {
-		BDBG_ERR(("Wrong coding of the EDID Extension count in Block 0...")) ;
-		rc = BERR_TRACE(BERR_INVALID_PARAMETER) ;
-		goto done ;
+	else /* regular EDID extensions */
+	{
+		BHDM_EDID_P_CheckForTimingExtensionOverrideDB(hHDMI) ;
+
+		for (i = 1 ; i <= hHDMI->AttachedEDID.BasicData.Extensions; i++)
+		{
+#if BDBG_DEBUG_BUILD
+			/* In most pre HDMI 2.1 Rx, the extension count will be 1 */
+			if (hHDMI->AttachedEDID.BasicData.Extensions > 1)
+			{
+				BDBG_MSG(("Process Extension Block %d of %d",
+					i, hHDMI->AttachedEDID.BasicData.Extensions)) ;
+			}
+#endif
+			BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI, i, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError)) ;
+			if (bChecksumError) { uiChecksumErrors++ ; }
+			BHDM_EDID_P_ProcessExtensionBlock(hHDMI);
+		}
 	}
 
 	/* consistency checks for incorrectly specified EDIDs */
@@ -4487,19 +3934,67 @@ BERR_Code BHDM_EDID_Initialize(
 		   hHDMI->AttachedEDID.RxHdmiForumVsdb.exists
 		&& hHDMI->AttachedEDID.RxHdmiForumVsdb.SCDCSupport ;
 
-	if (hHDMI->AttachedEDID.BcmSupportedVideoFormats[BFMT_VideoFmt_e3840x2160p_50Hz]
-	&&  !bScramblingSupport)
+	if (!bScramblingSupport)
+	{
+		/* remove 4K 50/60 support from VideoDB if no scrambling support */
+		if (hHDMI->AttachedEDID.BcmSupportedVideoFormats[BFMT_VideoFmt_e3840x2160p_50Hz])
 	{
 		BDBG_WRN(("4Kp50 supported in the VideoDB, but scrambling support is missing")) ;
 		hHDMI->AttachedEDID.BcmSupportedVideoFormats[BFMT_VideoFmt_e3840x2160p_50Hz] = false ;
 	}
 
-	if (hHDMI->AttachedEDID.BcmSupportedVideoFormats[BFMT_VideoFmt_e3840x2160p_60Hz]
-	&&  !bScramblingSupport)
+		if (hHDMI->AttachedEDID.BcmSupportedVideoFormats[BFMT_VideoFmt_e3840x2160p_60Hz])
 	{
 		BDBG_WRN(("4Kp60 supported in the VideoDB, but scrambling support is missing")) ;
 		hHDMI->AttachedEDID.BcmSupportedVideoFormats[BFMT_VideoFmt_e3840x2160p_60Hz] = false ;
 	}
+
+
+		/* remove 4K 50/60 support from Detailed Timing Descriptors if no scrambling support */
+		pDetailedTimingDescriptor = BLST_Q_FIRST(&hHDMI->AttachedEDID.SupportedDetailTimingList) ;
+		while (pDetailedTimingDescriptor)
+		{
+			if ((pDetailedTimingDescriptor->eVideoFmt == BFMT_VideoFmt_e3840x2160p_50Hz)
+			||  (pDetailedTimingDescriptor->eVideoFmt == BFMT_VideoFmt_e3840x2160p_60Hz))
+			{
+				pVideoFormatInfo = (BFMT_VideoInfo *) BFMT_GetVideoFormatInfoPtr(pDetailedTimingDescriptor->eVideoFmt) ;
+				BDBG_WRN(("Inconsistent EDID: %s in Detailed Timing, but no HF-VSDB/scrambling support, removing format support",
+					pVideoFormatInfo->pchFormatStr)) ;
+				hHDMI->AttachedEDID.BcmSupportedVideoFormats[pDetailedTimingDescriptor->eVideoFmt] = false ;
+
+				/* get/save next ptr */
+				pNextDetailedTimingDescriptor = BLST_Q_NEXT(pDetailedTimingDescriptor, link) ;
+
+				/* remove unsupported format from list */
+				BLST_Q_REMOVE(&hHDMI->AttachedEDID.SupportedDetailTimingList, pDetailedTimingDescriptor, link) ;
+				BKNI_Free(pDetailedTimingDescriptor) ;
+
+				/* restore next ptr */
+				pDetailedTimingDescriptor = pNextDetailedTimingDescriptor ;
+
+				SupportedDetailedTimingDescriptorsFound-- ;
+				continue ;
+			}
+
+			pDetailedTimingDescriptor = BLST_Q_NEXT(pDetailedTimingDescriptor, link) ;
+		}
+	}
+
+	hHDMI->AttachedEDID.SupportedDetailTimingsIn1stBlock = SupportedDetailedTimingDescriptorsFound ;
+
+	/* store up to 2 preferred formats */
+	uiPreferredFormatIndex = 0 ;
+	for (pDetailedTimingDescriptor = BLST_Q_FIRST(&hHDMI->AttachedEDID.SupportedDetailTimingList);
+		pDetailedTimingDescriptor && uiPreferredFormatIndex < BHDM_EDID_MAX_PREFERRED_FORMATS ;
+		pDetailedTimingDescriptor = BLST_Q_NEXT(pDetailedTimingDescriptor, link))
+	{
+		hHDMI->AttachedEDID.BasicData.PreferredVideoFmts[uiPreferredFormatIndex++]
+			= pDetailedTimingDescriptor->eVideoFmt ;
+	}
+
+	/* store 1st preferred format */
+	hHDMI->AttachedEDID.BasicData.PreferredVideoFmt =
+		hHDMI->AttachedEDID.BasicData.PreferredVideoFmts[0] ;
 
 
 	hHDMI->DeviceStatus.edidState = BHDM_EDID_STATE_eOK;
@@ -4544,23 +4039,12 @@ BERR_Code BHDM_EDID_GetMonitorName(
 )
 {
 	BERR_Code rc = BERR_SUCCESS ;
-	uint8_t RxDeviceAttached ;
 
 	BDBG_ENTER(BHDM_EDID_GetMonitorName) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	BHDM_CHECK_RC(rc, BHDM_RxDeviceAttached(hHDMI, &RxDeviceAttached));
-	if (!RxDeviceAttached)
-	{
-		rc = BERR_TRACE(BHDM_NO_RX_DEVICE) ;
-		goto done ;
-	}
-
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
-	{
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
-		goto done ;
-	}
+	BKNI_Memcpy(pDescriptorText, EDIDUnknownText,
+		BHDM_EDID_MONITOR_DESC_SIZE - BHDM_EDID_DESC_HEADER_LEN) ;
 
 #if BDBG_DEBUG_BUILD
 	if (hHDMI->DeviceSettings.BypassEDIDChecking)
@@ -4570,6 +4054,13 @@ BERR_Code BHDM_EDID_GetMonitorName(
 		goto done ;
 	}
 #endif
+
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
+	{
+		rc = BERR_TRACE(rc) ;
+		goto done ;
+	}
 
 	BKNI_Memcpy(pDescriptorText, hHDMI->AttachedEDID.MonitorName, BHDM_EDID_DESC_ASCII_STRING_LEN) ;
 
@@ -4585,6 +4076,9 @@ void BHDM_EDID_GetPreferredColorimetry(
 	BAVC_MatrixCoefficients *eColorimetry /* out only, every path writes this without using it as an input first */
 )
 {
+	BERR_Code rc ;
+	BDBG_ENTER(BHDM_EDID_GetPreferredColorimetry) ;
+
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
 	if (hHDMI->DeviceSettings.BypassEDIDChecking)
@@ -4600,20 +4094,24 @@ void BHDM_EDID_GetPreferredColorimetry(
     /* Default to Full range RGB */
 	*eColorimetry = BAVC_MatrixCoefficients_eDvi_Full_Range_RGB;
 
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
-		return ;
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
+	{
+		rc = BERR_TRACE(rc) ;
+		goto done ;
 	}
 
+	/* DVI Monitor; default to Full range RGB */
 	if (!hHDMI->AttachedEDID.RxHasHdmiSupport)
 	{
-		return ;
+		goto done ;
 	}
 
 	if (hHDMI->DeviceSettings.overrideDefaultColorimetry)
 	{
 		BDBG_MSG(("Use non default colorimetry: %d", hHDMI->DeviceSettings.eColorimetry)) ;
 		*eColorimetry = hHDMI->DeviceSettings.eColorimetry ;
-		return ;
+		goto done ;
 	}
 
 	if (! BFMT_IS_UHD(parameters->eVideoFmt)) /* if not UHD */
@@ -4656,10 +4154,612 @@ void BHDM_EDID_GetPreferredColorimetry(
 	{
 		*eColorimetry = BAVC_MatrixCoefficients_eItu_R_BT_709 ;
 	}
+done:
+	BDBG_LEAVE(BHDM_EDID_GetPreferredColorimetry) ;
+}
+
+
+/******************************************************************************
+BERR_Code BHDM_EDID_GetVideoCapabilityDB
+Summary: Retrieve Rx Video Capabilities stored in the EDID's Video Capability Data Block
+*******************************************************************************/
+BERR_Code BHDM_EDID_GetVideoCapabilityDB(
+	const BHDM_Handle hHDMI,
+	BHDM_EDID_VideoCapabilityDataBlock *pVideoCapabilityDataBlock)
+{
+	BERR_Code rc = BERR_SUCCESS ;
+	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
+
+	if (hHDMI->DeviceSettings.BypassEDIDChecking)
+	{
+		BKNI_Memset(pVideoCapabilityDataBlock, 1, sizeof(BHDM_EDID_VideoCapabilityDataBlock)) ;
+		goto done ;
+	}
+
+	BKNI_Memset(pVideoCapabilityDataBlock, 0, sizeof(BHDM_EDID_VideoCapabilityDataBlock)) ;
+
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
+	{
+		rc = BERR_TRACE(rc) ;
+		goto done ;
+	}
+
+
+	BKNI_Memcpy(pVideoCapabilityDataBlock, &hHDMI->AttachedEDID.VideoCapabilityDB,
+		sizeof(BHDM_EDID_VideoCapabilityDataBlock)) ;
+
+done:
+	return rc  ;
+}
+
+
+/******************************************************************************
+BERR_Code BHDM_EDID_GetColorimetryDB
+Summary: Retrieve colorimetry info stored in the EDID's Colorimetry Data Block
+*******************************************************************************/
+BERR_Code BHDM_EDID_GetColorimetryDB(
+	const BHDM_Handle hHDMI,
+	BHDM_EDID_ColorimetryDataBlock *pColorimetryDataBlock)
+{
+	BERR_Code rc = BERR_SUCCESS ;
+	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
+
+	if (hHDMI->DeviceSettings.BypassEDIDChecking)
+	{
+		BKNI_Memset(pColorimetryDataBlock, 1, sizeof(*pColorimetryDataBlock)) ;
+		goto done ;
+	}
+
+	BKNI_Memset(pColorimetryDataBlock, 0, sizeof(*pColorimetryDataBlock)) ;
+
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
+	{
+		rc = BERR_TRACE(rc) ;
+		goto done ;
+	}
+
+	BKNI_Memcpy(pColorimetryDataBlock, &hHDMI->AttachedEDID.ColorimetryDB,
+		sizeof(BHDM_EDID_ColorimetryDataBlock)) ;
+
+done:
+	return rc  ;
+}
+
+void BHDM_EDID_P_FreeVideoDescriptorList(BHDM_Handle hHDMI)
+{
+	BHDM_EDID_P_VideoDescriptor *pVideoDescriptor ;
+
+	/* delete previous video descriptors if they exist */
+	while ((pVideoDescriptor = BLST_Q_FIRST(&hHDMI->AttachedEDID.VideoDescriptorList)))
+	{
+		BLST_Q_REMOVE_HEAD(&hHDMI->AttachedEDID.VideoDescriptorList, link);
+		BKNI_Free(pVideoDescriptor); /* free memory */
+	}
+}
+
+void BHDM_EDID_P_FreeDetailedTimingList(BHDM_Handle hHDMI)
+{
+	BHDM_EDID_P_DetailedTiming *pDetailedTimingDescriptor ;
+
+	/* delete previous detalied timings, if they exist */
+	while ((pDetailedTimingDescriptor = BLST_Q_FIRST(&hHDMI->AttachedEDID.SupportedDetailTimingList)))
+	{
+		BLST_Q_REMOVE_HEAD(&hHDMI->AttachedEDID.SupportedDetailTimingList, link);
+		BKNI_Free(pDetailedTimingDescriptor); /* free memory */
+	}
 }
 
 
 #if !B_REFSW_MINIMAL
+/******************************************************************************
+BERR_Code BHDM_EDID_GetDescriptor
+Summary: Retrieve a specified EDID descriptor
+*******************************************************************************/
+BERR_Code BHDM_EDID_GetDescriptor(
+   const BHDM_Handle hHDMI, /* [in] HDMI handle */
+   BHDM_EDID_Tag tag, /* [in] id of the descriptor tag to retrieve */
+   uint8_t *pDescriptorText, /* [out] pointer to memory to hold retrieved tag data */
+   uint8_t uiBufSize         /* [in ] mem size in bytes of pDescriptorText */
+)
+{
+	uint8_t TagId ;
+	uint8_t i, j ;
+	uint8_t offset ;
+	uint8_t extensions ;
+	uint8_t MaxDescriptors ;
+	bool bChecksumError ;
+
+	BERR_Code rc = BERR_SUCCESS ;
+
+	BDBG_ENTER(BHDM_EDID_GetDescriptor) ;
+	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
+
+#if BDBG_DEBUG_BUILD
+	if (hHDMI->DeviceSettings.BypassEDIDChecking)
+	{
+		BKNI_Memcpy(pDescriptorText, EDIDByPassedText,
+			BHDM_EDID_MONITOR_DESC_SIZE - BHDM_EDID_DESC_HEADER_LEN) ;
+		goto done ;
+	}
+#endif
+
+	BKNI_Memcpy(pDescriptorText, EDIDUnknownText,
+		BHDM_EDID_MONITOR_DESC_SIZE - BHDM_EDID_DESC_HEADER_LEN) ;
+
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
+	{
+		rc = BERR_TRACE(rc) ;
+		goto done ;
+	}
+
+	if ((!uiBufSize)
+	||  (uiBufSize > BHDM_EDID_MONITOR_DESC_SIZE)
+	||  (uiBufSize < BHDM_EDID_MONITOR_DESC_SIZE - BHDM_EDID_DESC_HEADER_LEN))
+	{
+		BDBG_ERR(("Incorrect Specified Descriptor Length: %d", uiBufSize)) ;
+		rc = BERR_TRACE(BERR_INVALID_PARAMETER) ;
+		goto done ;
+	}
+
+
+	/* check for valid tag */
+	switch (tag)
+	{
+	case BHDM_EDID_Tag_eMONITOR_NAME  :
+		/* monitor name should have been read at EDID_Initialize */
+		if (hHDMI->AttachedEDID.MonitorName[0] == 0x00)
+		{
+			BKNI_Memcpy(pDescriptorText, &hHDMI->AttachedEDID.MonitorName,
+				BHDM_EDID_MONITOR_DESC_SIZE - BHDM_EDID_DESC_HEADER_LEN) ;
+
+			rc = BERR_SUCCESS ;  /* Descriptor Found and Copied */
+			goto done ;
+		}
+		TagId = BHDM_EDID_TAG_MONITOR_NAME ;
+		break ;
+
+	case BHDM_EDID_Tag_eMONITOR_ASCII :
+		TagId = BHDM_EDID_TAG_MONITOR_ASCII ;
+		break ;
+
+	case BHDM_EDID_Tag_eMONITOR_SN    :
+		TagId = BHDM_EDID_TAG_MONITOR_SN ;
+		break ;
+
+	default :
+		BDBG_ERR(("Invalid Descriptor Tag: %d", tag)) ;
+		rc = BERR_TRACE(BERR_INVALID_PARAMETER) ;
+		goto done ;
+	}
+
+	/* Insert the Tag we are searching for in the Descriptor Header */
+	BKNI_Memset((void *) &hHDMI->AttachedEDID.DescriptorHeader, 0x0, BHDM_EDID_DESC_HEADER_LEN);
+	hHDMI->AttachedEDID.DescriptorHeader[BHDM_EDID_DESC_TAG] = TagId ;
+
+	/* read the 1st EDID Block */
+	BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI,
+		0, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError)) ;
+
+	/* Check the four Descriptor Blocks in the initial 128 EDID  bytes */
+	for (i = 0 ; i < 4; i++)   /* 1-4 Detailed Timing Descriptor */
+	{
+		offset = BHDM_EDID_MONITOR_DESC_1 + BHDM_EDID_MONITOR_DESC_SIZE * i ;
+
+		/*
+		** Check if we've found the Descriptor tag we're looking for
+		** Descriptor Blocks begin with 0x00 0x00 0x00 <tag> 0x00
+		** Detailed Timings do not...
+		*/
+		if (BKNI_Memcmp(&hHDMI->AttachedEDID.Block[offset], (void *) &hHDMI->AttachedEDID.DescriptorHeader,
+			BHDM_EDID_DESC_HEADER_LEN) == 0)
+		{
+			BKNI_Memcpy(pDescriptorText, &hHDMI->AttachedEDID.Block[offset + BHDM_EDID_DESC_DATA],
+				BHDM_EDID_MONITOR_DESC_SIZE - BHDM_EDID_DESC_HEADER_LEN) ;
+
+			rc = BERR_SUCCESS ;  /* Descriptor Found and Copied */
+			goto done ;
+		}
+	}
+
+	/* Descriptor Not Found...check extension blocks */
+
+	extensions = hHDMI->AttachedEDID.BasicData.Extensions;
+	rc = BHDM_EDID_P_VerifyNumBlockExtensions(&extensions) ;
+	if (rc)
+	{
+		rc = BERR_TRACE(BHDM_EDID_DESCRIPTOR_NOT_FOUND) ;
+		goto done ;
+	}
+
+	/* Search EDID Extension blocks for additional descriptors */
+	for (i = 1 ; i <= extensions; i++)
+	{
+		/* read the next 128 Byte EDID block */
+		BHDM_CHECK_RC(rc, BHDM_EDID_GetNthBlock(hHDMI,
+			i, hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError)) ;
+
+
+		/* check Extension Tag type for Timing Data */
+		offset = 0 ;
+		if (hHDMI->AttachedEDID.Block[offset] != BHDM_EDID_EXT_TIMING_DATA)
+			continue ;
+
+		/* determine the number of Detailed Timing Descripors */
+		switch (hHDMI->AttachedEDID.Block[offset+1])
+		{
+		case 0x01 :  /* Check all blocks regardless of */
+			MaxDescriptors = 6 ;   /* (128 - 6) / 18 */
+			break ;
+
+		case 0x02 :  /* the version of the EDID Extension */
+		case 0x03 :  /* See EA-861 B Spec */
+			MaxDescriptors = hHDMI->AttachedEDID.Block[BHDM_EDID_EXT_MONITOR_SUPPORT] ;
+			MaxDescriptors = MaxDescriptors & 0x0F ;
+			break ;
+
+		default :
+			BDBG_WRN(("Timing Extension Version '%d' Not Supported",
+				hHDMI->AttachedEDID.Block[offset+1])) ;
+			rc = BHDM_EDID_EXT_VERSION_NOT_SUPPORTED ;
+			goto done ;
+		}
+
+
+		/* skip start of EDID Extension Block */
+		offset = hHDMI->AttachedEDID.Block[offset + 2] ;
+
+		for (j = 0 ; j < MaxDescriptors; j++)
+		{
+			if (BKNI_Memcmp(&hHDMI->AttachedEDID.Block[offset + BHDM_EDID_MONITOR_DESC_SIZE*j],
+				       (void *) &hHDMI->AttachedEDID.DescriptorHeader, BHDM_EDID_DESC_HEADER_LEN) == 0)
+			{
+				BKNI_Memcpy(pDescriptorText, &hHDMI->AttachedEDID.Block[offset + BHDM_EDID_DESC_DATA],
+					BHDM_EDID_MONITOR_DESC_SIZE - BHDM_EDID_DESC_HEADER_LEN) ;
+				rc = BERR_SUCCESS ;  /* Descriptor Found and Copied */
+				goto done ;
+			}
+		}
+	}
+
+done:
+	BDBG_LEAVE(BHDM_EDID_GetDescriptor) ;
+	return rc ;
+} /* end BHDM_EDID_GetDescriptor */
+
+/******************************************************************************
+BERR_Code BHDM_EDID_CheckRxHdmiAudioSupport
+Summary: Check if the input Audio Format is supported by the attached HDMI
+Receiver
+*******************************************************************************/
+BERR_Code BHDM_EDID_CheckRxHdmiAudioSupport(
+   const BHDM_Handle hHDMI,                         /* [in] HDMI handle  */
+   BAVC_AudioFormat       eAudioFormat,       /* [in] Audio Format */
+   BAVC_AudioSamplingRate eAudioSamplingRate, /* [in] Audio Rate to check for */
+   BAVC_AudioBits         eAudioBits,         /* [in] Quantization Bits to search for */
+   uint16_t               iCompressedBitRate, /* [in] Bit Rate if Compressed Audio */
+   uint8_t                *iSupported         /* [out] audio format is supported */
+)
+{
+	BERR_Code rc = BERR_SUCCESS ;
+
+	uint8_t
+		i,
+		FormatFound,
+		EdidAudioSamplingRate ;
+
+	BAVC_AudioCompressionStd eAudioCompressionStd ;
+
+	BDBG_ENTER(BHDM_EDID_CheckRxHdmiAudioSupport) ;
+	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
+
+#if BDBG_DEBUG_BUILD
+	if (hHDMI->DeviceSettings.BypassEDIDChecking)
+	{
+		*iSupported = 1 ;
+		goto done ;
+	}
+#endif
+
+	*iSupported = 0 ;
+
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
+	{
+		rc = BERR_TRACE(rc) ;
+		goto done ;
+	}
+
+	switch (eAudioFormat)
+	{
+	case BAVC_AudioFormat_ePCM    : eAudioCompressionStd = BAVC_AudioCompressionStd_ePcm ; break ;
+	case BAVC_AudioFormat_eAC3    : eAudioCompressionStd = BAVC_AudioCompressionStd_eAc3 ; break ;
+	case BAVC_AudioFormat_eMPEG1  : eAudioCompressionStd = BAVC_AudioCompressionStd_eMpegL1; break ;
+	case BAVC_AudioFormat_eMP3    : eAudioCompressionStd = BAVC_AudioCompressionStd_eMpegL3; break ;
+	case BAVC_AudioFormat_eMPEG2  : eAudioCompressionStd = BAVC_AudioCompressionStd_eMpegL2; break ;
+	case BAVC_AudioFormat_eAAC    : eAudioCompressionStd = BAVC_AudioCompressionStd_eAac; break ;
+	case BAVC_AudioFormat_eDTS    : eAudioCompressionStd = BAVC_AudioCompressionStd_eDts; break ;
+	case BAVC_AudioFormat_eDDPlus : eAudioCompressionStd = BAVC_AudioCompressionStd_eAc3Plus; break ;
+	case BAVC_AudioFormat_eDTSHD  : eAudioCompressionStd = BAVC_AudioCompressionStd_eDtshd; break ;
+	case BAVC_AudioFormat_eMATMLP : eAudioCompressionStd = BAVC_AudioCompressionStd_eMlp; break ;
+	case BAVC_AudioFormat_eWMAPro : eAudioCompressionStd = BAVC_AudioCompressionStd_eWmaPro; break ;
+
+	/* Unsupported Audio formats over HDMI */
+	case BAVC_AudioFormat_eAVS	  :
+	case BAVC_AudioFormat_eATRAC  :
+	case BAVC_AudioFormat_eDST	  :
+	case BAVC_AudioFormat_eOneBit :
+	case BAVC_AudioFormat_eMaxCount :
+	default :
+		BDBG_ERR(("Unknown/Unsupported BAVC_AudioFormat %d", eAudioFormat)) ;
+		rc = BERR_TRACE(BERR_INVALID_PARAMETER) ;
+		goto done ;
+	}
+
+
+	/* 1st check for requested format */
+	if(!hHDMI->AttachedEDID.BcmSupportedAudioFormats[eAudioFormat].Supported)
+		goto done ;
+
+	/**********************************************/
+	/* 2nd, Check for requested Audio Sample Rate */
+	/* convert the BAVC_AudioSampleRate to EdidAudioSampleRate */
+
+	EdidAudioSamplingRate = BAVC_AudioSamplingRate_eUnknown  ;
+	for (i = 0; i < sizeof(BcmSupportedAudioSampleRates) / sizeof(*BcmSupportedAudioSampleRates) ; i++)
+		if (eAudioSamplingRate == BcmSupportedAudioSampleRates[i].BcmAudioSampleRate)
+		{
+			EdidAudioSamplingRate = BcmSupportedAudioSampleRates[i].EdidAudioSampleRate ;
+			break ;
+		}
+
+	if (EdidAudioSamplingRate == BAVC_AudioSamplingRate_eUnknown)
+		goto done ;
+
+	if (!hHDMI->AttachedEDID.BcmSupportedAudioFormats[eAudioFormat].bSampleRates[eAudioSamplingRate])
+		goto done ;
+
+
+	/********************************************************/
+	/* 3rd, Get the number of Audio Bits (quantization) the */
+	/* monitor supports for the requested Audio Format etc  */
+
+
+	FormatFound = 0 ;
+	/* get the number of bits supported by this format */
+	if (eAudioCompressionStd != BAVC_AudioCompressionStd_ePcm) /* compressed formats */
+	{
+		if (iCompressedBitRate <= hHDMI->AttachedEDID.BcmSupportedAudioFormats[i].dataType.compressed.BitRate)
+		{
+			BDBG_MSG(("<%.*s> Max Bit Rate Supported: %d",
+				BHDM_EDID_DESC_ASCII_STRING_LEN, hHDMI->AttachedEDID.MonitorName,
+				hHDMI->AttachedEDID.BcmSupportedAudioFormats[i].dataType.compressed.BitRate)) ;
+			FormatFound = 1 ;
+		}
+	}
+	else                                            /* else uncompressed PCM */
+	{
+		if (eAudioBits >= BAVC_AudioBits_eMax)
+		{
+			BDBG_ERR(("Unknown Supported Bit Rate: %d", eAudioBits)) ;
+			rc = BERR_TRACE(BHDM_EDID_HDMI_UNKNOWN_BIT_RATE) ;
+			goto done ;
+		}
+
+		if (hHDMI->AttachedEDID.BcmSupportedAudioFormats[i].dataType.pcm.bBitDepths[eAudioBits])
+		{
+			FormatFound = 1 ;
+		}
+	} /* else uncompressed formats */
+
+
+	if (FormatFound)
+		*iSupported = 1 ;
+
+done:
+	BDBG_LEAVE(BHDM_EDID_CheckRxHdmiAudioSupport) ;
+	return 	rc ;
+} /* BHDM_EDID_CheckRxHdmiAudioSupport */
+
+
+
+/******************************************************************************
+BERR_Code BHDM_EDID_CheckRxHdmiVideoSupport
+Summary: Check if the input Video Format is supported by the attached HDMI Receiver
+*******************************************************************************/
+BERR_Code BHDM_EDID_CheckRxHdmiVideoSupport(
+	const BHDM_Handle hHDMI,                    /* [in] HDMI handle  */
+	uint16_t           HorizontalPixels,  /* [in] Horiz Active Pixels */
+	uint16_t           VerticalPixels,    /* [in] Vertical Active Pixels */
+	BAVC_ScanType      eScanType,         /* [in] Progressive, Interlaced */
+	BAVC_FrameRateCode eFrameRateCode,    /* [in] Vertical Frequency */
+	BFMT_AspectRatio   eAspectRatio,      /* [in] Horiz to Vertical Ratio */
+	uint8_t            *pNativeFormat	  /* [out] Requested format is a
+	                                               native format to the monitor */
+)
+{
+	BERR_Code rc = BHDM_EDID_HDMI_VIDEO_FORMAT_UNSUPPORTED ;
+
+	uint8_t
+		i, j, k, /* indexes */
+		extensions,
+		DataOffset,
+		DataBlockIndex,
+		DataBlockTag,
+		DataBlockLength,
+		FormatFound,
+		NumVideoDescriptors,
+		EdidVideoIDCode ;
+
+	bool bChecksumError ;
+
+	BDBG_ENTER(BHDM_EDID_CheckRxHdmiVideoSupport) ;
+	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
+
+#if BDBG_DEBUG_BUILD
+	if (hHDMI->DeviceSettings.BypassEDIDChecking)
+	{
+		*pNativeFormat = 1 ;
+		goto done ;
+	}
+#endif
+
+	*pNativeFormat = 0 ;
+
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
+	{
+		rc = BERR_TRACE(rc) ;
+		goto done ;
+	}
+
+	/* first get the number of extensions in the EDID */
+	/* audio support is always in first V3 Timing Extension; never in block 0 */
+	extensions = hHDMI->AttachedEDID.BasicData.Extensions ;
+
+	rc = BHDM_EDID_P_VerifyNumBlockExtensions(&extensions) ;
+	if (rc) { rc = BERR_TRACE(rc) ; goto done ;}
+
+	/* check ALL extensions for Version 3 Timing Extensions */
+	for (i = 1 ; i <= extensions; i++)
+	{
+		BHDM_CHECK_RC(rc,
+			BHDM_EDID_GetNthBlock(hHDMI, i, (uint8_t *) &hHDMI->AttachedEDID.Block, BHDM_EDID_BLOCKSIZE, &bChecksumError)) ;
+
+		/* check for Timing Data Extension */
+		if (hHDMI->AttachedEDID.Block[BHDM_EDID_EXT_TAG] != BHDM_EDID_EXT_TIMING_DATA)
+			continue ;
+
+		/* check for Version 3 Timing Data Extension */
+		if (hHDMI->AttachedEDID.Block[BHDM_EDID_EXT_VERSION] != BHDM_EDID_TIMING_VERSION_3)
+			continue ;
+
+
+		/* check if data blocks exist before the 18 Byte Detailed Timing data */
+		DataOffset = hHDMI->AttachedEDID.Block[BHDM_EDID_EXT_DATA_OFFSET] ;
+		if ((DataOffset == 0)
+		||  (DataOffset == 4)) /* no Reserved Data is Available */
+		{
+			BDBG_WRN(("-----V3 Timing Extension contains no CEA Data Blocks")) ;
+			continue ;          /* continue to the next Timing Extension */
+		}
+
+
+		/* set the index to the start of Data Blocks */
+		DataBlockIndex = BHDM_EDID_EXT_DATA_BLOCK_COLLECTION ;
+
+		/* scan through the data blocks and retrieve the necessary information */
+		while (DataBlockIndex < DataOffset)
+		{
+			/* get the Data Block type */
+			DataBlockTag =
+				hHDMI->AttachedEDID.Block[DataBlockIndex] >> 5 ;
+
+			/* get the Data Block length */
+			DataBlockLength =
+				hHDMI->AttachedEDID.Block[DataBlockIndex] & 0x1F ;
+
+			BDBG_MSG(("[%02X] CEA-861 %s (0x%02x) found; %d bytes",
+				hHDMI->AttachedEDID.Block[DataBlockIndex],
+				BAVC_HDMI_EDID_CeaTagToStr(DataBlockTag), DataBlockTag, DataBlockLength)) ;
+
+			switch (DataBlockTag)
+			{
+
+			/* return error on unknown Tags */
+			default :
+				BDBG_WRN((" ")) ;
+				BDBG_WRN(("CEA-861 Data Block Tag Code <%d> is not supported",
+					DataBlockTag)) ;
+				rc = BHDM_EDID_HDMI_UNKNOWN_CEA_TAG ;
+				goto done ;
+
+			/* skip Block Tags that are of no interest to this function */
+			case BHDM_EDID_CeaDataBlockTag_eVSDB :      /* Vendor Specific DB */
+			case BHDM_EDID_CeaDataBlockTag_eAudioDB :   /* Audio DB */
+			case BHDM_EDID_CeaDataBlockTag_eSpeakerDB : /* Speaker Allocation DB */
+			case BHDM_EDID_CeaDataBlockTag_eReserved0 :
+			case BHDM_EDID_CeaDataBlockTag_eReserved5 :
+			case BHDM_EDID_CeaDataBlockTag_eReserved6 :
+			case BHDM_EDID_CeaDataBlockTag_eExtendedDB:
+				break ;
+
+			case BHDM_EDID_CeaDataBlockTag_eVideoDB :   /* Video DB */
+				/* check each video descriptor for requested video support */
+
+				FormatFound = 0 ;
+				NumVideoDescriptors = DataBlockLength ;
+
+				/* for each CEA Video ID Code Found */
+				for (j = 0 ; j < NumVideoDescriptors && !FormatFound ; j++ )
+				{
+					/* get the supported Video Code ID; check if a native format */
+					EdidVideoIDCode = hHDMI->AttachedEDID.Block[DataBlockIndex + j + 1] ;
+					EdidVideoIDCode = EdidVideoIDCode  & 0x7F ;
+
+					*pNativeFormat = EdidVideoIDCode & 0x80 ;
+
+					BDBG_MSG(("Find CEA Video ID Code %02d parameters...",
+						EdidVideoIDCode)) ;
+
+					/* search BCM 861-B supported formats for format found in EDID */
+					for (k = 0 ; k < BHDM_EDID_P_BCM_VIDEO_FORMATS_MAX ; k++)
+					{
+						if (EdidVideoIDCode != BHDM_EDID_P_Cea861bFormats[k].CeaVideoCode)
+							continue ;
+
+						BDBG_MSG(("Found supported CEA Video ID Code: %02d (%d x %d)",
+							EdidVideoIDCode,
+							BHDM_EDID_P_Cea861bFormats[k].HorizontalPixels,
+							BHDM_EDID_P_Cea861bFormats[k].VerticalPixels)) ;
+
+						/* check if the specified parameters match the requested formats */
+						/* 1st, Check if Pixel Format matches */
+						if ((HorizontalPixels != BHDM_EDID_P_Cea861bFormats[k].HorizontalPixels)
+						||	(VerticalPixels != BHDM_EDID_P_Cea861bFormats[k].VerticalPixels))
+							break  ;
+						BDBG_MSG(("Pixel Format Match")) ;
+
+
+						/* 2nd, Check Scan Type (i/p) */
+						if (eScanType != BHDM_EDID_P_Cea861bFormats[k].eScanType)
+							break  ;
+						BDBG_MSG(("Scan Type Match..")) ;
+
+
+						/* 3rd, Check Vertical Frequency */
+						if (eFrameRateCode != BHDM_EDID_P_Cea861bFormats[k].eFrameRateCode)
+							break ;
+						BDBG_MSG(("Frame Rate Match..")) ;
+
+
+						/* 4th  Check Aspect Ratio (4:3, 16:9) etc. */
+						if (eAspectRatio != BHDM_EDID_P_Cea861bFormats[k].eAspectRatio)
+							break ;
+
+						BDBG_MSG(("Requested format is supported..")) ;
+						rc = BERR_SUCCESS ;
+						goto done ;
+					} /* for each BCM Supported CEA Video ID Code */
+				} /* for each Supported CEA Video ID Code */
+			} /* for each CEA Video ID Code found */
+
+
+			DataBlockIndex += DataBlockLength + 1;
+
+		} /* while DataBlockIndex < DataOffset */
+
+	} /* for each extension */
+
+	rc = BHDM_EDID_HDMI_VIDEO_FORMAT_UNSUPPORTED ;
+
+done:
+	BDBG_LEAVE(BHDM_EDID_CheckRxHdmiVideoSupport) ;
+	return 	rc ;
+} /* BHDM_EDID_CheckRxHdmiVideoSupport */
+
 BERR_Code BHDM_EDID_GetSupportedColorimetry(
 	const BHDM_Handle hHDMI, BHDM_OutputFormat eOutputFormat,
 	BFMT_VideoFmt eVideoFmt, BAVC_MatrixCoefficients *eColorimetry)
@@ -4683,10 +4783,13 @@ BERR_Code BHDM_EDID_GetSupportedColorimetry(
 	}
 
 
+	/* Default to Full range RGB */
 	*eColorimetry = BAVC_MatrixCoefficients_eDvi_Full_Range_RGB;
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
-		/* Default to Full range RGB */
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
+
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
+	{
+		rc = BERR_TRACE(rc) ;
 		goto done ;
 	}
 
@@ -4791,67 +4894,14 @@ done:
 		BAVC_GetDefaultMatrixCoefficients_isrsafe(eVideoFmt, false);
 	return rc  ;
 }
-#endif
 
-
-/******************************************************************************
-BERR_Code BHDM_EDID_GetVideoCapabilityDB
-Summary: Retrieve Rx Video Capabilities stored in the EDID's Video Capability Data Block
-*******************************************************************************/
-BERR_Code BHDM_EDID_GetVideoCapabilityDB(
-	const BHDM_Handle hHDMI,
-	BHDM_EDID_VideoCapabilityDataBlock *pVideoCapabilityDataBlock)
-{
-	BERR_Code rc = BERR_SUCCESS ;
-	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
-
-	BKNI_Memset(pVideoCapabilityDataBlock, 0, sizeof(BHDM_EDID_VideoCapabilityDataBlock)) ;
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
-	{
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
-		goto done ;
-	}
-
-	BKNI_Memcpy(pVideoCapabilityDataBlock, &hHDMI->AttachedEDID.VideoCapabilityDB,
-		sizeof(BHDM_EDID_VideoCapabilityDataBlock)) ;
-
-done:
-	return rc  ;
-}
-
-
-/******************************************************************************
-BERR_Code BHDM_EDID_GetColorimetryDB
-Summary: Retrieve colorimetry info stored in the EDID's Colorimetry Data Block
-*******************************************************************************/
-BERR_Code BHDM_EDID_GetColorimetryDB(
-	const BHDM_Handle hHDMI,
-	BHDM_EDID_ColorimetryDataBlock *pColorimetryDataBlock)
-{
-	BERR_Code rc = BERR_SUCCESS ;
-	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
-
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
-	{
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
-		goto done ;
-	}
-
-	BKNI_Memcpy(pColorimetryDataBlock, &hHDMI->AttachedEDID.ColorimetryDB,
-		sizeof(BHDM_EDID_ColorimetryDataBlock)) ;
-
-done:
-	return rc  ;
-}
-
-#if !B_REFSW_MINIMAL
 /******************************************************************************
 BERR_Code BHDM_EDID_GetSupportedColorDepth
 Summary: Retrieve a copy of the Monitor Name stored in the EDID
 *******************************************************************************/
 BERR_Code BHDM_EDID_GetSupportedColorDepth(
 	const BHDM_Handle hHDMI,
-	BHDM_EDID_ColorDepth *stSupportedColorDepth,	/* [out] */
+	BHDM_EDID_ColorDepth *pstSupportedColorDepth,	/* [out] */
 	bool *bYCbCrPixelEncoding 	/* [out] */
 )
 {
@@ -4859,18 +4909,30 @@ BERR_Code BHDM_EDID_GetSupportedColorDepth(
 
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
 
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid)
+#if BDBG_DEBUG_BUILD
+	if (hHDMI->DeviceSettings.BypassEDIDChecking)
 	{
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
+		BKNI_Memset(pstSupportedColorDepth, 1, sizeof(*pstSupportedColorDepth)) ;
+		goto done ;
+	}
+#endif
+
+	BKNI_Memset(pstSupportedColorDepth, 0, sizeof(*pstSupportedColorDepth)) ;
+	*bYCbCrPixelEncoding = false ;
+
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
+	{
+		rc = BERR_TRACE(rc) ;
 		goto done ;
 	}
 
-	stSupportedColorDepth->bColorDepth24bit = true; /* standard color depth, always supported */
-	stSupportedColorDepth->bColorDepth30bit =
+	pstSupportedColorDepth->bColorDepth24bit = true; /* standard color depth, always supported */
+	pstSupportedColorDepth->bColorDepth30bit =
 		hHDMI->AttachedEDID.RxVSDB.DeepColor_30bit ? true : false;
-	stSupportedColorDepth->bColorDepth36bit =
+	pstSupportedColorDepth->bColorDepth36bit =
 		hHDMI->AttachedEDID.RxVSDB.DeepColor_36bit ? true : false;
-	stSupportedColorDepth->bColorDepth48bit =
+	pstSupportedColorDepth->bColorDepth48bit =
 		hHDMI->AttachedEDID.RxVSDB.DeepColor_48bit ? true : false;
 
 	*bYCbCrPixelEncoding = hHDMI->AttachedEDID.RxVSDB.DeepColor_Y444 ? true : false;
@@ -4879,37 +4941,6 @@ done:
 	return rc;
 }
 
-
-
-/******************************************************************************
-BERR_Code BHDM_EDID_GetMyCecPhysicalAddr
-Summary: Retrieve CEC Physical info stored in the EDID
-*******************************************************************************/
-BERR_Code BHDM_EDID_GetMyCecPhysicalAddr(
-	const BHDM_Handle hHDMI,
-	uint8_t *pMyPhysicalAddr)
-{
-	BERR_Code rc = BERR_SUCCESS ;
-
-	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
-
-	if (hHDMI->DeviceStatus.edidState != BHDM_EDID_STATE_eOK)
-	{
-		rc = BERR_TRACE(BHDM_EDID_NOT_FOUND) ;
-		goto done ;
-	}
-
-	pMyPhysicalAddr[0] = hHDMI->AttachedEDID.RxVSDB.PhysAddr_A;
-	pMyPhysicalAddr[0] <<= 4;
-	pMyPhysicalAddr[0] |= hHDMI->AttachedEDID.RxVSDB.PhysAddr_B;
-
-	pMyPhysicalAddr[1] = hHDMI->AttachedEDID.RxVSDB.PhysAddr_C;
-	pMyPhysicalAddr[1] <<= 4;
-	pMyPhysicalAddr[1] |= hHDMI->AttachedEDID.RxVSDB.PhysAddr_D;
-
-done:
-	return rc  ;
-}
 #endif
 
 /******************************************************************************
@@ -4922,26 +4953,31 @@ BERR_Code BHDM_EDID_GetHdrStaticMetadatadb(
                                             Block to hold the retrieved data */
 )
 {
-	uint8_t RxDeviceAttached ;
 	BERR_Code rc = BERR_SUCCESS ;
 
-
-	BDBG_ENTER(BHDM_EDID_GetHdmiHdrdb) ;
+	BDBG_ENTER(BHDM_EDID_GetHdrStaticMetadatadb) ;
 	BDBG_OBJECT_ASSERT(hHDMI, HDMI) ;
+
+#if BDBG_DEBUG_BUILD
+	if (hHDMI->DeviceSettings.BypassEDIDChecking)
+	{
+		BKNI_Memset(RxHdrDB, 1, sizeof(*RxHdrDB)) ;
+
+		RxHdrDB->MinLuminance     = 0 ;
+		RxHdrDB->MaxLuminance     = 0 ;
+		RxHdrDB->AverageLuminance = 0 ;
+
+		goto done ;
+	}
+#endif
 
 	BKNI_Memset(RxHdrDB, 0, sizeof(BHDM_EDID_HDRStaticDB)) ;
 
-	/* make sure HDMI Cable is connected to something... */
-	BHDM_CHECK_RC(rc, BHDM_RxDeviceAttached(hHDMI, &RxDeviceAttached));
-	if (!RxDeviceAttached)
+	rc = BHDM_EDID_P_ValidEdidAvailable(hHDMI) ;
+	if (rc)
 	{
-		rc = BHDM_NO_RX_DEVICE ;
+		rc = BERR_TRACE(rc) ;
 		goto done ;
-	}
-
-	if (hHDMI->DeviceStatus.edidState == BHDM_EDID_STATE_eInvalid) {
-		BDBG_WRN(("No Valid EDID Found..."));
-		goto done;
 	}
 
 	if (!hHDMI->AttachedEDID.RxHasHdmiSupport)
@@ -4952,7 +4988,7 @@ BERR_Code BHDM_EDID_GetHdrStaticMetadatadb(
 		sizeof(BHDM_EDID_HDRStaticDB)) ;
 
 done:
-	BDBG_LEAVE(BHDM_EDID_GetHdmiHdrdb) ;
+	BDBG_LEAVE(BHDM_EDID_GetHdrStaticMetadatadb) ;
 	return rc ;
 }
 
@@ -4965,6 +5001,7 @@ void BHDM_EDID_DEBUG_PrintData(BHDM_Handle hHDMI)
 	static char const ucDataBlockSeparator[] = "_______________________________________" ;
 	char ManufName[4] ;
 	unsigned ManufNameCompressedASCII ;
+	BHDM_EDID_P_DetailedTiming *pDetailedTimingDescriptor ;
 
 	BDBG_LOG(("EDID Information from Rx <%s>  (%s %d)",
 		hHDMI->AttachedEDID.MonitorName,
@@ -5072,11 +5109,13 @@ void BHDM_EDID_DEBUG_PrintData(BHDM_Handle hHDMI)
 	BDBG_LOG(("   Detailed Timing (Preferred) Formats:")) ;
 	BDBG_LOG(("   Format	    HBlnk HOfst HWidth  VBlnk VOfst VWidth  PxlClk  ScrSz")) ;
 
-	for (i = 0 ; i < hHDMI->AttachedEDID.SupportedDetailTimingsIn1stBlock ; i++)
+	for (pDetailedTimingDescriptor = BLST_Q_FIRST(&hHDMI->AttachedEDID.SupportedDetailTimingList);
+		 pDetailedTimingDescriptor ;
+		 pDetailedTimingDescriptor = BLST_Q_NEXT(pDetailedTimingDescriptor, link))
 	{
 		BHDM_EDID_DetailTiming *DetailTimingBlock ;
 
-		DetailTimingBlock = &hHDMI->AttachedEDID.SupportedDetailTimings[i] ;
+		DetailTimingBlock = &pDetailedTimingDescriptor->stDetailedTiming ;
 
 		BDBG_LOG(("    %4d x %d (%4d%c)  %3d   %3d   %3d      %2d   %2d    %2d      %dMHz   %dx%d",
 			DetailTimingBlock->HorizActivePixels, DetailTimingBlock->VerticalActiveLines,

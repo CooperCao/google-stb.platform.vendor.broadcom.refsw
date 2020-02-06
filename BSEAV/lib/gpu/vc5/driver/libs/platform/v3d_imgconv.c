@@ -396,7 +396,7 @@ gmem_usage_flags_t v3d_imgconv_calc_dst_gmem_usage(
       {
          return ret;
       }
-      else
+      else if (dst_base_contiguous)
       {
          /* Does a contiguous memory claim work? */
          info.contiguous_dst = true;

@@ -743,8 +743,6 @@ typedef struct _BHDM_Settings_
 
 typedef enum
 {
-	BHDM_EDID_STATE_eNotInitialized,
-	BHDM_EDID_STATE_eProcessing,
 	BHDM_EDID_STATE_eInvalid,
 	BHDM_EDID_STATE_eOK
 } BHDM_EDID_STATE;

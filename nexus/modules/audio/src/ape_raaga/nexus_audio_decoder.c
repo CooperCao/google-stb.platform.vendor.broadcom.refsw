@@ -118,6 +118,7 @@ static void NEXUS_AudioDecoder_P_DisableRaveContexts(NEXUS_AudioDecoderHandle ha
 static BKNI_EventHandle g_watchdogEvent;
 static NEXUS_EventCallbackHandle g_watchdogCallback;
 static unsigned g_numWatchdogs;
+static BKNI_EventHandle g_externalWatchdogEvent;
 
 static void NEXUS_AudioDecoder_P_Watchdog_isr(void *pParam1, int param2)
 {
@@ -3603,6 +3604,14 @@ static void NEXUS_AudioDecoder_P_Watchdog(void *pParam)
     {
         BDBG_WRN(("Watchdog Processing Disabled"));
     }
+    if (g_externalWatchdogEvent) {
+        BKNI_SetEvent_isr(g_externalWatchdogEvent);
+    }
+}
+
+void NEXUS_AudioDecoder_SetExternalWatchdogEvent_priv(BKNI_EventHandle event)
+{
+    g_externalWatchdogEvent = event;
 }
 
 static void NEXUS_AudioDecoder_P_SampleRate(void *pParam)

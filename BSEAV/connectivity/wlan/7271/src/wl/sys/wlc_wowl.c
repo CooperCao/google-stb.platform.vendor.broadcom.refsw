@@ -2222,6 +2222,11 @@ wlc_wowl_enable_by_cfgid(wowl_info_t *wowl, uint16 id)
 		return FALSE;
 	}
 
+	if (BSSCFG_AP(cfg)) {
+		WL_ERROR(("wlan cannot be configured to wowl during AP role\n"));
+		return FALSE;
+	}
+
 	/* Make sure that there is something to do */
 	if (!wlc_wowl_cap(wlc) ||
 			((wowl->wowl_test == 0) &&

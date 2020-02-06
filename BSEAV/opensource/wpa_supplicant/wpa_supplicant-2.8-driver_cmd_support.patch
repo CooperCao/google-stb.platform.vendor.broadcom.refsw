@@ -1,0 +1,268 @@
+diff -Naur wpa_supplicant-2.8-orig/src/drivers/driver.h wpa_supplicant-2.8/src/drivers/driver.h
+--- wpa_supplicant-2.8-orig/src/drivers/driver.h	2019-07-30 11:17:11.538814941 -0700
++++ wpa_supplicant-2.8/src/drivers/driver.h	2019-07-30 17:12:36.995696523 -0700
+@@ -3449,7 +3449,7 @@
+ 	 */
+ 	int (*set_authmode)(void *priv, int authmode);
+ 
+-#ifdef ANDROID
++/*#ifdef ANDROID*/
+ 	/**
+ 	 * driver_cmd - Execute driver-specific command
+ 	 * @priv: Private driver interface data
+@@ -3459,7 +3459,7 @@
+ 	 * Returns: 0 on success, -1 on failure
+ 	 */
+ 	int (*driver_cmd)(void *priv, char *cmd, char *buf, size_t buf_len);
+-#endif /* ANDROID */
++/*#endif*/ /* ANDROID */
+ 
+ 	/**
+ 	 * vendor_cmd - Execute vendor specific command
+diff -Naur wpa_supplicant-2.8-orig/src/drivers/driver_nl80211.c wpa_supplicant-2.8/src/drivers/driver_nl80211.c
+--- wpa_supplicant-2.8-orig/src/drivers/driver_nl80211.c	2019-07-30 11:17:11.510450088 -0700
++++ wpa_supplicant-2.8/src/drivers/driver_nl80211.c	2019-07-30 17:13:29.012409585 -0700
+@@ -9172,8 +9172,147 @@
+ 
+ 	return NL_SKIP;
+ }
++#include "../../wpa_supplicant/wpa_supplicant_i.h"
++#include "android_drv.h"
+ 
+ 
++#include "includes.h"
++#include <sys/ioctl.h>
++
++#include "linux_wext.h"
++#include "common.h"
++#include "driver.h"
++#include "driver_wext.h"
++#include "eloop.h"
++
++
++#include <net/if_arp.h>
++#include <netpacket/packet.h>
++
++
++#include "netlink.h"
++#include "linux_ioctl.h"
++#include "common/ieee802_11_defs.h"
++#include "common/ieee802_11_common.h"
++
++
++typedef struct android_wifi_priv_cmd {
++#ifdef BCMDHD_64_BIT_IPC
++	u64 bufaddr;
++#else
++	char *bufaddr;
++#endif
++	int used_len;
++	int total_len;
++} android_wifi_priv_cmd;
++
++static int drv_errors = 0;
++
++static void wpa_driver_send_hang_msg(struct wpa_driver_nl80211_data *drv)
++{
++	drv_errors++;
++	if (drv_errors > DRV_NUMBER_SEQUENTIAL_ERRORS) {
++		drv_errors = 0;
++		wpa_msg(drv->ctx, MSG_INFO, WPA_EVENT_DRIVER_STATE "HANGED");
++	}
++}
++
++static void wpa_driver_notify_country_change(void *ctx, char *cmd)
++{
++	if ((os_strncasecmp(cmd, "COUNTRY", 7) == 0) ||
++	    (os_strncasecmp(cmd, "SETBAND", 7) == 0)) {
++		union wpa_event_data event;
++
++		os_memset(&event, 0, sizeof(event));
++		event.channel_list_changed.initiator = REGDOM_SET_BY_USER;
++		if (os_strncasecmp(cmd, "COUNTRY", 7) == 0) {
++			event.channel_list_changed.type = REGDOM_TYPE_COUNTRY;
++			if (os_strlen(cmd) > 9) {
++				event.channel_list_changed.alpha2[0] = cmd[8];
++				event.channel_list_changed.alpha2[1] = cmd[9];
++			}
++		} else {
++			event.channel_list_changed.type = REGDOM_TYPE_UNKNOWN;
++		}
++		wpa_supplicant_event(ctx, EVENT_CHANNEL_LIST_CHANGED, &event);
++	}
++}
++static int wpa_driver_nl80211_driver_cmd(void *priv, char *cmd, char *buf,
++				  size_t buf_len )
++{
++	struct i802_bss *bss = priv;
++	struct wpa_driver_nl80211_data *drv = bss->drv;
++	struct ifreq ifr;
++	android_wifi_priv_cmd priv_cmd;
++	int ret = 0;
++	char p2pname[IFNAMSIZ + 1] = "p2p0";
++
++	if (bss->ifindex <= 0 && bss->wdev_id > 0) {
++		/* DRIVER CMD received on the DEDICATED P2P Interface which doesn't
++		 * have an NETDEVICE associated with it. So we have to re-route the
++		 * command to the parent NETDEVICE
++		 */
++		struct wpa_supplicant *wpa_s = (struct wpa_supplicant *)(drv->ctx);
++
++		wpa_printf(MSG_DEBUG, "Re-routing DRIVER cmd to parent iface");
++		if (wpa_s && wpa_s->parent) {
++			/* Update the nl80211 pointers corresponding to parent iface */
++			bss = wpa_s->parent->drv_priv;
++			drv = bss->drv;
++			
++			wpa_printf(MSG_DEBUG, "Re-routing command to iface: %s"
++					      " cmd (%s)", bss->ifname, cmd);
++		}
++	}
++
++	if (os_strcasecmp(cmd, "STOP") == 0) {
++		linux_set_iface_flags(drv->global->ioctl_sock, bss->ifname, 0);
++		wpa_msg(drv->ctx, MSG_INFO, WPA_EVENT_DRIVER_STATE "STOPPED");
++	} else if (os_strcasecmp(cmd, "START") == 0) {
++		linux_set_iface_flags(drv->global->ioctl_sock, bss->ifname, 1);
++		wpa_msg(drv->ctx, MSG_INFO, WPA_EVENT_DRIVER_STATE "STARTED");
++	} else if (os_strcasecmp(cmd, "MACADDR") == 0) {
++		u8 macaddr[ETH_ALEN] = {};
++
++		ret = linux_get_ifhwaddr(drv->global->ioctl_sock, p2pname, macaddr);
++		if (!ret)
++			ret = os_snprintf(buf, buf_len,
++					  "Macaddr = " MACSTR "\n", MAC2STR(macaddr));
++	} else { /* Use private command */
++		os_memcpy(buf, cmd, strlen(cmd) + 1);
++		memset(&ifr, 0, sizeof(ifr));
++		memset(&priv_cmd, 0, sizeof(priv_cmd));
++		os_strlcpy(ifr.ifr_name, p2pname, IFNAMSIZ);
++
++#ifdef BCMDHD_64_BIT_IPC
++		priv_cmd.bufaddr = (u64)(uintptr_t)buf;
++#else
++		priv_cmd.bufaddr = buf;
++#endif
++		priv_cmd.used_len = buf_len;
++		priv_cmd.total_len = buf_len;
++		ifr.ifr_data = (void *)&priv_cmd;
++
++		if ((ret = ioctl(drv->global->ioctl_sock, SIOCDEVPRIVATE + 1, &ifr)) < 0) {
++			wpa_printf(MSG_ERROR, "%s: failed to issue private command: %s", __func__, cmd);
++		
++			wpa_driver_send_hang_msg(drv);
++		} else {
++			drv_errors = 0;
++			ret = 0;
++			if ((os_strcasecmp(cmd, "LINKSPEED") == 0) ||
++			    (os_strcasecmp(cmd, "RSSI") == 0) ||
++			    (os_strcasecmp(cmd, "GETBAND") == 0) ||
++			    (os_strncasecmp(cmd, "WLS_BATCHING", 12) == 0))
++				ret = strlen(buf);
++			wpa_driver_notify_country_change(drv->ctx, cmd);
++			
++			wpa_msg(drv->ctx, MSG_INFO," %s %s", __func__, buf);
++		}
++	}
++	return ret;
++}
++
+ static int nl80211_vendor_cmd(void *priv, unsigned int vendor_id,
+ 			      unsigned int subcmd, const u8 *data,
+ 			      size_t data_len, struct wpabuf *buf)
+@@ -10980,11 +11119,11 @@
+ 	.get_noa = wpa_driver_get_p2p_noa,
+ 	.set_ap_wps_ie = wpa_driver_set_ap_wps_p2p_ie,
+ #endif /* ANDROID_P2P */
+-#ifdef ANDROID
++/*#ifdef ANDROID */
+ #ifndef ANDROID_LIB_STUB
+ 	.driver_cmd = wpa_driver_nl80211_driver_cmd,
+ #endif /* !ANDROID_LIB_STUB */
+-#endif /* ANDROID */
++/* #endif */ /* ANDROID */
+ 	.vendor_cmd = nl80211_vendor_cmd,
+ 	.set_qos_map = nl80211_set_qos_map,
+ 	.set_wowlan = nl80211_set_wowlan,
+diff -Naur wpa_supplicant-2.8-orig/wpa_supplicant/ctrl_iface.c wpa_supplicant-2.8/wpa_supplicant/ctrl_iface.c
+--- wpa_supplicant-2.8-orig/wpa_supplicant/ctrl_iface.c	2019-07-30 11:17:05.355815816 -0700
++++ wpa_supplicant-2.8/wpa_supplicant/ctrl_iface.c	2019-07-30 17:15:11.635619645 -0700
+@@ -7779,7 +7779,7 @@
+ }
+ 
+ 
+-#ifdef ANDROID
++/*#ifdef ANDROID*/
+ static int wpa_supplicant_driver_cmd(struct wpa_supplicant *wpa_s, char *cmd,
+ 				     char *buf, size_t buflen)
+ {
+@@ -7787,23 +7787,13 @@
+ 
+ 	ret = wpa_drv_driver_cmd(wpa_s, cmd, buf, buflen);
+ 	if (ret == 0) {
+-		if (os_strncasecmp(cmd, "COUNTRY", 7) == 0) {
+-			struct p2p_data *p2p = wpa_s->global->p2p;
+-			if (p2p) {
+-				char country[3];
+-				country[0] = cmd[8];
+-				country[1] = cmd[9];
+-				country[2] = 0x04;
+-				p2p_set_country(p2p, country);
+-			}
+-		}
+ 		ret = os_snprintf(buf, buflen, "%s\n", "OK");
+ 		if (os_snprintf_error(buflen, ret))
+ 			ret = -1;
+ 	}
+ 	return ret;
+ }
+-#endif /* ANDROID */
++/*#endif*/ /* ANDROID */
+ 
+ 
+ static int wpa_supplicant_vendor_cmd(struct wpa_supplicant *wpa_s, char *cmd,
+@@ -10551,11 +10541,11 @@
+ 	} else if (os_strcmp(buf, "DRIVER_FLAGS") == 0) {
+ 		reply_len = wpas_ctrl_iface_driver_flags(wpa_s, reply,
+ 							 reply_size);
+-#ifdef ANDROID
++/*#ifdef ANDROID*/
+ 	} else if (os_strncmp(buf, "DRIVER ", 7) == 0) {
+ 		reply_len = wpa_supplicant_driver_cmd(wpa_s, buf + 7, reply,
+ 						      reply_size);
+-#endif /* ANDROID */
++/*#endif*/ /* ANDROID */
+ 	} else if (os_strncmp(buf, "VENDOR ", 7) == 0) {
+ 		reply_len = wpa_supplicant_vendor_cmd(wpa_s, buf + 7, reply,
+ 						      reply_size);
+diff -Naur wpa_supplicant-2.8-orig/wpa_supplicant/wpa_cli.c wpa_supplicant-2.8/wpa_supplicant/wpa_cli.c
+--- wpa_supplicant-2.8-orig/wpa_supplicant/wpa_cli.c	2019-07-30 11:17:06.487952323 -0700
++++ wpa_supplicant-2.8/wpa_supplicant/wpa_cli.c	2019-07-30 17:15:57.715708432 -0700
+@@ -2848,12 +2848,12 @@
+ }
+ 
+ 
+-#ifdef ANDROID
++/*#ifdef ANDROID */
+ static int wpa_cli_cmd_driver(struct wpa_ctrl *ctrl, int argc, char *argv[])
+ {
+ 	return wpa_cli_cmd(ctrl, "DRIVER", 1, argc, argv);
+ }
+-#endif /* ANDROID */
++/*#endif*/ /* ANDROID */
+ 
+ 
+ static int wpa_cli_cmd_vendor(struct wpa_ctrl *ctrl, int argc, char *argv[])
+@@ -3603,10 +3603,10 @@
+ 	  "<params..> = Sent unprocessed command" },
+ 	{ "flush", wpa_cli_cmd_flush, NULL, cli_cmd_flag_none,
+ 	  "= flush wpa_supplicant state" },
+-#ifdef ANDROID
++/*#ifdef ANDROID */
+ 	{ "driver", wpa_cli_cmd_driver, NULL, cli_cmd_flag_none,
+ 	  "<command> = driver private commands" },
+-#endif /* ANDROID */
++/*#endif*/ /* ANDROID */
+ 	{ "radio_work", wpa_cli_cmd_radio_work, NULL, cli_cmd_flag_none,
+ 	  "= radio_work <show/add/done>" },
+ 	{ "vendor", wpa_cli_cmd_vendor, NULL, cli_cmd_flag_none,

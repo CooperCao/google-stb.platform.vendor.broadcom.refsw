@@ -1,44 +1,48 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2018 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  ******************************************************************************/
 /* Nexus example app: single live a/v decode from an input band, routed to hdmi output */
 
 #include "nexus_platform.h"
-#if NEXUS_NUM_HDMI_OUTPUTS && NEXUS_HAS_AUDIO
+#if NEXUS_NUM_HDMI_OUTPUTS
 #include "nexus_pid_channel.h"
 #include "nexus_parser_band.h"
 #include "nexus_video_decoder.h"
@@ -70,24 +74,22 @@
 #include "nexus_playback.h"
 #include "nexus_playpump.h"
 
-#if 0
 #define FILE_NAME "videos/cnnticker.mpg"
 #define TRANSPORT_TYPE NEXUS_TransportType_eTs
 #define VIDEO_CODEC NEXUS_VideoCodec_eMpeg2
 #define AUDIO_CODEC NEXUS_AudioCodec_eMpeg
 #define VIDEO_PID 0x21
 #define AUDIO_PID 0x22
-#else
-#define FILE_NAME "videos/cnnticker.mpg"
-#define TRANSPORT_TYPE NEXUS_TransportType_eTs
-#define VIDEO_CODEC NEXUS_VideoCodec_eMpeg2
-#define AUDIO_CODEC NEXUS_AudioCodec_eMpeg
-#define VIDEO_PID 0x21
-#define AUDIO_PID 0x22
-#endif
 
 static const char HDCP2x_DEFAULT_BIN[] =  "./drm.bin";
 static const char HDCP1x_DEFAULT_BIN[] = "./hdcp1xKeys.bin";
+
+static const char * const HDCP_VersionText[] =
+{
+	BDBG_STRING("1.x"),
+	BDBG_STRING("2.2")
+} ;
+
 
 BDBG_MODULE(hdmi_output_hdcp) ;
 
@@ -327,7 +329,7 @@ static void hotplug_callback(void *pParam, int iParam)
     if (status.rxPowered) {
         errCode = initializeHdmiOutputHdcpSettings() ;
         if (errCode != NEXUS_SUCCESS) {
-            BDBG_ERR(("Error InializeHdmiOutputHdcpSettings"));
+            BDBG_ERR(("Error InitializeHdmiOutputHdcpSettings"));
             BERR_TRACE(errCode);
             return;
         }
@@ -346,8 +348,8 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
     NEXUS_HdmiOutputHandle handle = pContext;
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_HdmiOutputHdcpStatus hdcpStatus;
+    const char *hdcpVersionText ;
     BSTD_UNUSED(param) ;
-
 
     /* check if  HDCP state changed due to power down */
     NEXUS_HdmiOutput_GetStatus(handle, &hdmiStatus);
@@ -359,7 +361,7 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
 
 
     NEXUS_HdmiOutput_GetHdcpStatus(handle, &hdcpStatus);
-    BDBG_LOG(("%s: state %d -- error %d", BSTD_FUNCTION, hdcpStatus.hdcpState, hdcpStatus.hdcpError));
+    hdcpVersionText = HDCP_VersionText[hdcpStatus.selectedHdcpVersion == NEXUS_HdcpVersion_e1x ? 0 : 1] ;
 
 	switch (hdcpStatus.hdcpState)
 	{
@@ -371,14 +373,14 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
 		/* Unauthenticated - no hdcp error */
 		if (hdcpStatus.hdcpError == NEXUS_HdmiOutputHdcpError_eSuccess)
 		{
-			BDBG_LOG(("*** HDCP was disabled as requested (NEXUS_HdmiOutput_DisableHdcpAuthentication was called)***"));
+			BDBG_LOG(("*** NEXUS_HdmiOutput_DisableHdcpAuthentication was called***"));
 			goto done;
 		}
 
-		/* Unauthenticated - with hdcp authentication error */
-		else {
-			BDBG_LOG(("*** HDCP Authentication failed - Error (%d): %s - ***",
-				hdcpStatus.hdcpError, hdcpErrorToStr(hdcpStatus.hdcpError)));
+            /* Unauthenticated - with hdcp authentication error */
+            else {
+                BDBG_LOG(("*** HDCP %s Authentication failed - Error: %s - ***",
+                    hdcpVersionText, hdcpErrorToStr(hdcpStatus.hdcpError)));
 
 		    /* always retry if running compliance test */
 	        if (complianceTest) {
@@ -402,48 +404,41 @@ static void hdmiOutputHdcpStateChanged(void *pContext, int param)
 		break;
 
 
-	case NEXUS_HdmiOutputHdcpState_eLinkAuthenticated:
+    case NEXUS_HdmiOutputHdcpState_eLinkAuthenticated:
     case NEXUS_HdmiOutputHdcpState_eEncryptionEnabled:
-		/* HDCP successfully authenticated */
-		BDBG_LOG(("*** HDCP Authentication Successful ***\n"));
-		hdmiHdcpEnabled = true ;
-		break;
+        /* HDCP successfully authenticated */
+        BDBG_LOG(("*** HDCP %s Authentication Successful ***", hdcpVersionText)) ;
+        hdmiHdcpEnabled = true ;
+        break;
 
 
-	case NEXUS_HdmiOutputHdcpState_eRepeaterAuthenticationFailure:
-	case NEXUS_HdmiOutputHdcpState_eRiLinkIntegrityFailure:
-	case NEXUS_HdmiOutputHdcpState_ePjLinkIntegrityFailure:
-	case NEXUS_HdmiOutputHdcpState_eR0LinkFailure:
-		/* HDCP authentication fail - in particular, link integrity check fail */
-		BDBG_LOG(("*** HDCP Authentication failed - Error: %s - ***", hdcpErrorToStr(hdcpStatus.hdcpError)));
+    case NEXUS_HdmiOutputHdcpState_eRepeaterAuthenticationFailure:
+    case NEXUS_HdmiOutputHdcpState_eRiLinkIntegrityFailure:
+    case NEXUS_HdmiOutputHdcpState_ePjLinkIntegrityFailure:
+    case NEXUS_HdmiOutputHdcpState_eR0LinkFailure:
+        /* HDCP authentication fail - in particular, link integrity check fail */
+        BDBG_LOG(("*** HDCP %s Authentication failed - Error: %s - ***",
+            hdcpVersionText, hdcpErrorToStr(hdcpStatus.hdcpError)));
 
-	    /* always retry if running compliance test */
+        /* always retry if running compliance test */
         if (complianceTest) {
             NEXUS_HdmiOutput_StartHdcpAuthentication(platformConfig.outputs.hdmi[0]);
         }
-		break;
+        break;
 
-	default:
-		BDBG_ERR(("*** Invalid HDCP authentication state ***"));
-		break;
+        default:
+            BDBG_ERR(("*** Invalid HDCP authentication state ***"));
+            break;
 	}
 
 done:
-
-	return;
+    return;
 }
 
 
-static NEXUS_Error initializeHdmiOutputHdcpSettings(void)
+static NEXUS_Error initializeHdmiOutput1xKeys(void)
 {
-    NEXUS_HdmiOutputHdcpSettings hdmiOutputHdcpSettings;
-
-    int rc = 0;
     int fileFd;
-    uint8_t *buffer = NULL;
-    NEXUS_Error errCode=NEXUS_SUCCESS;
-    size_t fileSize=0;
-    off_t seekPos=0;
 
     fileFd = open(HDCP1x_DEFAULT_BIN, O_RDONLY);
     if (fileFd < 0) {
@@ -460,10 +455,26 @@ static NEXUS_Error initializeHdmiOutputHdcpSettings(void)
         close(fileFd);
     }
 
+    return NEXUS_SUCCESS ;
+}
+
+
+static NEXUS_Error initializeHdmiOutput22Keys(void)
+{
+    NEXUS_HdmiOutputHdcpSettings hdmiOutputHdcpSettings;
+    int fileFd;
+    uint8_t *buffer = NULL;
+    NEXUS_Error errCode=NEXUS_SUCCESS;
+    size_t fileSize=0;
+
+    int rc = 0;
+    off_t seekPos=0;
+
     fileFd = open(HDCP2x_DEFAULT_BIN, O_RDONLY);
     if (fileFd < 0)
     {
-        BDBG_ERR(("Unable to open bin file"));
+        BDBG_ERR(("Unable to open HDCP 2.2 key file: %s", HDCP2x_DEFAULT_BIN ));
+        BDBG_ERR(("HDCP 2.2 may not be supported on this platform")) ;
         rc = 1;
         goto end;
     }
@@ -492,42 +503,29 @@ static NEXUS_Error initializeHdmiOutputHdcpSettings(void)
         goto end;
     }
 
-    BDBG_LOG(("%s: buff=%p, size=%u", BSTD_FUNCTION, buffer, (unsigned)fileSize));
-
     NEXUS_HdmiOutput_GetHdcpSettings(platformConfig.outputs.hdmi[0], &hdmiOutputHdcpSettings);
-    hdmiOutputHdcpSettings.hdcp_version = version_select;
 
-    /* copy the encrypted key set and its Aksv here  */
-    BKNI_Memcpy(hdmiOutputHdcpSettings.encryptedKeySet, encryptedTxKeySet, NEXUS_HDMI_OUTPUT_HDCP_NUM_KEYS * sizeof(NEXUS_HdmiOutputHdcpKey));
-    BKNI_Memcpy(&hdmiOutputHdcpSettings.aksv, &hdcpTxAksv, NEXUS_HDMI_OUTPUT_HDCP_KSV_LENGTH);
+        hdmiOutputHdcpSettings.hdcp_version = version_select;
 
-#if 0
-    /* install HDCP success  callback */
-    hdmiOutputHdcpSettings.successCallback.callback = hdmiOutputHdcpStateChanged ;
-    hdmiOutputHdcpSettings.successCallback.context = platformConfig.outputs.hdmi[0];
+        /* copy the encrypted key set and its Aksv here  */
+        BKNI_Memcpy(hdmiOutputHdcpSettings.encryptedKeySet, encryptedTxKeySet, NEXUS_HDMI_OUTPUT_HDCP_NUM_KEYS * sizeof(NEXUS_HdmiOutputHdcpKey));
+        BKNI_Memcpy(&hdmiOutputHdcpSettings.aksv, &hdcpTxAksv, NEXUS_HDMI_OUTPUT_HDCP_KSV_LENGTH);
 
-    /* install HDCP failure callback */
-    hdmiOutputHdcpSettings.failureCallback.callback = hdmiOutputHdcpStateChanged ;
-    hdmiOutputHdcpSettings.failureCallback.context = platformConfig.outputs.hdmi[0];
-#else
-	/* install hdcp callback */
-	hdmiOutputHdcpSettings.stateChangedCallback.callback = hdmiOutputHdcpStateChanged;
-	hdmiOutputHdcpSettings.stateChangedCallback.context = platformConfig.outputs.hdmi[0];
-#endif
+        /* install hdcp callback */
+        hdmiOutputHdcpSettings.stateChangedCallback.callback = hdmiOutputHdcpStateChanged;
+        hdmiOutputHdcpSettings.stateChangedCallback.context = platformConfig.outputs.hdmi[0];
 
     NEXUS_HdmiOutput_SetHdcpSettings(platformConfig.outputs.hdmi[0], &hdmiOutputHdcpSettings);
 
     errCode = NEXUS_HdmiOutput_SetHdcp2xBinKeys(platformConfig.outputs.hdmi[0], buffer, (uint32_t)fileSize);
     if (errCode != NEXUS_SUCCESS)
     {
-        BDBG_ERR(("Error setting Hdcp2x encrypted keys. HDCP2.x will not work."));
+       BDBG_ERR(("Error setting Hdcp2x encrypted keys. HDCP2.x will not work."));
+       rc = 7 ;
+       goto end;
     }
 
-    /* install list of revoked KSVs from SRMs (System Renewability Message) if available */
-    NEXUS_HdmiOutput_SetHdcpRevokedKsvs(platformConfig.outputs.hdmi[0],
-        RevokedKsvs, NumRevokedKsvs) ;
 end:
-
     if (fileFd)    {
         close(fileFd);
     }
@@ -536,12 +534,45 @@ end:
         BKNI_Free(buffer);
     }
 
-    if (rc)
+    return rc ;
+}
+
+static NEXUS_Error initializeHdmiOutputHdcpSettings(void)
+{
+    NEXUS_HdmiOutputHdcpSettings hdmiOutputHdcpSettings;
+    NEXUS_Error errCode=NEXUS_SUCCESS;
+
+    errCode = initializeHdmiOutput1xKeys() ;
+    if (errCode) goto end ;
+
+    errCode = initializeHdmiOutput22Keys() ;
+    if (errCode)
     {
-        BDBG_ERR(("%s: error #%d, fileSize=%u, seekPos=%d", BSTD_FUNCTION,  rc, (unsigned)fileSize, (unsigned)seekPos));
-        BDBG_ASSERT(false);
+        /* report and continue since HDCP 2.2 may not be supported/avaialble */
+        BERR_TRACE(errCode) ;
     }
 
+
+    /* install list of revoked KSVs from SRMs (System Renewability Message) if available */
+    NEXUS_HdmiOutput_SetHdcpRevokedKsvs(platformConfig.outputs.hdmi[0],
+        RevokedKsvs, NumRevokedKsvs) ;
+
+    NEXUS_HdmiOutput_GetHdcpSettings(platformConfig.outputs.hdmi[0], &hdmiOutputHdcpSettings);
+
+        hdmiOutputHdcpSettings.hdcp_version = version_select;
+
+        /* copy the encrypted key set and its Aksv here  */
+        BKNI_Memcpy(hdmiOutputHdcpSettings.encryptedKeySet, encryptedTxKeySet, NEXUS_HDMI_OUTPUT_HDCP_NUM_KEYS * sizeof(NEXUS_HdmiOutputHdcpKey));
+        BKNI_Memcpy(&hdmiOutputHdcpSettings.aksv, &hdcpTxAksv, NEXUS_HDMI_OUTPUT_HDCP_KSV_LENGTH);
+
+        /* install hdcp callback */
+        hdmiOutputHdcpSettings.stateChangedCallback.callback = hdmiOutputHdcpStateChanged;
+        hdmiOutputHdcpSettings.stateChangedCallback.context = platformConfig.outputs.hdmi[0];
+
+    NEXUS_HdmiOutput_SetHdcpSettings(platformConfig.outputs.hdmi[0], &hdmiOutputHdcpSettings);
+
+
+end:
     return errCode;
  }
 

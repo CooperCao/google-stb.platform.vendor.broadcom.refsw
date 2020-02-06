@@ -1782,6 +1782,7 @@ typedef struct dot11_oper_mode_notif_ie dot11_oper_mode_notif_ie_t;
 /* Public action ids */
 #define DOT11_PUB_ACTION_BSS_COEX_MNG	0	/* 20/40 Coexistence Management action id */
 #define DOT11_PUB_ACTION_CHANNEL_SWITCH	4	/* d11 action channel switch */
+#define DOT11_PUB_ACTION_VENDOR_SPEC	9	/* Vendor specific */
 #define DOT11_PUB_ACTION_GAS_CB_REQ	12	/* GAS Comeback Request */
 #define DOT11_PUB_ACTION_FTM_REQ	32		/* FTM request */
 #define DOT11_PUB_ACTION_FTM		33		/* FTM measurement */
@@ -2820,6 +2821,7 @@ typedef struct dot11_rmrep_bcn dot11_rmrep_bcn_t;
 #define DOT11_RMREQ_BCN_REPDET_ID   2
 #define DOT11_RMREQ_BCN_REQUEST_ID  10
 #define DOT11_RMREQ_BCN_APCHREP_ID  DOT11_MNG_AP_CHREP_ID
+#define DOT11_RMREQ_BCN_LAST_RPT_IND_REQ_ID 164
 
 /* Reporting Detail element definition */
 #define DOT11_RMREQ_BCN_REPDET_FIXED	0	/* Fixed length fields only */
@@ -2830,9 +2832,58 @@ typedef struct dot11_rmrep_bcn dot11_rmrep_bcn_t;
 #define DOT11_RMREQ_BCN_REPINFO_LEN	2	/* Beacon Reporting Information length */
 #define DOT11_RMREQ_BCN_REPCOND_DEFAULT	0	/* Report to be issued after each measurement */
 
+/* Last Beacon Report Indication Request definition */
+#define DOT11_RMREQ_BCN_LAST_RPT_IND_REQ_ENAB  1
+
+BWL_PRE_PACKED_STRUCT struct dot11_rmrep_last_bcn_rpt_ind_req {
+	uint8 id;                       /* DOT11_RMREQ_BCN_LAST_RPT_IND_REQ_ID */
+	uint8 len;                      /* length of remaining fields */
+	uint8 data;                     /* data = 1 means last bcn rpt ind requested */
+} BWL_POST_PACKED_STRUCT;
+typedef struct dot11_rmrep_last_bcn_rpt_ind_req dot11_rmrep_last_bcn_rpt_ind_req_t;
 /* Sub-element IDs for Beacon Report */
 #define DOT11_RMREP_BCN_FRM_BODY	1
+#define DOT11_RMREP_BCN_FRM_BODY_FRAG_ID	2
+#define DOT11_RMREP_BCN_LAST_RPT_IND 164
 #define DOT11_RMREP_BCN_FRM_BODY_LEN_MAX	224 /* 802.11k-2008 7.3.2.22.6 */
+
+/* Refer IEEE P802.11-REVmd/D1.0 9.4.2.21.7 Beacon report */
+BWL_PRE_PACKED_STRUCT struct dot11_rmrep_bcn_frm_body_fragmt_id {
+	uint8 id;                       /* DOT11_RMREP_BCN_FRM_BODY_FRAG_ID */
+	uint8 len;                      /* length of remaining fields */
+	/* More fragments(B15), fragment Id(B8-B14), Bcn rpt instance ID (B0 - B7) */
+	uint16 frag_info_rpt_id;
+} BWL_POST_PACKED_STRUCT;
+
+typedef struct dot11_rmrep_bcn_frm_body_fragmt_id dot11_rmrep_bcn_frm_body_fragmt_id_t;
+
+BWL_PRE_PACKED_STRUCT struct dot11_rmrep_bcn_frm_body_frag_id {
+	uint8 id;                       /* DOT11_RMREP_BCN_FRM_BODY_FRAG_ID */
+	uint8 len;                      /* length of remaining fields */
+	uint8 bcn_rpt_id;               /* Bcn rpt instance ID */
+	uint8 frag_info;                /* fragment Id(7 bits) | More fragments(1 bit) */
+} BWL_POST_PACKED_STRUCT;
+
+typedef struct dot11_rmrep_bcn_frm_body_frag_id dot11_rmrep_bcn_frm_body_frag_id_t;
+#define DOT11_RMREP_BCNRPT_FRAG_ID_DATA_LEN  2u
+#define DOT11_RMREP_BCNRPT_FRAG_ID_SE_LEN sizeof(dot11_rmrep_bcn_frm_body_frag_id_t)
+#define DOT11_RMREP_BCNRPT_FRAG_ID_NUM_SHIFT  1u
+#define DOT11_RMREP_BCNRPT_FRAGMT_ID_SE_LEN sizeof(dot11_rmrep_bcn_frm_body_fragmt_id_t)
+#define DOT11_RMREP_BCNRPT_BCN_RPT_ID_MASK  0x00FFu
+#define DOT11_RMREP_BCNRPT_FRAGMT_ID_NUM_SHIFT  8u
+#define DOT11_RMREP_BCNRPT_FRAGMT_ID_NUM_MASK  0x7F00u
+#define DOT11_RMREP_BCNRPT_MORE_FRAG_SHIFT  15u
+#define DOT11_RMREP_BCNRPT_MORE_FRAG_MASK  0x8000u
+
+BWL_PRE_PACKED_STRUCT struct dot11_rmrep_last_bcn_rpt_ind {
+	uint8 id;                       /* DOT11_RMREP_BCN_LAST_RPT_IND */
+	uint8 len;                      /* length of remaining fields */
+	uint8 data;                     /* data = 1 is last bcn rpt */
+} BWL_POST_PACKED_STRUCT;
+
+typedef struct dot11_rmrep_last_bcn_rpt_ind dot11_rmrep_last_bcn_rpt_ind_t;
+#define DOT11_RMREP_LAST_BCN_RPT_IND_DATA_LEN 1
+#define DOT11_RMREP_LAST_BCN_RPT_IND_SE_LEN sizeof(dot11_rmrep_last_bcn_rpt_ind_t)
 
 /* Sub-element IDs for Frame Report */
 #define DOT11_RMREP_FRAME_COUNT_REPORT 1

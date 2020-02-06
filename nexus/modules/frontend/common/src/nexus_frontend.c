@@ -1367,18 +1367,13 @@ void NEXUS_Frontend_P_DumpMtsifConfig(const NEXUS_FrontendDeviceMtsifConfig *pCo
 
 NEXUS_Error NEXUS_Frontend_ReapplyTransportSettings(NEXUS_FrontendHandle handle)
 {
-    NEXUS_Error rc;
-    NEXUS_FrontendFastStatus fastStatus;
     BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
 
     if(NEXUS_Frontend_P_CheckDeviceOpen(handle)){
         return BERR_TRACE(NEXUS_NOT_INITIALIZED);
     }
 
-    rc = NEXUS_Frontend_GetFastStatus(handle, &fastStatus);
-    if (rc) { return BERR_TRACE(rc); }
-
-    if (fastStatus.lockStatus == NEXUS_FrontendLockStatus_eLocked) {
+    if (handle->tuned) {
         /* call the device-specific function because the cached MTSIF-config struct is per-device */
         if (NULL == handle->reapplyTransportSettings) {
             if (handle->pParentFrontend) {
@@ -1392,7 +1387,7 @@ NEXUS_Error NEXUS_Frontend_ReapplyTransportSettings(NEXUS_FrontendHandle handle)
             return handle->reapplyTransportSettings(handle->pDeviceHandle);
         }
     } else {
-        BDBG_WRN(("Skipping reapply transport settings, as the Frontend is not locked"));
+        BDBG_WRN(("Skipping reapply transport settings on untuned frontend"));
         return BERR_SUCCESS;
     }
 }

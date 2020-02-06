@@ -1,3 +1,27 @@
+BCM4375_REL_1_20
+Enable FBT in default driver build
+Fix WFA MBO STA Cert cases
+
+BCM4375_REL_1_18
+Fix WFA WiFi6 Cert mandatory failures
+
+BCM4375_REL_1_17
+Fix WFA WiFi6 Cert failures
+
+BCM4375_REL_1_16
+Add fw binaries for WFA Cert programs
+Fix mfgtest fw loading failure
+
+BCM4375_REL_1_15
+Update nvram files
+Fix WoWL with tkip encryption failure
+Enable WoWL with cfg80211
+Enable HE rates for SoftAP
+
+BCM4375_REL_1_14
+Update nvram files
+DHD: Enable WET for STA
+
 BCM4375_REL_1_12
 Android build error fix
 

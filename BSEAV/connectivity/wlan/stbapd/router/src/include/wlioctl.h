@@ -1303,6 +1303,10 @@ typedef struct maclist {
 	uint count;			/* number of MAC addresses */
 	struct ether_addr ea[1];	/* variable length array of MAC addresses */
 } maclist_t;
+typedef struct bss_load {
+	uint8 chan_util;          /* channel utilization value */
+	maclist_t  maclist;
+} bss_load_t;
 
 typedef struct wds_client_info {
 	char	ifname[INTF_NAME_SIZ];	/* WDS ifname */

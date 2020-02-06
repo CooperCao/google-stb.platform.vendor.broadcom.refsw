@@ -277,9 +277,11 @@ static void usage(void)
 	printf( "\t[-i <intefacename(default: wlan0)>]\n");
 	printf( "\t[-f  <firmware file(default: config_pcie_stb_release.bin)>]\n");
 	printf( "\t[-n <nvram file(default: <boardname>.txt)>]\n");
+	printf( "\t[-c none /*donnot download a clm_blob. Used for Mfgtest, already has clm builtin. */\n");
 	printf( "\t[-c <clm_blob(default: 4375b1.clm_blob)>]\n");
-	printf( "Examples: wlinstall /*No options will load all defaults*/ \n" );
+	printf( "Examples: wlinstall /*No options will Load All defaults*/ \n" );
 	printf( "Examples: wlinstall -d dhd-msgbuf-pciefd-cfg80211-stb-armv8-debug-4.9.135.1.11.ko -f config_pcie_stb_cert.bin /* specified dhd.ko and firmware,rest DEFAULTS \n" );
+	printf( "Examples: wlinstall -f config_pcie_stb_mfgtest.bin -c none/* !!For Mfgtest firmware,  use `-c none`!!*/\n" );
 
 } /* usage */
 
@@ -309,7 +311,7 @@ int dhd_install(int argc, char **argv, char* boardname)
 	char firmware_file[PATH_SIZE]="config_pcie_stb_release.bin"; /* -f */
 	char firmware_path[PATH_SIZE];
 	char clm_file[PATH_SIZE]="4375b1.clm_blob";  /* -c */
-	char clm_path[PATH_SIZE];
+	char clm_path[PATH_SIZE]="";
 	char iface_name[PATH_SIZE]="iface_name=wlan0";  /* -i: default iface_name=wlan0 */
 	char dhd_msg_level[PATH_SIZE]="dhd_msg_level=1";  /* -m: default 1*/
 
@@ -379,7 +381,7 @@ int dhd_install(int argc, char **argv, char* boardname)
 		printf("\n -------Error: Can't find nvram file(%s)-----------\n",nvram_file);
 		return -1;
 	}
-	if( access(clm_file, F_OK) == -1 ) {
+	if((0 != strcasecmp("none",clm_file)) &&  access(clm_file, F_OK) == -1 ) {
 		printf("\n -------Error: Can't find clm_blob file(%s)-----------\n",clm_file);
 		return -1;
 	}
@@ -387,7 +389,9 @@ int dhd_install(int argc, char **argv, char* boardname)
 
     /* Construct parameters */
 	snprintf(nvram_path, sizeof(nvram_path),"nvram_path=%s",nvram_file);
-	snprintf(clm_path, sizeof(clm_path),"clm_path=%s",clm_file);
+	if(0 != strcasecmp("none",clm_file)){
+		snprintf(clm_path, sizeof(clm_path),"clm_path=%s",clm_file);
+	}
 	snprintf(firmware_path, sizeof(firmware_path),"firmware_path=%s",firmware_file);
 	snprintf(dhd_path, sizeof(dhd_path),"%s",dhd_file);
 
@@ -426,7 +430,7 @@ int dhd_install(int argc, char **argv, char* boardname)
     {
         memset((void*)command_buf,0,COMMAND_BUF_SIZE);
         snprintf(command_buf, COMMAND_BUF_SIZE,"insmod %s %s %s %s %s %s",dhd_path,dhd_msg_level,iface_name,firmware_path,nvram_path,clm_path);
-        printf("*** Installing driver: %s\n",command_buf);
+        printf("\n*** Installing driver: %s\n",command_buf);
         sleep(1);
         system(command_buf);
     }
@@ -450,6 +454,7 @@ int main(int argc, char **argv)
 {
     int board_index=0,i=0;
     char *buf=NULL;
+    char *temp=NULL;
     char *nvram_name=NULL;
     char *command_buf=NULL;
     char if_name[PATH_SIZE];
@@ -492,6 +497,17 @@ int main(int argc, char **argv)
 	{
 		printf("***Board name %s board ***\n", buf);
 		buf[7] = '8';
+		printf("***Treat as %s board for nvram purposes ***\n", buf);
+	}
+	/* replace BCX97218XX_V10 to BCX97218XX */
+	if(buf[3] == '9' && buf[4] == '7' && buf[5] == '2' && buf[6] == '1' && buf[7] == '8')
+	{
+		printf("***Board name %s board ***\n", buf);
+		temp = strchr(buf, '_');
+		if( temp != NULL )
+		{
+			*temp = '\0';
+		}
 		printf("***Treat as %s board for nvram purposes ***\n", buf);
 	}
 

@@ -406,7 +406,7 @@ void i5WlmUpdateMAPMetrics(void *arg)
     isCreateTimer = 1;
   }
 
-  pDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pDevice = i5DmGetSelfDevice();
   if ( NULL != pDevice ) {
     i5_dm_interface_type *pInterface = pDevice->interface_list.ll.next;
     while ( pInterface != NULL ) {
@@ -451,6 +451,7 @@ void i5WlmUpdateMAPMetrics(void *arg)
               i5_config.cbs.backhaul_link_metric(pInterface->ifname, pNeighbor->NeighborInterfaceId,
                 &metric);
             }
+            metric.phyRate = 0xFFFF; /* For wireless phyrate should be reported as 0xFFFF */
             i5Dm1905NeighborLinkMetricUpdate(pNeighbor, &metric, 0,
               (I5_DM_LINK_METRIC_UPDATE_TX | I5_DM_LINK_METRIC_UPDATE_RX | I5_DM_LINK_METRIC_UPDATE_LOCAL));
           }

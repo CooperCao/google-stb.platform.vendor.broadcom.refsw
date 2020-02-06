@@ -2011,6 +2011,25 @@ wlc_set_country_common(wlc_cm_info_t *wlc_cmi,
 #if defined WLTXPWR_CACHE && defined(WL11N)
 	wlc_phy_txpwr_cache_invalidate(phy_tpc_get_txpwr_cache(WLC_PI(wlc)));
 #endif	/* WLTXPWR_CACHE */
+
+	/* Ensure NUL string terminator before printing */
+	wlc_cm->country_abbrev[WLC_CNTRY_BUF_SZ - 1] = '\0';
+	wlc_cm->ccode[WLC_CNTRY_BUF_SZ - 1] = '\0';
+	WL_REGULATORY(("wl%d: %s: country/abbrev/ccode/regrev "
+			"from 0x%04x/%s/%s/%d to 0x%04x/%s/%s/%d\n",
+			wlc->pub->unit, __FUNCTION__,
+			wlc_cm->country, wlc_cm->country_abbrev, wlc_cm->ccode, wlc_cm->regrev,
+			country, country_abbrev, ccode, regrev));
+
+	if (wlc_cm->country == country && wlc_cm->regrev == regrev &&
+			wlc_cm->country_abbrev[0] && wlc_cm->ccode[0] &&
+			strncmp(wlc_cm->country_abbrev, country_abbrev, WLC_CNTRY_BUF_SZ) == 0 &&
+			strncmp(wlc_cm->ccode, ccode, WLC_CNTRY_BUF_SZ) == 0) {
+		WL_REGULATORY(("wl%d: %s: Avoid setting current country again.\n",
+			wlc->pub->unit, __FUNCTION__));
+		return;
+	}
+
 	/* save current country state */
 	wlc_cm->country = country;
 
@@ -2105,11 +2124,18 @@ wlc_set_country_common(wlc_cm_info_t *wlc_cmi,
 	if (strlen(prev_country_abbrev) > 1 &&
 	    strncmp(wlc_cm->country_abbrev, prev_country_abbrev,
 	            strlen(wlc_cm->country_abbrev)) != 0) {
+		/* need to reset chan_blocked */
+		if (wlc->dfs)
+			wlc_dfs_reset_all(wlc->dfs);
 		/* need to reset afe_override */
 		wlc_channel_spurwar_locale(wlc_cmi, wlc->chanspec);
 
 		wlc_mac_event(wlc, WLC_E_COUNTRY_CODE_CHANGED, NULL,
 		              0, 0, 0, wlc_cm->country_abbrev, strlen(wlc_cm->country_abbrev) + 1);
+	} else {
+		/* clear channel blocked info when setting country code as "ALL" */
+		if ((!strncmp(wlc_cm->country_abbrev, "#a", sizeof("#a") - 1)) && (wlc->dfs))
+			wlc_dfs_reset_all(wlc->dfs);
 	}
 #ifdef WLOLPC
 	if (OLPC_ENAB(wlc_cmi->wlc)) {
@@ -3916,7 +3942,7 @@ wlc_get_regclass_list(wlc_cm_info_t *wlc_cmi, uint8 *rclist, uint lsize,
 	}
 
 	for (i = 0; i < MAXREGCLASS && idx < lsize; i++) {
-		if (i != cur_rc && isset(wlc_cmi->cm->valid_rcvec.vec, i))
+		if (isset(wlc_cmi->cm->valid_rcvec.vec, i))
 			rclist[idx++] = i;
 	}
 

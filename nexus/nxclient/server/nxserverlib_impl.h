@@ -293,6 +293,7 @@ struct b_session {
         nxclient_t crc_client;
         NEXUS_SurfaceHandle graphic; /* for NxClient_SlaveDisplayMode_eGraphics */
         bool graphicsOnly;
+        bool ccir656Master; /* if true, must destroy SD display when removing 656 output */
         NEXUS_DisplayPriority priority;
     } display[NXCLIENT_MAX_DISPLAYS];
     NxClient_PictureQualitySettings pictureQualitySettings;

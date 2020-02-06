@@ -1501,7 +1501,7 @@ phy_radar_detect_fcc5(const phy_info_t *pi,
 			rlpt->last_detection_time_lp, pi->sh->now, deltat, deltat/60, deltat%60));
 		rlpt->last_detection_time_lp = pi->sh->now;
 		if ((uint32) deltat < (rparams->radar_args.fra_pulse_err & 0xff)*60 ||
-		    (*first_radar_indicator == 1 && (uint32) deltat < 34 * 60)) {
+		    (*first_radar_indicator == 1 && (uint32) deltat < 43 * 60)) {
 			if (rlpt->lp_csect_single <= rparams->radar_args.npulses_lp - 2 &&
 			    rlpt->lp_skip_tot < ((rparams->radar_args.max_span_lp >> 12) & 0xf)) {
 				PHY_RADAR(("FCC-5 Radar Detection. Time from last detection"
@@ -2095,7 +2095,7 @@ bool bw80_80_mode)
 		}
 		/* reject detection spaced more than 3 minutes and detected pulse index too larg */
 		if (((uint32) deltat2 < (rparams->radar_args.fra_pulse_err & 0xff)*60 ||
-			(*first_radar_indicator == 1 && (uint32) deltat2 < 34*60)) &&
+			(*first_radar_indicator == 1 && (uint32) deltat2 < 43*60)) &&
 			(detected_pulse_index < ((rparams->radar_args.ncontig) & 0x3f))) {
 			if (PHY_RADAR_FIFO_SUBBAND_FORMAT(pi)) {
 				if (det_type == RADAR_TYPE_ETSI_4) {

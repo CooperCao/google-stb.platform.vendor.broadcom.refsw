@@ -756,6 +756,7 @@ phy_ac_calmgr_multiphase(phy_info_t *pi, uint8 phase_id, uint8 searchmode)
 	case ACPHY_CAL_PHASE_TXPRERXCAL0:
 	case ACPHY_CAL_PHASE_TXPRERXCAL1:
 	case ACPHY_CAL_PHASE_TXPRERXCAL2:
+	case ACPHY_CAL_PHASE_TXPRERXCAL3:
 		phy_ac_txiqlocal_prerx(pi, searchmode);
 		break;
 	case ACPHY_CAL_PHASE_RXCAL:

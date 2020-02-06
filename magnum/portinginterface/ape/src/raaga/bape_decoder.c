@@ -1473,7 +1473,7 @@ static BERR_Code BAPE_Decoder_P_Start(
         goto err_stages;
     }
 
-    if (pSettings->codec == BAVC_AudioCompressionStd_eAc4 || pSettings->mixingMode == BAPE_DecoderMixingMode_eStandalone) {
+    if (pSettings->mixingMode == BAPE_DecoderMixingMode_eStandalone) {
         taskStartSettings->ppmCorrection = false;
     }
 

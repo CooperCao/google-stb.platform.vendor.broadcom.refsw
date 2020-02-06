@@ -297,8 +297,8 @@ B_WLAN_DRIVER_RESULT_EMF_FILE_NAME:=emf.ko
 B_WLAN_DRIVER_RESULT_IGS_FILE_NAME:=igs.ko
 
 #Define path to epiver.h
-B_WLAN_EPIVER_OOSRC_FILE:=$(B_WLAN_OOSRC_VER_DIR)/src/include/epiver.h
-B_WLAN_EPIVER_OOSRC_DIR:=$(B_WLAN_OOSRC_VER_DIR)/src/include
+B_WLAN_EPIVER_OOSRC_FILE:=$(WLAN_DRIVER_PATH)/src/include/epiver.h
+B_WLAN_EPIVER_OOSRC_DIR:=$(WLAN_DRIVER_PATH)/src/include
 
 # Define the out-of-source dir where the wlan driver Makefile lives.
 B_WLAN_DRIVER_BUILD_OOSRC_DIR:=$(B_WLAN_OOSRC_VER_DIR)/src/wl/linux
@@ -319,13 +319,11 @@ B_WLAN_WLEXE_RESULT_FILE_NAME:=${B_WLAN_WLEXE_INSTALL_FILE_NAME}${TARGETARCH_FOR
 B_WLAN_WLEXE_RESULT_OOSRC_DIR:=${B_WLAN_OOSRC_VER_DIR}/src/wl/exe
 B_WLAN_WLEXE_RESULT_OOSRC_PATH?=${B_WLAN_WLEXE_RESULT_OOSRC_DIR}/${B_WLAN_WLEXE_RESULT_FILE_NAME}
 
-# Then the "nvram" utility executable:
-B_WLAN_NVRAMEXE_RESULT_FILE_NAME_LIST:=nvram libnvram.so nvramd
-B_WLAN_ENVRAM_RESULT_FILE_NAME_LIST:=envram envrams
-# Define the out-of-source dir where the nvram Makefile lives.
-B_WLAN_ROUTER_OOSRC_DIR:=${B_WLAN_OOSRC_VER_DIR}/components/router
-B_WLAN_NVRAMEXE_BUILD_OOSRC_DIR:=${B_WLAN_ROUTER_OOSRC_DIR}/nvram
-B_WLAN_ENVRAM_BUILD_OOSRC_DIR:=${B_WLAN_ROUTER_OOSRC_DIR}/envram
+# Then the "mfgtest" utility executable:
+B_WLAN_MFGTEST_RESULT_FILE_NAME_LIST:=nvram libnvram.so nvramd envram envrams
+# Define the out-of-source dir where the mfgtest Makefile lives.
+B_WLAN_MFGTEST_OOSRC_DIR:=${B_WLAN_OOSRC_DIR}/utils/mfgtest
+B_WLAN_MFGTEST_BUILD_OOSRC_DIR:=${B_WLAN_MFGTEST_OOSRC_DIR}/nvram
 
 B_WLAN_UTILS_RESULT_OOSRC_DIR?=${B_WLAN_OOSRC_DIR}/utils
 B_WLAN_UTILS_RESULT_OOSRC_PATH_LIST:=$(patsubst %.c,%,$(wildcard ${B_WLAN_UTILS_RESULT_OOSRC_DIR}/*.c))
@@ -358,8 +356,7 @@ B_WLAN_DRIVER_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/
 B_WLAN_DRIVER_INSTALL_PATH_LIST+=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${BUILDCFG}-wl.ko)
 B_WLAN_WLPLAT_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_DRIVER_RESULT_WLPLAT_FILE_NAME})
 B_WLAN_WLEXE_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_WLEXE_INSTALL_FILE_NAME})
-B_WLAN_NVRAMEXE_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},$(foreach file,${B_WLAN_NVRAMEXE_RESULT_FILE_NAME_LIST},${dir}/${file}))
-B_WLAN_ENVRAM_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},$(foreach file,${B_WLAN_ENVRAM_RESULT_FILE_NAME_LIST},${dir}/${file}))
+B_WLAN_MFGTEST_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},$(foreach file,${B_WLAN_MFGTEST_RESULT_FILE_NAME_LIST},${dir}/${file}))
 B_WLAN_IGS_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_DRIVER_RESULT_IGS_FILE_NAME})
 B_WLAN_EMF_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},${dir}/${B_WLAN_DRIVER_RESULT_EMF_FILE_NAME})
 B_WLAN_NVRAM_INSTALL_PATH_LIST=$(foreach dir,${B_WLAN_INSTALL_DIR_LIST},$(foreach file,${B_WLAN_NVRAM_RESULT_FILE_NAME_LIST},${dir}/${file}))
@@ -402,12 +399,12 @@ build_wlexe: build_epiver
 	${Q_}${MAKE} -C ${B_WLAN_WLEXE_RESULT_OOSRC_DIR} TARGETARCH=${TARGETARCH_FOR_WL} CC=$(B_REFSW_CROSS_COMPILE)gcc STRIP=${B_REFSW_CROSS_COMPILE}strip WLTEST=1 ${B_WLAN_WLEXE_MAKE_REDIR}
 	$(B_TRACE_RECIPE_END)
 
-#  Submake the nvram executable.
-.PHONY: build_components_router
-build_components_router: build_epiver
+#  Submake the mfgtest executable.
+.PHONY: build_mfgtest_utils
+build_mfgtest_utils:
 	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Submake... $(notdir ${B_WLAN_ROUTER_OOSRC_DIR}) (WLAN)]"
-	${Q_}${MAKE} -C ${B_WLAN_ROUTER_OOSRC_DIR} TARGETARCH=${TARGETARCH_FOR_WL} CC=$(B_REFSW_CROSS_COMPILE)gcc LD=$(B_REFSW_CROSS_COMPILE)ld STRIP=${B_REFSW_CROSS_COMPILE}strip ${B_WLAN_DRIVER_MAKE_REDIR}
+	@echo "[Submake... $(notdir ${B_WLAN_MFGTEST_OOSRC_DIR}) (WLAN)]"
+	${Q_}${MAKE} -C ${B_WLAN_MFGTEST_OOSRC_DIR} TARGETARCH=${TARGETARCH_FOR_WL} CC=$(B_REFSW_CROSS_COMPILE)gcc LD=$(B_REFSW_CROSS_COMPILE)ld STRIP=${B_REFSW_CROSS_COMPILE}strip ${B_WLAN_DRIVER_MAKE_REDIR}
 	$(B_TRACE_RECIPE_END)
 
 #  Submake the hostapd, wpa_supplicant, iw and their dependencies
@@ -483,7 +480,7 @@ stbapd_build_all: stbapd_drv_build stbapd_apps_build
 .PHONY: ${B_WLAN_VER}_build
 ${B_WLAN_VER}_build: ${B_WLAN_STBAPD_INSTALL}
 	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Submake... Unpackaging for ${(B_WLAN_VER} ]"
+	@echo "[Submake... Unpackaging for ${B_WLAN_VER} ]"
 	${Q_}${MAKE} -C ${WORKING_DIR}/${B_WLAN_VER}
 	$(B_TRACE_RECIPE_END)
 
@@ -558,23 +555,15 @@ ${B_WLAN_WLEXE_INSTALL_PATH_LIST}:  ${B_WLAN_WLEXE_RESULT_OOSRC_PATH}
 	$(B_TRACE_RECIPE_END)
 
 ###################################################################
-#  WLAN nvram executable
+#  WLAN mfgtest executable
 ###################################################################
 #  Each installed binary is copied from its post-build location in the out-of-source tree.
-	# add additional nvram files here
-${B_WLAN_NVRAMEXE_INSTALL_PATH_LIST}: build_components_router
+	# add additional mfgtest files here
+${B_WLAN_MFGTEST_INSTALL_PATH_LIST}: build_mfgtest_utils
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "[Install... $(notdir ${@}) to $(dir $@) (WLAN)]"
 	${Q_}$(MKDIR) -p $(dir $@)
-	${Q_}$(CP) -dfp  ${B_WLAN_NVRAMEXE_BUILD_OOSRC_DIR}/$(notdir $@) $@
-	$(B_TRACE_RECIPE_END)
-
-#  Each installed binary is copied from its post-build location in the out-of-source tree.
-${B_WLAN_ENVRAM_INSTALL_PATH_LIST}: build_components_router
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Install... $(notdir ${@}) to $(dir $@) (WLAN)]"
-	${Q_}$(MKDIR) -p $(dir $@)
-	${Q_}$(CP) -dfp  ${B_WLAN_ENVRAM_BUILD_OOSRC_DIR}/$(notdir $@) $@
+	${Q_}-$(CP) -dfp  ${B_WLAN_MFGTEST_BUILD_OOSRC_DIR}/$(notdir $@) $@
 	$(B_TRACE_RECIPE_END)
 
 ###################################################################
@@ -767,12 +756,12 @@ ifeq (${B_WLAN_VER},)
 install:
 	$(info *** Message, NO wifi chip designated for "${NEXUS_PLATFORM}". Check BSEAV/connectivity/wlan/wlan.inc for NEXUS_PLATFORM->B_WLAN_VER. Exit.)
 else ifneq (${B_WLAN_VER},7271)
-install: ${B_WLAN_EXTRA_INSTALL} ${B_WLAN_UTILS_INSTALL_PATH_LIST}
+install: ${B_WLAN_EXTRA_INSTALL} ${B_WLAN_UTILS_INSTALL_PATH_LIST} ${B_WLAN_MFGTEST_INSTALL_PATH_LIST}
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "Done. Non 7271"
 	$(B_TRACE_RECIPE_END)
 else
-install: ${B_WLAN_DRIVER_INSTALL_PATH_LIST} ${B_WLAN_WLPLAT_INSTALL_PATH_LIST} ${B_WLAN_WLEXE_INSTALL_PATH_LIST} ${B_WLAN_NVRAMEXE_INSTALL_PATH_LIST} ${B_WLAN_ENVRAM_INSTALL_PATH_LIST} ${B_WLAN_NVRAM_INSTALL_PATH_LIST} ${B_WLAN_UTILS_INSTALL_PATH_LIST} ${B_WLAN_IGS_INSTALL_PATH_LIST} ${B_WLAN_EMF_INSTALL_PATH_LIST}
+install: ${B_WLAN_DRIVER_INSTALL_PATH_LIST} ${B_WLAN_WLPLAT_INSTALL_PATH_LIST} ${B_WLAN_WLEXE_INSTALL_PATH_LIST} ${B_WLAN_UTILS_INSTALL_PATH_LIST} ${B_WLAN_NVRAM_INSTALL_PATH_LIST} ${B_WLAN_MFGTEST_INSTALL_PATH_LIST} ${B_WLAN_IGS_INSTALL_PATH_LIST} ${B_WLAN_EMF_INSTALL_PATH_LIST}
 	$(B_TRACE_RECIPE_BEGIN)
 	@if [ $(B_WLAN_STBAPD) = "1" ]; then \
 		${MAKE} -f $(WORKING_DIR)/Makefile stbapd_install BUILD_BRCM_HOSTAPD=$(BUILD_BRCM_HOSTAPD); \
@@ -843,8 +832,9 @@ clean: ${B_WLAN_EXTRA_CLEAN} ${B_WLAN_STBAPD_CLEAN}
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "Cleaning..."
 	$(Q_)$(RM) -rf ${B_WLAN_OOSRC_VER_DIR}
-	$(Q_)$(RM) -f ${B_WLAN_DRIVER_INSTALL_PATH_LIST} ${B_WLAN_WLPLAT_INSTALL_PATH_LIST} ${B_WLAN_WLEXE_INSTALL_PATH_LIST} ${B_WLAN_NVRAMEXE_INSTALL_PATH_LIST} ${B_WLAN_ENVRAM_INSTALL_PATH_LIST} ${B_WLAN_NVRAM_INSTALL_PATH_LIST} ${B_WLAN_UTILS_INSTALL_PATH_LIST} ${B_WLAN_IGS_INSTALL_PATH_LIST} ${B_WLAN_EMF_INSTALL_PATH_LIST}
+	$(Q_)$(RM) -f ${B_WLAN_DRIVER_INSTALL_PATH_LIST} ${B_WLAN_WLPLAT_INSTALL_PATH_LIST} ${B_WLAN_WLEXE_INSTALL_PATH_LIST} ${B_WLAN_MFGTEST_INSTALL_PATH_LIST} ${B_WLAN_NVRAM_INSTALL_PATH_LIST} ${B_WLAN_UTILS_INSTALL_PATH_LIST} ${B_WLAN_IGS_INSTALL_PATH_LIST} ${B_WLAN_EMF_INSTALL_PATH_LIST}
 	$(Q_)$(MAKE) -C $(BSEAV_TOP)/connectivity/wlan/wakeonwlan clean
+	$(Q_)$(MAKE) -C $(B_WLAN_MFGTEST_OOSRC_DIR) clean
 	$(B_TRACE_RECIPE_END)
 endif
 
@@ -879,10 +869,8 @@ ifeq (${B_WLAN_MAKEFILE_ENABLE_DEBUG},y)
     B_WLAN_WLEXE_RESULT_FILE_NAME       \
     B_WLAN_WLEXE_INSTALL_PATH_LIST      \
     B_WLAN_WLEXE_RESULT_OOSRC_PATH      \
-    B_WLAN_NVRAMEXE_RESULT_FILE_NAME_LIST        \
-    B_WLAN_NVRAMEXE_INSTALL_PATH_LIST   \
-    B_WLAN_ENVRAM_RESULT_FILE_NAME_LIST \
-    B_WLAN_ENVRAM_INSTALL_PATH_LIST     \
+    B_WLAN_MFGTEST_RESULT_FILE_NAME_LIST        \
+    B_WLAN_MFGTEST_INSTALL_PATH_LIST	\
     B_WLAN_NVRAM_INSRC_PATH_LIST        \
     B_WLAN_NVRAM_RESULT_FILE_NAME_LIST  \
     B_WLAN_NVRAM_INSRC_DIR              \

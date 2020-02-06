@@ -578,7 +578,7 @@ hapd_wep_conv_fn(char *nvi_ifname, char *name, char *out_val, int out_sz)
 
 	if (!strcmp(wep, "enabled")) {
 		snprintf(nv_name, sizeof(nv_name), "%s_%s", nvi_ifname, name);
-		snprintf(out_val, out_sz, nvram_safe_get(nv_name));
+		snprintf(out_val, out_sz, "%s", nvram_safe_get(nv_name));
 		ret = 0;
 	} else {
 			/* skip next 4 indexes key1 key2 key3 and key4 */
@@ -895,10 +895,10 @@ hapd_key_mgmt_conv_fn(char *nvi_ifname, char *name, char *out_val, int out_sz)
 					snprintf(out_val, out_sz, HAPD_CIPHER_SUITE_TKIP);
 				}
 			} else if (!strcmp(name, "akm")) {
-				snprintf(out_val, out_sz, key_mgmt);
+				snprintf(out_val, out_sz, "%s", key_mgmt);
 			} else if (psk_required && !strcmp(name, "wpa_psk")) {
 				snprintf(nv_name, sizeof(nv_name), "%s_%s", nvi_ifname, name);
-				snprintf(out_val, out_sz, nvram_safe_get(nv_name));
+				snprintf(out_val, out_sz, "%s", nvram_safe_get(nv_name));
 				// skip SAE fields
 				ret = SAE_FIELDS_NUM;
 			}
@@ -914,10 +914,10 @@ hapd_key_mgmt_conv_fn(char *nvi_ifname, char *name, char *out_val, int out_sz)
 					snprintf(out_val, out_sz, HAPD_CIPHER_SUITE_CCMP);
 				}
 			} else if (!strcmp(name, "akm")) {
-				snprintf(out_val, out_sz, key_mgmt);
+				snprintf(out_val, out_sz, "%s", key_mgmt);
 			} else if (psk_required && !strcmp(name, "wpa_psk")) {
 				snprintf(nv_name, sizeof(nv_name), "%s_%s", nvi_ifname, name);
-				snprintf(out_val, out_sz, nvram_safe_get(nv_name));
+				snprintf(out_val, out_sz, "%s",nvram_safe_get(nv_name));
 				// skip SAE fields
 				ret = SAE_FIELDS_NUM;
 			}
@@ -941,13 +941,13 @@ hapd_key_mgmt_conv_fn(char *nvi_ifname, char *name, char *out_val, int out_sz)
 				if (fbt_enabled) {
 					strncpy_n(key_mgmt, HAPD_KEY_MGMT_WPA_PSK_FT,
 						sizeof(HAPD_KEY_MGMT_WPA_PSK_FT));
-					snprintf(out_val, out_sz, key_mgmt);
+					snprintf(out_val, out_sz, "%s", key_mgmt);
 				}
 				else
-					snprintf(out_val, out_sz, key_mgmt);
+					snprintf(out_val, out_sz, "%s", key_mgmt);
 			} else if (psk_required && !strcmp(name, "wpa_psk")) {
 				snprintf(nv_name, sizeof(nv_name), "%s_%s", nvi_ifname, name);
-				snprintf(out_val, out_sz, nvram_safe_get(nv_name));
+				snprintf(out_val, out_sz, "%s", nvram_safe_get(nv_name));
 				// skip SAE fields
 				ret = SAE_FIELDS_NUM;
 			}
@@ -962,10 +962,10 @@ hapd_key_mgmt_conv_fn(char *nvi_ifname, char *name, char *out_val, int out_sz)
 					snprintf(out_val, out_sz, HAPD_CIPHER_SUITE_CCMP);
 				}
 			} else if (!strcmp(name, "akm")) {
-				snprintf(out_val, out_sz, key_mgmt);
+				snprintf(out_val, out_sz, "%s", key_mgmt);
 			} else if (psk_required && !strcmp(name, "wpa_psk")) {
 				snprintf(nv_name, sizeof(nv_name), "%s_%s", nvi_ifname, name);
-				snprintf(out_val, out_sz, nvram_safe_get(nv_name));
+				snprintf(out_val, out_sz, "%s", nvram_safe_get(nv_name));
 				// skip SAE fields
 				ret = SAE_FIELDS_NUM;
 			}
@@ -980,10 +980,10 @@ hapd_key_mgmt_conv_fn(char *nvi_ifname, char *name, char *out_val, int out_sz)
 					snprintf(out_val, out_sz, HAPD_CIPHER_SUITE_CCMP);
 				}
 			} else if (!strcmp(name, "akm")) {
-				snprintf(out_val, out_sz, key_mgmt);
+				snprintf(out_val, out_sz, "%s", key_mgmt);
 			} else if (psk_required && !strcmp(name, "wpa_psk")) {
 				snprintf(nv_name, sizeof(nv_name), "%s_%s", nvi_ifname, name);
-				snprintf(out_val, out_sz, nvram_safe_get(nv_name));
+				snprintf(out_val, out_sz, "%s", nvram_safe_get(nv_name));
 				// skip SAE fields
 				ret = SAE_FIELDS_NUM;
 			}
@@ -998,10 +998,10 @@ hapd_key_mgmt_conv_fn(char *nvi_ifname, char *name, char *out_val, int out_sz)
 					snprintf(out_val, out_sz, HAPD_CIPHER_SUITE_CCMP);
 				}
 			} else if (!strcmp(name, "akm")) {
-				snprintf(out_val, out_sz, key_mgmt);
+				snprintf(out_val, out_sz, "%s", key_mgmt);
 			} else if (psk_required && !strcmp(name, "wpa_psk")) {
 				snprintf(nv_name, sizeof(nv_name), "%s_%s", nvi_ifname, name);
-				snprintf(out_val, out_sz, nvram_safe_get(nv_name));
+				snprintf(out_val, out_sz, "%s", nvram_safe_get(nv_name));
 			} else if (!strcmp(name, "mfp")) {
 				snprintf(nv_name, sizeof(nv_name), "%s_%s", nvi_ifname, name);
 				if (nvram_match(nv_name, "0")) {
@@ -1022,7 +1022,7 @@ hapd_key_mgmt_conv_fn(char *nvi_ifname, char *name, char *out_val, int out_sz)
 					snprintf(out_val, out_sz, HAPD_CIPHER_SUITE_CCMP);
 				}
 			} else  if (!strcmp(name, "akm")) {
-				snprintf(out_val, out_sz, key_mgmt);
+				snprintf(out_val, out_sz, "%s", key_mgmt);
 			}
 			break;
 		default:
@@ -1396,7 +1396,7 @@ hapd_dtim_conv_fn(char *nvi_ifname, char *name, char *out_val, int out_sz)
 
 	snprintf(nv_name, sizeof(nv_name), "%s_%s", wl_pri_ifname, name);
 
-	snprintf(out_val, out_sz, nvram_safe_get(nv_name));
+	snprintf(out_val, out_sz, "%s", nvram_safe_get(nv_name));
 
 	return 0;
 }
@@ -1416,7 +1416,7 @@ hapd_bi_conv_fn(char *nvi_ifname, char *name, char *out_val, int out_sz)
 
 	snprintf(nv_name, sizeof(nv_name), "%s_%s", wl_pri_ifname, name);
 
-	snprintf(out_val, out_sz, nvram_safe_get(nv_name));
+	snprintf(out_val, out_sz, "%s", nvram_safe_get(nv_name));
 
 	return 0;
 }
@@ -1554,7 +1554,7 @@ hapd_fill_nvrams_to_config_file(FILE *fp, char *name, uint32 flags)
 					snprintf(nvram_name, sizeof(nvram_name), "%s_%s",
 						name, cfg_arr[idx].nv_name);
 				} else {
-					snprintf(nvram_name, sizeof(nvram_name),
+					snprintf(nvram_name, sizeof(nvram_name), "%s",
 						cfg_arr[idx].nv_name);
 				}
 				val = nvram_safe_get(nvram_name);
@@ -1566,7 +1566,7 @@ hapd_fill_nvrams_to_config_file(FILE *fp, char *name, uint32 flags)
 		}
 
 		snprintf(tmp, sizeof(tmp), "%s=%s\n", cfg_arr[idx].placeholder, val);
-		fprintf(fp, tmp);
+		fprintf(fp, "%s", tmp);
 		if (val2) {
 			free(val2);
 		}
@@ -2272,7 +2272,7 @@ wpa_supp_key_mgmt_conv_fn(char *nvi_ifname, char *name, char *out_val, int out_s
 					snprintf(out_val, out_sz, HAPD_CIPHER_SUITE_TKIP);
 				}
 			} else if (!strcmp(name, "akm")) {
-				snprintf(out_val, out_sz, key_mgmt);
+				snprintf(out_val, out_sz, "%s", key_mgmt);
 			} else if (psk_required && !strcmp(name, "wpa_psk")) {
 				snprintf(nv_name, sizeof(nv_name), "%s_%s", nvi_ifname, name);
 				snprintf(out_val, out_sz, "\"%s\"", nvram_safe_get(nv_name));
@@ -2306,10 +2306,10 @@ wpa_supp_key_mgmt_conv_fn(char *nvi_ifname, char *name, char *out_val, int out_s
 					snprintf(out_val, out_sz, HAPD_CIPHER_SUITE_CCMP);
 				}
 			} else if (!strcmp(name, "akm")) {
-				snprintf(out_val, out_sz, key_mgmt);
+				snprintf(out_val, out_sz, "%s", key_mgmt);
 			} else if (psk_required && !strcmp(name, "wpa_psk")) {
 				snprintf(nv_name, sizeof(nv_name), "%s_%s", nvi_ifname, name);
-				snprintf(out_val, out_sz, nvram_safe_get(nv_name));
+				snprintf(out_val, out_sz, "%s", nvram_safe_get(nv_name));
 			}
 			break;
 
@@ -2409,7 +2409,7 @@ wpa_supp_fill_nvrams_to_config_file(FILE *fp, char *ifname, uint32 flags)
 					snprintf(nvram_name, sizeof(nvram_name), "%s_%s",
 						ifname, wpa_supp_cfg_arr[idx].nv_name);
 				} else {
-					snprintf(nvram_name, sizeof(nvram_name),
+					snprintf(nvram_name, sizeof(nvram_name), "%s",
 						wpa_supp_cfg_arr[idx].nv_name);
 				}
 				val = nvram_safe_get(nvram_name);
@@ -2428,7 +2428,7 @@ wpa_supp_fill_nvrams_to_config_file(FILE *fp, char *ifname, uint32 flags)
 			snprintf(tmp, sizeof(tmp), "\t%s=%s\n",
 				wpa_supp_cfg_arr[idx].placeholder, val);
 		}
-		fprintf(fp, tmp);
+		fprintf(fp, "%s", tmp);
 	}
 }
 

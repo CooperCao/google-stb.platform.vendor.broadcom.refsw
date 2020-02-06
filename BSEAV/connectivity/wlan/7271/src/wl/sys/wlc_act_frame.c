@@ -104,6 +104,19 @@ typedef struct act_frame_cubby {
 #define BSSCFG_ACT_FRAME_CUBBY(act_frame_info, cfg) \
 		(*BSSCFG_ACT_FRAME_CUBBY_LOC(act_frame_info, cfg))
 
+ /* potential PDPA that we support are channel switch, vendor specific (like NAN)
+  * and GAS frames. here are more in the specs that would need to be added
+  * if supported in the future.
+  * check Table 9-332 in IEEE802.11-2016 spec for all
+  */
+#define PROTECTED_DUAL_PUBLIC_ACTION_ALLOWED_MASK (\
+	(1 << DOT11_PUB_ACTION_CHANNEL_SWITCH) | \
+	(1 << DOT11_PUB_ACTION_VENDOR_SPEC) | \
+	(1 << GAS_REQUEST_ACTION_FRAME) | \
+	(1 << GAS_RESPONSE_ACTION_FRAME) | \
+	(1 << GAS_COMEBACK_REQUEST_ACTION_FRAME) | \
+	(1 << GAS_COMEBACK_RESPONSE_ACTION_FRAME))
+
 static int wlc_act_frame_init(void *ctx, wlc_bsscfg_t *cfg);
 static void wlc_act_frame_deinit(void *ctx, wlc_bsscfg_t *cfg);
 
@@ -882,15 +895,7 @@ wlc_is_protected_dual_publicaction(uint8 act, wlc_bsscfg_t *bsscfg)
 {
 	bool is_protected = FALSE;
 	BCM_REFERENCE(bsscfg);
-	/* potential PDPA that we support are channel switch and GAS frames.
-	 * There are more in the specs that would need to be added
-	 * if supported in the future.
-	*/
-	if ((act == DOT11_PUB_ACTION_CHANNEL_SWITCH ||
-	     /* GAS frame */
-	     (act >= GAS_REQUEST_ACTION_FRAME &&
-	      act <= GAS_COMEBACK_RESPONSE_ACTION_FRAME)))
-	{
+	if ((1 << act) & PROTECTED_DUAL_PUBLIC_ACTION_ALLOWED_MASK) {
 		is_protected = TRUE;
 	}
 #if defined(WL_PROXDETECT) && defined(WL_FTM)
@@ -905,23 +910,26 @@ wlc_is_protected_dual_publicaction(uint8 act, wlc_bsscfg_t *bsscfg)
 }
 
 /*
-test if the frame is a valid public action. return
-valid : 1
-invalid : -1
-not a public action : 0
-*/
+ * test if the frame is a valid public action. return
+ * valid : 1
+ * invalid : -1
+ * not a public action : 0
+ * Note: cat and act are sent seperately by caller, though
+ * header is sent. Because this API cant classify
+ * if the frame is mfp/non-mfp (presence of IV header)
+ */
 int
 wlc_is_publicaction(wlc_info_t * wlc, struct dot11_header *hdr, int len,
-                    struct scb *scb, wlc_bsscfg_t *bsscfg)
+                    struct scb *scb, wlc_bsscfg_t *bsscfg, uint8 cat, uint8 act)
 {
-	uint8 cat;
-	uint8 act;
+	int err = BCME_OK;
+	uint err_at = 0;
+
 	BCM_REFERENCE(wlc);
+	BCM_REFERENCE(err_at);
+
 	if (len < (DOT11_MGMT_HDR_LEN + DOT11_ACTION_HDR_LEN))
 		return 0;
-
-	cat = *((uint8 *)hdr + DOT11_MGMT_HDR_LEN);	/* peek for category field */
-	act = *((uint8 *)hdr + DOT11_MGMT_HDR_LEN + 1);	/* peek for action field */
 
 	/* both PUBLIC and PDPA are OK */
 	if (cat == DOT11_ACTION_CAT_PUBLIC || cat == DOT11_ACTION_CAT_PDPA) {
@@ -934,39 +942,33 @@ wlc_is_publicaction(wlc_info_t * wlc, struct dot11_header *hdr, int len,
 			   Here we will just verify that, if in same BSS, the a3 and bssid match.
 			*/
 			if (SCB_ASSOCIATED(scb) && eacmp(&bsscfg->BSSID, &hdr->a3) != 0) {
-				WL_ERROR(("wl%d: %s: A3 does not match BSSID\n",
-					wlc->pub->unit, __FUNCTION__));
-				return -1;
+				err = BCME_BADARG;
+				err_at = 1;
+				goto invalid;
 			}
 
 			if (SCB_MFP(scb)) {
 				if (cat == DOT11_ACTION_CAT_PUBLIC) {
 					/* fail if MFP and pub action and needing protection */
 					if (wlc_is_protected_dual_publicaction(act, bsscfg)) {
-						WL_ERROR(("wl%d: %s: rx frame has category %d,  "
-							"pub action field %d; should have cat %d\n",
-							wlc->pub->unit, __FUNCTION__, cat,
-							act, DOT11_ACTION_CAT_PDPA));
-						return -1;
+						err = BCME_EPERM;
+						err_at = 2;
+						goto invalid;
 					}
 				} else { /* pdpa */
 					/* fail if MFP and PDPA but not needing protection */
 					if (!wlc_is_protected_dual_publicaction(act, bsscfg)) {
-						WL_ERROR(("wl%d: %s: rx frame has category %d, "
-							"pub action field %d; should have cat %d\n",
-							wlc->pub->unit, __FUNCTION__, cat,
-							act, DOT11_ACTION_CAT_PUBLIC));
-						return -1;
+						err = BCME_EPERM;
+						err_at = 3;
+						goto invalid;
 					}
 				}
 			} else { /* !mfp */
 				/* fail if not MFP and PDPA */
 				if (cat == DOT11_ACTION_CAT_PDPA) {
-					WL_ERROR(("wl%d: %s: rx frame has category %d, "
-						"pub action field %d; should have cat %d\n",
-						wlc->pub->unit, __FUNCTION__, cat,
-						act, DOT11_ACTION_CAT_PUBLIC));
-					return -1;
+					err = BCME_EPERM;
+					err_at = 4;
+					goto invalid;
 				}
 			}
 		}
@@ -979,6 +981,13 @@ wlc_is_publicaction(wlc_info_t * wlc, struct dot11_header *hdr, int len,
 	    }
 #endif
 	return 0;
+
+invalid:
+	if (err) {
+		WL_ERROR(("wl%d: wlc_is_publicaction: cat=%d, act=%d, err=%d, err_at=%u\n",
+			wlc->pub->unit, cat, act, err, err_at));
+	}
+	return -1;
 }
 
 

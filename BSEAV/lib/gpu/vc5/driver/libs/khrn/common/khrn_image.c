@@ -371,17 +371,33 @@ void khrn_image_calc_dst_usage(
    gfx_buffer_desc_gen(&dst_base.desc, &size, &align, *dst_buf_usage, width, height, depth,
                        num_mip_levels, num_planes, lfmts);
 
-   gfx_buffer_usage_t contiguous_buf_usage = *dst_buf_usage | GFX_BUFFER_USAGE_M2MC;
-   if (v3d_scheduler_get_soc_quirks() & V3D_SOC_QUIRK_HWBCM7260_81)
-      contiguous_buf_usage |= GFX_BUFFER_USAGE_M2MC_EVEN_UB_HEIGHT;
+   /* The GFX_BUFFER_USAGE_M2MC or GFX_BUFFER_USAGE_M2MC_EVEN_UB_HEIGHT flags
+    * can only be used with UIF or RSO destination buffers. For example
+    * small buffers in UBLINEAR order are incompatible with M2MC usage flags.
+    *
+    * The gfx_buffer_desc_gen() has an assertion that verifies if this
+    * condition is met.
+    */
+   if (dst_base.desc.num_planes == 1 &&
+         (gfx_lfmt_is_uif(dst_base.desc.planes[0].lfmt) ||
+          gfx_lfmt_is_rso(dst_base.desc.planes[0].lfmt)))
+   {
+      gfx_buffer_usage_t contiguous_buf_usage = *dst_buf_usage | GFX_BUFFER_USAGE_M2MC;
+      if (v3d_scheduler_get_soc_quirks() & V3D_SOC_QUIRK_HWBCM7260_81)
+         contiguous_buf_usage |= GFX_BUFFER_USAGE_M2MC_EVEN_UB_HEIGHT;
 
-   gfx_buffer_desc_gen(&dst_base_contiguous.desc, &size, &align,
-                       contiguous_buf_usage, width, height, depth,
-                       num_mip_levels, num_planes, lfmts);
+      gfx_buffer_desc_gen(&dst_base_contiguous.desc, &size, &align,
+                        contiguous_buf_usage, width, height, depth,
+                        num_mip_levels, num_planes, lfmts);
 
-   *gmem_usage = v3d_imgconv_calc_dst_gmem_usage(&dst_base, &dst_base_contiguous, &src_tgt, secure_context);
-   if (*gmem_usage & GMEM_USAGE_CONTIGUOUS)
-      *dst_buf_usage = contiguous_buf_usage;
+      *gmem_usage = v3d_imgconv_calc_dst_gmem_usage(&dst_base, &dst_base_contiguous, &src_tgt, secure_context);
+      if (*gmem_usage & GMEM_USAGE_CONTIGUOUS)
+         *dst_buf_usage = contiguous_buf_usage;
+   }
+   else
+   {
+      *gmem_usage = v3d_imgconv_calc_dst_gmem_usage(&dst_base, NULL, &src_tgt, secure_context);
+   }
 }
 
 bool khrn_image_convert(khrn_image *dst, const khrn_image *src,

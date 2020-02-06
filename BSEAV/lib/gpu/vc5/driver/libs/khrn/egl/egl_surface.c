@@ -31,9 +31,14 @@ const v3d_scheduler_deps *egl_surface_flush_back_buffer_writer(EGL_SURFACE_T *su
    const v3d_scheduler_deps *deps = NULL;
 
    egl_context_gl_lock();
-   khrn_resource *resource = khrn_image_get_resource(egl_surface_get_back_buffer(surface));
-   khrn_resource_flush_writer(resource);
-   deps = &resource->pre_read;
+   khrn_image *img;
+   EGLint error = egl_surface_get_back_buffer(surface, &img);
+   if (error == EGL_SUCCESS)
+   {
+      khrn_resource *resource = khrn_image_get_resource(img);
+      khrn_resource_flush_writer(resource);
+      deps = &resource->pre_read;
+   }
    egl_context_gl_unlock();
 
    return deps;
@@ -122,9 +127,10 @@ GFX_LFMT_T egl_surface_get_back_buffer_api_fmt(const EGL_SURFACE_T *surface)
    return egl_surface_base_get_back_buffer_api_fmt(surface);
 }
 
-khrn_image *egl_surface_get_back_buffer(EGL_SURFACE_T *surface)
+EGLint egl_surface_get_back_buffer(EGL_SURFACE_T *surface,
+      khrn_image **image)
 {
-   return surface->fns->get_back_buffer(surface);
+   return surface->fns->get_back_buffer(surface, image);
 }
 
 GFX_LFMT_T egl_surface_get_aux_buffer_api_fmt(const EGL_SURFACE_T *surface,
@@ -141,7 +147,10 @@ khrn_image *egl_surface_get_aux_buffer(const EGL_SURFACE_T *surface,
 
 khrn_image *egl_surface_get_back_buffer_with_gl_colorspace(EGL_SURFACE_T *surface)
 {
-   khrn_image *img = egl_surface_get_back_buffer(surface);
+   khrn_image *img;
+   EGLint error = egl_surface_get_back_buffer(surface, &img);
+   if (error != EGL_SUCCESS)
+      return NULL;
    khrn_mem_acquire(img);
 
    const GFX_BUFFER_DESC_T *desc = &img->blob->desc[img->level];

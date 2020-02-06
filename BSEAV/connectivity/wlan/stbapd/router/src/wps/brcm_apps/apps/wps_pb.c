@@ -260,20 +260,13 @@ wps_pb_virtual_btn_pressed()
 #endif /* BCMWPSAPSTA */
 
 static int
-wps_pb_retrieve_event(int unit, char *wps_ifname)
+wps_pb_retrieve_event(int unit, char *wps_ifname, int wps_ifname_sz)
 {
-	int press, wps_per_bss = 0;
+	int press;
 	int event = WPSBTN_EVTI_NULL;
 	int imax = wps_get_ess_num();
-	char *wps_ifnames;
+	char *custom_ifnames = NULL;
 
-	/* Get list of Custom, per BSS, WPS interface names & Get wps_per_bss Flag */
-#ifdef MULTIAP
-	wps_ifnames = nvram_safe_get("wps_custom_ifnames");
-#else
-	wps_ifnames = wps_safe_get_conf("wps_custom_ifnames");
-#endif // endif
-	wps_per_bss = (strlen(wps_ifnames) > 0) ? 1 : 0;
 
 #ifdef BCMWPSAPSTA
 	bool wps_pbc_apsta_enabled = FALSE;
@@ -290,13 +283,29 @@ wps_pb_retrieve_event(int unit, char *wps_ifname)
 	press = wps_hal_btn_pressed();
 #ifdef MULTIAP
 	if (!strcmp(wps_ui_get_env("map_pbc_method"), "1")) {
-		press = WPS_LONG_BTNPRESS;
+		press = WPS_SHORT_BTNPRESS;
 	}
 #endif	/* MULTIAP */
 
-	if (press == WPS_NO_BTNPRESS && !strcmp(nvram_safe_get("sigma_pbc_method"), "1")) {
-		press = WPS_LONG_BTNPRESS;
-		nvram_unset ("sigma_pbc_method");
+#ifdef MULTIAP
+	custom_ifnames = nvram_safe_get("wps_custom_ifnames");
+#else
+	custom_ifnames = wps_safe_get_conf("wps_custom_ifnames");
+#endif	/* MULTIAP */
+
+	/* When custom_ifnames are defined only short press is used for both selection
+	 * as well as starting the wps on particular bss. Long press event is being ignored
+	 * it can be used in future for some other purpose.
+	 */
+	if (custom_ifnames[0] != '\0') {
+		if (press == WPS_SHORT_BTNPRESS) {
+			find_next_in_list(custom_ifnames, pb_ifname, wps_ifname, wps_ifname_sz);
+			wps_strncpy(pb_ifname, wps_ifname, sizeof(pb_ifname));
+
+			return WPSBTN_EVTI_PUSH;
+		} else {
+			return WPSBTN_EVTI_NULL;
+		}
 	}
 
 #ifdef BCMWPSAPSTA
@@ -304,7 +313,7 @@ wps_pb_retrieve_event(int unit, char *wps_ifname)
 		press = wps_pb_is_virtual_pressed();
 #endif
 
-	if (((imax == 1 && (wps_per_bss == 0)) ||
+	if ((imax == 1 ||
 #ifdef BCMWPSAPSTA
 	    wps_pbc_apsta_enabled == TRUE ||
 #endif
@@ -537,14 +546,14 @@ wps_pb_check(char *buf, int *buflen)
 
 	/* note: push button currently only support wireless unit 0 */
 	/* user can use PBC to tigger wps_enr start */
-	if (WPSBTN_EVTI_PUSH == wps_pb_retrieve_event(0, wps_ifname)) {
+	if (WPSBTN_EVTI_PUSH == wps_pb_retrieve_event(0, wps_ifname, sizeof(wps_ifname))) {
 		int uilen = 0;
 
 		uilen += sprintf(buf + uilen, "SET ");
 
 		TUTRACE((TUTRACE_INFO, "wps monitor: Button pressed!!\n"));
 #ifdef MAP_TEMP_DEBUG
-		printf("wps monitor: Button pressed!!\n");
+		printf("wps monitor: Button pressed!! %s\n", wps_ifname);
 #endif
 		wps_close_session();
 

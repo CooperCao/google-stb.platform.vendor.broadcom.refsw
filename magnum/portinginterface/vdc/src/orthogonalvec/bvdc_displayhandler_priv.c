@@ -3747,15 +3747,18 @@ BERR_Code BVDC_P_Alloc656ChanResources_isr
       BVDC_P_Display656Chan           *pstChan,
       uint32_t                         ulSrcId )
 {
-    BERR_Code err;
+    BERR_Code err = BERR_SUCCESS;
 
     BSTD_UNUSED(ulSrcId);
 
-    err = BVDC_P_Resource_AcquireHwId_isr(hResource, BVDC_P_ResourceType_e656, 0, eDisplayId, &pstChan->ul656, false);
-
-    if (err)
+    if(pstChan->ul656 == BVDC_P_HW_ID_INVALID)
     {
-        BDBG_ERR(("No 656 available"));
+        err = BVDC_P_Resource_AcquireHwId_isr(hResource, BVDC_P_ResourceType_e656, 0, eDisplayId, &pstChan->ul656, false);
+
+        if (err)
+        {
+            BDBG_ERR(("No 656 available"));
+        }
     }
 
     return BERR_TRACE(err);

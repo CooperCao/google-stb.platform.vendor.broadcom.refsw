@@ -419,7 +419,7 @@ void i5FlowManagerActivateInterface(i5_socket_type *pif)
 
          success = i5WlCfgGetWdsMacFromName(pif->u.sll.ifname, &macString[0], 24);
          if (success == 0) {
-           i5_dm_device_type *pdevice = i5DmDeviceFind(&i5_config.i5_mac_address[0]);
+           i5_dm_device_type *pdevice = i5DmGetSelfDevice();
            if ( (pdevice != NULL) && (pdevice->BridgingTuplesNumberOfEntries > 0)) {
              i5Trace("Setting static MAC in bridge for %s to %s.\n", pif->u.sll.ifname, macString);
              i5BrUtilAddStaticFdbEntry(pif->u.sll.ifname, macString);
@@ -455,7 +455,7 @@ void i5FlowManagerActivateInterface(i5_socket_type *pif)
 static void i5FlowManagerFlushMacs (char *ifname)
 {
   if (ifname) {
-    i5_dm_device_type *pdevice = i5DmDeviceFind(&i5_config.i5_mac_address[0]);
+    i5_dm_device_type *pdevice = i5DmGetSelfDevice();
     i5_dm_bridging_tuple_info_type *pdmbr;
 
     if ( (pdevice != NULL) && (pdevice->BridgingTuplesNumberOfEntries > 0)) {
@@ -626,7 +626,7 @@ void i5FlowManagerCheckNeighborForOverload(i5_dm_1905_neighbor_type *neighbor)
   i5_dm_1905_neighbor_type *currNeighbor = selfDevice->neighbor1905_list.ll.next;
 
   I5_WARN_ON_ONCE(!isFbctlSupported());
-  if (neighbor->ll.parent != i5DmDeviceFind(i5_config.i5_mac_address)) {
+  if (neighbor->ll.parent != i5DmGetSelfDevice()) {
     return;
   }
 
@@ -788,7 +788,7 @@ static void i5FlowManagerRegisterAllWds(i5_dm_interface_type *plocalInterface)
 
 static void i5FlowManagerRegisterAllWdsTimeout(void *arg)
 {
-  i5_dm_device_type *pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  i5_dm_device_type *pdevice = i5DmGetSelfDevice();
   i5_dm_interface_type *pinterface;
   int timerRequired = 0;
 
@@ -835,7 +835,7 @@ void i5FlowManagerProcessWirelessUp(void)
 {
   I5_WARN_ON_ONCE(!isAutoWdsSupported());
   i5Trace("\n");
-  if (i5DmAnyWirelessInterfaceUp(i5DmDeviceFind(i5_config.i5_mac_address)) ) {
+  if (i5DmAnyWirelessInterfaceUp(i5DmGetSelfDevice()) ) {
     if (i5FlowRegisterWdsRetry_ptmr) {
       return;
     }

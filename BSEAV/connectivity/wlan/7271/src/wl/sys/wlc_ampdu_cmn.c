@@ -750,8 +750,20 @@ scb_ampdu_cleanup(wlc_info_t *wlc, struct scb *scb)
 	WL_AMPDU_UPDN(("scb_ampdu_cleanup: enter\n"));
 
 	for (tid = 0; tid < AMPDU_MAX_SCB_TID; tid++) {
-		ampdu_cleanup_tid_resp(wlc->ampdu_rx, scb, tid);
-		ampdu_cleanup_tid_ini(wlc->ampdu_tx, scb, tid, FALSE);
+		if (SCB_LEGACY_WDS(scb) && (scb->flags & SCB_WDS_LINKUP)) {
+			/* Send delba for Legacy WDS clients before AMPDU session cleanup.
+			 * Should not be called for non-wds peers since action frames sent after
+			 * disassociation causes devices to send disassociation
+			 * which triggers our device to resend action frames
+			 */
+			wlc_ampdu_rx_send_delba(wlc->ampdu_rx, scb, tid, FALSE,
+					DOT11_RC_UNSPECIFIED);
+			wlc_ampdu_tx_send_delba(wlc->ampdu_tx, scb, tid, TRUE,
+					DOT11_RC_UNSPECIFIED);
+		} else {
+			ampdu_cleanup_tid_resp(wlc->ampdu_rx, scb, tid);
+			ampdu_cleanup_tid_ini(wlc->ampdu_tx, scb, tid, FALSE);
+		}
 	}
 }
 

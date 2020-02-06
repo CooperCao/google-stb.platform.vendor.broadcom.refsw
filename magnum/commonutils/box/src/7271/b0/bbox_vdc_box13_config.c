@@ -57,5 +57,5 @@ BDBG_OBJECT_ID(BBOX_VDC_BOX_PRIV_BOX13);
 void BBOX_P_Vdc_SetBox13DisplayCapabilities
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap )
 {
-        BBOX_P_VDC_SET_WINDOW_CLASS_LIMIT(pDisplayCap, Display0, Video1, HD_MR0,    false, Disregard, Disregard, Disregard, 2,                  2,                  SclBeforeCap, 0_1);
+    BBOX_P_VDC_SET_WINDOW_CLASS_LIMIT(pDisplayCap, Display0, Video1, HD_MR0, false, Disregard, Disregard, Disregard, 2, 2, SclBeforeCap, 0_1);
 }

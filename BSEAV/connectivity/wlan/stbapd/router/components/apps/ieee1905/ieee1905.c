@@ -128,9 +128,9 @@ int ieee1905_init(void *usched_hdl, unsigned int supServiceFlag, int isRegistrar
   i5GlueSaveConfig();
 
   /* Find the local Device */
-  pdmdev = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdmdev = i5DmGetSelfDevice();
   if (pdmdev == NULL) {
-    i5TraceError("Device " I5_MAC_FMT "Not Found\n", I5_MAC_PRM(i5_config.i5_mac_address));
+    i5TraceError("Self Device " I5_MAC_FMT "Not Found\n", I5_MAC_PRM(i5_config.i5_mac_address));
     goto end;
   }
   pdmdev->BasicCaps = config->basic_caps;
@@ -202,9 +202,9 @@ static void i5GetBSSIDOfSTAInterfaceTimeout(void *arg)
   }
 
   /* Find the local Device */
-  pdmdev = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdmdev = i5DmGetSelfDevice();
   if (pdmdev == NULL) {
-    i5TraceError("Device " I5_MAC_FMT "Not Found\n", I5_MAC_PRM(i5_config.i5_mac_address));
+    i5TraceError("Self Device " I5_MAC_FMT "Not Found\n", I5_MAC_PRM(i5_config.i5_mac_address));
     return;
   }
 
@@ -267,9 +267,9 @@ void ieee1905_start()
   ieee1905_ifr_info info;
 
   /* Find the local Device */
-  pdmdev = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdmdev = i5DmGetSelfDevice();
   if (pdmdev == NULL) {
-    i5TraceError("Device " I5_MAC_FMT "Not Found\n", I5_MAC_PRM(i5_config.i5_mac_address));
+    i5TraceError("Self Device " I5_MAC_FMT "Not Found\n", I5_MAC_PRM(i5_config.i5_mac_address));
     return;
   }
 
@@ -331,6 +331,23 @@ next:
 
   i5_config.ptmrApSearch = i5TimerNew(I5_MESSAGE_AP_SEARCH_START_INTERVAL_MSEC,
     i5WlCfgMultiApControllerSearch, NULL);
+
+#ifdef MULTIAP
+  {
+    int interval_ms = 0;
+    /* Wait at least two discovery interval for discovery before removing a neighbor */
+    if (i5_config.discovery_timeout != 0) {
+      interval_ms = i5_config.discovery_timeout * 2;
+    } else {
+      interval_ms =  I5_MESSAGE_TOPOLOGY_DISCOVERY_PERIOD_MSEC * 2;
+    }
+    if (i5_config.ptmrRemoveStaleNeighbors) {
+      i5TimerFree(i5_config.ptmrRemoveStaleNeighbors);
+    }
+    i5_config.ptmrRemoveStaleNeighbors = i5TimerNew(interval_ms,
+      i5DmDeviceRemoveStaleNeighborsTimer, NULL);
+  }
+#endif
 }
 
 /* Get Data model */
@@ -482,9 +499,9 @@ int ieee1905_add_bss(unsigned char *radio_mac, unsigned char *bssid, unsigned ch
   }
 
   /* Find the local Device */
-  pdmdev = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdmdev = i5DmGetSelfDevice();
   if (pdmdev == NULL) {
-    i5TraceError("Device " I5_MAC_FMT "Not Found\n", I5_MAC_PRM(i5_config.i5_mac_address));
+    i5TraceError("Self Device " I5_MAC_FMT "Not Found\n", I5_MAC_PRM(i5_config.i5_mac_address));
     return IEEE1905_AL_MAC_NOT_FOUND;
   }
 
@@ -580,9 +597,9 @@ int ieee1905_sta_assoc_disassoc(unsigned char *bssid, unsigned char *mac, int is
   }
 
   /* Find the local Device */
-  pdmdev = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdmdev = i5DmGetSelfDevice();
   if (pdmdev == NULL) {
-    i5TraceError("Device " I5_MAC_FMT "Not Found\n", I5_MAC_PRM(i5_config.i5_mac_address));
+    i5TraceError("Self Device " I5_MAC_FMT "Not Found\n", I5_MAC_PRM(i5_config.i5_mac_address));
     return IEEE1905_AL_MAC_NOT_FOUND;
   }
 
@@ -703,11 +720,11 @@ int ieee1905_send_assoc_sta_link_metric(unsigned char *neighbor_al_mac, unsigned
   ieee1905_sta_link_metric *metric)
 {
   i5_dm_device_type *pDeviceNeighbor = i5DmDeviceFind(neighbor_al_mac);
-  i5_dm_device_type *pDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  i5_dm_device_type *pDevice = i5DmGetSelfDevice();
   i5_dm_clients_type *pclient;
 
   if (pDevice == NULL) {
-    i5TraceError("Device " I5_MAC_FMT " not found\n", I5_MAC_PRM(i5_config.i5_mac_address));
+    i5TraceError("Self Device " I5_MAC_FMT " not found\n", I5_MAC_PRM(i5_config.i5_mac_address));
     return IEEE1905_AL_MAC_NOT_FOUND;
   }
 
@@ -802,10 +819,10 @@ static int ieee1905_send_common_query(unsigned char *neighbor_al_mac, void *data
   unsigned int flags)
 {
   i5_dm_device_type *pDeviceNeighbor = i5DmDeviceFind(neighbor_al_mac);
-  i5_dm_device_type *pDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  i5_dm_device_type *pDevice = i5DmGetSelfDevice();
 
   if (pDevice == NULL) {
-    i5TraceError("Device " I5_MAC_FMT " not found\n", I5_MAC_PRM(i5_config.i5_mac_address));
+    i5TraceError("Self Device " I5_MAC_FMT " not found\n", I5_MAC_PRM(i5_config.i5_mac_address));
     return IEEE1905_AL_MAC_NOT_FOUND;
   }
 
@@ -950,7 +967,7 @@ int ieee1905_send_operating_chan_report(ieee1905_operating_chan_report *chan_rpt
   i5_dm_device_type *pDeviceController = NULL;
   i5_dm_device_type *pdevice = NULL;
 
-  pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdevice = i5DmGetSelfDevice();
 
   if (!pdevice) {
     i5TraceError("Local device does not exist\n");
@@ -976,7 +993,7 @@ int ieee1905_send_chan_preference_report()
   i5_dm_device_type *pDeviceController = NULL;
   i5_dm_device_type *pdevice = NULL;
 
-  pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdevice = i5DmGetSelfDevice();
 
   if (!pdevice) {
     i5TraceError("Local device does not exist\n");
@@ -996,7 +1013,7 @@ int ieee1905_send_chan_preference_report()
 /* To inform ieee1905 about association of bSTA to the backhaul AP */
 int ieee1905_bSTA_associated_to_backhaul_ap(unsigned char *InterfaceId)
 {
-  i5_dm_device_type *pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  i5_dm_device_type *pdevice = i5DmGetSelfDevice();
   i5_dm_interface_type *pdmif;
   int do_renew = 0;
 
@@ -1029,18 +1046,7 @@ int ieee1905_bSTA_associated_to_backhaul_ap(unsigned char *InterfaceId)
   }
 
   /* make all the interface as not configured */
-  pdmif = (i5_dm_interface_type *)pdevice->interface_list.ll.next;
-  while (pdmif != NULL) {
-    if (i5DmIsInterfaceWireless(pdmif->MediaType) && !i5WlCfgIsVirtualInterface(pdmif->ifname)) {
-      pdmif->isConfigured = 0;
-      pdmif->isM1Sent = 0;
-    }
-    pdmif = pdmif->ll.next;
-  }
-  i5_config.isNewBssCreated = 0;
-
-  /* set current WSC MAC to NULL to make sure that it sends M1 for all interfaces */
-  memset(i5_config.curWSCMac, 0, sizeof(i5_config.curWSCMac));
+  i5WlcfgMarkAllInterfacesUnconfigured();
 
   i5WlCfgMultiApControllerSearch(NULL);
 

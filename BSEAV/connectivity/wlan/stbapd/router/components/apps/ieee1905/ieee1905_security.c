@@ -81,7 +81,7 @@ static void _i5SecurityStatusCheck(void *arg)
     pSecTmr->timer = NULL;
   }
 
-  pDmDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pDmDevice = i5DmGetSelfDevice();
   if ( NULL == pDmDevice ) {
     return;
   }
@@ -153,7 +153,7 @@ void i5SecurityProcessExternalPushButtonEvent( unsigned int mediaCount, unsigned
 
   i5Trace("\n");
 
-  pDmDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pDmDevice = i5DmGetSelfDevice();
   if ( NULL == pDmDevice ) {
     return;
   }
@@ -213,7 +213,7 @@ void i5SecurityProcessGenericPhyExternalPushButtonEvent( unsigned int mediaCount
 
   i5Trace("\n");
 
-  pDmDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pDmDevice = i5DmGetSelfDevice();
   if ( NULL == pDmDevice ) {
     return;
   }
@@ -256,7 +256,7 @@ void i5SecurityProcessLocalPushButtonEvent( void )
   i5_dm_interface_type *pDmInterface;
   unsigned int          securityStarted = 0;
 
-  pDmDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pDmDevice = i5DmGetSelfDevice();
   if ( NULL == pDmDevice ) {
     return;
   }
@@ -316,7 +316,7 @@ void i5SecuritySesCompleteNotify( void )
 
   i5Trace("\n");
 
-  pDmDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pDmDevice = i5DmGetSelfDevice();
   if ( NULL == pDmDevice ) {
     return;
   }
@@ -337,7 +337,7 @@ void i5SecurityStatusUpdate(unsigned short mediaType)
 
   i5Trace("\n");
 
-  pDmDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pDmDevice = i5DmGetSelfDevice();
   if ( NULL == pDmDevice ) {
     return;
   }

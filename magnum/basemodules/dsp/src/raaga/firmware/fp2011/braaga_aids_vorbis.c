@@ -187,7 +187,7 @@ const uint32_t BDSP_IMG_vorbis_ids_array1[] = {
 	0x940817cf,
 	0x940c45cf,
 	0xa72509d7,
-	0x0003f888,
+	0x0003f887,
 	0x7400010f,
 	0x741c03cf,
 	0x07b07f27,
@@ -199,7 +199,7 @@ const uint32_t BDSP_IMG_vorbis_ids_array1[] = {
 	0x3d840007,
 	0x013fffff,
 	0xa7440dd7,
-	0x0001f891,
+	0x0001f890,
 	0x7404050f,
 	0x7400030f,
 	0x3d9a4057,
@@ -217,7 +217,7 @@ const uint32_t BDSP_IMG_vorbis_ids_array1[] = {
 	0x941445cf,
 	0x013fffff,
 	0xa75f8dd7,
-	0x0003f888,
+	0x0003f887,
 	0x7408050f,
 	0x741c01cf,
 	0xb6ee89ff,
@@ -983,7 +983,7 @@ const uint32_t BDSP_IMG_vorbis_ids_array1[] = {
 	0x07bffe07,
 	0x013fffff,
 	0xa77509d7,
-	0x0001f88e,
+	0x0001f88d,
 	0x72322f17,
 	0x00000005,
 	0x72332d17,
@@ -1069,7 +1069,7 @@ const uint32_t BDSP_IMG_vorbis_ids_array1[] = {
 	0x07bffe07,
 	0x013fffff,
 	0xa75f89d7,
-	0x0001f88e,
+	0x0001f88d,
 	0x740811cf,
 	0x2b107e77,
 	0x013fffff,
@@ -1381,7 +1381,7 @@ const uint32_t BDSP_IMG_vorbis_ids_header [2] = {sizeof(BDSP_IMG_vorbis_ids_arra
 const void * const BDSP_IMG_vorbis_ids [2] = {BDSP_IMG_vorbis_ids_header, BDSP_IMG_vorbis_ids_array1};
 const uint32_t BDSP_IMG_vorbis_ids_inter_frame_array1[] = {
 	0x00000000,
-	0x0000107b
+	0x0000107c
 };
 const uint32_t BDSP_IMG_vorbis_ids_inter_frame_header [2] = {sizeof(BDSP_IMG_vorbis_ids_inter_frame_array1), 1};
 const void * const BDSP_IMG_vorbis_ids_inter_frame [2] = {BDSP_IMG_vorbis_ids_inter_frame_header, BDSP_IMG_vorbis_ids_inter_frame_array1};

@@ -50,15 +50,22 @@ include ${NEXUS_TOP}/platforms/common/build/platform_app.inc
 include ${NEXUS_TOP}/platforms/common/build/nexus_platforms.inc
 endif
 ###############################################
-#Adjust these parameters. DEBUG=y will add -debug to end ${4375_DEFAULT_BUILDCFG}
+#Adjust these parameters. DEBUG=y will add -debug to end ${DEFAULT_BUILDCFG_4375}
 #####################################################
-4375_DEBUG=y
-4375_MFGTEST=n
-4375_DEFAULT_BUILDCFG?=dhd-msgbuf-pciefd-cfg80211-stb
+DEBUG_4375?=y
+MFGTEST_4375?=n
+DEFAULT_BUILDCFG_4375?=dhd-msgbuf-pciefd-cfg80211-stb
 ##########################################################
 
 WIFI_4375_TAR_NAME := stb_4375_wifi.tar.gz
-WIFI_4375_LOCAL_TAR_LOCATION=${BSEAV_TOP}/../${THIS_DIR}/${WIFI_4375_TAR_NAME}
+INSTALLED_TAR_LOCATION:=${BSEAV_TOP}/../${THIS_DIR}/${WIFI_4375_TAR_NAME}
+ifneq ($(wildcard ${INSTALLED_TAR_LOCATION}),)
+# Use in-src tarball if installed
+WIFI_4375_LOCAL_TAR_LOCATION=$(INSTALLED_TAR_LOCATION)
+else
+# Download out-of-source
+WIFI_4375_LOCAL_TAR_LOCATION=${B_REFSW_OBJ_ROOT}/${THIS_DIR}/${WIFI_4375_TAR_NAME}
+endif
 ifneq ($(NEXUS_PLATFORM),)
 B_REFSW_OBJ_DIR  ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${BSEAV_TOP}/../${B_REFSW_OBJ_DIR}
@@ -85,10 +92,10 @@ ifneq ($(filter arm%,${B_REFSW_ARCH}),)
         #       TARGETARCH_FOR_WL=armv7l
         export TARGETMACH?=arm
         export TARGETENV?=linuxarm
-	ifeq (${4375_DEBUG},y)
-		export BUILDCFG=${4375_DEFAULT_BUILDCFG}-armv7l-debug
+	ifeq (${DEBUG_4375},y)
+		export BUILDCFG=${DEFAULT_BUILDCFG_4375}-armv7l-debug
 	else
-		export BUILDCFG=${4375_DEFAULT_BUILDCFG}-armv7l
+		export BUILDCFG=${DEFAULT_BUILDCFG_4375}-armv7l
 	endif
 	#location of wl and dhd apps
 	APPS_DIR=${4375_OOSRC}/apps/armv7l
@@ -111,11 +118,11 @@ else ifeq (${B_REFSW_ARCH},aarch64-linux)
         #       TARGETARCH_FOR_WL=arm64
         export TARGETMACH?=arm
         export TARGETENV?=linuxarm
-        export BUILDCFG=${4375_DEFAULT_BUILDCFG}-armv8
-	ifeq (${4375_DEBUG},y)
-		export BUILDCFG=${4375_DEFAULT_BUILDCFG}-armv8-debug
+        export BUILDCFG=${DEFAULT_BUILDCFG_4375}-armv8
+	ifeq (${DEBUG_4375},y)
+		export BUILDCFG=${DEFAULT_BUILDCFG_4375}-armv8-debug
 	else
-		export BUILDCFG=${4375_DEFAULT_BUILDCFG}-armv8
+		export BUILDCFG=${DEFAULT_BUILDCFG_4375}-armv8
 	endif
 	#location of wl and dhd apps
 	APPS_DIR=${4375_OOSRC}/apps/aarch64
@@ -134,7 +141,7 @@ export LINUXVER?=$(shell cat ${LINUXDIR}/include/config/kernel.release)
 export CROSS_COMPILE?=${B_REFSW_CROSS_COMPILE}
 
 #location of clm, fw, and dhd.ko
-ifeq (${4375_MFGTEST},y)
+ifeq (${MFGTEST_4375},y)
     # Note: clmblob built in to mfgtest fw. No need to do download clm_blob for mfgtest
     #CLM_DIR=${4375_OOSRC}/clm_blobs/dongle/4375b1-roml/config_pcie_stb_mfgtest
     CLM_DIR=${4375_OOSRC}/clm_blobs/dongle/4375b1-roml/dummy_nonexistant
@@ -169,7 +176,7 @@ release:
 ${WIFI_4375_TAR_FETCH_MAYBE}:
 	@echo "================FETCHING 4375 wifi tarball  =========================================="
 	@echo "================CUR_TARBALL_SHASUM=${CUR_TARBALL_SHASUM} != RELEASE_TARBALL_SHASUM=${RELEASE_TARBALL_SHASUM}"
-	@bash ${B_REFSW_TOP}/BSEAV/tools/build/binaries/verify_binaries.sh wifi_4375.txt stb_4375_wifi.tar.gz ${BSEAV_TOP}/../${THIS_DIR}
+	@bash ${B_REFSW_TOP}/BSEAV/tools/build/binaries/verify_binaries.sh wifi_4375.txt stb_4375_wifi.tar.gz $(dir ${WIFI_4375_TAR_FETCH_MAYBE})
 
 build_dhd: ${WIFI_4375_TAR_FETCH_MAYBE}
 	@if [ "$(NEXUS_PLATFORM)" = "" ]; then \

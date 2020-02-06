@@ -1,0 +1,139 @@
+diff -ru iperf-3.7/src/iperf_api.c iperf-3.7-asp/src/iperf_api.c
+--- iperf-3.7/src/iperf_api.c	2019-06-20 18:12:47.000000000 -0700
++++ iperf-3.7-asp/src/iperf_api.c	2019-10-15 13:23:45.586689264 -0700
+@@ -49,7 +49,7 @@
+ #ifdef HAVE_STDINT_H
+ #include <stdint.h>
+ #endif
+-#include <netinet/tcp.h>
++#include <linux/tcp.h>
+ #include <sys/time.h>
+ #include <sys/resource.h>
+ #include <sys/mman.h>
+@@ -859,7 +859,7 @@
+     char *client_username = NULL, *client_rsa_public_key = NULL, *server_rsa_private_key = NULL;
+ #endif /* HAVE_SSL */
+ 
+-    while ((flag = getopt_long(argc, argv, "p:f:i:D1VJvsc:ub:t:n:k:l:P:Rw:B:M:N46S:L:ZO:F:A:T:C:dI:hX:", longopts, NULL)) != -1) {
++    while ((flag = getopt_long(argc, argv, "p:f:i:D1VJvsc:ub:t:n:k:l:P:Rw:B:M:N46S:L:ZO:F:A:T:C:dI:hX:o", longopts, NULL)) != -1) {
+         switch (flag) {
+             case 'p':
+ 		portno = atoi(optarg);
+@@ -1225,6 +1225,9 @@
+ 		test->settings->connect_timeout = unit_atoi(optarg);
+ 		client_flag = 1;
+ 		break;
++	    case 'o':
++		test->offloadSocket = 1;
++        break;
+ 	    case 'h':
+ 		usage_long(stdout);
+ 		exit(0);
+diff -ru iperf-3.7/src/iperf_client_api.c iperf-3.7-asp/src/iperf_client_api.c
+--- iperf-3.7/src/iperf_client_api.c	2019-06-20 18:12:47.000000000 -0700
++++ iperf-3.7-asp/src/iperf_client_api.c	2019-10-15 13:23:45.586689264 -0700
+@@ -444,6 +444,48 @@
+ }
+ 
+ 
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <stdbool.h>
++#include <fcntl.h>
++#include <sys/ioctl.h>
++#include <arpa/inet.h>      /* For inet_ntoa */
++#include "../../../../../../../BSEAV/linux/driver/asp_offload/asp_offload_api.h"
++int offloadConnxToAspHw(int socketFd, unsigned maxBitRate) 
++{
++    int                     err;
++    int                     fd;
++    ASP_OffloadSocketFromLinuxInfo socketInfo;
++ 
++    fd = open("/dev/b_asp", O_RDWR);
++    if (fd < 0) { perror("opening of /dev/b_asp failed: "); return -1;}
++
++    socketInfo.socketFdToOffload    = socketFd;
++    socketInfo.maxBitRate           = maxBitRate;
++    err = ioctl(fd, ASP_IOC_OFFLOAD_SOCKET_FROM_LINUX, (unsigned long)(&socketInfo));
++    if (err != 0) { perror("ioctl ASP_IOC_OFFLOAD_SOCKET_FROM_LINUX: ");}
++    close(fd);
++    return 0;
++}
++
++int offloadConnxFromAspHw(int socketFd) 
++{
++    int err;
++    int fd;
++    ASP_OffloadSocketToLinuxInfo socketInfo;
++
++    printf("Offload connection back from ASP to Linux...\n");
++    fd = open("/dev/b_asp", O_RDWR);
++    if (fd < 0) { perror("opening of /dev/b_asp failed: "); return -1;}
++
++    socketInfo.socketFdToOffload    = socketFd;
++    socketInfo.timeoutInMsec    = 0;
++    err = ioctl(fd, ASP_IOC_OFFLOAD_SOCKET_TO_LINUX, (unsigned long)(&socketInfo));
++    if (err != 0) { perror("ioctl ASP_IOC_OFFLOAD_SOCKET_TO_LINUX: ");}
++    close(fd);
++    return 0;
++}
++
+ int
+ iperf_run_client(struct iperf_test * test)
+ {
+@@ -513,7 +555,13 @@
+ 		if (test->protocol->id != Pudp) {
+ 		    SLIST_FOREACH(sp, &test->streams, streams) {
+ 			setnonblocking(sp->socket, 1);
+-		    }
++            /* Offload from Linux to ASP. */
++            if (test->offloadSocket && !sp->offloaded) {
++                offloadConnxToAspHw(sp->socket, 1000000000);
++                sp->offloaded = 1;
++            }
++
++            }
+ 		}
+ 	    }
+ 
+diff -ru iperf-3.7/src/iperf.h iperf-3.7-asp/src/iperf.h
+--- iperf-3.7/src/iperf.h	2019-06-20 18:12:47.000000000 -0700
++++ iperf-3.7-asp/src/iperf.h	2019-10-15 13:23:45.586689264 -0700
+@@ -39,7 +39,7 @@
+ #ifndef _GNU_SOURCE
+ # define _GNU_SOURCE
+ #endif
+-#include <netinet/tcp.h>
++#include <linux/tcp.h>
+ 
+ #if defined(HAVE_CPUSET_SETAFFINITY)
+ #include <sys/param.h>
+@@ -210,6 +210,8 @@
+     SLIST_ENTRY(iperf_stream) streams;
+ 
+     void     *data;
++
++    int      offloaded;     /* set if socket has been offloaded to ASP HW. */
+ };
+ 
+ struct protocol {
+@@ -355,6 +357,7 @@
+     /* Server output (use on server side only) */
+     TAILQ_HEAD(iperf_textlisthead, iperf_textline) server_output_list;
+ 
++    int offloadSocket;
+ };
+ 
+ /* default settings */
+diff -ru iperf-3.7/src/iperf_locale.c iperf-3.7-asp/src/iperf_locale.c
+--- iperf-3.7/src/iperf_locale.c	2019-06-20 18:12:47.000000000 -0700
++++ iperf-3.7-asp/src/iperf_locale.c	2019-10-15 13:23:45.586689264 -0700
+@@ -188,6 +188,8 @@
+ 			   "\n"
+                            "[KMG] indicates options that support a K/M/G suffix for kilo-, mega-, or giga-\n"
+ 			   "\n"
++                           "  -o, --offloadSocket       offload a socket connection to ASP HW.\n"
++			   "\n"
+ #ifdef PACKAGE_URL
+                            "iperf3 homepage at: " PACKAGE_URL "\n"
+ #endif /* PACKAGE_URL */

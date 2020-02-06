@@ -210,6 +210,11 @@ static const bcm_iovar_t rrm_iovars[] = {
 	{NULL, 0, 0, 0, 0, 0}
 };
 
+typedef struct bcn_rpt_frag_ctx {
+	struct ether_addr frag_bssid;  /* The bssid of last BSS fragmented in previous frame */
+	uint8 frm_body_frag_len;       /* last fragmented frame body tlv len */
+	uint8 frm_body_frag_id_num;    /* next fragmentation id */
+} bcn_rpt_frag_ctx_t;
 typedef struct rrm_bcnreq_ {
 	uint8 token;
 	uint8 reg;
@@ -230,7 +235,12 @@ typedef struct rrm_bcnreq_ {
 	struct ether_addr bssid;
 	int scan_status;
 	wlc_bss_list_t scan_results;
+	uint8 last_bcn_rpt_ind_req;             /* last bcn rpt indicn requested ? */
+	bcn_rpt_frag_ctx_t *prev_frm_frag_ctx;   /* Prev bcn frame fragmentation context */
+	bcn_rpt_frag_ctx_t *cur_frm_frag_ctx;    /* Current bcn frame fragmentation context */
+	uint8 flags;
 } rrm_bcnreq_t;
+#define WLC_RRM_LAST_BCNREP_REQ  0x01
 
 typedef struct rrm_framereq_ {
 	uint8 token;
@@ -380,6 +390,7 @@ typedef struct wlc_rrm_req_state {
 	uint8 cca_busy;		/* busy fraction */
 	/* Beacon measurements */
 	bool scan_active;
+	uint8 frag_bcn_rpt_id;
 
 	/* RPI measurements */
 	bool rpi_active;	/* true if measurement in progress */
@@ -505,6 +516,7 @@ typedef struct scb_tscm {
 /* for beacon */
 static int wlc_rrm_bcnrep_add(wlc_rrm_info_t *rrm_info, wlc_bss_info_t *bi,
 	uint8 *bufptr, uint buflen);
+static void wlc_rrm_bcnreq_free(wlc_rrm_info_t *rrm_info);
 
 /* for chload */
 static void wlc_rrm_cca_start(wlc_rrm_info_t  *rrm_info, uint32 dur);
@@ -557,6 +569,8 @@ static dot11_ap_chrep_t* wlc_rrm_get_ap_chrep(const wlc_bss_info_t *bi);
 static uint8 wlc_rrm_get_ap_chrep_reg(const wlc_bss_info_t *bi);
 static int wlc_rrm_add_empty_bcnrep(const wlc_rrm_info_t *rrm_info, uint8 *bufptr, uint buflen);
 static void* wlc_rrm_prep_gen_report(wlc_rrm_info_t *rrm_info, unsigned int len, uint8 **pbody);
+static void* wlc_rrm_get_gen_report(wlc_rrm_info_t *rrm_info,
+	uint32 len, uint8 **pbody, uint8* buf);
 static void wlc_rrm_send_bcnrep(wlc_rrm_info_t *rrm_info, wlc_bss_list_t *bsslist);
 static void wlc_rrm_send_chloadrep(wlc_rrm_info_t *rrm_info);
 static void wlc_rrm_send_noiserep(wlc_rrm_info_t *rrm_info);
@@ -580,7 +594,8 @@ static void wlc_rrm_recv_lmrep(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, stru
 #ifdef WL11K_AP
 static void wlc_rrm_recv_nrreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, struct scb *scb,
 	uint8 *body, int body_len);
-static void wlc_rrm_send_nbrrep_cmn(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, int addtype);
+static void wlc_rrm_send_nbrrep_cmn(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, struct scb *scb,
+	int addtype);
 static void wlc_rrm_get_neighbor_list(wlc_rrm_info_t *rrm_info, void *a, uint16 list_cnt,
 	rrm_bsscfg_cubby_t *rrm_cfg);
 static void wlc_rrm_del_neighbor(wlc_rrm_info_t *rrm_info, struct ether_addr *ea,
@@ -723,6 +738,8 @@ static void wlc_rrm_recv_civicreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg,
 	dot11_meas_req_loc_t *rmreq_civic, wlc_rrm_req_t *req);
 static void wlc_rrm_recv_locidreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg,
 	dot11_meas_req_loc_t *rmreq_locid, wlc_rrm_req_t *req);
+int
+wlc_set_roam_channel_cache(wlc_bsscfg_t *cfg, const chanspec_t *chanspecs, int num_chanspecs);
 
 typedef int (*rrm_config_fn_t)(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg,
 	uint8 *opt, int len);
@@ -1212,6 +1229,9 @@ wlc_rrm_state_init(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, uint16 rx_time,
 	rrm_state->req_count = rrm_req_count;
 	rrm_state->req = rrm_req;
 
+	/* reset fragmented bcn rpt counter */
+	rrm_state->frag_bcn_rpt_id = 0;
+
 	/* Fill out the request blocks */
 	wlc_rrm_parse_requests(rrm_info, cfg, req_ie, body_len, rrm_req, rrm_req_count);
 
@@ -1502,13 +1522,27 @@ wlc_rrm_recv_bcnreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, dot11_rmreq_bcn
 			wlc->pub->unit, __FUNCTION__, rmreq_bcn->bcn_mode));
 		return;
 	}
-	if ((rrm_info->bcnreq = (rrm_bcnreq_t *)MALLOC(wlc->osh, sizeof(rrm_bcnreq_t))) == NULL) {
+	if ((rrm_info->bcnreq = (rrm_bcnreq_t *)MALLOCZ(wlc->osh, sizeof(rrm_bcnreq_t))) == NULL) {
 		WL_ERROR(("wl%d: %s: out of mem, malloced %d bytes\n",
 			wlc->pub->unit, __FUNCTION__, MALLOCED(wlc->osh)));
 		req->flags |= DOT11_RMREP_MODE_REFUSED;
 		return;
 	}
-	bzero(rrm_info->bcnreq, sizeof(rrm_bcnreq_t));
+	rrm_info->bcnreq->prev_frm_frag_ctx =
+		MALLOCZ(wlc->osh, sizeof(*rrm_info->bcnreq->prev_frm_frag_ctx));
+	rrm_info->bcnreq->cur_frm_frag_ctx =
+		MALLOCZ(wlc->osh, sizeof(*rrm_info->bcnreq->cur_frm_frag_ctx));
+	if (!rrm_info->bcnreq->prev_frm_frag_ctx || !rrm_info->bcnreq->cur_frm_frag_ctx) {
+		WL_ERROR((WLC_MALLOC_ERR, WLCWLUNIT(wlc),
+			__FUNCTION__, (int)sizeof(bcn_rpt_frag_ctx_t),
+			MALLOCED(wlc->osh)));
+		req->flags |= DOT11_RMREP_MODE_REFUSED;
+		/* Free rrm_info->bcnreq, rrm_info->bcnreq->prev_frm_frag_ctx,
+		 * rrm_info->bcnreq->cur_frm_frag_ctx.
+		 */
+		wlc_rrm_bcnreq_free(rrm_info);
+		return;
+	}
 
 	bcn_req = rrm_info->bcnreq;
 	bcn_req->token = rmreq_bcn->token;
@@ -1586,6 +1620,12 @@ wlc_rrm_recv_bcnreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, dot11_rmreq_bcn
 			/* Convert multiple AP chan report IEs to chanspec. */
 			bcn_req->channel_num = wlc_rrm_ap_chreps_to_chanspec((bcm_tlv_t*)tlvs,
 				tlv_len, bcn_req);
+		}
+		/* look for last beacon report indication request */
+		tlv = bcm_parse_tlvs(tlvs, tlv_len, DOT11_RMREQ_BCN_LAST_RPT_IND_REQ_ID);
+		if (tlv && tlv->len > 0) {
+			bcn_req->last_bcn_rpt_ind_req = tlv->data[0];
+			WL_INFORM(("last bcn rpt ind %u\n", bcn_req->last_bcn_rpt_ind_req));
 		}
 	}
 
@@ -2827,6 +2867,7 @@ wlc_rrm_rep_err(wlc_rrm_info_t *rrm_info, uint8 type, uint8 token, uint8 reason)
 	uint8 *pbody;
 	dot11_rm_action_t *rm_rep;
 	dot11_rm_ie_t *rmrep_ie;
+	struct scb *scb = NULL;
 
 	if ((p = wlc_frame_get_action(wlc, &rrm_info->da,
 		&rrm_info->cur_cfg->cur_etheraddr, &rrm_info->cur_cfg->BSSID,
@@ -2843,7 +2884,8 @@ wlc_rrm_rep_err(wlc_rrm_info_t *rrm_info, uint8 type, uint8 token, uint8 reason)
 		rmrep_ie->mode = reason;
 		rmrep_ie->type = type;
 
-		wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, NULL);
+		scb = wlc_scbfind(wlc, rrm_info->cur_cfg, &rrm_info->da);
+		wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, scb);
 	}
 }
 
@@ -2903,6 +2945,23 @@ static void* wlc_rrm_prep_gen_report(wlc_rrm_info_t *rrm_info, unsigned int len,
 	return p;
 }
 
+static void* wlc_rrm_get_gen_report(wlc_rrm_info_t *rrm_info, uint32 len, uint8 **pbody, uint8* buf)
+{
+	dot11_rm_action_t *rm_rep;
+	void *p = NULL;
+	if ((p = wlc_rrm_prep_gen_report(rrm_info, len, pbody)) == NULL)
+		return NULL;
+
+	rm_rep = (dot11_rm_action_t *)(*pbody);
+
+	if (!buf)
+		return NULL;
+
+	memcpy(&rm_rep->data[0], buf, len);
+
+	return p;
+}
+
 static void wlc_rrm_send_txstrmrep(wlc_rrm_info_t *rrm_info)
 {
 	wlc_info_t *wlc = rrm_info->wlc;
@@ -2913,6 +2972,7 @@ static void wlc_rrm_send_txstrmrep(wlc_rrm_info_t *rrm_info)
 	uint8 *pbody;
 	unsigned int len;
 	char eabuf[ETHER_ADDR_STR_LEN];
+	struct scb *scb = NULL;
 
 	WL_RRM(("%s: <Enter>\n", __FUNCTION__));
 
@@ -2964,7 +3024,8 @@ static void wlc_rrm_send_txstrmrep(wlc_rrm_info_t *rrm_info)
 		rmrep_txstrm->bin0_range, rmrep_txstrm->bin0, rmrep_txstrm->bin1,
 		rmrep_txstrm->bin2, rmrep_txstrm->bin3, rmrep_txstrm->bin4, rmrep_txstrm->bin5));
 
-		wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, NULL);
+	scb = wlc_scbfind(wlc, rrm_info->cur_cfg, &rrm_info->da);
+	wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, scb);
 }
 
 static void wlc_rrm_send_statrep(wlc_rrm_info_t *rrm_info)
@@ -2973,6 +3034,7 @@ static void wlc_rrm_send_statrep(wlc_rrm_info_t *rrm_info)
 	dot11_rm_action_t *rm_rep;
 	dot11_rm_ie_t *rmrep_ie;
 	dot11_rmrep_stat_t *rmrep_stat;
+	struct scb *scb = NULL;
 	void *p = NULL;
 	uint8 *pbody, *buf, *src;
 	uint len;
@@ -3017,20 +3079,20 @@ static void wlc_rrm_send_statrep(wlc_rrm_info_t *rrm_info)
 	WL_RRM(("%s: rmrep_ie=%p, rmrep_stat=%p, buf=%p, group_data_len=%d\n",
 		__FUNCTION__, rmrep_ie, rmrep_stat, buf, group_data_len));
 
-	WL_RRM_HEX("statrep pbody:", pbody, len);
-	wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, NULL);
+	scb = wlc_scbfind(wlc, rrm_info->cur_cfg, &rrm_info->da);
+	wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, scb);
 }
 
 static void
 wlc_rrm_send_framerep(wlc_rrm_info_t *rrm_info)
 {
 	wlc_info_t *wlc = rrm_info->wlc;
-	dot11_rm_action_t *rm_rep;
 	dot11_rm_ie_t *rmrep_ie;
 	dot11_rmrep_frame_t *rmrep_frame;
+	struct scb *scb = NULL;
 	void *p = NULL;
-	uint8 *pbody, *buf;
-	uint len, buflen, frame_cnt = 1;
+	uint8 *pbody, *buf, *rmrep_ptr;
+	uint len, buflen, frame_cnt = 1, totlen = 0;
 
 	WL_RRM(("%s: <Enter>\n", __FUNCTION__));
 
@@ -3039,15 +3101,14 @@ wlc_rrm_send_framerep(wlc_rrm_info_t *rrm_info)
 		WL_ERROR(("%s: framereq is NULL\n", __FUNCTION__));
 		return;
 	}
-	if ((p = wlc_rrm_prep_gen_report(rrm_info, ETHER_MAX_DATA, &pbody)) == NULL)
+	rmrep_ptr = (uint8 *)MALLOCZ(rrm_info->wlc->osh, ETHER_MAX_DATA);
+	if (!rmrep_ptr) {
+		WL_ERROR(("%s: out of memory, malloced %d bytes\n", __FUNCTION__,
+				MALLOCED(wlc->osh)));
 		return;
+	}
 
-	rm_rep = (dot11_rm_action_t *)pbody;
-	rm_rep->category = DOT11_ACTION_CAT_RRM;
-	rm_rep->action = DOT11_RM_ACTION_RM_REP;
-	rm_rep->token = rrm_info->dialog_token;
-
-	rmrep_ie = (dot11_rm_ie_t *)&rm_rep->data[0];
+	rmrep_ie = (dot11_rm_ie_t *)rmrep_ptr;
 	rmrep_ie->id = DOT11_MNG_MEASURE_REPORT_ID;
 	rmrep_ie->len = DOT11_RM_IE_LEN - TLV_HDR_LEN; /* 5-2 */
 	rmrep_ie->token = rrm_info->framereq->token;
@@ -3062,20 +3123,18 @@ wlc_rrm_send_framerep(wlc_rrm_info_t *rrm_info)
 
 	buf = (uint8 *)&rmrep_frame[1];
 	rmrep_ie->len += DOT11_RMREP_FRAME_LEN;
-	buflen = ETHER_MAX_DATA -
-		(DOT11_MGMT_HDR_LEN + DOT11_RM_ACTION_LEN + DOT11_RM_IE_LEN
+	buflen = ETHER_MAX_DATA - (DOT11_RM_ACTION_LEN + DOT11_RM_IE_LEN
 			+ DOT11_RMREP_FRAME_LEN);
 
 	len = wlc_rrm_framerep_add(rrm_info, buf, frame_cnt); /* 2 + n*19 */
 	buflen -= len;
 	rmrep_ie->len += len;
-
+	totlen = ETHER_MAX_DATA - buflen;
+	p = wlc_rrm_get_gen_report(rrm_info, totlen, &pbody, rmrep_ptr);
+	MFREE(rrm_info->wlc->osh, rmrep_ptr, ETHER_MAX_DATA);
 	if (p != NULL) {
-		/* Fix up packet length */
-		if (buflen > 0) {
-			PKTSETLEN(wlc->osh, p, (ETHER_MAX_DATA - buflen));
-		}
-		wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, NULL);
+		scb = wlc_scbfind(wlc, rrm_info->cur_cfg, &rrm_info->da);
+		wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, scb);
 	}
 }
 
@@ -3094,6 +3153,7 @@ wlc_rrm_send_noiserep(wlc_rrm_info_t *rrm_info)
 	dot11_rm_action_t *rm_rep;
 	dot11_rm_ie_t *rmrep_ie;
 	dot11_rmrep_noise_t *rmrep_noise;
+	struct scb *scb = NULL;
 	void *p = NULL;
 	uint8 *pbody;
 	unsigned int len;
@@ -3134,7 +3194,8 @@ wlc_rrm_send_noiserep(wlc_rrm_info_t *rrm_info)
 	}
 
 	WL_RRM_HEX("noiserep pbody:", pbody, len);
-	wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, NULL);
+	scb = wlc_scbfind(wlc, rrm_info->cur_cfg, &rrm_info->da);
+	wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, scb);
 }
 
 static void
@@ -3144,6 +3205,7 @@ wlc_rrm_send_chloadrep(wlc_rrm_info_t *rrm_info)
 	dot11_rm_action_t *rm_rep;
 	dot11_rm_ie_t *rmrep_ie;
 	dot11_rmrep_chanload_t *rmrep_chload;
+	struct scb *scb = NULL;
 	void *p = NULL;
 	uint8 *pbody;
 	unsigned int len;
@@ -3174,7 +3236,8 @@ wlc_rrm_send_chloadrep(wlc_rrm_info_t *rrm_info)
 		__FUNCTION__, rmrep_chload->reg, rmrep_chload->channel, rmrep_chload->starttime[0],
 		rmrep_chload->starttime[1], rmrep_chload->duration, rmrep_chload->channel_load));
 
-	wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, NULL);
+	scb = wlc_scbfind(wlc, rrm_info->cur_cfg, &rrm_info->da);
+	wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, scb);
 }
 
 
@@ -3184,6 +3247,7 @@ wlc_rrm_send_lcirep(wlc_rrm_info_t *rrm_info, uint8 token)
 	wlc_info_t *wlc = rrm_info->wlc;
 	dot11_rm_action_t *rm_rep;
 	dot11_rm_ie_t *rmrep_ie;
+	struct scb *scb = NULL;
 	uint8 *rmrep_lci;
 	void *p = NULL;
 	uint8 *pbody;
@@ -3223,7 +3287,8 @@ wlc_rrm_send_lcirep(wlc_rrm_info_t *rrm_info, uint8 token)
 		memset(rmrep_lci, 0, DOT11_FTM_LCI_UNKNOWN_LEN);
 	}
 
-	wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, NULL);
+	scb = wlc_scbfind(wlc, rrm_info->cur_cfg, &rrm_info->da);
+	wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, scb);
 }
 
 static void
@@ -3232,6 +3297,7 @@ wlc_rrm_send_civiclocrep(wlc_rrm_info_t *rrm_info, uint8 token)
 	wlc_info_t *wlc = rrm_info->wlc;
 	dot11_rm_action_t *rm_rep;
 	dot11_rm_ie_t *rmrep_ie;
+	struct scb *scb = NULL;
 	uint8 *rmrep_civic;
 	void *p = NULL;
 	uint8 *pbody;
@@ -3271,7 +3337,8 @@ wlc_rrm_send_civiclocrep(wlc_rrm_info_t *rrm_info, uint8 token)
 		memset(rmrep_civic, 0, DOT11_FTM_CIVIC_UNKNOWN_LEN);
 	}
 
-	wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, NULL);
+	scb = wlc_scbfind(wlc, rrm_info->cur_cfg, &rrm_info->da);
+	wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, scb);
 }
 
 static void wlc_rrm_send_locidrep(wlc_rrm_info_t *rrm_info, uint8 token)
@@ -3279,6 +3346,7 @@ static void wlc_rrm_send_locidrep(wlc_rrm_info_t *rrm_info, uint8 token)
 	wlc_info_t *wlc = rrm_info->wlc;
 	dot11_rm_action_t *rm_rep;
 	dot11_rm_ie_t *rmrep_ie;
+	struct scb *scb = NULL;
 	uint8 *rmrep_locid;
 	void *p = NULL;
 	uint8 *pbody;
@@ -3316,22 +3384,29 @@ static void wlc_rrm_send_locidrep(wlc_rrm_info_t *rrm_info, uint8 token)
 		/* set output to unknown locid */
 		memset(rmrep_locid, 0, DOT11_LOCID_UNKNOWN_LEN);
 	}
-	wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, NULL);
+	scb = wlc_scbfind(wlc, rrm_info->cur_cfg, &rrm_info->da);
+	wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, scb);
 }
 
 static void
 wlc_rrm_send_bcnrep(wlc_rrm_info_t *rrm_info, wlc_bss_list_t *bsslist)
 {
 	wlc_info_t *wlc = rrm_info->wlc;
-	dot11_rm_action_t *rm_rep;
 	wlc_bss_info_t *bi;
+	struct scb *scb = NULL;
 	void *p = NULL;
-	uint8 *pbody, *buf = NULL;
-	unsigned int i = 0, len, buflen = 0;
+	uint8 *pbody, *buf = NULL, *rmrep_ptr = NULL;
+	unsigned int i = 0, j = 0, len, body_len, buflen = 0, totlen = 0;
 	unsigned int sent_packets = 0;
 	unsigned int bss_added = 0;
+	bcn_rpt_frag_ctx_t *frag_ctx = NULL;
 
 	WL_RRM(("%s: <Enter> bsslist->count %d\n", __FUNCTION__, bsslist->count));
+	/* reset fragmentation context */
+	memset(rrm_info->bcnreq->cur_frm_frag_ctx, 0,
+		sizeof(*rrm_info->bcnreq->cur_frm_frag_ctx));
+	memset(rrm_info->bcnreq->prev_frm_frag_ctx, 0,
+		sizeof(*rrm_info->bcnreq->prev_frm_frag_ctx));
 
 	/* Use a do/while to ensure that a report packet is always allocated even if bsslist is
 	 * empty.
@@ -3339,12 +3414,39 @@ wlc_rrm_send_bcnrep(wlc_rrm_info_t *rrm_info, wlc_bss_list_t *bsslist)
 	do {
 		/* Allocate and initialise packet. */
 		if (buflen <= 0) {
-			if ((p = wlc_rrm_prep_gen_report(rrm_info, ETHER_MAX_DATA, &pbody)) == NULL)
+			rmrep_ptr = buf = (uint8 *)MALLOCZ(rrm_info->wlc->osh, ETHER_MAX_DATA);
+			if (!buf) {
+				WL_ERROR(("%s: out of memory, malloced %d bytes\n", __FUNCTION__,
+						MALLOCED(wlc->osh)));
 				return;
-
-			rm_rep = (dot11_rm_action_t *)pbody;
-			buf = &rm_rep->data[0];
-			buflen = ETHER_MAX_DATA - (DOT11_MGMT_HDR_LEN + DOT11_RM_ACTION_LEN);
+			}
+			body_len = DOT11_RM_ACTION_LEN;
+			buflen = ETHER_MAX_DATA - body_len;
+			/* If not first bcn rpt frame, restore fragmentation context */
+			*rrm_info->bcnreq->cur_frm_frag_ctx =
+				*rrm_info->bcnreq->prev_frm_frag_ctx;
+			j=i;
+			do {
+				if (j < bsslist->count) {
+					bi = bsslist->ptrs[j];
+					len = wlc_rrm_bcnrep_add(rrm_info, bi, NULL, buflen);
+					if (((body_len + len) < buflen)) {
+						body_len += len;
+						/* continue on same BSS if it is fragmented */
+						frag_ctx = rrm_info->bcnreq->cur_frm_frag_ctx;
+						if (!memcmp(&frag_ctx->frag_bssid,
+							&bi->BSSID, ETHER_ADDR_LEN) &&
+							frag_ctx->frm_body_frag_len) {
+							continue;
+						} else {
+							j++;
+						}
+					} else {
+						break;
+					}
+				}
+			} while (j < bsslist->count);
+			*rrm_info->bcnreq->cur_frm_frag_ctx = *rrm_info->bcnreq->prev_frm_frag_ctx;
 		}
 
 		/* Send, or add a BSS to the report. */
@@ -3357,16 +3459,31 @@ wlc_rrm_send_bcnrep(wlc_rrm_info_t *rrm_info, wlc_bss_list_t *bsslist)
 				 * iteration can allocate frame and add this beacon report.
 				 */
 				/* Fixup packet length */
-				if (buflen > 0)
-					PKTSETLEN(wlc->osh, p, (ETHER_MAX_DATA-buflen));
+				totlen = ETHER_MAX_DATA-buflen;
+				p = wlc_rrm_get_gen_report(rrm_info, totlen, &pbody, rmrep_ptr);
 
-				wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, NULL);
+				scb = wlc_scbfind(wlc, rrm_info->cur_cfg,
+						&rrm_info->da);
+				wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, scb);
+				/* store last bcn rpt frame fragmentation context */
+				*rrm_info->bcnreq->prev_frm_frag_ctx =
+					*rrm_info->bcnreq->cur_frm_frag_ctx;
 				/* Force allocation of new buffer */
 				buflen = 0;
 				bss_added = 0;
 				sent_packets += 1;
 			} else {
-				i++;
+				frag_ctx = rrm_info->bcnreq->cur_frm_frag_ctx;
+				/* Increament i when current BSS is fragmented but no more
+				 * fragment left OR current BSS is not fragmented.
+				 */
+				if ((!memcmp(&frag_ctx->frag_bssid,
+					&bi->BSSID, ETHER_ADDR_LEN) &&
+					!frag_ctx->frm_body_frag_len) ||
+					(memcmp(&frag_ctx->frag_bssid,
+					&bi->BSSID, ETHER_ADDR_LEN))) {
+					i++;
+				}
 				buflen -= len;
 				buf += len;
 				bss_added += 1;
@@ -3389,18 +3506,20 @@ wlc_rrm_send_bcnrep(wlc_rrm_info_t *rrm_info, wlc_bss_list_t *bsslist)
 
 		if (do_send) {
 			/* Fixup packet length */
-			if (buflen > 0)
-				PKTSETLEN(wlc->osh, p, (ETHER_MAX_DATA-buflen));
-
-			wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, NULL);
+			totlen = ETHER_MAX_DATA-buflen;
+			p = wlc_rrm_get_gen_report(rrm_info, totlen, &pbody, rmrep_ptr);
+			scb = wlc_scbfind(wlc, rrm_info->cur_cfg, &rrm_info->da);
+			wlc_sendmgmt(wlc, p, rrm_info->cur_cfg->wlcif->qi, scb);
 		} else {
 			/* Not sending anything, need to manually free packet. */
 			PKTFREE(wlc->osh, p, TRUE);
 			WLCNTINCR(wlc->pub->_cnt->txnobuf);
 		}
 	}
-
-	wlc_bss_list_free(rrm_info->wlc, &rrm_info->bcnreq->scan_results);
+	MFREE(rrm_info->wlc->osh, rmrep_ptr, ETHER_MAX_DATA);
+	if (rrm_info->bcnreq) {
+		wlc_bss_list_free(rrm_info->wlc, &rrm_info->bcnreq->scan_results);
+	}
 }
 
 /*
@@ -3474,102 +3593,231 @@ wlc_rrm_framerep_add(wlc_rrm_info_t *rrm_info, uint8 *bufptr, uint cnt)
 static int
 wlc_rrm_bcnrep_add(wlc_rrm_info_t *rrm_info, wlc_bss_info_t *bi, uint8 *bufptr, uint buflen)
 {
-	dot11_rm_ie_t *rmrep_ie;
-	dot11_rmrep_bcn_t *rmrep_bcn;
-	bcm_tlv_t *frm_body_tlv;
+	dot11_rm_ie_t *rmrep_ie = NULL;
+	dot11_rmrep_bcn_t *rmrep_bcn = NULL;
+	bcm_tlv_t *frm_body_tlv = NULL;
 	unsigned int elem_len, i;
+	uint8 in_bcn_req = 0;
+	uint tlv_len = 0;
+	uint16 frm_body_tlv_len = 0;
 	char eabuf[ETHER_ADDR_STR_LEN];
 	uint32 dummy_tsf_h, tsf_l;
-
+	dot11_rmrep_bcn_frm_body_fragmt_id_t *frm_body_frag_id = NULL;
+	dot11_rmrep_last_bcn_rpt_ind_t *last_rpt_ind = NULL;
+	bcn_rpt_frag_ctx_t *frag_ctx;
+	uint8 fragmented_bss = FALSE;
+	uint16 cur_len = 0;
 	ASSERT(rrm_info);
 
 	elem_len = DOT11_RM_IE_LEN + DOT11_RMREP_BCN_LEN;
-	if (buflen < elem_len) {
-		return 0;
+	if (bufptr) {
+		if (buflen < elem_len) {
+			return 0;
+		}
+
+		rmrep_ie = (dot11_rm_ie_t *)bufptr;
+		rmrep_ie->id = DOT11_MNG_MEASURE_REPORT_ID;
+		rmrep_ie->token = rrm_info->bcnreq->token;
+		rmrep_ie->mode = 0;
+		rmrep_ie->type = DOT11_MEASURE_TYPE_BEACON;
+
+		rmrep_bcn = (dot11_rmrep_bcn_t *)&rmrep_ie[1];
+		rmrep_bcn->reg = wlc_rrm_get_ap_chrep_reg(bi);
+		if (rmrep_bcn->reg == DOT11_OP_CLASS_NONE) {
+			rmrep_bcn->reg = rrm_info->bcnreq->reg;
+		}
+		rmrep_bcn->channel = CHSPEC_CHANNEL(bi->chanspec);
+		bcopy(&rrm_info->bcnreq->start_tsf_l, rmrep_bcn->starttime, (2*sizeof(uint32)));
+		rmrep_bcn->duration = htol16(rrm_info->bcnreq->duration_tu);
+		rmrep_bcn->frame_info = 0;
+		rmrep_bcn->rcpi = (uint8)bi->RSSI;
+		rmrep_bcn->rsni = (uint8)bi->SNR;
+		bcopy(&bi->BSSID, &rmrep_bcn->bssid, ETHER_ADDR_LEN);
+		rmrep_bcn->antenna_id = 0;
+		wlc_read_tsf(rrm_info->wlc, &tsf_l, &dummy_tsf_h);
+		rmrep_bcn->parent_tsf = tsf_l;
+
+		bcm_ether_ntoa(&rmrep_bcn->bssid, eabuf);
+		WL_RRM(("%s: token: %d, channel :%d, duration: %d, frame info: %d, rcpi: %d,"
+			"rsni: %d, bssid: %s, antenna id: %d, parent tsf: %d\n",
+			__FUNCTION__, rmrep_ie->token, rmrep_bcn->channel, rmrep_bcn->duration,
+			rmrep_bcn->frame_info, (int8)rmrep_bcn->rcpi, (int8)rmrep_bcn->rsni,
+			eabuf, rmrep_bcn->antenna_id, rmrep_bcn->parent_tsf));
+		bufptr += (DOT11_RM_IE_LEN + DOT11_RMREP_BCN_LEN);
 	}
-
-	rmrep_ie = (dot11_rm_ie_t *)bufptr;
-	rmrep_ie->id = DOT11_MNG_MEASURE_REPORT_ID;
-	rmrep_ie->token = rrm_info->bcnreq->token;
-	rmrep_ie->mode = 0;
-	rmrep_ie->type = DOT11_MEASURE_TYPE_BEACON;
-
-	rmrep_bcn = (dot11_rmrep_bcn_t *)&rmrep_ie[1];
-	rmrep_bcn->reg = wlc_rrm_get_ap_chrep_reg(bi);
-	if (rmrep_bcn->reg == DOT11_OP_CLASS_NONE) {
-		rmrep_bcn->reg = rrm_info->bcnreq->reg;
-	}
-	rmrep_bcn->channel = CHSPEC_CHANNEL(bi->chanspec);
-	bcopy(&rrm_info->bcnreq->start_tsf_l, rmrep_bcn->starttime, (2*sizeof(uint32)));
-	rmrep_bcn->duration = htol16(rrm_info->bcnreq->duration_tu);
-	rmrep_bcn->frame_info = 0;
-	rmrep_bcn->rcpi = (uint8)bi->RSSI;
-	rmrep_bcn->rsni = (uint8)bi->SNR;
-	bcopy(&bi->BSSID, &rmrep_bcn->bssid, ETHER_ADDR_LEN);
-	rmrep_bcn->antenna_id = 0;
-	wlc_read_tsf(rrm_info->wlc, &tsf_l, &dummy_tsf_h);
-	rmrep_bcn->parent_tsf = tsf_l;
-
-	bcm_ether_ntoa(&rmrep_bcn->bssid, eabuf);
-	WL_RRM(("%s: token: %d, channel :%d, duration: %d, frame info: %d, rcpi: %d,"
-		"rsni: %d, bssid: %s, antenna id: %d, parent tsf: %d\n",
-		__FUNCTION__, rmrep_ie->token, rmrep_bcn->channel, rmrep_bcn->duration,
-		rmrep_bcn->frame_info, (int8)rmrep_bcn->rcpi, (int8)rmrep_bcn->rsni,
-		eabuf, rmrep_bcn->antenna_id, rmrep_bcn->parent_tsf));
-
+	frag_ctx = rrm_info->bcnreq->cur_frm_frag_ctx;
 	/* add bcn frame body subelement */
-	if (rrm_info->bcnreq->rep_detail == DOT11_RMREQ_BCN_REPDET_ALL) {
-		if ((elem_len + bi->bcn_prb_len) < 256) {
-			elem_len += TLV_HDR_LEN + bi->bcn_prb_len;
+	if ((rrm_info->bcnreq->rep_detail == DOT11_RMREQ_BCN_REPDET_ALL) ||
+		(rrm_info->bcnreq->rep_detail == DOT11_RMREQ_BCN_REPDET_REQUEST)) {
+		bcm_tlv_t *tlv = 0;
+		uint tlvs_len = 0;
+		if (!memcmp(&frag_ctx->frag_bssid, &bi->BSSID, ETHER_ADDR_LEN) &&
+			frag_ctx->frm_body_frag_len) {
+			fragmented_bss = TRUE;
+			elem_len += TLV_HDR_LEN;
+			frm_body_tlv_len = 0;
+		} else  {
+			elem_len += TLV_HDR_LEN + DOT11_BCN_PRB_FIXED_LEN;
+			frm_body_tlv_len = DOT11_BCN_PRB_FIXED_LEN;
+		}
+		if (bufptr) {
 			if (buflen < elem_len)
 				return 0;
-
 			frm_body_tlv = (bcm_tlv_t *)&rmrep_bcn[1];
 			frm_body_tlv->id = DOT11_RMREP_BCN_FRM_BODY;
-			frm_body_tlv->len = (uint8)bi->bcn_prb_len;
-			bcopy(bi->bcn_prb, &frm_body_tlv->data[0], bi->bcn_prb_len);
+			if (fragmented_bss) {
+				frm_body_tlv->len = 0;
+			} else {
+				frm_body_tlv->len = DOT11_BCN_PRB_FIXED_LEN;
+				bcopy(bi->bcn_prb, &frm_body_tlv->data[0], DOT11_BCN_PRB_FIXED_LEN);
+			}
+			bufptr += (TLV_HDR_LEN + frm_body_tlv_len);
 		}
-	}
-	else if (rrm_info->bcnreq->rep_detail == DOT11_RMREQ_BCN_REPDET_REQUEST) {
-		bcm_tlv_t *tlv;
-		int tlvs_len;
+		if (fragmented_bss) {
+			if (bi->bcn_prb_len > frag_ctx->frm_body_frag_len) {
+				tlvs_len = bi->bcn_prb_len - frag_ctx->frm_body_frag_len;
+			} else {
+				return 0;
+			}
+		} else {
+			tlvs_len = bi->bcn_prb_len - DOT11_BCN_PRB_FIXED_LEN;
+			frag_ctx->frm_body_frag_id_num = 0;
+		}
+		if (tlvs_len > TLV_HDR_LEN) {
+			/* If BSS was fragmented earlier, start from where we left */
+			if (fragmented_bss) {
+				tlv = (bcm_tlv_t *)((uint8 *)bi->bcn_prb +
+					frag_ctx->frm_body_frag_len);
+				/* reset rrm_info->bcnreq->frm_body_frag_len for next
+				* frame body fragment.
+				*/
+				frag_ctx->frm_body_frag_len = 0;
+			} else {
+				tlv = (bcm_tlv_t *)((uint8 *)bi->bcn_prb + DOT11_BCN_PRB_FIXED_LEN);
+			}
 
-		elem_len += TLV_HDR_LEN + DOT11_BCN_PRB_FIXED_LEN;
-		if (buflen < elem_len)
-			return 0;
-		frm_body_tlv = (bcm_tlv_t *)&rmrep_bcn[1];
-		frm_body_tlv->id = DOT11_RMREP_BCN_FRM_BODY;
-		frm_body_tlv->len = DOT11_BCN_PRB_FIXED_LEN;
-		bcopy(bi->bcn_prb, &frm_body_tlv->data[0], DOT11_BCN_PRB_FIXED_LEN);
-
-		bufptr += elem_len;
-		tlvs_len = bi->bcn_prb_len - DOT11_BCN_PRB_FIXED_LEN;
-		if (tlvs_len) {
-			tlv = (bcm_tlv_t *)((uint8 *)bi->bcn_prb + DOT11_BCN_PRB_FIXED_LEN);
 			while (tlv) {
 				/* Need to parse for multiple instances of the requested ie,
 				 * for example multiple vendor ies
 				 */
-				for (i = 0; i < rrm_info->bcnreq->req_eid_num; i++) {
-					if (tlv->id == rrm_info->bcnreq->req_eid[i]) {
-						int tlv_len;
+				if (rrm_info->bcnreq->rep_detail
+						== DOT11_RMREQ_BCN_REPDET_REQUEST) {
+					for (i = 0; i < rrm_info->bcnreq->req_eid_num; i++) {
+						if (tlv->id == rrm_info->bcnreq->req_eid[i]) {
+							in_bcn_req = 1;
+							break;
+						}
+					}
+				}
 
-						tlv_len = TLV_HDR_LEN + tlv->len;
-						elem_len += tlv_len;
-						if (buflen < elem_len)
+				if (rrm_info->bcnreq->rep_detail
+						== DOT11_RMREQ_BCN_REPDET_ALL || in_bcn_req == 1) {
+					tlv_len = TLV_HDR_LEN + tlv->len;
+					if (tlv_len > tlvs_len) {
+						break;
+					}
+					/* For reporting detail == all, check if we need
+					* fragmentation.
+					*/
+					if (rrm_info->bcnreq->rep_detail ==
+						DOT11_RMREQ_BCN_REPDET_ALL) {
+						cur_len = frm_body_tlv_len + tlv_len +
+							DOT11_RMREP_BCNRPT_FRAGMT_ID_SE_LEN;
+						if (rrm_info->bcnreq->last_bcn_rpt_ind_req) {
+							cur_len +=
+								DOT11_RMREP_LAST_BCN_RPT_IND_SE_LEN;
+						}
+						if (cur_len > DOT11_RMREP_BCN_FRM_BODY_LEN_MAX) {
+							/* TBD: Can last tlv be accommodated in
+							* current report ?
+							*/
+							/* we reached fragmentation point */
+							memcpy(&frag_ctx->frag_bssid, &bi->BSSID,
+								ETHER_ADDR_LEN);
+							frag_ctx->frm_body_frag_len =
+								frm_body_tlv_len;
+							break;
+						}
+					} else if ((frm_body_tlv_len + tlv_len) >
+						DOT11_RMREP_BCN_FRM_BODY_LEN_MAX) {
+						break;
+					}
+					elem_len += tlv_len;
+					if (bufptr) {
+						if (buflen < elem_len) {
 							return 0;
+						}
 						bcopy(tlv, bufptr, tlv_len);
 						bufptr += tlv_len;
 						frm_body_tlv->len += (uint8)tlv_len;
-						break;
 					}
+					frm_body_tlv_len += tlv_len;
+					in_bcn_req = 0;
 				}
 				tlv = bcm_next_tlv(tlv, (int *)&tlvs_len);
 			}
 		}
 	}
 
-	rmrep_ie->len = elem_len - TLV_HDR_LEN;
+	frag_ctx = rrm_info->bcnreq->cur_frm_frag_ctx;
+	if (frag_ctx->frm_body_frag_len || frag_ctx->frm_body_frag_id_num) {
+		elem_len += DOT11_RMREP_BCNRPT_FRAGMT_ID_SE_LEN;
+		if (bufptr) {
+			if (buflen < elem_len) {
+				return elem_len - DOT11_RMREP_BCNRPT_FRAG_ID_SE_LEN;
+			}
+			frm_body_frag_id = (dot11_rmrep_bcn_frm_body_fragmt_id_t *)bufptr;
+			frm_body_frag_id->id = DOT11_RMREP_BCN_FRM_BODY_FRAG_ID;
+			frm_body_frag_id->len = DOT11_RMREP_BCNRPT_FRAG_ID_DATA_LEN;
+			/* Increment Beacon report fragment ID */
+			if (frag_ctx->frm_body_frag_id_num == 0) {
+				rrm_info->rrm_state->frag_bcn_rpt_id++;
+			}
+			/* bcn rpt id */
+			frm_body_frag_id->frag_info_rpt_id = 0;
+			frm_body_frag_id->frag_info_rpt_id |=
+				(rrm_info->rrm_state->frag_bcn_rpt_id & DOT11_RMREP_BCNRPT_BCN_RPT_ID_MASK);
+			/* frag id num */
+			frm_body_frag_id->frag_info_rpt_id |=
+					((frag_ctx->frm_body_frag_id_num
+					<< DOT11_RMREP_BCNRPT_FRAGMT_ID_NUM_SHIFT) &
+					DOT11_RMREP_BCNRPT_FRAGMT_ID_NUM_MASK);
+			/* more fragments */
+			frm_body_frag_id->frag_info_rpt_id |=
+					(((frag_ctx->frm_body_frag_len ? 0x1:0x0)
+					<< DOT11_RMREP_BCNRPT_MORE_FRAG_SHIFT) &
+					DOT11_RMREP_BCNRPT_MORE_FRAG_MASK);
+			bufptr += DOT11_RMREP_BCNRPT_FRAGMT_ID_SE_LEN;
+		}
+		frag_ctx->frm_body_frag_id_num++;
+	}
+	if (rrm_info->bcnreq->last_bcn_rpt_ind_req) {
+		elem_len += DOT11_RMREP_LAST_BCN_RPT_IND_SE_LEN;
+		if (bufptr) {
+			if (buflen < elem_len) {
+				return elem_len - DOT11_RMREP_LAST_BCN_RPT_IND_SE_LEN;
+			}
+			last_rpt_ind = (dot11_rmrep_last_bcn_rpt_ind_t *)bufptr;
+			last_rpt_ind->id = DOT11_RMREP_BCN_LAST_RPT_IND;
+			last_rpt_ind->len = DOT11_RMREP_LAST_BCN_RPT_IND_DATA_LEN;
+			last_rpt_ind->data = 0;
+			for (i = 0; i < rrm_info->bcnreq->scan_results.count; i++) {
+				if (rrm_info->bcnreq->scan_results.ptrs[i] == bi) {
+					if (((i+1) == rrm_info->bcnreq->scan_results.count) &&
+						(frag_ctx->frm_body_frag_len == 0) &&
+						(rrm_info->bcnreq->flags & WLC_RRM_LAST_BCNREP_REQ)) {
+							last_rpt_ind->data = 1;
+					}
+					break;
+				}
+			}
+			bufptr += DOT11_RMREP_LAST_BCN_RPT_IND_SE_LEN;
+		}
+	}
+
+	if (bufptr && rmrep_ie) {
+		rmrep_ie->len = (uint8)(elem_len - TLV_HDR_LEN);
+	}
 	return (elem_len);
 }
 
@@ -3624,6 +3872,7 @@ wlc_rrm_send_lmreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, struct ether_add
 	uint8 *pbody;
 	int buflen;
 	dot11_lmreq_t *lmreq;
+	struct scb *scb = NULL;
 
 	wlc_info_t *wlc = rrm_info->wlc;
 
@@ -3644,7 +3893,8 @@ wlc_rrm_send_lmreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, struct ether_add
 	lmreq->txpwr = 0;
 	lmreq->maxtxpwr = 0;
 
-	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, NULL);
+	scb = wlc_scbfind(wlc, cfg, da);
+	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, scb);
 }
 
 static void*
@@ -3678,6 +3928,7 @@ wlc_rrm_send_statreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, statreq_t *sta
 	int buflen;
 	dot11_rmreq_t *rmreq;
 	dot11_rmreq_stat_t *sreq;
+	struct scb *scb = NULL;
 
 	wlc_info_t *wlc = rrm_info->wlc;
 
@@ -3701,7 +3952,8 @@ wlc_rrm_send_statreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, statreq_t *sta
 	sreq->group_id = statreq->group_id;
 	bcopy(&statreq->peer, &sreq->peer, sizeof(struct ether_addr));
 
-	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, NULL);
+	scb = wlc_scbfind(wlc, cfg, &statreq->da);
+	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, scb);
 }
 
 static void
@@ -3712,6 +3964,7 @@ wlc_rrm_send_framereq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, framereq_t *f
 	int buflen;
 	dot11_rmreq_t *rmreq;
 	dot11_rmreq_frame_t *freq;
+	struct scb *scb = NULL;
 
 	wlc_info_t *wlc = rrm_info->wlc;
 
@@ -3739,7 +3992,8 @@ wlc_rrm_send_framereq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, framereq_t *f
 	freq->req_type = 1;
 	bcopy(&framereq->ta, &freq->ta, sizeof(struct ether_addr));
 
-	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, NULL);
+	scb = wlc_scbfind(wlc, cfg, &framereq->da);
+	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, scb);
 }
 
 static void
@@ -3750,6 +4004,7 @@ wlc_rrm_send_noisereq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, rrmreq_t *noi
 	int buflen;
 	dot11_rmreq_t *rmreq;
 	dot11_rmreq_noise_t *nreq;
+	struct scb *scb = NULL;
 
 	wlc_info_t *wlc = rrm_info->wlc;
 
@@ -3773,7 +4028,8 @@ wlc_rrm_send_noisereq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, rrmreq_t *noi
 	nreq->interval = noisereq->random_int;
 	nreq->duration = noisereq->dur;
 
-	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, NULL);
+	scb = wlc_scbfind(wlc, cfg, &noisereq->da);
+	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, scb);
 }
 
 static void
@@ -3784,6 +4040,7 @@ wlc_rrm_send_chloadreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, rrmreq_t *ch
 	int buflen;
 	dot11_rmreq_t *rmreq;
 	dot11_rmreq_chanload_t *chreq;
+	struct scb *scb = NULL;
 
 	wlc_info_t *wlc = rrm_info->wlc;
 
@@ -3807,7 +4064,8 @@ wlc_rrm_send_chloadreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, rrmreq_t *ch
 	chreq->interval = chloadreq->random_int;
 	chreq->duration = chloadreq->dur;
 
-	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, NULL);
+	scb = wlc_scbfind(wlc, cfg, &chloadreq->da);
+	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, scb);
 }
 
 static void
@@ -3818,6 +4076,7 @@ wlc_rrm_send_txstrmreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, txstrmreq_t 
 	int buflen;
 	dot11_rmreq_t *rmreq;
 	dot11_rmreq_tx_stream_t *rmreq_txstrm;
+	struct scb *scb = NULL;
 
 	wlc_info_t *wlc = rrm_info->wlc;
 
@@ -3842,7 +4101,8 @@ wlc_rrm_send_txstrmreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, txstrmreq_t 
 	rmreq_txstrm->traffic_id = txstrmreq->tid;
 	rmreq_txstrm->bin0_range = txstrmreq->bin0_range;
 
-	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, NULL);
+	scb = wlc_scbfind(wlc, cfg, &txstrmreq->da);
+	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, scb);
 }
 
 static void
@@ -3853,6 +4113,7 @@ wlc_rrm_send_lcireq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, lcireq_t *lcire
 	int buflen;
 	dot11_rmreq_t *rmreq;
 	dot11_rmreq_ftm_lci_t *rmreq_lci;
+	struct scb *scb = NULL;
 
 	wlc_info_t *wlc = rrm_info->wlc;
 
@@ -3876,7 +4137,8 @@ wlc_rrm_send_lcireq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, lcireq_t *lcire
 	rmreq_lci->lon_res = lcireq->lon_res;
 	rmreq_lci->alt_res = lcireq->alt_res;
 
-	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, NULL);
+	scb = wlc_scbfind(wlc, cfg, &lcireq->da);
+	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, scb);
 }
 
 static void
@@ -3888,6 +4150,7 @@ wlc_rrm_send_civicreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, civicreq_t *c
 	dot11_rmreq_t *rmreq;
 	dot11_rmreq_ftm_civic_t *rmreq_civic;
 	char eabuf[ETHER_ADDR_STR_LEN];
+	struct scb *scb = NULL;
 
 	wlc_info_t *wlc = rrm_info->wlc;
 	bcm_ether_ntoa(&civicreq->da, eabuf);
@@ -3915,7 +4178,8 @@ wlc_rrm_send_civicreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, civicreq_t *c
 	rmreq_civic->siu = civicreq->siu;
 	rmreq_civic->si = civicreq->si;
 
-	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, NULL);
+	scb = wlc_scbfind(wlc, cfg, &civicreq->da);
+	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, scb);
 }
 
 static void
@@ -3926,6 +4190,7 @@ wlc_rrm_send_locidreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, locidreq_t *l
 	int buflen;
 	dot11_rmreq_t *rmreq;
 	dot11_rmreq_locid_t *rmreq_locid;
+	struct scb *scb = NULL;
 
 	wlc_info_t *wlc = rrm_info->wlc;
 
@@ -3948,7 +4213,8 @@ wlc_rrm_send_locidreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, locidreq_t *l
 	rmreq_locid->siu = locidreq->siu;
 	rmreq_locid->si = locidreq->si;
 
-	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, NULL);
+	scb = wlc_scbfind(wlc, cfg, &locidreq->da);
+	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, scb);
 }
 
 static void
@@ -4170,6 +4436,7 @@ wlc_rrm_nbr_scancb(void *arg, int status, wlc_bsscfg_t *cfg)
 	char eabuf[ETHER_ADDR_STR_LEN];
 #endif
 	rrm_bsscfg_cubby_t *rrm_cfg;
+	struct scb *scb = NULL;
 	nbr_element_t nbr_elt;
 	int ncnt = 0;
 
@@ -4213,7 +4480,8 @@ wlc_rrm_nbr_scancb(void *arg, int status, wlc_bsscfg_t *cfg)
 
 	/* Send auto learned Neighbor Report Response */
 	ncnt = wlc_rrm_get_neighbor_count_cmn(rrm_info, rrm_cfg, NBR_ADD_DYNAMIC);
-	if (ncnt > 0) wlc_rrm_send_nbrrep_cmn(rrm_info, cfg, NBR_ADD_DYNAMIC);
+	scb = wlc_scbfind(wlc, cfg, &rrm_cfg->da);
+	if (ncnt > 0) wlc_rrm_send_nbrrep_cmn(rrm_info, cfg, scb, NBR_ADD_DYNAMIC);
 }
 
 static void
@@ -4288,12 +4556,13 @@ wlc_rrm_recv_nrreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, struct scb *scb,
 
 	/* Send static list here - the scancb will send the dynamic list */
 	ncnt_static = wlc_rrm_get_neighbor_count_cmn(rrm_info, rrm_cfg, NBR_ADD_STATIC);
-	if (ncnt_static > 0) wlc_rrm_send_nbrrep_cmn(rrm_info, cfg, NBR_ADD_STATIC);
+	if (ncnt_static > 0) wlc_rrm_send_nbrrep_cmn(rrm_info, cfg, scb, NBR_ADD_STATIC);
 }
 
 /* Send Neighbor Report Response */
 static void
-wlc_rrm_send_nbrrep_cmn(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, int addtype)
+wlc_rrm_send_nbrrep_cmn(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, struct scb *scb,
+	int addtype)
 {
 	wlc_info_t *wlc;
 	uint rep_count = 0;
@@ -4370,7 +4639,7 @@ wlc_rrm_send_nbrrep_cmn(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, int addtype
 		ptr += TLV_HDR_LEN + DOT11_NEIGHBOR_REP_IE_FIXED_LEN;
 	}
 
-	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, NULL);
+	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, scb);
 }
 
 static void
@@ -5227,7 +5496,7 @@ wlc_rrm_regclass_match(wlc_rrm_info_t *rrm_info, rrm_nbr_rep_t *nbr_rep, wlc_bss
 /* Configure the roam channel cache manually, for instance if you have
  * .11k neighbor information.
  */
-static int
+int
 wlc_set_roam_channel_cache(wlc_bsscfg_t *cfg, const chanspec_t *chanspecs, int num_chanspecs)
 {
 	int i, num_channel = 0;
@@ -5386,7 +5655,7 @@ wlc_rrm_recv_nrrep(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, struct scb *scb,
 	}
 
 	/* Push the list for consumption */
-	(void) wlc_set_roam_channel_cache(cfg, chanspec_list, channel_num);
+	wlc_set_roam_channel_cache(cfg, chanspec_list, channel_num);
 
 #ifdef BCMDBG
 	wlc_rrm_dump_neighbors_cmn(rrm_info, cfg, NBR_ADD_STATIC);
@@ -5888,7 +6157,7 @@ wlc_rrm_recv_lmreq(wlc_rrm_info_t *rrm_info, wlc_bsscfg_t *cfg, struct scb *scb,
 		(int)(lmrep->tpc.tx_pwr), (int)(lmrep->tpc.margin),
 		(int8)(lmrep->rcpi), (int8)(lmrep->rsni)));
 
-	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, NULL);
+	wlc_sendmgmt(wlc, p, cfg->wlcif->qi, scb);
 }
 
 static void
@@ -5961,23 +6230,36 @@ wlc_rrm_chanspec(wlc_rrm_info_t *rrm_info)
 	return chanspec;
 }
 
-static void wlc_rrm_allreq_free(wlc_rrm_info_t *rrm_info)
+static void wlc_rrm_bcnreq_free(wlc_rrm_info_t *rrm_info)
 {
 	wlc_info_t *wlc = rrm_info->wlc;
 	rrm_bcnreq_t *bcn_req;
+	bcn_req = rrm_info->bcnreq;
+	if (bcn_req) {
+		wlc_bss_list_free(wlc, &bcn_req->scan_results);
+		if (bcn_req->prev_frm_frag_ctx) {
+			MFREE(wlc->osh, bcn_req->prev_frm_frag_ctx,
+				sizeof(*bcn_req->prev_frm_frag_ctx));
+		}
+		if (bcn_req->cur_frm_frag_ctx) {
+			MFREE(wlc->osh, bcn_req->cur_frm_frag_ctx,
+				sizeof(*bcn_req->cur_frm_frag_ctx));
+		}
+		MFREE(wlc->osh, bcn_req, sizeof(rrm_bcnreq_t));
+	}
+	rrm_info->bcnreq = NULL;
+}
+
+static void wlc_rrm_allreq_free(wlc_rrm_info_t *rrm_info)
+{
+	wlc_info_t *wlc = rrm_info->wlc;
 	rrm_framereq_t *frame_req;
 	rrm_noisereq_t *noise_req;
 	rrm_chloadreq_t *chload_req;
 	rrm_statreq_t *stat_req;
 	rrm_txstrmreq_t *txstrm_req;
 
-	bcn_req = rrm_info->bcnreq;
-	if (bcn_req) {
-		wlc_bss_list_free(wlc, &bcn_req->scan_results);
-		MFREE(wlc->osh, bcn_req, sizeof(rrm_bcnreq_t));
-	}
-	rrm_info->bcnreq = NULL;
-
+	wlc_rrm_bcnreq_free(rrm_info);
 	/* add other pointers here */
 	frame_req = rrm_info->framereq;
 	if (frame_req) {
@@ -6123,6 +6405,7 @@ wlc_rrm_report_11k(wlc_rrm_info_t *rrm_info, wlc_rrm_req_t *req_block, int count
 	wlc_rrm_req_t *req;
 	rrm_bcnreq_t *bcn_req;
 	rrm_bsscfg_cubby_t *rrm_cfg;
+	wlc_rrm_req_state_t *rrm_state = rrm_info->rrm_state;
 
 	rrm_cfg = RRM_BSSCFG_CUBBY(rrm_info, rrm_info->cur_cfg);
 	ASSERT(rrm_cfg != NULL);
@@ -6131,6 +6414,12 @@ wlc_rrm_report_11k(wlc_rrm_info_t *rrm_info, wlc_rrm_req_t *req_block, int count
 
 	for (i = 0; i < count; i++) {
 		req = req_block + i;
+
+		rrm_info->bcnreq->flags = 0;
+		if (((rrm_state->cur_req + i + 1) >= rrm_state->req_count) &&
+			(rrm_state->reps == 0)) {
+			rrm_info->bcnreq->flags |= WLC_RRM_LAST_BCNREP_REQ;
+		}
 
 		if (req->flags & DOT11_RMREP_MODE_INCAPABLE) {
 			WL_RRM(("%s: DOT11_RMREP_MODE_INCAPABLE\n", __FUNCTION__));
@@ -7036,8 +7325,14 @@ wlc_rrm_calc_mptx_ie_len(void *ctx, wlc_iem_calc_data_t *data)
 {
 	wlc_rrm_info_t *rrm = (wlc_rrm_info_t *)ctx;
 	wlc_info_t *wlc = rrm->wlc;
+	wlc_bsscfg_t *cfg = data->cfg;
+	rrm_bsscfg_cubby_t *rrm_cfg;
 
-	if (WL11K_ENAB(wlc->pub) && BSSCFG_AP(data->cfg))
+	rrm_cfg = RRM_BSSCFG_CUBBY(rrm, cfg);
+	ASSERT(rrm_cfg != NULL);
+
+	if (WL11K_ENAB(wlc->pub) && BSSCFG_AP(data->cfg) &&
+		isset(rrm_cfg->rrm_cap, DOT11_RRM_CAP_MPTI))
 		return TLV_HDR_LEN + 1;
 
 	return 0;
@@ -7048,8 +7343,14 @@ wlc_rrm_write_mptx_ie(void *ctx, wlc_iem_build_data_t *data)
 {
 	wlc_rrm_info_t *rrm = (wlc_rrm_info_t *)ctx;
 	wlc_info_t *wlc = rrm->wlc;
+	wlc_bsscfg_t *cfg = data->cfg;
+	rrm_bsscfg_cubby_t *rrm_cfg;
 
-	if (WL11K_ENAB(wlc->pub) && BSSCFG_AP(data->cfg)) {
+	rrm_cfg = RRM_BSSCFG_CUBBY(rrm, cfg);
+	ASSERT(rrm_cfg != NULL);
+
+	if (WL11K_ENAB(wlc->pub) && BSSCFG_AP(data->cfg) &&
+		isset(rrm_cfg->rrm_cap, DOT11_RRM_CAP_MPTI)) {
 		int8 pilot_tx[1];
 
 		/* Measurement Pilot Transmission Information */

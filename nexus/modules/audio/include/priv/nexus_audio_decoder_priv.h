@@ -152,6 +152,7 @@ void NEXUS_AudioPlayback_Clear_priv(NEXUS_AudioPlaybackHandle handle);
 NEXUS_Error NEXUS_AudioModule_GetStatus_priv(NEXUS_AudioModuleStatus *pStatus);
 
 void NEXUS_AudioModule_PingDsp_priv(void);
+void NEXUS_AudioDecoder_SetExternalWatchdogEvent_priv(BKNI_EventHandle event);
 
 #ifdef __cplusplus
 }

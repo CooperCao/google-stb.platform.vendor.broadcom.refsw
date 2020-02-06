@@ -111,8 +111,9 @@ void i5DmDeviceDelete(unsigned char *device_id);
 void i5DmDeviceTopologyQuerySendToAllNew(i5_socket_type *psock);
 int i5DmDeviceTopologyChangeProcess(unsigned char *device_id);
 void i5DmDeviceNewIfNew(unsigned char *neighbor_al_mac_address);
-void i5DmTopologyFreeUnreachableDevices(void);
+void i5DmTopologyFreeUnreachableDevices(bool idle_check);
 void i5DmDeviceFreeUnreachableNeighbors(unsigned char *device_id, int ifindex, unsigned char *neighbor_interface_list, unsigned int length);
+void i5DmDeviceRemoveStaleNeighborsTimer(void *arg);
 int i5DmIsWifiBandSupported(char *ifname, unsigned int freqBand);
 /* Get the local ifname from the neibhors ALID and MAC address based on the media specific info */
 int i5DmGetIfnameFromMediaSpecific(char *ifname, unsigned char *alid, unsigned char *mac);
@@ -210,6 +211,8 @@ int i5DmCopyAPCaps(ieee1905_ap_caps_type *ToApCaps, ieee1905_ap_caps_type *FromA
 int i5DmIsAllInterfacesConfigured();
 /* Check if M1 sent to all the wireless interfaces configured */
 int i5DmIsM1SentToAllWirelessInterfaces();
+/* Check if M2 received by all the wireless interfaces configured */
+int i5DmIsM2ReceivedByAllWirelessInterfaces();
 /* Pre configure all virtual radios */
 void i5DmPreConfigureVirtualInterfaces();
 /* Process AP Metric Reporting Policy */
@@ -236,6 +239,7 @@ void i5DmFreeRadioCaps(ieee1905_radio_caps_type *RadioCaps);
 /* Update the MAP Flags in all the BSS of a interface from Controllers BSS Table */
 void i5DmUpdateMAPFlagsFromControllerBSSTable(i5_dm_device_type *pdevice,
   i5_dm_interface_type *pdmif);
+char * i5DmGetInterfaceForIovar();
 #endif /* MULTIAP */
 
 #endif /* _IEEE1905_DATAMODEL_PRIV_H_ */

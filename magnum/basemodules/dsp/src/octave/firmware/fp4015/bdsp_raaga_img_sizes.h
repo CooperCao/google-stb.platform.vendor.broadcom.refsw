@@ -73,7 +73,7 @@
 #define BDSP_IMG_SYSTEM_CODE_SIZE                                    ((uint32_t)471040)
 
 /*SYSTEM_LIB Size requirement*/
-#define BDSP_IMG_SYSTEM_LIB_SIZE                                     ((uint32_t)945152)
+#define BDSP_IMG_SYSTEM_LIB_SIZE                                     ((uint32_t)946688)
 /****Codec specific parameters for the host ****/
 
 
@@ -103,7 +103,7 @@
 
 /*APP_MIXER_DAPV2 Size requirement*/
 #define BDSP_IMG_APP_MIXER_DAPV2_SCRATCH_SIZE                        ((uint32_t)1523712)
-#define BDSP_IMG_APP_MIXER_DAPV2_SIZE                                ((uint32_t)180736)
+#define BDSP_IMG_APP_MIXER_DAPV2_SIZE                                ((uint32_t)181248)
 #define BDSP_IMG_APP_MIXER_DAPV2_INTER_FRAME_SIZE                    ((uint32_t)523776)
 #define BDSP_IMG_APP_MIXER_DAPV2_INTER_FRAME_ENCODED_SIZE            ((uint32_t)512)
 #define BDSP_IMG_APP_MIXER_DAPV2_TABLES_SIZE                         ((uint32_t)209408)
@@ -215,7 +215,7 @@
 
 /*APP_DSOLA Size requirement*/
 #define BDSP_IMG_APP_DSOLA_SCRATCH_SIZE                              ((uint32_t)4096)
-#define BDSP_IMG_APP_DSOLA_SIZE                                      ((uint32_t)10752)
+#define BDSP_IMG_APP_DSOLA_SIZE                                      ((uint32_t)10240)
 #define BDSP_IMG_APP_DSOLA_INTER_FRAME_SIZE                          ((uint32_t)78336)
 #define BDSP_IMG_APP_DSOLA_INTER_FRAME_ENCODED_SIZE                  ((uint32_t)512)
 #define BDSP_IMG_APP_DSOLA_TABLES_SIZE                               ((uint32_t)2048)

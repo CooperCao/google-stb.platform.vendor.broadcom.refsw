@@ -204,6 +204,19 @@ struct bssload_bss;
 	 !bcmp((char*)(ssid), (char*)&((cfg)->SSID), (len)))
 
 /* Iterator for all bsscfgs across wlc:  (wlc_info_t *wlc, int idx, wlc_bsscfg_t *cfg) */
+#ifdef DWDS
+/* DWDS STA loopback list */
+#define DWDS_SA_HASH_SZ		(32)
+#define DWDS_SA_EXPIRE_TIME	(10)		/* 10 secs */
+#define DWDS_SA_HASH(ea)	((ea[5] + ea[4] + ea[3] + ea[2] + ea[1]) & (DWDS_SA_HASH_SZ - 1))
+
+typedef struct dwds_sa {
+	struct ether_addr sa;
+	uint32 last_used;
+	struct dwds_sa *next;
+} dwds_sa_t;
+#endif /* DWDS */
+
 #define FOR_ALL_UP_BSS(wlc, idx, cfg) \
 	for (idx = 0; (int) idx < WLC_MAXBSSCFG; idx++) \
 		if (((cfg = (wlc)->bsscfg[idx]) != NULL) && \
@@ -418,6 +431,10 @@ struct wlc_bsscfg {
 #ifdef IGMPREP_FILTER
 	bool			igmprep_filter_enable;	/* Filter IGMP membership report */
 #endif /* IGMPREP_FILTER */
+#ifdef DWDS
+	bool		dwds_loopback_filter;
+	dwds_sa_t	*sa_list[DWDS_SA_HASH_SZ]; /* list of clients attached to the DWDS STA */
+#endif /* DWDS */
 	/* ====== !!! ADD NEW FIELDS ABOVE HERE !!! ====== */
 
 #ifdef BCMDBG

@@ -1512,6 +1512,8 @@ wbd_read_actual_ifnames(char *wbd_ifnames1, int len1, bool create)
 	val = wbd_nvram_safe_get(WBD_NVRAM_IFNAMES);
 	if (val[0] != '\0') {
 		WBDSTRNCPY(wbd_ifnames, val, sizeof(wbd_ifnames) - 1);
+		/* WAR for including virtual interfaces also; fix proper!! */
+		WBDSTRNCPY(wbd_ifnames1, val, sizeof(wbd_ifnames) - 1);
 		nvram_exists = 1;
 	}
 

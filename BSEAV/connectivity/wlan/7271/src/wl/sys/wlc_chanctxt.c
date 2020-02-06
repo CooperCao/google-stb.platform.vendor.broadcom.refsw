@@ -266,6 +266,7 @@ wlc_chanctxt_bss_deinit(void *ctx, wlc_bsscfg_t *cfg)
 {
 	wlc_chanctxt_info_t *chanctxt_info = (wlc_chanctxt_info_t *)ctx;
 	chanctxt_bss_info_t *cbi = CHANCTXT_BSS_INFO(chanctxt_info, cfg);
+	chanctxt_bss_info_t **cbi_loc;
 
 	if (cbi != NULL) {
 		wlc_chanxtxt_delete_bsscfg_ctxt(chanctxt_info, cfg);
@@ -275,6 +276,8 @@ wlc_chanctxt_bss_deinit(void *ctx, wlc_bsscfg_t *cfg)
 		}
 
 		MFREE(chanctxt_info->wlc->osh, cbi, sizeof(chanctxt_bss_info_t));
+		cbi_loc = CHANCTXT_BSS_CUBBY_LOC(chanctxt_info, cfg);
+		*cbi_loc = NULL;
 	}
 }
 
@@ -350,6 +353,12 @@ wlc_chanxtxt_delete_unused_ctxt(wlc_chanctxt_info_t *chanctxt_info,
 	wlc_chanctxt_t *chanctxt)
 {
 	wlc_lq_chanim_delete_bss_chan_context(chanctxt_info->wlc, chanctxt->chanspec);
+	if (chanctxt == chanctxt_info->curr_chanctxt) {
+		/* If chanctxt is curr_chanctxt, make the
+		 * curr_chanctxt pointer in chanctxt_info to NULL.
+		 */
+		chanctxt_info->curr_chanctxt = NULL;
+	}
 	wlc_chanctxt_free(chanctxt_info, chanctxt);
 }
 
@@ -369,9 +378,14 @@ wlc_chanxtxt_delete_bsscfg_ctxt(wlc_chanctxt_info_t *chanctxt_info,
 						cbi->mchanctxt[i], NULL);
 				}
 			}
+			MFREE(wlc->osh, cbi->mchanctxt, cbi->num_channel *
+				sizeof(wlc_chanctxt_t *));
+			cbi->multi_channel = FALSE;
+			cbi->num_channel = 0;
 		} else if (cbi->chanctxt) {
 			wlc_chanctxt_delete_txqueue(wlc, bsscfg, cbi->chanctxt, NULL);
 		}
+		cbi->chanctxt = NULL;
 	}
 }
 
@@ -391,25 +405,22 @@ wlc_chanxtxt_find_bsscfg_ctxt(wlc_chanctxt_info_t *chanctxt_info, wlc_bsscfg_t *
 				if (chanctxt) {
 					if (WLC_CHAN_COEXIST(chanctxt->chanspec,
 						chanspec)) {
-						wlc_chanctxt_switch_queue(wlc, bsscfg,
-							chanctxt, 0);
 						idx = i;
 						break;
 					}
-					chanctxt = NULL;
 				} else if (idx < 0) {
 					idx = i;
 				}
 			}
-			WL_CHANCTXT_INFO(("wl%d.%d: wlc_chanxtxt_find_bsscfg_ctxt: "
-				"chanctxt[%d] = 0x%08x\n",
+			WL_CHANCTXT_INFO(("wl%d.%d: wlc_chanctxt_find_bsscfg_ctxt: "
+				"chanctxt[%d] = %p\n",
 				wlc->pub->unit, WLC_BSSCFG_IDX(bsscfg), idx,
-				(uint32)chanctxt));
-			ASSERT(idx < cbi->num_channel);
-			cbi->chanctxt = chanctxt;
-		} else {
-			chanctxt = cbi->chanctxt;
+				chanctxt));
+			ASSERT((idx < cbi->num_channel) && (idx != -1));
 		}
+
+		/* chanctxt is now the previous channel context held by this cfg */
+		chanctxt = cbi->chanctxt;
 
 		if (chanctxt == NULL || ((chanctxt->chanspec != chanspec) &&
 			(!WLC_CHAN_COEXIST(chanctxt->chanspec, chanspec) ||
@@ -559,7 +570,7 @@ wlc_txqueue_start(wlc_info_t *wlc, wlc_bsscfg_t *cfg, chanspec_t chanspec,
 				wlc->pub->unit, WLC_BSSCFG_IDX(cfg),
 				chanctxt_info->excursion_chanspec, chanspec));
 
-			chanctxt->count += chanctxt_info->excursion_count;
+			chanctxt->count += (chanctxt_info->excursion_count - (cfg? 0 : 1));
 			chanctxt->piggyback = TRUE;
 			chanctxt_info->piggyback_chanctxt = chanctxt;
 

@@ -126,12 +126,27 @@ ifneq ($(B_REFSW_WPA_SUPPLICANT_IS_EXTERNAL),y)
 				echo "applying patch wpa_supplicant-${B_WPA_SUPPLICANT_VER}-driver_cmd_support.patch";\
 				patch -t -d ${B_WPA_SUPPLICANT_SOURCE_PATH} -p1 < wpa_supplicant-${B_WPA_SUPPLICANT_VER}-driver_cmd_support.patch ${B_WPA_SUPPLICANT_EXTRACT_REDIR}; \
 			fi;\
+			if [ -e "wpa_supplicant-${B_WPA_SUPPLICANT_VER}-sae_support.patch" ]; then \
+				echo "applying patch wpa_supplicant-${B_WPA_SUPPLICANT_VER}-sae_support.patch";\
+				patch -t -d ${B_WPA_SUPPLICANT_SOURCE_PATH} -p1 < wpa_supplicant-${B_WPA_SUPPLICANT_VER}-sae_support.patch ${B_WPA_SUPPLICANT_EXTRACT_REDIR}; \
+			fi;\
+			if [ -e "wpa_supplicant-${B_WPA_SUPPLICANT_VER}-11R.patch" ]; then \
+				echo "applying patch wpa_supplicant-${B_WPA_SUPPLICANT_VER}-11R.patch";\
+				patch -t -d ${B_WPA_SUPPLICANT_SOURCE_PATH} -p1 < wpa_supplicant-${B_WPA_SUPPLICANT_VER}-11R.patch ${B_WPA_SUPPLICANT_EXTRACT_REDIR}; \
+			fi;\
+                        if [ -e "defconfig-${B_WPA_SUPPLICANT_VER}" ]; then \
+                                echo "copying defconfig-${B_WPA_SUPPLICANT_VER} to wpa_supplicant src"; \
+                                cp ${B_WPA_SUPPLICANT_BUILD_DIR}/defconfig-${B_WPA_SUPPLICANT_VER} ${B_WPA_SUPPLICANT_SOURCE_PATH}/wpa_supplicant/defconfig; \
+                        fi; \
 			if [ "${BUILD_BRCM_HOSTAPD}" == "y" ]; then \
 				if [ -e "wpa_supplicant-${B_WPA_SUPPLICANT_VER}-map_support.patch" ]; then \
 					echo "applying patch wpa_supplicant-${B_WPA_SUPPLICANT_VER}-map_support.patch";\
 					patch -t -d ${B_WPA_SUPPLICANT_SOURCE_PATH} -p1 < wpa_supplicant-${B_WPA_SUPPLICANT_VER}-map_support.patch ${B_WPA_SUPPLICANT_EXTRACT_REDIR}; \
-					cp ${B_WPA_SUPPLICANT_BUILD_DIR}/brcm.config ${B_WPA_SUPPLICANT_SOURCE_PATH}/wpa_supplicant/defconfig; \
 				fi;\
+			fi;\
+			if [ -e "wpa_supplicant-${B_WPA_SUPPLICANT_VER}-brcm.config" ]; then \
+				echo "Use wpa_supplicant-${B_WPA_SUPPLICANT_VER}-brcm.config instead of default defconfig";\
+				cp ${B_WPA_SUPPLICANT_BUILD_DIR}/wpa_supplicant-${B_WPA_SUPPLICANT_VER}-brcm.config ${B_WPA_SUPPLICANT_SOURCE_PATH}/wpa_supplicant/defconfig; \
 			fi;\
 		else \
 			echo "Tarball ${B_WPA_SUPPLICANT_TAR_PATH}/${B_WPA_SUPPLICANT_TAR_FILENAME} is missing"; exit 1;\
@@ -200,7 +215,9 @@ ifdef B_INSTALL_DIR
 	@cp -fp $(B_WPA_SUPPLICANT_BIN_INSTALL_DIR)/wpa_supplicant $(B_INSTALL_DIR)
 	@cp -fp $(B_WPA_SUPPLICANT_BIN_INSTALL_DIR)/wpa_supplicant.conf $(B_INSTALL_DIR)
 	@cp -fp $(B_WPA_SUPPLICANT_BIN_INSTALL_DIR)/wpa_cli $(B_INSTALL_DIR)
-	@cp -fp $(B_WPA_SUPPLICANT_LIB_INSTALL_DIR)/libwpa_client.so* $(B_INSTALL_DIR)
+	@if [ -e $(B_WPA_SUPPLICANT_LIB_INSTALL_DIR)/libwpa_client.so* ]; then \
+	cp -fp $(B_WPA_SUPPLICANT_LIB_INSTALL_DIR)/libwpa_client.so* $(B_INSTALL_DIR); \
+	fi
 endif
 endif
 

@@ -742,7 +742,7 @@ phy_ac_txiqlocal_is_fdiqi_enabled(phy_ac_txiqlocal_info_t *txiqlocali)
 
 #define MAX_PAD_GAIN				0xFF
 
-#define MPHASE_TXCAL_CMDS_PER_PHASE  2 /* number of tx iqlo cal commands per phase in mphase cal */
+#define MPHASE_TXCAL_CMDS_PER_PHASE  5 /* number of tx iqlo cal commands per phase in mphase cal */
 
 #define WLC_PHY_PRECAL_TRACE(tx_idx, target_gains) \
 	PHY_TRACE(("Index was found to be %d\n", tx_idx)); \
@@ -5206,83 +5206,83 @@ phy_ac_txiqlocal_cmd(phy_ac_txiqlocal_info_t *ti, uint8 searchmode, uint8 mphase
 		if (ti->prerxcal == 0) {
 		last_phase = !ACREV_IS(pi->pubpi->phy_rev, 1) ?
 			ACPHY_CAL_PHASE_TX8 : ACPHY_CAL_PHASE_TX_LAST;
-		if ((mphase == 0) || (pi->cal_info->cal_phase_id == last_phase)) {
+			if ((mphase == 0) || (pi->cal_info->cal_phase_id == last_phase)) {
 
-			PHY_CAL(("wlc_phy_cal_txiqlo_acphy (mphase = %d, refine = %d):\n",
-			         mphase, searchmode == PHY_CAL_SEARCHMODE_REFINE));
-			for (cr = 0; cr < ti->num_cores; cr++) {
-				/* Save and Apply IQ Cal Results */
-				wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_READ,
-					coeffs, PI_INTER_COEFFS_AB, cr);
-				wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_WRITE,
-					coeffs, PI_FINAL_COEFFS_AB, cr);
-				wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_WRITE,
-					coeffs, TB_OFDM_COEFFS_AB,  cr);
-				wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_WRITE,
-					coeffs, TB_BPHY_COEFFS_AB,  cr);
+				PHY_CAL(("wlc_phy_cal_txiqlo_acphy (mphase = %d, refine = %d):\n",
+				         mphase, searchmode == PHY_CAL_SEARCHMODE_REFINE));
+				for (cr = 0; cr < ti->num_cores; cr++) {
+					/* Save and Apply IQ Cal Results */
+					wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_READ,
+						coeffs, PI_INTER_COEFFS_AB, cr);
+					wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_WRITE,
+						coeffs, PI_FINAL_COEFFS_AB, cr);
+					wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_WRITE,
+						coeffs, TB_OFDM_COEFFS_AB,  cr);
+					wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_WRITE,
+						coeffs, TB_BPHY_COEFFS_AB,  cr);
 
-				/* Save and Apply Dig LOFT Cal Results */
-				wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_READ,
-					coeffs, PI_INTER_COEFFS_D, cr);
-				wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_WRITE,
-					coeffs, PI_FINAL_COEFFS_D, cr);
-				wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_WRITE,
-					coeffs, TB_OFDM_COEFFS_D,  cr);
-				wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_WRITE,
-					coeffs, TB_BPHY_COEFFS_D,  cr);
+					/* Save and Apply Dig LOFT Cal Results */
+					wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_READ,
+						coeffs, PI_INTER_COEFFS_D, cr);
+					wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_WRITE,
+						coeffs, PI_FINAL_COEFFS_D, cr);
+					wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_WRITE,
+						coeffs, TB_OFDM_COEFFS_D,  cr);
+					wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_WRITE,
+						coeffs, TB_BPHY_COEFFS_D,  cr);
 
-				/* Apply Analog LOFT Comp
-				 * - unncessary if final command on each core is digital
-				 * LOFT-cal or IQ-cal
-				 * - then the loft comp coeffs were applied to radio
-				 * at the beginning of final command per core
-				 * - this is assumed to be the case, so nothing done here
-				 */
+					/* Apply Analog LOFT Comp
+					 * - unncessary if final command on each core is digital
+					 * LOFT-cal or IQ-cal
+					 * - then the loft comp coeffs were applied to radio
+					 * at the beginning of final command per core
+					 * - this is assumed to be the case, so nothing done here
+					 */
 
-				/* Save Analog LOFT Comp in PI State */
-				wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_READ,
-					coeffs, PI_INTER_COEFFS_E, cr);
-				wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_WRITE,
-					coeffs, PI_FINAL_COEFFS_E, cr);
-				wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_READ,
-					coeffs, PI_INTER_COEFFS_F, cr);
-				wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_WRITE,
-					coeffs, PI_FINAL_COEFFS_F, cr);
+					/* Save Analog LOFT Comp in PI State */
+					wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_READ,
+						coeffs, PI_INTER_COEFFS_E, cr);
+					wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_WRITE,
+						coeffs, PI_FINAL_COEFFS_E, cr);
+					wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_READ,
+						coeffs, PI_INTER_COEFFS_F, cr);
+					wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_WRITE,
+						coeffs, PI_FINAL_COEFFS_F, cr);
 
-				/* Print out Results */
-				wlc_phy_txcal_coeffs_print(accal->txiqlocal_coeffs, cr);
+					/* Print out Results */
+					wlc_phy_txcal_coeffs_print(accal->txiqlocal_coeffs, cr);
 
-			} /* for cr */
+				} /* for cr */
 
-			/* validate availability of results and store off channel */
-			accal->txiqlocal_coeffsvalid = TRUE;
-			accal->chanspec = pi->radio_chanspec;
-		} /* writing of results */
-		    } else {
-		last_phase = ACPHY_CAL_PHASE_TXPRERXCAL2;
-		if ((mphase == 0) || (pi->cal_info->cal_phase_id == last_phase)) {
+				/* validate availability of results and store off channel */
+				accal->txiqlocal_coeffsvalid = TRUE;
+				accal->chanspec = pi->radio_chanspec;
+			} /* writing of results */
+		} else {
+			last_phase = ACPHY_CAL_PHASE_TXPRERXCAL3;
+			if ((mphase == 0) || (pi->cal_info->cal_phase_id == last_phase)) {
 
-			PHY_CAL(("wlc_phy_cal_txiqlo_acphy (Biq2byp = %d, mphase = %d,"
-			    " refine = %d):\n", Biq2byp, mphase,
-			    searchmode == PHY_CAL_SEARCHMODE_REFINE));
-			for (cr = 0; cr < ti->num_cores; cr++) {
-				/* Save IQ Cal coeffs for RX-cal */
-				wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_READ,
-					coeffs, PI_INTER_COEFFS_AB, cr);
-				wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_WRITE_BIQ2BYP,
-					coeffs, PI_INTER_COEFFS_AB, cr);
+				PHY_CAL(("wlc_phy_cal_txiqlo_acphy (Biq2byp = %d, mphase = %d,"
+				    " refine = %d):\n", Biq2byp, mphase,
+				    searchmode == PHY_CAL_SEARCHMODE_REFINE));
+				for (cr = 0; cr < ti->num_cores; cr++) {
+					/* Save IQ Cal coeffs for RX-cal */
+					wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_READ,
+						coeffs, PI_INTER_COEFFS_AB, cr);
+					wlc_phy_cal_txiqlo_coeffs_acphy(pi, CAL_COEFF_WRITE_BIQ2BYP,
+						coeffs, PI_INTER_COEFFS_AB, cr);
 
-				/* Print out Results */
-				PHY_CAL(("\tcore-%d: a/b = (%4d,%4d)\n", cr,
-					(int16)accal->txiqlocal_biq2byp_coeffs[cr*2+0],   /* a */
-					(int16)accal->txiqlocal_biq2byp_coeffs[cr*2+1])); /* b */
-			} /* for cr */
+					/* Print out Results */
+					PHY_CAL(("\tcore-%d: a/b = (%4d,%4d)\n", cr,
+						(int16)accal->txiqlocal_biq2byp_coeffs[cr*2+0],   /* a */
+						(int16)accal->txiqlocal_biq2byp_coeffs[cr*2+1])); /* b */
+				} /* for cr */
 
-			/* validate availability of results and store off channel */
-			accal->txiqlocal_coeffsvalid = TRUE;
-			accal->chanspec = pi->radio_chanspec;
-		} /* writing of results */
-		    }
+				/* validate availability of results and store off channel */
+				accal->txiqlocal_coeffsvalid = TRUE;
+				accal->chanspec = pi->radio_chanspec;
+			} /* writing of results */
+		}
 
 		/* Switch off test tone */
 		wlc_phy_stopplayback_acphy(pi);	/* mimophy_stop_playback */

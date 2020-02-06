@@ -1,39 +1,43 @@
 #############################################################################
-# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2019 Broadcom.
+# The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
-# and may only be used, duplicated, modified or distributed pursuant to the terms and
-# conditions of a separate, written license agreement executed between you and Broadcom
-# (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-# no license (express or implied), right to use, or waiver of any kind with respect to the
-# Software, and Broadcom expressly reserves all rights in and to the Software and all
-# intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+# and may only be used, duplicated, modified or distributed pursuant to
+# the terms and conditions of a separate, written license agreement executed
+# between you and Broadcom (an "Authorized License").  Except as set forth in
+# an Authorized License, Broadcom grants no license (express or implied),
+# right to use, or waiver of any kind with respect to the Software, and
+# Broadcom expressly reserves all rights in and to the Software and all
+# intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+# THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+# IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
 # Except as expressly set forth in the Authorized License,
 #
-# 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-# and to use this information only in connection with your use of Broadcom integrated circuit products.
+# 1.     This program, including its structure, sequence and organization,
+# constitutes the valuable trade secrets of Broadcom, and you shall use all
+# reasonable efforts to protect the confidentiality thereof, and to use this
+# information only in connection with your use of Broadcom integrated circuit
+# products.
 #
-# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-# USE OR PERFORMANCE OF THE SOFTWARE.
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+# "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+# OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+# RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+# IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+# A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+# ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+# THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
 #
-# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-# ANY LIMITED REMEDY.
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+# OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+# INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+# RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+# HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+# EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+# WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+# FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 #############################################################################
 
 SHELL := /bin/bash
@@ -44,9 +48,7 @@ B_REFSW_TOP := $(subst /${THIS_DIR},,${CURDIR})
 WORKING_DIR := $(B_REFSW_TOP)/$(THIS_DIR)
 BSEAV_TOP := $(B_REFSW_TOP)/BSEAV
 NEXUS_TOP := $(B_REFSW_TOP)/nexus
-B_REFSW_OBJ_DIR  ?= obj.${NEXUS_PLATFORM}
-B_REFSW_OBJ_ROOT ?= ${BSEAV_TOP}/../${B_REFSW_OBJ_DIR}
-POD_DIR := $(B_REFSW_OBJ_ROOT)/BSEAV/cable/lib/mpod
+
 
 
 # include cross-compiler definitions
@@ -58,14 +60,19 @@ $(if $(B_REFSW_ARCH),,    $(error ERROR: B_REFSW_ARCH is not defined))
 
 include $(NEXUS_TOP)/../BSEAV/opensource/openssl/openssl.inc
 
-B_OPENSSL_TOOLCHAIN_ARCH ?= $(B_REFSW_CROSS_COMPILE)
+POD_DIR := $(B_REFSW_OBJ_ROOT)/BSEAV/cable/lib/mpod
+
+B_OPENSSL_TOOLCHAIN_ARCH ?= $(notdir $(B_REFSW_CROSS_COMPILE))
 
 B_OPENSSL_TAR_PATH:=${B_OPENSSL_SOURCE_DEST}
 B_OPENSSL_TAR_FILENAME:=$(B_OPENSSL_NAME).tar.gz
-B_OPENSSL_LIB_BUILD_CFLAGS?= -02 -fPIC
+B_OPENSSL_LIB_BUILD_CFLAGS?=
 B_OPENSSL_LIB_BUILD_LDFLAGS?=
 
 ifeq ($(findstring 1.0.2,$(B_OPENSSL_VER)),1.0.2)
+B_OPENSSL_CONFIG_NO_RIPEMD := no-ripemd
+B_OPENSSL_INSTALL_PREFIX := INSTALL_PREFIX
+B_OPENSSL_CONFIG_NO_ASYNC :=
 ifeq ($(findstring beta1,$(B_OPENSSL_VER)),beta1)
 B_OPENSSL_CONFIG_ENTRY := "${B_OPENSSL_TOOLCHAIN_ARCH}"  ,"gcc :-fPIC -DLENDIAN -DTERMIO -O3 -fomit-frame-pointer -Wall :: -D_REENTRANT ::-ldl: BN_LLONG RC4_CHAR RC4_INDEX DES_INT DES_UNROLL DES_RISC2 :::::::::::::::::dlfcn:linux-shared:-fPIC:-shared:.so.\\$$(SHLIB_MAJOR).\\$$(SHLIB_MINOR)",
 else #not beta1
@@ -77,7 +84,21 @@ B_OPENSSL_CONFIG_ENTRY := "${B_OPENSSL_TOOLCHAIN_ARCH}"  ,"gcc :-fPIC -DLENDIAN 
 endif
 endif
 else #not 1.0.2
+ifeq ($(findstring 1.1,$(B_OPENSSL_VER)),1.1)
+#1.1.1 doesn't use B_OPENSSL_CONFIG_ENTRY.
+B_OPENSSL_CONFIG_NO_RIPEMD :=
+B_OPENSSL_INSTALL_PREFIX := DESTDIR
+ifneq ($(findstring 4.5.,$(shell $(B_REFSW_CROSS_COMPILE)gcc -dumpversion)),)
+B_OPENSSL_CONFIG_NO_ASYNC :=no-async
+else
+B_OPENSSL_CONFIG_NO_ASYNC :=
+endif
+else
 B_OPENSSL_CONFIG_ENTRY := "${B_OPENSSL_TOOLCHAIN_ARCH}"  ,"gcc :-fPIC -DLENDIAN -DTERMIO -O3 -fomit-frame-pointer -Wall :: -D_REENTRANT ::-ldl: BN_LLONG RC4_CHAR RC4_INDEX DES_INT DES_UNROLL DES_RISC2 :::::::::::::::::dlfcn:linux-shared:-fPIC:-shared:.so.\\$$(SHLIB_MAJOR).\\$$(SHLIB_MINOR)",
+B_OPENSSL_CONFIG_NO_RIPEMD := no-ripemd
+B_OPENSSL_INSTALL_PREFIX := INSTALL_PREFIX
+B_OPENSSL_CONFIG_NO_ASYNC :=
+endif
 endif
 .PHONY: clean all bin-target target-clean
 
@@ -150,13 +171,17 @@ ifeq ($(B_REFSW_CCACHE),)
 else
     B_OPENSSL_CC:=$(strip $(subst $(B_REFSW_CCACHE),,$(CC)))
 endif
-B_OPENSSL_CC:=$(strip $(subst $(B_OPENSSL_TOOLCHAIN_ARCH),,$(B_OPENSSL_CC)))
+B_OPENSSL_CC:=$(strip $(subst $(B_OPENSSL_TOOLCHAIN_ARCH),,$(notdir $(B_OPENSSL_CC))))
 
 .configure: .source
 ifneq ($(B_REFSW_OPENSSL_IS_EXTERNAL),y)
 	@if [ ! -e "${B_OPENSSL_SOURCE_PATH}/.configured" ]; then \
 		echo "================ Configuring OPENSSL"; \
-		sed -ie 's/^\(\#\#\#\# Variety of LINUX\).*/\1 \n${B_OPENSSL_CONFIG_ENTRY}/' ${B_OPENSSL_SOURCE_PATH}/Configure; \
+		if [ -d ${B_OPENSSL_SOURCE_PATH}/Configurations ]; then \
+			cp ${B_OPENSSL_BUILD_DIR}/20-b_refsw.conf ${B_OPENSSL_SOURCE_PATH}/Configurations; \
+		else \
+			sed -ie 's/^\(\#\#\#\# Variety of LINUX\).*/\1 \n${B_OPENSSL_CONFIG_ENTRY}/' ${B_OPENSSL_SOURCE_PATH}/Configure; \
+		fi; \
 		cd ${B_OPENSSL_SOURCE_PATH}; \
 		CC="$(B_OPENSSL_CC)" \
 		CFLAGS="${B_OPENSSL_LIB_BUILD_CFLAGS}" \
@@ -168,7 +193,8 @@ ifneq ($(B_REFSW_OPENSSL_IS_EXTERNAL),y)
 		no-idea \
 		no-mdc2 \
 		no-rc5 \
-		no-ripemd \
+		${B_OPENSSL_CONFIG_NO_RIPEMD} \
+		${B_OPENSSL_CONFIG_NO_ASYNC} \
 		shared \
 		--cross-compile-prefix=$(B_OPENSSL_TOOLCHAIN_ARCH) \
 		${B_OPENSSL_TOOLCHAIN_ARCH} \
@@ -188,7 +214,11 @@ ifneq ($(B_REFSW_OPENSSL_IS_EXTERNAL),y)
 	@echo "[Making... all (OpenSSL)]"
 	@${MAKE} ${MAKE_OPTIONS} -C ${B_OPENSSL_SOURCE_PATH} ${MAKE_SUFFIX}  ${B_OPENSSL_COMPILE_REDIR}
 	@echo "[Making... install_sw (OpenSSL)]"
-	@${MAKE} -C ${B_OPENSSL_SOURCE_PATH} install_sw INSTALL_PREFIX=${B_OPENSSL_SOURCE_PATH}/${NEXUS_PLATFORM}  ${MAKE_SUFFIX} ${B_OPENSSL_COMPILE_REDIR}
+	@${MAKE} -C ${B_OPENSSL_SOURCE_PATH} install_sw ${B_OPENSSL_INSTALL_PREFIX}=${B_OPENSSL_SOURCE_PATH}/${NEXUS_PLATFORM}  ${MAKE_SUFFIX} ${B_OPENSSL_COMPILE_REDIR}
+ifeq ($(findstring 1.1,$(B_OPENSSL_VER)),1.1)
+	@echo "[Making... install_ssldirs (OpenSSL)]"
+	@${MAKE} -C ${B_OPENSSL_SOURCE_PATH} install_ssldirs ${B_OPENSSL_INSTALL_PREFIX}=${B_OPENSSL_SOURCE_PATH}/${NEXUS_PLATFORM}  ${MAKE_SUFFIX} ${B_OPENSSL_COMPILE_REDIR}
+endif
 	@rm -rf ${B_OPENSSL_VER_FILENAME}
 	@echo "B_OPENSSL_VER="$(B_OPENSSL_VER) >> ${B_OPENSSL_VER_FILENAME}
 	@echo "B_OPENSSL_NAME="$(B_OPENSSL_NAME) >> ${B_OPENSSL_VER_FILENAME}
@@ -223,7 +253,7 @@ ifneq ($(B_REFSW_OPENSSL_IS_EXTERNAL),y)
 	@mkdir -p ${B_OPENSSL_BIN_INSTALL_DIR}/ssl
 
 	@cp -af ${B_OPENSSL_SOURCE_PATH}/${NEXUS_PLATFORM}/usr/local/lib/*.so*   ${B_OPENSSL_LIB_INSTALL_DIR}   ${B_OPENSSL_INSTALL_REDIR}
-	@cp -af ${B_OPENSSL_SOURCE_PATH}/${NEXUS_PLATFORM}/usr/local/lib/engines ${B_OPENSSL_LIB_INSTALL_DIR}   ${B_OPENSSL_INSTALL_REDIR}
+	@cp -af ${B_OPENSSL_SOURCE_PATH}/${NEXUS_PLATFORM}/usr/local/lib/engines* ${B_OPENSSL_LIB_INSTALL_DIR}   ${B_OPENSSL_INSTALL_REDIR}
 ifeq ($(USE_COPY_IF_DIFFERENT),y)
 	$(call copy_if_different,${B_OPENSSL_SOURCE_PATH}/${NEXUS_PLATFORM}/usr/local/include/*,${B_OPENSSL_INC_INSTALL_DIR})  ${B_OPENSSL_INSTALL_REDIR}
 else
@@ -233,24 +263,30 @@ endif
 	@cp -af ${B_OPENSSL_SOURCE_PATH}/${NEXUS_PLATFORM}/usr/local/ssl ${B_OPENSSL_BIN_INSTALL_DIR}/../   ${B_OPENSSL_INSTALL_REDIR}
 	@echo "================ OpenSSL Installed"
 ifeq ($(CABLECARD_SUPPORT),y)
-	@mkdir -p $(B_REFSW_OBJ_ROOT)/BSEAV/cable/lib/mpod/crypto/include
+	@mkdir -p $(B_REFSW_OBJ_ROOT)/BSEAV/cable/lib/mpod/crypto/include/internal
+	@echo "================ Installing OPENSSL headers for POD"
+	@cp -afLR ${B_OPENSSL_SOURCE_PATH}/${NEXUS_PLATFORM}/usr/local/include ${POD_DIR}/crypto
+ifeq ($(findstring 1.1,$(B_OPENSSL_VER)),1.1)
+	@cp -afLR ${B_OPENSSL_SOURCE_PATH}/include/internal/ ${POD_DIR}/crypto/include/
+	@cp -afLR ${B_OPENSSL_SOURCE_PATH}/crypto/include/internal/x509_int.h ${POD_DIR}/crypto/include/internal
+endif
+	@cp -afLR ${B_OPENSSL_SOURCE_PATH}/apps/apps.h ${POD_DIR}/crypto/include
+	@echo "================ Installing OPENSSL apps objects for POD"
+	@cp -af ${B_OPENSSL_SOURCE_PATH}/apps/apps.o   ${POD_DIR}/apps.o
+ifeq ($(findstring 1.1,$(B_OPENSSL_VER)),1.1)
+	@cp -af ${B_OPENSSL_SOURCE_PATH}/apps/opt.o ${POD_DIR}/opt.o
+	@cp -af ${B_OPENSSL_SOURCE_PATH}/apps/bf_prefix.o ${POD_DIR}/bf_prefix.o
+endif
 ifeq ($(B_REFSW_ARCH),arm-linux)
+	@echo "================ Installing OPENSSL libcrypto for ARM platforms POD"
 ifeq ($(B_REFSW_TOOLCHAIN_VER_GE_4_8),y)
 	@cp -af ${B_OPENSSL_SOURCE_PATH}/libcrypto.a ${POD_DIR}/libcrypto.a
-	@cp -af ${B_OPENSSL_SOURCE_PATH}/apps/apps.o ${POD_DIR}/apps.o
 else
 	@cp -af ${B_OPENSSL_SOURCE_PATH}/libcrypto.a ${POD_DIR}/libcrypto_uclibc.a
-	@cp -af ${B_OPENSSL_SOURCE_PATH}/apps/apps.o ${POD_DIR}/apps_uclibc.o
 endif
-	@echo "================ Installing OPENSSL header for ARM platforms"
-	@cp -afR ${B_OPENSSL_SOURCE_PATH}/${NEXUS_PLATFORM}/usr/local/include ${POD_DIR}/crypto
-	@cp -afR ${B_OPENSSL_SOURCE_PATH}/apps/apps.h ${POD_DIR}/crypto/include
 else
+	@echo "================ Installing OPENSSL libcrypto for MIPS platforms POD"
 	@cp -af ${B_OPENSSL_SOURCE_PATH}/libcrypto.a   ${POD_DIR}/libcrypto.${B_OPENSSL_VER}_uclibc.a
-	@cp -af ${B_OPENSSL_SOURCE_PATH}/apps/apps.o   ${POD_DIR}/apps_uclibc.o
-	@echo "================ Installing OPENSSL header for MIPS platforms"
-	@cp -afLR ${B_OPENSSL_SOURCE_PATH}/${NEXUS_PLATFORM}/usr/local/include ${POD_DIR}/crypto
-	@cp -afLR ${B_OPENSSL_SOURCE_PATH}/apps/apps.h ${POD_DIR}/crypto/include
 endif
 	@echo "================ MPOD OpenSSL Installed"
 endif # ifeq ($(CABLECARD_SUPPORT),y)

@@ -65,7 +65,8 @@
 #define I5_MESSAGE_STANDARD_TOPOLOGY_DISCOVERY_PERIOD_MSEC  60000
 
 /* Not standard, BRCM values.  Do not use for interaction */
-#define I5_MESSAGE_TOPOLOGY_DISCOVERY_PERIOD_MSEC     10000
+#define I5_MESSAGE_TOPOLOGY_DISCOVERY_PERIOD_MSEC     \
+                              I5_MESSAGE_STANDARD_TOPOLOGY_DISCOVERY_PERIOD_MSEC
 #define I5_MESSAGE_TOPOLOGY_DISCOVERY_RETRY_MSEC      50
 #define I5_MESSAGE_FRAGMENT_TIMEOUT_MSEC              20000
 #define I5_MESSAGE_TOPOLOGY_QUERY_TIMEOUT_MSEC        5000
@@ -84,6 +85,9 @@
 #define I5_MESSAGE_DIR_TX       0x2
 /* this will match DIR TX as far as trace enable is concerned but will show "Relayed" instead of "Sent" in packet trace */
 #define I5_MESSAGE_DIR_TX_RELAY 0x6
+
+#define I5_SEC_WAIT_TO_REMOVE_UNREACHABLE_DEVICE	\
+			(I5_MESSAGE_STANDARD_TOPOLOGY_DISCOVERY_PERIOD_MSEC + 10)
 
 extern unsigned char I5_MULTICAST_MAC[];
 extern unsigned char LLDP_MULTICAST_MAC[];

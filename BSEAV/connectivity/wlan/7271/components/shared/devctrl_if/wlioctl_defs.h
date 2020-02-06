@@ -1428,6 +1428,7 @@
 /* following definition is for precommit; will be removed once wl, acsd switch to the new def */
 #define WL_CHAN_WEATHER_RADAR		WL_CHAN_RADAR_EU_WEATHER
 #endif /* LINUX_POSTMOGRIFY_REMOVAL */
+#define WL_CHAN_CLM_RESTRICTED     (1u << 8)     /* channel restricted in CLM (i.e. by default) */
 
 /* BTC mode used by "btc_mode" iovar */
 #define	WL_BTC_DISABLE		0	/* disable BT coexistence */

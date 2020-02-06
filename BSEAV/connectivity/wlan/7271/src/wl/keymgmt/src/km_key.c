@@ -14,6 +14,7 @@
  */
 
 #include "km_key_pvt.h"
+#include "km_pvt.h"
 #include <wlc_txc.h>
 #ifdef BCM_SFD
 #include <wlc_sfd.h>
@@ -650,6 +651,26 @@ done:
 				KEY_LOG(("wl%d.%d: %s: disallowed unencrypted frame from %s\n",
 					KEY_WLUNIT(key), WLC_BSSCFG_IDX(SCB_BSSCFG(scb)),
 					__FUNCTION__, bcm_ether_ntoa(&hdr->a2, eabuf)));
+				if (SCB_LEGACY_WDS(scb)) {
+					uint32 wpa_auth;
+					wlc_bsscfg_t *bsscfg = NULL;
+					bsscfg = SCB_BSSCFG(scb);
+					KM_DBG_ASSERT(bsscfg != NULL);
+					wpa_auth = bsscfg->WPA_auth;
+					if ((wpa_auth != WPA_AUTH_DISABLED) &&
+#ifdef BCMCCX
+							(!IS_CCKM_AUTH(wpa_auth)) &&
+#endif
+#ifdef BCMWAPI_WPI
+							(!IS_WAPI_AUTH(wpa_auth)) &&
+#endif /* BCMWAPI_WPI */
+							(key->info.algo != CRYPTO_ALGO_OFF)) {
+						KM_DBG_ASSERT(pkt != NULL);
+						km_null_key_deauth(KEY_KM(key),
+							WLPKTTAGSCBGET(pkt), pkt);
+						return err;
+					}
+				}
 			} else {
 				err = BCME_OK;
 			}

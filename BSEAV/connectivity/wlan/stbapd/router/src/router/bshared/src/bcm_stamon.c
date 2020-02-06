@@ -148,8 +148,9 @@ bcm_stamon_get_config_val_int(const char *c, uint16 def)
 	char *val;
 
 	val = nvram_safe_get(c);
-	if (val)
+	if (val && (val[0] != '\0')) {
 		ret = strtoul(val, NULL, 0);
+	}
 #endif
 	return ret;
 }
@@ -195,6 +196,8 @@ bcm_stamon_add_stas_to_driver(stamon_handle_t* hndl)
 	BCM_STAMON_STATUS status = BCM_STAMONE_OK;
 	wlc_stamon_sta_config_t stamon_cfg;
 	chanspec_t last_chspec = 0;
+
+	memset(&stamon_cfg, 0, sizeof(stamon_cfg));
 
 	wl_endian_probe(hndl->ifname);
 	stamon_cfg.cmd = htod(STAMON_CFG_CMD_ADD);
@@ -267,6 +270,7 @@ start:
 			continue;
 
 		tmp->stamon_count++;
+		stamon_cfg.chanspec = htod32(tmp->chspec);
 		memcpy(&stamon_cfg.ea, &tmp->ea, sizeof(stamon_cfg.ea));
 		STAMON_DEBUG("%s - Adding STA :"MACF" to driver\n", hndl->ifname,
 			ETHER_TO_MACF(tmp->ea));
@@ -361,6 +365,8 @@ bcm_stamon_delete_from_driver(stamon_handle_t *hndl, struct ether_addr *ea)
 {
 	BCM_STAMON_STATUS status;
 	wlc_stamon_sta_config_t stamon_cfg;
+
+	memset(&stamon_cfg, 0, sizeof(stamon_cfg));
 
 	wl_endian_probe(hndl->ifname);
 	stamon_cfg.cmd = htod(STAMON_CFG_CMD_DEL);
@@ -667,7 +673,7 @@ bcm_stamon_timer_cb(bcm_usched_handle *usched_hndl, void *arg)
 
 /* Add timers to micro scheduler */
 static int
-bcm_stamon_add_timers(stamon_handle_t *hndl, unsigned long timeout, bcm_usched_timerscbfn *cbfn)
+bcm_stamon_add_timers(stamon_handle_t *hndl, unsigned long long timeout, bcm_usched_timerscbfn *cbfn)
 {
 	BCM_USCHED_STATUS ret = 0;
 
@@ -754,7 +760,8 @@ bcm_stamon_cmd_add(stamon_handle_t* hndl, void *param)
 	/* Check if the Timer created for station monitoring, if not create it */
 	if (!hndl->is_timer_created) {
 		STAMON_DEBUG("%s - Creating the timer\n", hndl->ifname);
-		if (bcm_stamon_add_timers(hndl, STAMON_MSEC_USEC(hndl->stamon_config.interval),
+		if (bcm_stamon_add_timers(hndl,
+			STAMON_MSEC_USEC((unsigned long long)hndl->stamon_config.interval),
 			bcm_stamon_timer_cb) != BCM_STAMONE_OK) {
 			return BCM_STAMONE_USCHED;
 		}
@@ -903,6 +910,11 @@ bcm_stamon_init(char *ifname)
 	bcm_stamon_config_t temp;
 	char *str;
 	int num = 0;
+	char wl_name[STAMON_MAX_IFNAME_LEN];
+	char prefix[STAMON_MAX_IFNAME_LEN] = {0};
+	char tmp[100];
+	int bandtype;
+	int ret;
 
 	/* Allocate handle */
 	hndl = (stamon_handle_t*)malloc(sizeof(*hndl));
@@ -915,8 +927,15 @@ bcm_stamon_init(char *ifname)
 	hndl->version = BCM_STAMON_VERSION;
 	strncpy(hndl->ifname, ifname, sizeof(hndl->ifname)-1);
 
-	/* read stamon configuration from NVRAM */
-	str = nvram_safe_get(BCM_NVRAM_STAMON_CONFIG);
+	ret = osifname_to_nvifname(ifname, wl_name, sizeof(wl_name));
+	if (ret != 0) {
+		STAMON_ERROR("%s not a wireless interface. ret = %d\n", ifname, ret);
+		return NULL;
+	}
+	make_wl_prefix(prefix, sizeof(prefix), 1, wl_name);
+
+	/* read stamon configuration from NVRAM for this interface */
+	str = nvram_safe_get(strcat_r(prefix, BCM_NVRAM_STAMON_CONFIG, tmp));
 	if (str) {
 		num = sscanf(str, "%u %u %u %u",
 			&temp.interval,
@@ -932,10 +951,19 @@ bcm_stamon_init(char *ifname)
 		}
 	}
 	if (!str || num != 4) {
-		hndl->stamon_config.interval = STAMON_DEFAULT_MONITOR_TIMEOUT;
-		hndl->stamon_config.max_offchan_count = STAMON_MAX_OFFCHAN_COUNT;
-		hndl->stamon_config.sta_load_freq = STAMON_DEFAULT_STA_LOAD_FREQ;
-		hndl->stamon_config.offchan_time = STAMON_DEFAULT_OFFCHAN_TIME;
+		/* Get configured phy type */
+		wl_ioctl(ifname, WLC_GET_BAND, &bandtype, sizeof(bandtype));
+		if (bandtype == WLC_BAND_5G) {
+			hndl->stamon_config.interval = STAMON_DEFAULT_MONITOR_TIMEOUT_5G;
+			hndl->stamon_config.max_offchan_count = STAMON_MAX_OFFCHAN_COUNT_5G;
+			hndl->stamon_config.sta_load_freq = STAMON_DEFAULT_STA_LOAD_FREQ_5G;
+			hndl->stamon_config.offchan_time = STAMON_DEFAULT_OFFCHAN_TIME_5G;
+		} else {
+			hndl->stamon_config.interval = STAMON_DEFAULT_MONITOR_TIMEOUT_2G;
+			hndl->stamon_config.max_offchan_count = STAMON_MAX_OFFCHAN_COUNT_2G;
+			hndl->stamon_config.sta_load_freq = STAMON_DEFAULT_STA_LOAD_FREQ_2G;
+			hndl->stamon_config.offchan_time = STAMON_DEFAULT_OFFCHAN_TIME_2G;
+		}
 	}
 
 	g_stamon_debug_level = bcm_stamon_get_config_val_int("bcm_stamon_debug_level",

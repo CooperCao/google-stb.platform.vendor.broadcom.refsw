@@ -181,7 +181,7 @@ const uint32_t BDSP_IMG_flac_ids_array1[] = {
 	0x0805a1cf,
 	0x381131cf,
 	0x53f031d7,
-	0x50ffeee2,
+	0x50ffeee0,
 	0x0800010f,
 	0x2000f1cf,
 	0x20804127,
@@ -190,7 +190,7 @@ const uint32_t BDSP_IMG_flac_ids_array1[] = {
 	0x90018807,
 	0xc1840007,
 	0x53dc31d7,
-	0x50fbeeef,
+	0x50fbeeed,
 	0x0801110f,
 	0x2000810f,
 	0x219a4057,
@@ -206,7 +206,7 @@ const uint32_t BDSP_IMG_flac_ids_array1[] = {
 	0x380441cf,
 	0x981151cf,
 	0x53ea71d7,
-	0x50ffeee3,
+	0x50ffeee1,
 	0x0801210f,
 	0x200271cf,
 	0xabf0f1ff,
@@ -709,7 +709,7 @@ const uint32_t BDSP_IMG_flac_ids_array1[] = {
 	0x50ffef0b,
 	0xc8007e07,
 	0x53d131d7,
-	0x50fbeeeb,
+	0x50fbeee9,
 	0x03897e0f,
 	0xad45dd17,
 	0x73e1526a,
@@ -915,7 +915,7 @@ const uint32_t BDSP_IMG_flac_ids_header [2] = {sizeof(BDSP_IMG_flac_ids_array1),
 const void * const BDSP_IMG_flac_ids [2] = {BDSP_IMG_flac_ids_header, BDSP_IMG_flac_ids_array1};
 const uint32_t BDSP_IMG_flac_ids_inter_frame_array1[] = {
 	0x00000000,
-	0x0000107b
+	0x0000107c
 };
 const uint32_t BDSP_IMG_flac_ids_inter_frame_header [2] = {sizeof(BDSP_IMG_flac_ids_inter_frame_array1), 1};
 const void * const BDSP_IMG_flac_ids_inter_frame [2] = {BDSP_IMG_flac_ids_inter_frame_header, BDSP_IMG_flac_ids_inter_frame_array1};

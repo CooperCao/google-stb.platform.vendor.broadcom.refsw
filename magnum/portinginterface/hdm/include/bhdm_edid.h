@@ -93,6 +93,7 @@ extern "C" {
 #define BHDM_EDID_AUDIO_FORMATS_UNAVAILABLE \
                                           BERR_MAKE_CODE(BERR_HDM_ID, BHDM_EDID_ERRS+ 19)
 
+#define BHDM_EDID_NUM_EXTENSIONS_ERROR    BERR_MAKE_CODE(BERR_HDM_ID, BHDM_EDID_ERRS+ 20)
 
 
 
@@ -594,8 +595,10 @@ typedef enum BHDM_EDID_CeaExtendedDBTag
 	BHDM_EDID_CeaExtendedDBTag_eVideoFormatPreferenceDB = 13,
 	BHDM_EDID_CeaExtendedDBTag_eYCBCR420VideoDB,
 	BHDM_EDID_CeaExtendedDBTag_eYCBCR420CapabilityMapDB,
-	BHDM_EDID_CeaExtendedDBTag_eVendorSpecificAudioDB = 18,
-	BHDM_EDID_CeaExtendedDBTag_eInfoFrameDB = 32
+	BHDM_EDID_CeaExtendedDBTag_eVendorSpecificAudioDB = 17,
+	BHDM_EDID_CeaExtendedDBTag_eInfoFrameDB = 32,
+	BHDM_EDID_CeaExtendedDBTag_eExtensionOverrideDB = 120,
+	BHDM_EDID_CeaExtendedDBTag_eHFSinkCapDB = 121
 } BHDM_EDID_CeaExtendedDBTag ;
 
 
@@ -1717,6 +1720,8 @@ BERR_Code BHDM_EDID_GetSupportedColorDepth(
 	BHDM_EDID_ColorDepth *stSuppotedColorDepth,	/* [out] */
 	bool *bYCbCrPixelEncoding 	/* [out] */
 );
+
+void BHDM_EDID_Remove_CeaVSDB(uint8_t *ucBuffer, const uint8_t *ucVsdbId) ;
 
 
 /******************************************************************************

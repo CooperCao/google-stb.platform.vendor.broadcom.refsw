@@ -33,7 +33,7 @@ struct egl_pbuffer_surface
 };
 
 static EGL_SURFACE_METHODS_T fns;
-static khrn_image *get_back_buffer(EGL_SURFACE_T *surface);
+static EGLint get_back_buffer(EGL_SURFACE_T *surface, khrn_image **image);
 
 static void set_mipmap_level(EGL_PBUFFER_SURFACE_T *surface, int level)
 {
@@ -43,7 +43,8 @@ static void set_mipmap_level(EGL_PBUFFER_SURFACE_T *surface, int level)
       level = surface->num_images - 1;
 
    egl_context_gl_lock();
-   khrn_image *image = get_back_buffer(&surface->base);
+   khrn_image *image;
+   get_back_buffer(&surface->base, &image);
    khrn_resource_flush(khrn_image_get_resource(image));
    egl_context_gl_unlock();
 
@@ -189,10 +190,11 @@ static EGLint get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint *value)
    return egl_surface_base_get_attrib(&surf->base, attrib, value);
 }
 
-static khrn_image *get_back_buffer(EGL_SURFACE_T *surface)
+static EGLint get_back_buffer(EGL_SURFACE_T *surface, khrn_image **image)
 {
    const EGL_PBUFFER_SURFACE_T *surf = (const EGL_PBUFFER_SURFACE_T *) surface;
-   return surf->images[surf->current_image];
+   *image = surf->images[surf->current_image];
+   return *image ? EGL_SUCCESS : EGL_BAD_SURFACE;
 }
 
 EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy,

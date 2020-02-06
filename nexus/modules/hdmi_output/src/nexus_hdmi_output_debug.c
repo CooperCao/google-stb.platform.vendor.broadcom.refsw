@@ -547,7 +547,13 @@ void NEXUS_HdmiOutputModule_Print(void)
         if (errCode) {BERR_TRACE(errCode) ; goto done ; }
 
         errCode = NEXUS_HdmiOutput_GetHdcpStatus(hdmiOutput, hdmiOutputHdcpStatus) ;
-        if (errCode) {BERR_TRACE(errCode) ; goto done ; }
+        if (errCode) {
+            /* will get error if TV not connected or powered */
+            if (errCode != NEXUS_NOT_AVAILABLE) BERR_TRACE(errCode);
+            BKNI_Free(hdmiOutputHdcpStatus);
+            hdmiOutputHdcpStatus = NULL;
+            /* keep going */
+        }
 
         BHDM_MONITOR_GetTxHwStatusExtra(hdmiOutput->hdmHandle, txHwStatusExtra) ;
 
@@ -651,31 +657,33 @@ void NEXUS_HdmiOutputModule_Print(void)
             BDBG_LOG(("SCDC not supported on this platform")) ;
 #endif
 
-            /* HDCP Status */
-            BDBG_LOG(("HDCP Status:")) ;
-            BDBG_LOG(("  Connected device: %s",
-                hdmiOutputHdcpStatus->isHdcpRepeater ? "Repeater" : "Receiver")) ;
-            BDBG_LOG(("  Supported Version: %s",
-                hdmiOutputHdcpStatus->hdcp2_2Features ? "2.2" : "1.x")) ;
+            if (hdmiOutputHdcpStatus) {
+                /* HDCP Status */
+                BDBG_LOG(("HDCP Status:")) ;
+                BDBG_LOG(("  Connected device: %s",
+                    hdmiOutputHdcpStatus->isHdcpRepeater ? "Repeater" : "Receiver")) ;
+                BDBG_LOG(("  Supported Version: %s",
+                    hdmiOutputHdcpStatus->hdcp2_2Features ? "2.2" : "1.x")) ;
 
-            BDBG_LOG(("  HDCP2Version i2c read failures: %d",
-                txHwStatusExtra->ui2cHdcp2VersionReadFailures)) ;
-            BDBG_LOG(("  HDCP2Version invalid data failures: %d",
-                txHwStatusExtra->ui2cHdcp2VersionDataFailures)) ;
+                BDBG_LOG(("  HDCP2Version i2c read failures: %d",
+                    txHwStatusExtra->ui2cHdcp2VersionReadFailures)) ;
+                BDBG_LOG(("  HDCP2Version invalid data failures: %d",
+                    txHwStatusExtra->ui2cHdcp2VersionDataFailures)) ;
 
-            if ((hdmiOutputHdcpStatus->hdcp2_2Features) && (hdmiOutputHdcpStatus->isHdcpRepeater))
-            {
-                BDBG_LOG(("  Downstream 1.x device(s): %s",
-                hdmiOutputHdcpStatus->hdcp2_2RxInfo.hdcp1_xDeviceDownstream ? "Yes" : "No")) ;
+                if ((hdmiOutputHdcpStatus->hdcp2_2Features) && (hdmiOutputHdcpStatus->isHdcpRepeater))
+                {
+                    BDBG_LOG(("  Downstream 1.x device(s): %s",
+                    hdmiOutputHdcpStatus->hdcp2_2RxInfo.hdcp1_xDeviceDownstream ? "Yes" : "No")) ;
+                }
+
+                BDBG_LOG(("  Authenticated: %s",
+                    hdmiOutputHdcpStatus->linkReadyForEncryption ? "Yes" : "No")) ;
+                BDBG_LOG(("  Transmitting Encrypted: %s",
+                    hdmiOutputHdcpStatus->transmittingEncrypted ? "Yes" : "No")) ;
+
+                BDBG_LOG(("  Current State: %d   Last Error: %d",
+                    hdmiOutputHdcpStatus->hdcpState, hdmiOutputHdcpStatus->hdcpError)) ;
             }
-
-            BDBG_LOG(("  Authenticated: %s",
-                hdmiOutputHdcpStatus->linkReadyForEncryption ? "Yes" : "No")) ;
-            BDBG_LOG(("  Transmitting Encrypted: %s",
-                hdmiOutputHdcpStatus->transmittingEncrypted ? "Yes" : "No")) ;
-
-            BDBG_LOG(("  Current State: %d   Last Error: %d",
-                hdmiOutputHdcpStatus->hdcpState, hdmiOutputHdcpStatus->hdcpError)) ;
 
             BDBG_LOG(("  1.x Stats")) ;
             BDBG_LOG(("    Attempts: %5d  Pass: %5d  Fail: %5d",

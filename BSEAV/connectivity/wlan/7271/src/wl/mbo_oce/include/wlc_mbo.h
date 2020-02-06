@@ -204,6 +204,14 @@ wlc_mbo_get_bsstrans_reject(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
 	uint8 *enable, uint8 *reason);
 #endif /* WL_MBO_TB */
 
+int
+wlc_mbo_add_mbo_ie_bsstrans_reject(wlc_info_t* wlc, uint8* data, uint8 resp_status,
+	uint8 reason_code);
+int
+wlc_mbo_roamscan_complete(wlc_info_t *wlc, wlc_bsscfg_t *cfg,
+	uint8 status, uint8 req_mode, uint32 disassoc_dur,
+	uint32 bss_term_tsf_h, uint32 bss_term_tsf_l);
+
 #ifdef ANQPO
 uint
 wlc_mbo_calc_anqp_elem_len(wlc_bsscfg_t *cfg, uint8 *query, uint16 query_len,
@@ -211,5 +219,13 @@ wlc_mbo_calc_anqp_elem_len(wlc_bsscfg_t *cfg, uint8 *query, uint16 query_len,
 int
 wlc_mbo_build_anqp_elem(wlc_bsscfg_t *cfg, uint8 *query, uint16 *query_len,
 	uint8 cellular_aware, uint16 total_len);
+int
+wlc_mbo_process_bsstrans_req(wlc_info_t* wlc, wlc_bsscfg_t *bsscfg,
+	dot11_bsstrans_req_t* req, int body_len, wnm_bsstrans_policy_type_t policy,
+	void *roam_data, uint16 *act_flags,
+	uint8 btq_token, uint8 *decision);
+bool
+wlc_mbo_is_reassoc_delay_timer_active(wlc_mbo_info_t *mbo, wlc_bsscfg_t *bsscfg,
+	struct ether_addr *bssid);
 #endif /* ANQPO */
 #endif	/* _wlc_mbo_h_ */

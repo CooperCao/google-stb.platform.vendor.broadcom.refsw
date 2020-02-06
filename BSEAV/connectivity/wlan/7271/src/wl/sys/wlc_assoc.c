@@ -425,6 +425,10 @@ static void wlc_check_adaptive_bcn_timeout(wlc_bsscfg_t *cfg);
 static void wlc_roam_period_update(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
 static int wlc_assoc_chanspec_change_cb(void* handler_ctxt, wlc_msch_cb_info_t *cb_info);
 
+#if defined(CLIENT_CSA) && defined(WLDFS)
+static bool wlc_assoc_do_dfs_reentry_cac_if_required(wlc_bsscfg_t *cfg);
+#endif /* CLIENT_CSA && WLDFS */
+
 #if defined(BCMDBG) || defined(WLMSG_ASSOC)
 static void wlc_print_roam_status(wlc_bsscfg_t *cfg, uint roam_reason, bool printcache);
 #endif
@@ -462,60 +466,61 @@ static const char *as_type_name[] = {
 #if defined(BCMDBG) || defined(WLMSG_ASSOC)
 
 /* When an AS_ state is added, add a string translation to the table below */
-#if AS_LAST_STATE != 33 /* don't change this without adding to the table below!!! */
+#if AS_LAST_STATE != 34 /* don't change this without adding to the table below!!! */
 #error "You need to add an assoc state name string to as_st_names for the new assoc state"
 #endif
 
-const char * as_st_names[] = {
-	"IDLE",
-	"JOIN_INIT",
-	"SCAN",
-	"WAIT_IE",
-	"WAIT_IE_TIMEOUT",
-	"JOIN_START",
-	"SENT_FT_REQ",
-	"RECV_FT_RES",
-	"WAIT_TX_DRAIN",
-	"SENT_AUTH_1",
-	"SENT_AUTH_2",
-	"SENT_AUTH_3",
-	"SENT_ASSOC",
-	"REASSOC_RETRY",
-	"JOIN_ADOPT",
-	"WAIT_RCV_BCN",
-	"SYNC_RCV_BCN",
-	"WAIT_DISASSOC",
-	"WAIT_PASSHASH",
-	"RECREATE_WAIT_RCV_BCN",
-	"ASSOC_VERIFY",
-	"LOSS_ASSOC",
-	"JOIN_CACHE_DELAY",
-	"WAIT_FOR_AP_CSA",
-	"WAIT_FOR_AP_CSA_ROAM_FAIL",
-	"AS_MODE_SWITCH_START",
-	"AS_MODE_SWITCH_COMPLETE",
-	"AS_MODE_SWITCH_FAILED",
-	"AS_DISASSOC_TIMEOUT",
-	"AS_IBSS_CREATE",
-	"AS_DFS_CAC_START",
-	"AS_DFS_CAC_FAIL",
-	"AS_DFS_ISM_INIT"
+static const struct {
+	uint state;
+	char name[28];
+} as_st_names[] = {
+	{AS_IDLE, "IDLE"},
+	{AS_SCAN, "SCAN"},
+	{AS_JOIN_INIT, "JOIN_INIT"},
+	{AS_SENT_AUTH_1, "SENT_AUTH_1"},
+	{AS_SENT_AUTH_2, "SENT_AUTH_2"},
+	{AS_SENT_AUTH_3, "SENT_AUTH_3"},
+	{AS_SENT_ASSOC, "SENT_ASSOC"},
+	{AS_REASSOC_RETRY, "REASSOC_RETRY"},
+	{AS_JOIN_ADOPT, "JOIN_ADOPT"},
+	{AS_WAIT_RCV_BCN, "WAIT_RCV_BCN"},
+	{AS_SYNC_RCV_BCN, "SYNC_RCV_BCN"},
+	{AS_WAIT_DISASSOC, "WAIT_DISASSOC"},
+	{AS_WAIT_TX_DRAIN, "WAIT_TX_DRAIN"},
+	{AS_WAIT_TX_DRAIN_TIMEOUT, "WAIT_TX_DRAIN_TIMEOUT"},
+	{AS_JOIN_START, "JOIN_START"},
+	{AS_WAIT_PASSHASH, "WAIT_PASSHASH"},
+	{AS_RECREATE_WAIT_RCV_BCN, "RECREATE_WAIT_RCV_BCN"},
+	{AS_ASSOC_VERIFY, "ASSOC_VERIFY"},
+	{AS_WAIT_IE, "WAIT_IE"},
+	{AS_WAIT_IE_TIMEOUT, "WAIT_IE_TIMEOUT"},
+	{AS_LOSS_ASSOC, "LOSS_ASSOC"},
+	{AS_JOIN_CACHE_DELAY, "JOIN_CACHE_DELAY"},
+	{AS_WAIT_FOR_AP_CSA, "WAIT_FOR_AP_CSA"},
+	{AS_WAIT_FOR_AP_CSA_ROAM_FAIL, "WAIT_FOR_AP_CSA_ROAM_FAIL"},
+	{AS_SENT_FTREQ, "AS_SENT_FTREQ"},
+	{AS_MODE_SWITCH_START, "AS_MODE_SWITCH_START"},
+	{AS_MODE_SWITCH_COMPLETE, "AS_MODE_SWITCH_COMPLETE"},
+	{AS_MODE_SWITCH_FAILED, "AS_MODE_SWITCH_FAILED"},
+	{AS_DISASSOC_TIMEOUT, "AS_DISASSOC_TIMEOUT"},
+	{AS_IBSS_CREATE, "AS_IBSS_CREATE"},
+	{AS_DFS_CAC_START, "AS_DFS_CAC_START"},
+	{AS_DFS_CAC_FAIL, "AS_DFS_CAC_FAIL"},
+	{AS_DFS_ISM_INIT, "AS_DFS_ISM_INIT"},
 };
 
 static const char *
-BCMRAMFN(wlc_as_st_name)(uint state)
+wlc_as_st_name(uint state)
 {
-	const char * result;
+	uint i;
 
-	if (state >= ARRAYSIZE(as_st_names))
-		result = "UNKNOWN";
-	else {
-		result = as_st_names[state];
+	for (i = 0; i < ARRAYSIZE(as_st_names); i++) {
+		if (as_st_names[i].state == state)
+			return as_st_names[i].name;
 	}
 
-	return result;
+	return "UNKNOWN";
 }
-
 #endif /* BCMDBG || WLMSG_ASSOC */
 
 /* state(s) that can yield to other association requests */
@@ -896,6 +901,12 @@ wlc_join_start_prep(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
 	return BCME_OK;
 
 } /* wlc_join_start_prep */
+
+void wlc_try_join_start(wlc_bsscfg_t *cfg, wl_join_scan_params_t *scan_params,
+	wl_join_assoc_params_t *assoc_params)
+{
+	wlc_join_start(cfg, scan_params, assoc_params);
+}
 
 /** start a join process. SSID is saved in bsscfg. */
 static void
@@ -1745,6 +1756,28 @@ wlc_cook_join_targets(wlc_bsscfg_t *cfg, bool for_roam, int cur_rssi)
 					continue;
 				}
 			}
+
+#if defined(SLAVE_RADAR) || defined(CLIENT_CSA)
+			/* With slave radar on 4366 (or any chip with sub-band radar detection
+			 * capability), control channel of an AP might be accessible but some other
+			 * (non-control) sub-band of the APs chanspec might be blocked/inactive due
+			 * to recent radar. Prune such APs from our list of valid APs.
+			 */
+			{
+				wlcband_t *band = wlc->bandstate[CHSPEC_IS2G(bip[i]->chanspec) ?
+					BAND_2G_INDEX : BAND_5G_INDEX];
+				chanspec_t chspec = wlc_max_valid_bw_chanspec(wlc,
+					band, cfg, bip[i]->chanspec);
+				if (chspec == INVCHANSPEC ||
+					(wlc_radar_chanspec(wlc->cmi, chspec) &&
+					!wlc_dfs_valid_ap_chanspec(wlc, chspec))) {
+
+					WL_ASSOC(("wl%d: JOIN: prune blocked DFS ch (0x%x)\n",
+						WLCWLUNIT(wlc), bip[i]->chanspec));
+					continue;
+				}
+			}
+#endif /* SLAVE_RADAR || CLIENT_CSA */
 
 			/* swap join_pref[i] to join_pref[j] */
 			memcpy(&tmp_join_pref, &join_pref[j], sizeof(*join_pref));
@@ -2862,13 +2895,25 @@ wlc_assoc_cache_fail(wlc_bsscfg_t *cfg)
 {
 	wlc_info_t *wlc = cfg->wlc;
 	wl_join_scan_params_t *scan_params;
-	const wl_join_assoc_params_t *assoc_params;
-	const struct ether_addr *bssid = NULL;
+	 wl_join_assoc_params_t *assoc_params;
+	struct ether_addr *bssid = NULL;
 	const chanspec_t *chanspec_list = NULL;
 	int chanspec_num = 0;
 
 	WL_ASSOC(("wl%d: %s: Association from cache failed, starting regular association scan\n",
 	          WLCWLUNIT(wlc), __FUNCTION__));
+
+#ifdef WL_MBO
+			if (MBO_ENAB(wlc->pub) && bssid &&
+					wlc_mbo_is_reassoc_delay_timer_active(wlc->mbo,
+					cfg, bssid)) {
+				WL_ASSOC(("wl%d: found bssid in MBO delayed list,"
+					"don't retry to connect\n",
+					WLCWLUNIT(wlc)));
+				return;
+			}
+#endif /* WL_MBO */
+
 
 	/* reset join_targets for new join attempt */
 	wlc_bss_list_free(wlc, wlc->as->cmn->join_targets);
@@ -3397,7 +3442,7 @@ wlc_roam_scan(wlc_bsscfg_t *cfg, uint reason, chanspec_t *list, uint32 channum)
 		}
 #endif /* BCMCCX */
 
-	if (roam->off) {
+	if ((roam->off) && (reason != WLC_E_REASON_BSSTRANS_REQ)) {
 		WL_INFORM(("wl%d: roam scan is disabled\n", wlc->pub->unit));
 		ret = BCME_EPERM;
 		goto fail;
@@ -3566,12 +3611,15 @@ wlc_join_wsec_filter(wlc_info_t *wlc, wlc_bsscfg_t *cfg, wlc_bss_info_t *bi)
 #endif /* WLFBT */
 
 	/* check authentication mode */
-	if (bcmwpa_is_wpa_auth(cfg->WPA_auth) && (bi->wpa.flags & RSN_FLAGS_SUPPORTED))
+	if (bcmwpa_is_wpa_auth(cfg->WPA_auth) && (bi->wpa.flags & RSN_FLAGS_SUPPORTED) &&
+		(bi->wpa.acount != 0)) {
 		rsn = &(bi->wpa);
+	}
 	/* Prune BSSID when STA is moving to a different security type */
-	else if ((bcmwpa_is_wpa2_auth(cfg->WPA_auth) && (bi->wpa2.flags & RSN_FLAGS_SUPPORTED)) &&
-		akm_match)
+	else if ((bcmwpa_is_wpa2_auth(cfg->WPA_auth) && (bi->wpa2.flags & RSN_FLAGS_SUPPORTED) &&
+		(bi->wpa2.acount != 0)) && akm_match) {
 		rsn = &(bi->wpa2);
+	}
 #ifdef BCMWAPI_WAI
 	else if (IS_WAPI_AUTH(cfg->WPA_auth) && (bi->wapi.flags & RSN_FLAGS_SUPPORTED))
 		rsn = &(bi->wapi);
@@ -3915,7 +3963,15 @@ wlc_join_attempt(wlc_bsscfg_t *cfg)
 
 		/* prune roam candidate if security doesn't match */
 		if (cfg->assoc->type == AS_ROAM) {
-			if (!wlc_assoc_check_roam_candidate(cfg, bi)) {
+
+#ifdef WL_MBO
+			if (MBO_ENAB(wlc->pub) && !AP_ENAB(wlc->pub)) {
+				if (!wlc_assoc_check_roam_candidate(cfg, bi, 0)) {
+					continue;
+				}
+			} else
+#endif /* WL_MBO */
+			if (!wlc_assoc_check_roam_candidate(cfg, bi, 1)) {
 				continue;
 			}
 		}
@@ -4277,7 +4333,7 @@ wlc_join_attempt(wlc_bsscfg_t *cfg)
 		bool delay_join = FALSE;
 
 		/* Decided to join; send bss-trans-response here with accept */
-		bssid = &join_targets->ptrs[wlc->as->cmn->join_targets_last]->BSSID;
+		bssid = &join_targets->ptrs[wlc->as->cmn->join_targets_last - 1]->BSSID;
 		delay_join = wlc_wnm_bsstrans_roamscan_complete(wlc, cfg,
 			DOT11_BSSTRANS_RESP_STATUS_ACCEPT, bssid);
 
@@ -4412,9 +4468,25 @@ void
 wlc_join_bss_prep(wlc_bsscfg_t *cfg)
 {
 	wlc_info_t *wlc = cfg->wlc;
+#ifdef SLAVE_RADAR
+	wlc_assoc_t *as;
+#endif
+
+#if defined(CLIENT_CSA) && defined(WLDFS)
+	bool dfs_cac_started = FALSE;
+	if (!BSSCFG_AP(cfg) && APSTA_ENAB(cfg->wlc->pub)) {
+		dfs_cac_started =
+			wlc_assoc_do_dfs_reentry_cac_if_required(cfg);
+		if (dfs_cac_started) {
+			/* join after cac finish */
+			return;
+		}
+
+	}
+#endif /* CLIENT_CSA && WL_DFS */
 
 #ifdef SLAVE_RADAR
-	wlc_assoc_t *as = cfg->assoc;
+	as = cfg->assoc;
 	if ((as->state != AS_DFS_ISM_INIT) && SLVRADAR_ENAB(wlc->pub))
 		wlc_join_chkdfs_cac_ism(cfg);
 	else
@@ -4441,9 +4513,9 @@ wlc_join_bss_start(wlc_bsscfg_t *cfg)
 	wlc_txq_info_t *qi = cfg->wlcif->qi;
 	struct pktq *q = WLC_GET_TXQ(qi);
 
-#ifdef SLAVE_RADAR
+#if defined(SLAVE_RADAR) || defined(CLIENT_CSA)
 	/* Delete the assoc timer, if we are done with CAC */
-	if ((as->state == AS_DFS_ISM_INIT) && SLVRADAR_ENAB(wlc->pub)) {
+	if (as->state == AS_DFS_ISM_INIT) {
 		wlc_assoc_timer_del(wlc, cfg);
 	}
 #endif	/* SLAVE_RADAR */
@@ -4686,6 +4758,13 @@ wlc_join_assoc_start(wlc_info_t *wlc, wlc_bsscfg_t *cfg, struct scb *scb,
 	} else
 		allow_reassoc = FALSE;
 #endif /* WLFBT */
+#ifdef WL_MBO
+	if ((MBO_ENAB(wlc->pub) && !AP_ENAB(wlc->pub)) &&
+		(cfg->assoc->type == AS_ROAM) &&
+		wlc_assoc_check_roam_candidate(cfg, bi, 1) == FALSE) {
+		allow_reassoc = FALSE;
+	}
+#endif /* WL_MBO */
 	return wlc_sendassocreq(wlc, bi, scb, associated && allow_reassoc);
 } /* wlc_join_assoc_start */
 
@@ -4886,8 +4965,11 @@ wlc_join_BSS_sendauth(wlc_bsscfg_t *cfg, wlc_bss_info_t *bi,
 	                   auth, 1, DOT11_SC_SUCCESS, NULL,
 	                   ((bi->capability & DOT11_CAP_SHORT) != 0));
 
-	if (!pkt)
+	if (!pkt) {
 		wl_add_timer(wlc->wl, as->timer, WECA_ASSOC_TIMEOUT + 10, 0);
+	} else {
+		wl_add_timer(wlc->wl, as->timer, WECA_ASSOC_TIMEOUT*10 + 10, 0);
+	}
 
 #if defined(WLP2P) && defined(BCMDBG)
 	if (WL_P2P_ON()) {
@@ -5507,6 +5589,12 @@ wlc_assoc_timeout(void *arg)
 		bcopy(cfg->SSID, ssid.SSID, ssid.SSID_len);
 		wlc_join(wlc, cfg, ssid.SSID, ssid.SSID_len, NULL, NULL, 0);
 		delete_assoc_timeslot = FALSE;
+	} else if (as->state == AS_WAIT_TX_DRAIN) {
+		WL_ASSOC(("ROAM: abort txq drain after %d ms\n", WLC_TXQ_DRAIN_TIMEOUT));
+		wlc_assoc_change_state(cfg, AS_WAIT_TX_DRAIN_TIMEOUT);
+#ifdef STA
+		wlc_join_BSS(cfg, wlc->as->cmn->join_targets->ptrs[wlc->as->cmn->join_targets_last]);
+#endif
 	}
 #ifdef EXT_STA
 	else if (WLEXTSTA_ENAB(wlc->pub) &&
@@ -5974,6 +6062,19 @@ wlc_assoc_change_state(wlc_bsscfg_t *cfg, uint newstate)
 		wlc_set_wake_ctrl(wlc);
 		return;
 	}
+
+#ifdef	CLIENT_CSA
+	/* if radar detected during DFS re-entry logic, abort Association state
+	 * machine and let wlc_try_join_start initiate join state machine from
+	 * scan stage
+	 */
+	if (!BSSCFG_AP(cfg) && APSTA_ENAB(cfg->wlc->pub) &&
+		(newstate == AS_DFS_CAC_FAIL)) {
+
+		wlc_assoc_abort(cfg);
+	}
+#endif /* CLIENT_CSA */
+
 #ifdef SLAVE_RADAR
 	if (WL11H_STA_ENAB(wlc) && SLVRADAR_ENAB(wlc->pub)) {
 		bool from_radar = FALSE;
@@ -9124,6 +9225,8 @@ wlc_assoc_continue_post_auth1(wlc_bsscfg_t *cfg, struct scb *scb)
 	wlc_assoc_timer_del(wlc, cfg);
 
 	if (pkt != NULL) {
+		/* Add timer in case no wlc_assocreq_complete callback */
+		wl_add_timer(wlc->wl, as->timer, WECA_ASSOC_TIMEOUT*10 + 10, 0);
 		if (!wlc_pcb_fn_register(wlc->pcb, wlc_assocreq_complete,
 		                    (void *)(uintptr)cfg->ID, pkt)) {
 			return;
@@ -9131,9 +9234,10 @@ wlc_assoc_continue_post_auth1(wlc_bsscfg_t *cfg, struct scb *scb)
 			WL_ERROR(("wl%d: %s out of pkt callbacks\n",
 					wlc->pub->unit, __FUNCTION__));
 		}
-	}
-	/* Fall back to timer method */
-	wl_add_timer(wlc->wl, as->timer, WECA_ASSOC_TIMEOUT + 10, 0);
+	} else {
+		/* Fall back to timer method */
+		wl_add_timer(wlc->wl, as->timer, WECA_ASSOC_TIMEOUT + 10, 0);
+        }
 }
 
 void
@@ -9726,6 +9830,8 @@ wlc_roam_complete(wlc_bsscfg_t *cfg, uint status, struct ether_addr *addr, uint 
 			}
 
 			wlc_set_dfs_cacstate(wlc->dfs, OFF, cfg);
+			wlc_disassociate_client(cfg, FALSE);
+			cfg->roam->active = FALSE;
 		}
 	} else if (status == WLC_E_STATUS_ABORT) {
 		WL_ASSOC(("wl%d: JOIN: roam aborted\n", WLCWLUNIT(wlc)));
@@ -10286,18 +10392,26 @@ wlc_assoc_get_unicast(rsn_parms_t *rsn)
 }
 
 static bool
-wlc_assoc_check_rsn(rsn_parms_t *current_rsn, rsn_parms_t *candidate_rsn)
+wlc_assoc_check_rsn(rsn_parms_t *current_rsn, rsn_parms_t *candidate_rsn, bool rsn)
 {
 	uint32 current_ucast = wlc_assoc_get_unicast(current_rsn);
 	uint32 candidate_ucast = wlc_assoc_get_unicast(candidate_rsn);
 
-	/* check multicast */
-	if (current_rsn->multicast != candidate_rsn->multicast) {
-		return FALSE;
+	if (!rsn) {
+		/* check multicast */
+		if (current_rsn->multicast != candidate_rsn->multicast) {
+			return FALSE;
+		}
+
+		/* check unicast */
+		if (current_ucast && candidate_ucast && current_ucast !=  candidate_ucast) {
+			return FALSE;
+		}
 	}
 
-	/* check unicast */
-	if (current_ucast && candidate_ucast && current_ucast !=  candidate_ucast) {
+	/* check capability */
+	if (rsn && (memcmp(current_rsn->cap, candidate_rsn->cap, sizeof(current_rsn->cap)) != 0)) {
+		WL_ASSOC(("candidate_rsn capability is not the same as current_rsn capability\n"));
 		return FALSE;
 	}
 
@@ -10305,7 +10419,7 @@ wlc_assoc_check_rsn(rsn_parms_t *current_rsn, rsn_parms_t *candidate_rsn)
 }
 
 bool
-wlc_assoc_check_roam_candidate(wlc_bsscfg_t *cfg, wlc_bss_info_t *candidate_bi)
+wlc_assoc_check_roam_candidate(wlc_bsscfg_t *cfg, wlc_bss_info_t *candidate_bi, bool rsn)
 {
 	wlc_bss_info_t *current_bi = cfg->current_bss;
 #if defined(BCMDBG) || defined(WLMSG_ASSOC)
@@ -10316,25 +10430,27 @@ wlc_assoc_check_roam_candidate(wlc_bsscfg_t *cfg, wlc_bss_info_t *candidate_bi)
 		bcm_ether_ntoa(&current_bi->BSSID, eabuf1), cfg->WPA_auth,
 		bcm_ether_ntoa(&candidate_bi->BSSID, eabuf2), candidate_bi->WPA_auth_support));
 
-	if (cfg->WPA_auth == WPA_AUTH_DISABLED) {
-		return (candidate_bi->WPA_auth_support == WPA_AUTH_DISABLED);
-	}
+	if (!rsn) {
+		if (cfg->WPA_auth == WPA_AUTH_DISABLED) {
+			return (candidate_bi->WPA_auth_support == WPA_AUTH_DISABLED);
+		}
 
-	/* fisrt, check the candidate supports current auth type */
-	if ((cfg->WPA_auth & candidate_bi->WPA_auth_support) != cfg->WPA_auth) {
-		WL_ASSOC(("AKM doesn't support\n"));
-		return FALSE;
+		/* fisrt, check the candidate supports current auth type */
+		if ((cfg->WPA_auth & candidate_bi->WPA_auth_support) != cfg->WPA_auth) {
+			WL_ASSOC(("AKM doesn't support\n"));
+			return FALSE;
+		}
 	}
 
 	/* check multicast and unicast cipher */
 	if (bcmwpa_is_wpa_auth(cfg->WPA_auth)) {
-		if (!wlc_assoc_check_rsn(&current_bi->wpa, &candidate_bi->wpa)) {
+		if (!wlc_assoc_check_rsn(&current_bi->wpa, &candidate_bi->wpa, rsn)) {
 			WL_ASSOC(("WPA RSN doesn't match\n"));
 			return FALSE;
 		}
 	}
 	else if (bcmwpa_is_wpa2_auth(cfg->WPA_auth)) {
-		if (!wlc_assoc_check_rsn(&current_bi->wpa2, &candidate_bi->wpa2)) {
+		if (!wlc_assoc_check_rsn(&current_bi->wpa2, &candidate_bi->wpa2, rsn)) {
 			WL_ASSOC(("WPA2 RSN doesn't match\n"));
 			return FALSE;
 		}
@@ -15347,5 +15463,46 @@ wlc_assoc_get_next_join_bi(wlc_info_t *wlc)
 	ASSERT(wlc->as->cmn->join_targets_last != 0);
 	return wlc->as->cmn->join_targets->ptrs[--wlc->as->cmn->join_targets_last];
 }
+
+int8
+wlc_assoc_get_as_state(wlc_bsscfg_t *cfg)
+{
+	if (!BSSCFG_STA(cfg)) {
+		return -1;
+	} else {
+		if (cfg->assoc == NULL) {
+			return -1;
+		}
+		return cfg->assoc->state;
+	}
+}
+
+#if defined(CLIENT_CSA) && defined(WLDFS)
+static bool
+wlc_assoc_do_dfs_reentry_cac_if_required(wlc_bsscfg_t *cfg)
+{
+	wlc_bss_info_t *bi;
+	wlc_info_t *wlc = cfg->wlc;
+	wlc_assoc_t *as = cfg->assoc;
+	bool dfs_cac_started = FALSE;
+
+	bi = wlc->as->cmn->join_targets->ptrs[wlc->as->cmn->join_targets_last];
+	if ((wlc_radar_chanspec(wlc->cmi, bi->chanspec)) &&
+		!(wlc_cac_is_clr_chanspec(wlc->dfs, bi->chanspec))) {
+		/* DFS cac is required on this channel, start CAC */
+		wlc_suspend_mac_and_wait(wlc);
+		wlc_set_chanspec(wlc, bi->chanspec, CHANSW_CSA_DFS);
+		wlc_enable_mac(wlc);
+		phy_radar_detect_enable((phy_info_t *)WLC_PI(wlc), TRUE);
+		wlc_assoc_timer_del(wlc, cfg);
+		wl_add_timer(wlc->wl, as->timer,
+			(wlc_dfs_get_cactime_ms(wlc->dfs) + DELAY_10MS), FALSE);
+		wlc_assoc_change_state(cfg, AS_DFS_CAC_START);
+		wlc_set_dfs_cacstate(wlc->dfs, ON, cfg);
+		dfs_cac_started = TRUE;
+	}
+	return dfs_cac_started;
+}
+#endif /* CLIENT_CSA && WLDFS */
 
 /* ******** WORK IN PROGRESS ******** */

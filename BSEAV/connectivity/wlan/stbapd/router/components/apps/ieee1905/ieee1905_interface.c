@@ -843,7 +843,7 @@ void i5InterfaceInit()
 
 void i5GetInterfaceIDFromIfname(char *ifname, unsigned char *mac)
 {
-  i5_dm_device_type  *pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  i5_dm_device_type  *pdevice = i5DmGetSelfDevice();
   i5_dm_interface_type *pinterface = pdevice->interface_list.ll.next;
 
   while ( pinterface != NULL )
@@ -859,7 +859,7 @@ void i5GetInterfaceIDFromIfname(char *ifname, unsigned char *mac)
 
 void i5GetIfnameFromMacAdress(unsigned char *mac, char *ifname)
 {
-    i5_dm_device_type  *pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+    i5_dm_device_type  *pdevice = i5DmGetSelfDevice();
     i5_dm_interface_type *pinterface = pdevice->interface_list.ll.next;
 
     if (!ifname || !mac)

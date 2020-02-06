@@ -385,7 +385,7 @@ void km_null_key_deauth(keymgmt_t *km, scb_t *scb, void *pkt)
 
 	/* 802.11i D5.0 8.4.10.1 Illegal data transfer */
 	if (!ETHER_ISMULTI(&hdr->a1) && BSSCFG_AP(bsscfg) && SCB_WDS(scb) &&
-	    (bsscfg->WPA_auth != WPA_AUTH_DISABLED)) {
+		SCB_AUTHORIZED(scb) && (bsscfg->WPA_auth != WPA_AUTH_DISABLED)) {
 		/* pairwise key is out of sync with peer, send deauth */
 		if (!(scb->flags & SCB_DEAUTH)) {
 			/* Use the cur_etheraddr of the BSSCFG that this WDS
@@ -396,6 +396,7 @@ void km_null_key_deauth(keymgmt_t *km, scb_t *scb, void *pkt)
 				&bsscfg->cur_etheraddr, &bsscfg->cur_etheraddr,
 				DOT11_RC_AUTH_INVAL);
 			wlc_scb_clearstatebit(wlc, scb, AUTHORIZED);
+			wlc_scb_disassoc_cleanup(wlc, scb);
 			wlc_deauth_complete(wlc, bsscfg, WLC_E_STATUS_SUCCESS, &scb->ea,
 				DOT11_RC_AUTH_INVAL, 0);
 			scb->flags |= SCB_DEAUTH;

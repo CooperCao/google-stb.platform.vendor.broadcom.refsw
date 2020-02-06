@@ -2201,9 +2201,7 @@ static void nxserver_check_hdcp(struct b_session *session)
             BDBG_LOG(("No re-authentication needed"));
             goto done;
         }
-        /* start authentication */
-        rc = NEXUS_HdmiOutput_DisableHdcpAuthentication(hdmiOutput);
-        if (rc) BDBG_ERR(("NEXUS_HdmiOutput_DisableHdcpAuthentication failed: %d", rc));
+        /* set state machine to re-start HDCP authentication */
         session->hdcp.version_state = nxserver_hdcp_begin;
     }
 
@@ -2276,7 +2274,6 @@ static void nxserver_check_hdcp(struct b_session *session)
         */
         session->hdcp.first_start_timestamp = nxserver_p_timestamp();
         session->hdcp.cnt = 0;
-        if (!is_hdcp_start_complete(&hdcpStatus))
         {
             BDBG_LOG(("Start hdcp authentication(version=%s level=%s)", g_hdcpSelectStr[curr_version_select], g_hdcpLevelStr[curr_hdcp_level]));
             initializeHdmiOutputHdcpSettings(session, curr_version_select);
@@ -2288,11 +2285,6 @@ static void nxserver_check_hdcp(struct b_session *session)
             else {
                 session->hdcp.version_state = nxserver_hdcp_pending_start;
             }
-        }
-        else
-        {
-            session->callbackStatus.hdmiOutputHdcpChanged++;
-            session->hdcp.version_state = nxserver_hdcp_success;
         }
 
         break;
@@ -2410,6 +2402,11 @@ static void hotplug_callback_locked(void *pParam, int iParam)
         }
         else if (session->hdmi.defaultSdActive) {
             session->hdmi.defaultSdActive = false;
+            if (session->display[1].ccir656Master && session->composite.display == session->display[0].display) {
+                NEXUS_Display_RemoveOutput(session->composite.display, NEXUS_Ccir656Output_GetConnector(session->server->platformConfig.outputs.ccir656[0]));
+                session->composite.display = NULL;
+                nxserver_p_reenable_local_display(session->server);
+            }
             rc = NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &session->nxclient.displaySettings);
             if (rc) BERR_TRACE(rc);
         }
@@ -2474,10 +2471,10 @@ static void nxserver_hdcp_mute(struct b_session *session)
     bool mute = session->hdmiOutput && session->hdcp.level == NxClient_HdcpLevel_eMandatory;
 #if NEXUS_HAS_SAGE
     /* for SAGE_SECURE_MODE 6/9, we need to mute on nxserver_hdcp_pending_start as well. */
-    mute = mute && (session->hdcp.version_state < nxserver_hdcp_success);
+    mute = mute && (session->hdcp.version_state > nxserver_hdcp_not_pending && session->hdcp.version_state < nxserver_hdcp_success);
 #else
     /* assuming order of enum has pending_start and success as the highest values */
-    mute = mute && (session->hdcp.version_state < nxserver_hdcp_pending_start);
+    mute = mute && (session->hdcp.version_state > nxserver_hdcp_not_pending && session->hdcp.version_state < nxserver_hdcp_pending_start);
 #endif
     if (mute != session->hdcp.mute) {
         NEXUS_SurfaceCompositorSettings surface_compositor_settings;
@@ -3198,6 +3195,7 @@ static int init_session(nxserver_t server, unsigned index)
         server->settings.session[index].output.sd = false;
     }
     if (server->settings.session[index].output.hd && server->settings.session[index].output.sd && is_local_display(server, server->global_display_index)) {
+        NEXUS_DisplayStatus status;
         if (session->server->settings.display.slaveDisplay[session_display_index-1].format == NEXUS_VideoFormat_eNtsc) {
             session->server->settings.display.slaveDisplay[session_display_index-1].format = nxserver_p_default_sd_format(session);
         }
@@ -3218,6 +3216,9 @@ static int init_session(nxserver_t server, unsigned index)
             /* but don't fail */
         }
         session->display[session_display_index].graphicsOnly = (server->display.cap.display[session_display_index].numVideoWindows == 0);
+        rc = NEXUS_Display_GetStatus(session->display[session_display_index].display, &status);
+        session->display[session_display_index].ccir656Master = !rc && (status.timingGenerator == NEXUS_DisplayTimingGenerator_e656Output);
+        /* if ccir656Master true, display[1] must be destroyed when removing the 656 output. */
         session_display_index++;
     }
 #endif
@@ -3731,7 +3732,7 @@ static void nxserver_p_set_sd_outputs(struct b_session *session, const NxClient_
     if (server->settings.session[session->index].output.sd && pSettings->compositePreferences.enabled) {
         NEXUS_VideoFormatInfo info;
         bool hdDisplayisSdFormat;
-        NEXUS_VideoFormat_GetInfo(pSettings->format, &info);
+        NEXUS_VideoFormat_GetInfo(session->hdmi.defaultSdActive?pSettings->defaultSdFormat:pSettings->format, &info);
         hdDisplayisSdFormat = (info.height <= 576) && info.interlaced;
         /* for graphics-only SD system move SD outputs to HD display if HD display is in SD format */
         if (session->display[1].display && !(session->display[1].graphicsOnly && hdDisplayisSdFormat)) {
@@ -3785,6 +3786,10 @@ static void nxserver_p_set_sd_outputs(struct b_session *session, const NxClient_
     if (server->platformConfig.outputs.ccir656[0]) {
         if ((session->composite.display != display) && session->composite.display) {
             NEXUS_Display_RemoveOutput(session->composite.display, NEXUS_Ccir656Output_GetConnector(server->platformConfig.outputs.ccir656[0]));
+            if (session->display[1].ccir656Master && session->composite.display == session->display[1].display) {
+                /* for now, ccir656Master and nxserverlib_encoder's use are never simultaneous, so keep code simple */
+                nxserver_p_disable_local_display(session->server, 1);
+            }
         }
         if ((session->composite.display != display) && display) {
             NEXUS_Display_AddOutput(display, NEXUS_Ccir656Output_GetConnector(server->platformConfig.outputs.ccir656[0]));
@@ -4024,7 +4029,9 @@ NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_
     }
 #endif
 
-    nxserver_p_set_sd_outputs(session, pSettings);
+    if (!waitForInactive) { /* will be called from b_display_format_change */
+        nxserver_p_set_sd_outputs(session, pSettings);
+    }
 
 #if NEXUS_HAS_HDMI_OUTPUT
     if (session->hdmiOutput) {
@@ -4802,6 +4809,10 @@ static NEXUS_Error bserver_set_standby_settings(nxserver_t server, const NxClien
             if (server->session[i]) server->session[i]->callbackStatus.standbyStateChanged++;
         }
 
+        server->standby.state = b_standby_state_none;
+        server->standby.standbySettings = *pSettings;
+        NEXUS_GetTimestamp(&server->standby.last_resume_timestamp);
+
         for (i=0;i<NXCLIENT_MAX_SESSIONS;i++) {
             NEXUS_SurfaceCompositorSettings surface_compositor_settings;
             struct b_session *session = server->session[i];
@@ -4839,10 +4850,6 @@ static NEXUS_Error bserver_set_standby_settings(nxserver_t server, const NxClien
             bserver_acquire_audio_mixers(session->main_audio, true);
             nxserver_p_acquire_release_all_resources(session, true);
         }
-
-        server->standby.state = b_standby_state_none;
-        server->standby.standbySettings = *pSettings;
-        NEXUS_GetTimestamp(&server->standby.last_resume_timestamp);
 
         /* destroy zombie clients */
         {

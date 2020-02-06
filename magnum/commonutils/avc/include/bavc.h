@@ -148,6 +148,10 @@ typedef struct BAVC_MFD_Picture
      * instead of using the supplied buffers. */
     bool                     bMute;
 
+    /* This flag is set before the first displayable picture is available for
+       the first channel start, to hide the black flash */
+    bool                     bInvisible;
+
     /* Source polarity.  This indicate that the buffer need to be scan
      * out as eSourcePolarity (T/B/F polairy).  As determined by the
      * correct display logic of MVD.  Which could override the original

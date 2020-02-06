@@ -35,12 +35,18 @@ extern void wlc_scb_wds_free(struct wlc_info *wlc);
 extern bool wlc_wds_lazywds_is_enable(wlc_wds_info_t *mwds);
 extern int wlc_wds_peers_connected(wlc_info_t *wlc);
 extern int wlc_wds_create_link_event(wlc_info_t *wlc, struct scb *scb, bool isup);
+extern bool wlc_wds_is_active(wlc_info_t *wlc);
 #if defined(DWDS)
 #ifdef DPSTA
 extern struct scb *wlc_dwds_client_is_ds_sta(wlc_info_t *wlc, struct ether_addr *mac);
 extern bool wlc_dwds_is_ds_sta(wlc_info_t *wlc, struct ether_addr *mac);
 extern bool wlc_dwds_authorized(wlc_bsscfg_t *cfg);
 #endif /* DPSTA */
+extern dwds_sa_t *wlc_dwds_findsa(wlc_info_t *wlc, wlc_bsscfg_t *cfg, uint8 *ea);
+extern dwds_sa_t *wlc_dwds_addsa(wlc_info_t *wlc, wlc_bsscfg_t *cfg, uint8 *ea);
+extern void wlc_dwds_expire_sa(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
+extern void wlc_dwds_flush_salist(wlc_info_t *wlc, wlc_bsscfg_t *cfg);
+extern void wlc_dwds_dump_sa_list(void *ctx, wlc_bsscfg_t *cfg, struct bcmstrbuf *b);
 #endif /* DWDS */
 
 #else /* !WDS */
@@ -52,7 +58,12 @@ extern bool wlc_dwds_authorized(wlc_bsscfg_t *cfg);
 #define wlc_scb_wds_free(a) do {} while (0)
 #define wlc_wds_lazywds_is_enable(a) 0
 #define wlc_wds_create_link_event(a, b, c) do {} while (0)
-
+#define wlc_wds_process_csa(a, b, c) do {} while (0)
+#define wlc_dwds_findsa(a, b, c)	NULL
+#define wlc_dwds_addsa(a, b, c)		NULL
+#define wlc_dwds_expire_sa(a, b) do {}	while (0)
+#define wlc_dwds_flush_salist(a, b) do {} while (0)
+#define wlc_dwds_dump_sa_list(a, b, c)	do {} while (0)
 #endif /* !WDS */
 
 #endif /* _wlc_wds_h_ */

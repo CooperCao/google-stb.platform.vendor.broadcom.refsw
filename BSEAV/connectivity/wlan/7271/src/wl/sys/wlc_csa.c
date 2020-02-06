@@ -76,6 +76,9 @@
 #include <wlc_dfs.h>
 #include <wlc_rsdb.h>
 #include <phy_misc_api.h>
+#ifdef WDS
+#include <wlc_wds.h>
+#endif /* WDS */
 
 /* IOVar table */
 /* No ordering is imposed */
@@ -730,7 +733,7 @@ wlc_csa_train_txpower(wlc_csa_info_t *csam, wlc_bsscfg_t *cfg)
 			can_again = FALSE;
 
 			FOREACH_BSS_SCB(wlc->scbstate, &scbiter, cfg, scb) {
-				if (SCB_ASSOCIATED(scb)) {
+				if (SCB_ASSOCIATED(scb) || SCB_LEGACY_WDS(scb)) {
 					can_again = wlc_csa_train_txpower_sendpkt(wlc,
 						cfg, &scb->ea) ? (--count != 0) : FALSE;
 					if (!can_again) {
@@ -785,7 +788,7 @@ wlc_csa_timeout(void *arg)
 			wlc_csa_scb_cubby_t *csa_scb = CSA_SCB_CUBBY(csam, scb);
 			ASSERT(csa_scb != NULL);
 
-			if (!SCB_ISMULTI(scb) && SCB_ASSOCIATED(scb) &&
+			if (!SCB_ISMULTI(scb) && (SCB_ASSOCIATED(scb) || SCB_LEGACY_WDS(scb)) &&
 				(psta_prim == NULL) &&
 				(csa_scb->dcs_relocation_state != CSA_UNICAST_RELOCATION_SUCCESS)) {
 #if defined(BCMDBG)
@@ -833,8 +836,8 @@ wlc_csa_timeout(void *arg)
 				wlc_csa_scb_cubby_t *csa_scb = CSA_SCB_CUBBY(csam, scb);
 				ASSERT(csa_scb != NULL);
 
-				if (!SCB_ISMULTI(scb) && SCB_ASSOCIATED(scb) &&
-					(psta_prim == NULL)) {
+				if ((SCB_ASSOCIATED(scb) || SCB_LEGACY_WDS(scb)) &&
+					!SCB_ISMULTI(scb) && (psta_prim == NULL)) {
 					csa_scb->dcs_relocation_state = CSA_UNICAST_RELOCATION_NONE;
 					csa_scb->dcs_ack_counter = 0;
 				}
@@ -862,7 +865,7 @@ wlc_csa_timeout(void *arg)
 			wlc_csa_scb_cubby_t *csa_scb = CSA_SCB_CUBBY(csam, scb);
 			ASSERT(csa_scb != NULL);
 
-			if (!SCB_ISMULTI(scb) && SCB_ASSOCIATED(scb) &&
+			if (!SCB_ISMULTI(scb) && (SCB_ASSOCIATED(scb) || SCB_LEGACY_WDS(scb)) &&
 				(psta_prim == NULL)) {
 				csa_scb->dcs_relocation_state = CSA_UNICAST_RELOCATION_NONE;
 				csa_scb->dcs_ack_counter = 0;
@@ -1245,6 +1248,7 @@ wlc_recv_public_csa_action(wlc_csa_info_t *csam, struct dot11_management_header 
 	uint ies_len;
 	uint bw = WL_CHANSPEC_BW_20;
 #endif /* WL11AC */
+	struct scb *scb;
 
 	if ((cfg = wlc_bsscfg_find_by_bssid(wlc, &hdr->bssid)) == NULL &&
 	    (cfg = wlc_bsscfg_find_by_hwaddr(wlc, &hdr->da)) == NULL) {
@@ -1255,8 +1259,16 @@ wlc_recv_public_csa_action(wlc_csa_info_t *csam, struct dot11_management_header 
 		return;
 	}
 
-	if (!BSSCFG_STA(cfg)) {
-		WL_ERROR(("wl%d.%d: %s: not a STA\n",
+	if (WL11H_ENAB(wlc) &&
+		wlc_11h_get_spect_state(wlc->m11h, cfg) & NEED_TO_SWITCH_CHANNEL) {
+		WL_REGULATORY(("wl%d:%s Already have a scheduled channel switch!\n",
+			wlc->pub->unit, __FUNCTION__));
+		return;
+	}
+
+	scb = wlc_scbfind(wlc, cfg, &hdr->sa);
+	if (!BSSCFG_STA(cfg) && !(scb && SCB_LEGACY_WDS(scb))) {
+		WL_ERROR(("wl%d.%d: %s: not a STA and not from WDS client\n",
 		          wlc->pub->unit, WLC_BSSCFG_IDX(cfg), __FUNCTION__));
 		return;
 	}
@@ -2264,6 +2276,7 @@ wlc_send_action_switch_channel_ex(wlc_csa_info_t *csam, wlc_bsscfg_t *cfg,
 #ifdef WL11AC
 	bool wide_bw_ie = FALSE;
 #endif /* WL11AC */
+	struct scb *scb = NULL;
 
 	/* Action switch_channel */
 	body_len = DOT11_ACTION_HDR_LEN + TLV_HDR_LEN;
@@ -2313,9 +2326,19 @@ wlc_send_action_switch_channel_ex(wlc_csa_info_t *csam, wlc_bsscfg_t *cfg,
 	WL_COEX(("wl%d: %s: Send CSA (id=%d) Action frame\n",
 		wlc->pub->unit, __FUNCTION__, action_id));
 
-	if (csa->frame_type == CSA_UNICAST_ACTION_FRAME)
+	if (csa->frame_type == CSA_UNICAST_ACTION_FRAME) {
 		wlc_pcb_fn_register(wlc->pcb, wlc_csa_unicast_tx_complete, (void *)p, p);
-
+	}
+   /* For client csa, Dst is Unicast. If MFP is enabled, in that case extra
+	* 8 bytes needs to be populated with CCMP parameters before Action category.
+	* For this requirement scb is required to get correct key. Failing of this
+	* lead to not set FC_WEP in frame control info hence parser logic fails
+	* to read CSA at upstream AP
+	*/
+	if (!ETHER_ISBCAST(dst) && !ETHER_ISMULTI(dst)) {
+		scb = wlc_scbfindband(wlc, cfg, dst,
+			CHSPEC_WLCBANDUNIT(cfg->current_bss->chanspec));
+	}
 	ret = wlc_sendmgmt(wlc, p, cfg->wlcif->qi, NULL);
 
 	return (ret ? BCME_OK : BCME_ERROR);
@@ -2410,7 +2433,7 @@ wlc_send_action_switch_channel(wlc_csa_info_t *csam, wlc_bsscfg_t *cfg)
 			wlc_csa_scb_cubby_t *csa_scb = CSA_SCB_CUBBY(csam, scb);
 			ASSERT(csa_scb != NULL);
 
-			if (SCB_ASSOCIATED(scb) && !SCB_ISMULTI(scb) &&
+			if ((SCB_ASSOCIATED(scb) || SCB_LEGACY_WDS(scb)) && !SCB_ISMULTI(scb) &&
 				(psta_prim == NULL)) {
 				bcmerror = wlc_send_action_switch_channel_ex(csam, cfg, &scb->ea,
 					&csa->csa, DOT11_SM_ACTION_CHANNEL_SWITCH);
@@ -2490,6 +2513,8 @@ wlc_csa_do_csa(wlc_csa_info_t *csam, wlc_bsscfg_t *cfg, wl_chan_switch_t *cs, bo
 	ASSERT(csa != NULL);
 
 	csa->csa = *cs;
+	/* need to send legacy CSA and new 11n Ext-CSA if is n-enabled */
+	wlc_send_action_switch_channel(csam, cfg);
 
 	if (csa->csa.mode != 0) {
 		/* CSA Mode 0, Data transmission can take place till the time of
@@ -2497,8 +2522,6 @@ wlc_csa_do_csa(wlc_csa_info_t *csam, wlc_bsscfg_t *cfg, wl_chan_switch_t *cs, bo
 		 */
 		wlc_block_datafifo(wlc, DATA_BLOCK_QUIET, DATA_BLOCK_QUIET);
 	}
-	/* need to send legacy CSA and new 11n Ext-CSA if is n-enabled */
-	wlc_send_action_switch_channel(csam, cfg);
 
 	if (docs) {
 		wlc_do_chanswitch(cfg, cs->chspec);

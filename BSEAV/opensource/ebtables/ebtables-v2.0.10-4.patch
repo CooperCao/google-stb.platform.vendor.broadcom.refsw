@@ -1,0 +1,109 @@
+diff -Naur ebtables-v2.0.10-4_orig/communication.c ebtables-v2.0.10-4/communication.c
+--- ebtables-v2.0.10-4_orig/communication.c	2011-12-15 12:02:47.000000000 -0800
++++ ebtables-v2.0.10-4/communication.c	2019-07-01 17:33:18.622088366 -0700
+@@ -282,7 +282,7 @@
+ 	}
+ close_file:
+ 	fclose(file);
+-	return 0;
++	return ret;
+ }
+ 
+ /* Gets executed after ebt_deliver_table. Delivers the counters to the kernel
+diff -Naur ebtables-v2.0.10-4_orig/Makefile ebtables-v2.0.10-4/Makefile
+--- ebtables-v2.0.10-4_orig/Makefile	2011-12-15 12:02:47.000000000 -0800
++++ ebtables-v2.0.10-4/Makefile	2019-07-01 17:35:36.220099161 -0700
+@@ -5,21 +5,24 @@
+ PROGVERSION_:=2.0.10
+ PROGVERSION:=$(PROGVERSION_)-$(PROGRELEASE)
+ PROGDATE:=December\ 2011
+-LOCKFILE?=/var/lib/ebtables/lock
++LOCKFILE?=/var/run/ebtables_lock
+ LOCKDIR:=$(shell echo $(LOCKFILE) | sed 's/\(.*\)\/.*/\1/')/
+ 
+ # default paths
+ LIBDIR:=/usr/lib
+ MANDIR:=/usr/local/man
+-BINDIR:=/usr/local/sbin
++BINDIR:=/usr/sbin
+ ETCDIR:=/etc
+ INITDIR:=/etc/rc.d/init.d
+ SYSCONFIGDIR:=/etc/sysconfig
+-DESTDIR:=
++DESTDIR:=$(INSTALLDIR)
+ 
+-CFLAGS:=-Wall -Wunused -Werror
++CFLAGS:=-Wall
++ifneq ($(STBANDROID),1)
++CFLAGS	+= -Werror
++endif
+ CFLAGS_SH_LIB:=-fPIC -O3
+-CC:=gcc
++CC:=$(CROSS)gcc
+ 
+ ifeq ($(shell uname -m),sparc64)
+ CFLAGS+=-DEBT_MIN_ALIGN=8 -DKERNEL_64_USERSPACE_32
+@@ -66,6 +69,36 @@
+ #PROGSPECSD+=-DEBT_DEBUG
+ #CFLAGS+=-ggdb
+ 
++ifeq ($(STBANDROID),1)
++# The following is for Android P
++CFLAGS += -Wl,--dynamic-linker=/system/bin/linker
++CFLAGS += -pie -fPIE
++CFLAGS += --sysroot=$(BROADCOM_ANDROID_SYSROOT)
++CFLAGS += -isystem $(BROADCOM_ANDROID_SYSROOT)/usr/include/
++CFLAGS += -I$(ANDROID)/bionic/libc/include \
++	-I$(ANDROID)/bionic/libstdc++/include \
++	-I$(ANDROID)/bionic/libm/include \
++	-I$(ANDROID)/bionic/libthread_db/include \
++	-I$(ANDROID)/bionic/libm \
++	-I$(ANDROID)/out/target/product/${LOCAL_PRODUCT_OUT}/obj/SHARED_LIBRARIES/libm_intermediates \
++	-I$(ANDROID)/frameworks/native/include \
++	-I$(ANDROID)/bionic/libc/kernel/uapi \
++	-I$(ANDROID)/bionic/libc/kernel/android/uapi
++
++# includes - arch specific - only arm/aarch64 supported.
++ifeq ($(B_REFSW_ARCH), aarch64-linux)
++CFLAGS += -I$(ANDROID)/bionic/libc/arch-arm64/include \
++	-I$(ANDROID)/bionic/libm/arm64 \
++	-I$(ANDROID)/bionic/libc/kernel/uapi/asm-arm64
++else
++CFLAGS += -I$(ANDROID)/bionic/libc/arch-arm/include \
++	-I$(ANDROID)/bionic/libm/arm \
++	-I$(ANDROID)/bionic/libc/kernel/uapi/asm-arm
++endif
++
++LDFLAGS  := -L$(B_REFSW_ANDROID_LIB)
++endif
++
+ all: ebtables ebtables-restore
+ 
+ communication.o: communication.c include/ebtables_u.h
+@@ -87,7 +120,11 @@
+ 	$(CC) $(CFLAGS) $(CFLAGS_SH_LIB) $(PROGSPECS) -c $< -o $@ -I$(KERNEL_INCLUDES)
+ 
+ libebtc.so: $(OBJECTS2)
++ifeq ($(STBANDROID),1)
++	$(CC) $(CFLAGS) -shared $(LDFLAGS) -Wl,-soname,libebtc.so -o libebtc.so $(OBJECTS2)
++else
+ 	$(CC) -shared $(LDFLAGS) -Wl,-soname,libebtc.so -o libebtc.so -lc $(OBJECTS2)
++endif
+ 
+ ebtables: $(OBJECTS) ebtables-standalone.o libebtc.so
+ 	$(CC) $(CFLAGS) $(CFLAGS_SH_LIB) $(LDFLAGS) -o $@ ebtables-standalone.o -I$(KERNEL_INCLUDES) -L. -Lextensions -lebtc $(EXT_LIBSI) \
+@@ -180,11 +217,11 @@
+ .PHONY: exec
+ exec: ebtables ebtables-restore
+ 	mkdir -p $(DESTDIR)$(BINDIR)
+-	install -m 0755 -o root -g root $(PROGNAME) $(DESTDIR)$(BINDIR)/$(PROGNAME)
+-	install -m 0755 -o root -g root ebtables-restore $(DESTDIR)$(BINDIR)/ebtables-restore
++	install -m 0755 $(PROGNAME) $(DESTDIR)$(BINDIR)/$(PROGNAME)
++	install -m 0755 ebtables-restore $(DESTDIR)$(BINDIR)/ebtables-restore
+ 
+ .PHONY: install
+-install: $(MANDIR)/man8/ebtables.8 $(DESTDIR)$(ETHERTYPESFILE) exec scripts
++install: exec
+ 	mkdir -p $(DESTDIR)$(LIBDIR)
+ 	install -m 0755 extensions/*.so $(DESTDIR)$(LIBDIR)
+ 	install -m 0755 *.so $(DESTDIR)$(LIBDIR)

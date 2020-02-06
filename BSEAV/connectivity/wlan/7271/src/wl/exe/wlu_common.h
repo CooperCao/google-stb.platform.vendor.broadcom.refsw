@@ -71,6 +71,11 @@ typedef struct wl_cmd_list {
 	wl_seq_cmd_pkt_t	*tail;
 } wl_cmd_list_t;
 
+typedef union wl_rateset_args_u {
+	wl_rateset_args_v1_t rsv1;
+	wl_rateset_args_v2_t rsv2;
+} wl_rateset_args_u_t;
+
 /*
  * Name table to associate strings with numeric IDs
  */

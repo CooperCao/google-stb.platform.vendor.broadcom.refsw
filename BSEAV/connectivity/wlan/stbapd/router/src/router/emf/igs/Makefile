@@ -15,6 +15,14 @@
 # OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
+# certain build servers use shells other than 'bash' (e.g. Ubuntu - dash);
+# force shell value if not 'bash', Makefiles higly dependent on it.
+SHELL_LINK = $(shell ls -l $(SHELL))
+ifeq ($(findstring("bash", $(SHELL_LINK))),)
+    SHELL := /bin/bash
+    export $(SHELL)
+endif
+
 JOBS := 4
 
 TARGET=igs

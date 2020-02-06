@@ -126,11 +126,18 @@ ifneq ($(B_REFSW_HOSTAPD_IS_EXTERNAL),y)
 				echo "applying patch hostapd-${B_HOSTAPD_VER}-driver_cmd_support.patch"; \
 				patch -t -d ${B_HOSTAPD_SOURCE_PATH} -p1 < hostapd-${B_HOSTAPD_VER}-driver_cmd_support.patch ${B_HOSTAPD_EXTRACT_REDIR}; \
 			fi; \
+			if [ -e "defconfig-${B_HOSTAPD_VER}" ]; then \
+				echo "copying defconfig-${B_HOSTAPD_VER} to hostapd src"; \
+				cp ${B_HOSTAPD_BUILD_DIR}/defconfig-${B_HOSTAPD_VER} ${B_HOSTAPD_SOURCE_PATH}/hostapd/defconfig; \
+			fi; \
+			if [ -e "hostapd-${B_HOSTAPD_VER}-brcm.config" ]; then \
+				echo "copying defconfig-${B_HOSTAPD_VER} to hostapd src"; \
+				cp ${B_HOSTAPD_BUILD_DIR}/hostapd-${B_HOSTAPD_VER}-brcm.config ${B_HOSTAPD_SOURCE_PATH}/hostapd/defconfig; \
+			fi; \
 			if [ "${BUILD_BRCM_HOSTAPD}" == "y" ]; then \
 				if [ -e "hostapd-${B_HOSTAPD_VER}-map_support.patch" ]; then \
 					echo "applying patch hostapd-${B_HOSTAPD_VER}-map_support.patch"; \
 					patch -t -d ${B_HOSTAPD_SOURCE_PATH} -p1 < hostapd-${B_HOSTAPD_VER}-map_support.patch ${B_HOSTAPD_EXTRACT_REDIR}; \
-					cp ${B_HOSTAPD_BUILD_DIR}/brcm.config ${B_HOSTAPD_SOURCE_PATH}/hostapd/defconfig; \
 				fi; \
 			fi; \
 		else \

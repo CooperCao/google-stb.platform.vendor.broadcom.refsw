@@ -109,6 +109,7 @@ typedef enum t_i5_api_cmd_name
   I5_API_CMD_SEND_UNASSOC_STA_LINK_METRIC_QUERY,
   I5_API_CMD_SEND_BEACON_METRIC_QUERY,
 #endif /* MULTIAP */
+  I5_API_CMD_GET_DM_VERSION,
 } t_I5_API_CMD_NAME;
 
 typedef struct t_i5_api_msg

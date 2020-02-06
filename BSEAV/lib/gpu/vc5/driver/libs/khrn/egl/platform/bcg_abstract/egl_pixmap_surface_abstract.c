@@ -30,11 +30,12 @@ struct egl_pixmap_surface
 static EGL_SURFACE_METHODS_T fns;
 
 /* Get the buffer to draw to */
-static khrn_image *get_back_buffer(EGL_SURFACE_T *surface)
+static EGLint get_back_buffer(EGL_SURFACE_T *surface, khrn_image **image)
 {
    EGL_PIXMAP_SURFACE_T *surf = (EGL_PIXMAP_SURFACE_T *) surface;
 
-   return surf->image;
+   *image = surf->image;
+   return surf->image ? EGL_SUCCESS : EGL_BAD_NATIVE_PIXMAP;
 }
 
 static void delete_fn(EGL_SURFACE_T *surface)
@@ -207,7 +208,12 @@ EGLAPI EGLBoolean EGLAPIENTRY eglCopyBuffers(EGLDisplay dpy, EGLSurface
 
    // TODO Invalidate aux buffers here??
 
-   if (!egl_context_convert_image(context, imageDst, egl_surface_get_back_buffer(surf)))
+   khrn_image *back_buffer;
+   error = egl_surface_get_back_buffer(surf, &back_buffer);
+   if (error != EGL_SUCCESS)
+      goto end;
+
+   if (!egl_context_convert_image(context, imageDst, back_buffer))
    {
       error = EGL_BAD_MATCH;
       goto end;

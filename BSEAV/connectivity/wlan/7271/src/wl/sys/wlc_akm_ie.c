@@ -1444,7 +1444,9 @@ wlc_check_wpa2ie(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, bcm_tlv_t *wpa2ie, struc
 	wpa_suite_mcast_t *mcast;
 	wpa_suite_ucast_t *ucast;
 	wpa_suite_auth_key_mgmt_t *mgmt;
-	uint16 count;
+	uint16 count, pmkids_len;
+	wpa_pmkid_list_t *pmkid_list = NULL;
+	uint16 pmkid_count = 0;
 
 	scb->flags2 &= ~(SCB2_MFP | SCB2_SHA256);
 
@@ -1503,6 +1505,11 @@ wlc_check_wpa2ie(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, bcm_tlv_t *wpa2ie, struc
 	/* Check the unicast cipher */
 	ucast = (wpa_suite_ucast_t *)&mcast[1];
 	count = ltoh16_ua(&ucast->count);
+
+	if ((len < sizeof(count)) || (((len - sizeof(count)) / WPA_SUITE_LEN) < count)) {
+		return DOT11_SC_ASSOC_FAIL;
+	}
+
 	if (count != 1 ||
 	    bcmp(ucast->list[0].oui, WPA2_OUI, DOT11_OUI_LEN) ||
 	    !wpa_cipher_enabled(wlc, bsscfg, ucast->list[0].type)) {
@@ -1527,6 +1534,11 @@ wlc_check_wpa2ie(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, bcm_tlv_t *wpa2ie, struc
 	/* Check the AKM */
 	mgmt = (wpa_suite_auth_key_mgmt_t *)&ucast->list[1];
 	count = ltoh16_ua(&mgmt->count);
+
+	if ((len < sizeof(count)) || (((len - sizeof(count)) / WPA_SUITE_LEN) < count)) {
+		return DOT11_SC_ASSOC_FAIL;
+	}
+
 	if ((count != 1) ||
 	    !((bcmp(mgmt->list[0].oui, WPA2_OUI, DOT11_OUI_LEN) == 0) &&
 	      (((mgmt->list[0].type == RSN_AKM_UNSPECIFIED) &&
@@ -1572,16 +1584,23 @@ wlc_check_wpa2ie(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, bcm_tlv_t *wpa2ie, struc
 		return DOT11_SC_ASSOC_FAIL;
 	}
 	scb->WPA_auth = WPA_auth;
+	len -= (WPA_IE_SUITE_COUNT_LEN + WPA_SUITE_LEN);
 
+	if (!len) {
+		return DOT11_SC_SUCCESS;
+	}
+
+	if (len < RSN_CAP_LEN) {
+		return DOT11_SC_INVALID_RSNIE_CAP;
+	}
 #ifdef MFP
 	if (WLC_MFP_ENAB(wlc->pub)) {
-		uint8 cap;
+		uint16 rsn_cap;
 		bool scb_mfp;
-		len -= (WPA_IE_SUITE_COUNT_LEN + WPA_SUITE_LEN);
-		cap = (len < RSN_CAP_LEN) ? 0 : *((uint8 *)&mgmt->list[count]);
-		if (!wlc_mfp_check_rsn_caps(wlc->mfp, bsscfg, cap, &scb_mfp)) {
-			WL_ERROR(("wl%d: invalid sta MFP setting cap: 0x%02x, wsec: 0x%02x\n",
-				wlc->pub->unit, cap, bsscfg->wsec));
+		rsn_cap = (len == 0) ? 0 : ltoh16_ua(&mgmt->list[count]);
+		if (!wlc_mfp_check_rsn_caps(wlc->mfp, bsscfg, rsn_cap, &scb_mfp)) {
+			WL_ERROR(("wl%d: invalid sta MFP setting rsn_cap: 0x%02x, wsec: 0x%02x\n",
+				wlc->pub->unit, rsn_cap, bsscfg->wsec));
 			return DOT11_SC_ASSOC_MFP_VIOLATION;
 		}
 		if (scb_mfp) {
@@ -1594,12 +1613,63 @@ wlc_check_wpa2ie(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, bcm_tlv_t *wpa2ie, struc
 #ifdef WLWNM_AP
 	/* disabled DMS service if SPP support conflict */
 	if (WLWNM_ENAB(wlc->pub) && WNM_SLEEP_ENABLED(wlc_wnm_get_cap(wlc, bsscfg))) {
-		uint16 rsn_cap = (len < RSN_CAP_LEN) ? 0 : ltoh16_ua(&mgmt->list[count]);
+		uint16 rsn_cap = (len == 0) ? 0 : ltoh16_ua(&mgmt->list[count]);
 		if ((rsn_cap & RSN_CAP_SPPR) && !(rsn_cap & RSN_CAP_SPPC)) {
 			wlc_wnm_dms_spp_conflict(wlc, scb);
 		}
 	}
 #endif /* WLWNM_AP */
+
+	if (len >= RSN_CAP_LEN) {
+		len -= RSN_CAP_LEN;
+	}
+
+	if (len >= WPA2_PMKID_COUNT_LEN) {
+		pmkid_list = (wpa_pmkid_list_t*)((uint8*)&mgmt->list[count] +
+				RSN_CAP_LEN);
+		pmkid_count = ltoh16_ua(&pmkid_list->count);
+		pmkids_len = pmkid_count * WPA2_PMKID_LEN;
+	} else {
+		 pmkids_len = 0;
+	}
+	if ((len) && (len < (pmkids_len + WPA2_PMKID_COUNT_LEN))) {
+		 WL_ERROR(("wl%d: bad length in PMKIDs. len:%d\n", wlc->pub->unit, len));
+		 return DOT11_SC_INVALID_AKMP;
+	}
+	if (len) {
+		len -= pmkids_len + WPA2_PMKID_COUNT_LEN;
+	}
+	BCM_REFERENCE(len);
+
+	if (len == 0) {
+		/* Parse PMKID.  Nothing else to parse. Return success */
+		return DOT11_SC_SUCCESS;
+	}
+
+#ifdef MFP
+	if (WLC_MFP_ENAB(wlc->pub)) {
+		wpa_suite_mcast_t *gmcs = NULL; /* Group Management Cipher Suite */
+
+		if (len < WPA_SUITE_LEN) {
+			return DOT11_SC_ASSOC_FAIL;
+		}
+
+		/* There is a Groupt Mgmt Cipher Suite.check it. */
+		gmcs = (wpa_suite_mcast_t *)&pmkid_list->list[pmkid_count];
+
+		if (bcmp(gmcs->oui, WPA2_OUI, DOT11_OUI_LEN) ||
+			gmcs->type != WPA_CIPHER_BIP) {
+			WL_ERROR(("wl%d: WPA2 Grp Mgmt Ciphr Suite %02x:%02x:%02x:%d not enabled\n",
+				wlc->pub->unit, gmcs->oui[0], gmcs->oui[1], gmcs->oui[2],
+				gmcs->type));
+			return DOT11_SC_ASSOC_FAIL;
+		}
+
+		/* Successfully parsed GMCS. Decrement length */
+		len -= WPA_SUITE_LEN;
+	}
+#endif /* MFP */
+
 
 	/* Reach this only if the IE looked okay.
 	 * Note that capability bits of the IE have no use here yet.
@@ -1748,9 +1818,9 @@ wlc_check_osenie(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, bcm_tlv_t *osenie,
 	len -= (WPA_IE_SUITE_COUNT_LEN + WPA_SUITE_LEN);
 #ifdef MFP
 	if (WLC_MFP_ENAB(wlc->pub)) {
-		uint8 cap;
+		uint16 cap;
 		bool scb_mfp;
-		cap = (len < RSN_CAP_LEN) ? 0 : *((uint8 *)&mgmt->list[count]);
+		cap = (len < RSN_CAP_LEN) ? 0 : ltoh16_ua(&mgmt->list[count]);
 		if (!wlc_mfp_check_rsn_caps(wlc->mfp, bsscfg, cap, &scb_mfp)) {
 			WL_ERROR(("wl%d: invalid sta MFP setting cap: 0x%02x, wsec: 0x%02x\n",
 				wlc->pub->unit, cap, bsscfg->wsec));
@@ -2101,8 +2171,10 @@ wlc_parse_wpa2_ie(wlc_info_t *wlc, bcm_tlv_t *wpa2ie, wlc_bss_info_t *bi)
 	wpa_suite_mcast_t *mcast;
 	wpa_suite_ucast_t *ucast;
 	wpa_suite_auth_key_mgmt_t *mgmt;
+	wpa_pmkid_list_t *pmkid_list = NULL;
 	uint8 *cap;
 	uint16 count;
+	uint16 pmkid_count;
 	uint i, j;
 	uint32 WPA_auth = WPA_AUTH_DISABLED;
 
@@ -2125,10 +2197,19 @@ wlc_parse_wpa2_ie(wlc_info_t *wlc, bcm_tlv_t *wpa2ie, wlc_bss_info_t *bi)
 
 
 	/* Check for multicast cipher suite */
-	if (len < WPA_SUITE_LEN) {
+	if (len == 0) {
 		WL_INFORM(("wl%d: no multicast cipher suite\n", wlc->pub->unit));
 		/* it is ok to not have multicast cipher */
-		return 0;
+		return DOT11_SC_SUCCESS;
+	}
+
+	if (len < WPA_SUITE_LEN) {
+		bi->wpa2.multicast = WPA_CIPHER_NONE;
+		/* Clear the RSN_FLAGS_SUPPORTED flag */
+		bi->wpa2.flags &= ~RSN_FLAGS_SUPPORTED;
+		WL_ERROR(("wl%d: unsupported WPA2 multicast cipher %d\n", wlc->pub->unit,
+			bi->wpa2.multicast));
+		return BCME_UNSUPPORTED;
 	}
 	/* pick up multicast cipher if we know what it is */
 	mcast = (wpa_suite_mcast_t *)&wpa2ie->data[WPA2_VERSION_LEN];
@@ -2145,15 +2226,39 @@ wlc_parse_wpa2_ie(wlc_info_t *wlc, bcm_tlv_t *wpa2ie, wlc_bss_info_t *bi)
 			   mcast->oui[0], mcast->oui[1], mcast->oui[2]));
 
 	/* Check for unicast suite(s) */
-	if (len < WPA_IE_SUITE_COUNT_LEN) {
+	if (len == 0) {
 		WL_INFORM(("wl%d: no unicast suite\n", wlc->pub->unit));
 		/* it is ok to not have unicast cipher(s) */
-		return 0;
+		return DOT11_SC_SUCCESS;
 	}
+
+	if (len < WPA_IE_SUITE_COUNT_LEN) {
+		bi->wpa2.unicast[0] = WPA_CIPHER_NONE;
+		/* Clear the RSN_FLAGS_SUPPORTED flag */
+		bi->wpa2.flags &= ~RSN_FLAGS_SUPPORTED;
+		WL_ERROR(("wl%d: unsupported WPA2 unicast cipher %d\n", wlc->pub->unit,
+			bi->wpa2.unicast[0]));
+		return BCME_UNSUPPORTED;
+	}
+
 	/* walk thru unicast cipher list and pick up what we recognize */
 	ucast = (wpa_suite_ucast_t *)&mcast[1];
 	count = ltoh16_ua(&ucast->count);
 	len -= WPA_IE_SUITE_COUNT_LEN;
+	if (len == 0) {
+		WL_INFORM(("wl%d: no unicast suite\n", wlc->pub->unit));
+		/* it is ok to not have unicast cipher(s) */
+		return DOT11_SC_SUCCESS;
+	}
+
+	if (len < (count*WPA_SUITE_LEN)) {
+		/* Clear the RSN_FLAGS_SUPPORTED flag */
+		bi->wpa2.flags &= ~RSN_FLAGS_SUPPORTED;
+		WL_ERROR(("wl%d: WPA2 number of unicast cipher suite present %d is less than the "
+				"count %d\n", wlc->pub->unit, len/WPA_SUITE_LEN, count));
+		return BCME_UNSUPPORTED;
+	}
+
 	for (i = 0, j = 0;
 	     i < count && j < ARRAYSIZE(bi->wpa2.unicast) && len >= WPA_SUITE_LEN;
 	     i ++, len -= WPA_SUITE_LEN) {
@@ -2175,15 +2280,37 @@ wlc_parse_wpa2_ie(wlc_info_t *wlc, bcm_tlv_t *wpa2ie, wlc_bss_info_t *bi)
 	len -= (count - i) * WPA_SUITE_LEN;
 
 	/* Check for auth key management suite(s) */
-	if (len < WPA_IE_SUITE_COUNT_LEN) {
+	if (len == 0) {
 		WL_INFORM(("wl%d: auth key mgmt suite\n", wlc->pub->unit));
 		/* it is ok to not have auth key mgmt suites */
-		return 0;
+		return DOT11_SC_SUCCESS;
+	}
+	if (len < WPA_IE_SUITE_COUNT_LEN) {
+		bi->wpa2.auth[0] = RSN_AKM_NONE;
+		/* Clear the RSN_FLAGS_SUPPORTED flag */
+		bi->wpa2.flags &= ~RSN_FLAGS_SUPPORTED;
+		WL_ERROR(("wl%d: unsupported WPA2 akm %d\n", wlc->pub->unit,
+			bi->wpa2.auth[0]));
+		return BCME_UNSUPPORTED;
 	}
 	/* walk thru auth management suite list and pick up what we recognize */
 	mgmt = (wpa_suite_auth_key_mgmt_t *)&ucast->list[count];
 	count = ltoh16_ua(&mgmt->count);
 	len -= WPA_IE_SUITE_COUNT_LEN;
+	if (len == 0) {
+		WL_INFORM(("wl%d: auth key mgmt suite\n", wlc->pub->unit));
+		/* it is ok to not have auth key mgmt suites */
+		return DOT11_SC_SUCCESS;
+	}
+
+	if (len < (count*WPA_SUITE_LEN)) {
+		/* Clear the RSN_FLAGS_SUPPORTED flag */
+		bi->wpa2.flags &= ~RSN_FLAGS_SUPPORTED;
+		WL_ERROR(("wl%d: WPA2 number of akm suite present %d is less than the count %d\n",
+			wlc->pub->unit, len/WPA_SUITE_LEN, count));
+		return BCME_UNSUPPORTED;
+	}
+
 	for (i = 0, j = 0;
 	     i < count && j < ARRAYSIZE(bi->wpa2.auth) && len >= WPA_SUITE_LEN;
 	     i ++, len -= WPA_SUITE_LEN) {
@@ -2252,10 +2379,17 @@ wlc_parse_wpa2_ie(wlc_info_t *wlc, bcm_tlv_t *wpa2ie, wlc_bss_info_t *bi)
 	/* jump to RSN Cap */
 	len -= (count - i) * WPA_SUITE_LEN;
 
-	if (len < RSN_CAP_LEN) {
+	if (len == 0) {
 		WL_INFORM(("wl%d: no rsn cap\n", wlc->pub->unit));
 		/* it is ok to not have RSN Cap */
-		return 0;
+		return DOT11_SC_SUCCESS;
+	}
+
+	if (len < RSN_CAP_LEN) {
+		/* Clear the RSN_FLAGS_SUPPORTED flag */
+		bi->wpa2.flags &= ~RSN_FLAGS_SUPPORTED;
+		WL_ERROR(("wl%d: unsupported RSN Cap\n", wlc->pub->unit));
+		return BCME_UNSUPPORTED;
 	}
 
 	/* parse RSN capabilities */
@@ -2278,12 +2412,76 @@ wlc_parse_wpa2_ie(wlc_info_t *wlc, bcm_tlv_t *wpa2ie, wlc_bss_info_t *bi)
 	bi->wpa2.cap[0] = cap[0];
 
 	len -= RSN_CAP_LEN;
-	if (len) {
+
+	if (len == 0) {
+		WL_INFORM(("wl%d: no PMKID\n", wlc->pub->unit));
+		/* it is ok to not have PMKID */
+		return DOT11_SC_SUCCESS;
+	}
+
+	if (len < WPA2_PMKID_COUNT_LEN) {
+		/* Clear the RSN_FLAGS_SUPPORTED flag */
+		bi->wpa2.flags &= ~RSN_FLAGS_SUPPORTED;
+		WL_ERROR(("wl%d: unsupported PMKID count\n", wlc->pub->unit));
+		return BCME_UNSUPPORTED;
+	}
+
+	/* PMKID */
+	pmkid_list = (wpa_pmkid_list_t *)((uint8 *)&mgmt->list[count] + RSN_CAP_LEN);
+	pmkid_count = ltoh16_ua(&pmkid_list->count);
+
+	len -= WPA2_PMKID_COUNT_LEN;
+
+	if (pmkid_count == 0 && len == 0) {
+		/* Nothing to parse. Return success. */
+		return DOT11_SC_SUCCESS;
+	} else if (pmkid_count != 0 && (len < (pmkid_count * WPA2_PMKID_LEN))) {
+		/* Clear the RSN_FLAGS_SUPPORTED flag */
+		bi->wpa2.flags &= ~RSN_FLAGS_SUPPORTED;
+		return BCME_UNSUPPORTED;
+	} else {
 		WL_INFORM(("wl%d: set RSN_FLAGS_PMKID_COUNT_PRESENT.\n", wlc->pub->unit));
 		bi->wpa2.flags |= RSN_FLAGS_PMKID_COUNT_PRESENT;
 	}
 
-	return 0;
+	len -= (pmkid_count * WPA2_PMKID_LEN);
+
+	if (len == 0) {
+		/* PMKID parse done.  Nothing else to parse. Return success */
+		return DOT11_SC_SUCCESS;
+	}
+#ifdef MFP
+	if (WLC_MFP_ENAB(wlc->pub)) {
+		wpa_suite_mcast_t *gmcs = NULL; /* Group Management Cipher Suite */
+
+		if (len < WPA_SUITE_LEN) {
+			/* Clear the RSN_FLAGS_SUPPORTED flag */
+			bi->wpa2.flags &= ~RSN_FLAGS_SUPPORTED;
+			return BCME_UNSUPPORTED;
+		}
+
+		/* There is a Groupt Mgmt Cipher Suite.check it. */
+		gmcs = (wpa_suite_mcast_t *)&pmkid_list->list[pmkid_count];
+
+		if (bcmp(gmcs->oui, WPA2_OUI, DOT11_OUI_LEN) ||
+			gmcs->type != WPA_CIPHER_BIP) {
+			WL_ERROR(("wl%d: WPA2 Grp Mgmt Ciphr Suite %02x:%02x:%02x:%d not enabled\n",
+				wlc->pub->unit, gmcs->oui[0], gmcs->oui[1], gmcs->oui[2],
+				gmcs->type));
+			/* Clear the RSN_FLAGS_SUPPORTED flag */
+			bi->wpa2.flags &= ~RSN_FLAGS_SUPPORTED;
+			return BCME_UNSUPPORTED;
+		}
+
+		/* Successfully parsed GMCS. Decrement length */
+		len -= WPA_SUITE_LEN;
+	}
+#endif /* MFP */
+
+	/* Reach this only if the IE looked okay.
+	 * Note that capability bits of the IE have no use here yet.
+	 */
+	return DOT11_SC_SUCCESS;
 }
 
 static int

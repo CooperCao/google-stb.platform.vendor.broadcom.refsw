@@ -276,9 +276,13 @@ typedef union bcm_event_msg_u {
 #define WLC_E_FBT_ASSOC_REQ_IND		168	/* FBT Re-Association Request Indication */
 #define WLC_E_FBT_REASSOC_REQ_IND	169	/* FBT Re-Association Request Indication */
 #define WLC_E_MBO			170    /* MBO event */
-#define WLC_E_LAST			171	/* highest val + 1 for range checking */
-#if (WLC_E_LAST > 171)
-#error "WLC_E_LAST: Invalid value for last event; must be <= 166."
+#define WLC_E_WNM_ERR		171	/* BSSTRANS error response */
+#define WLC_E_ASSOC_REASSOC_IND_EXT	186	/* 802.11 Extended (Re)ASSOC indication with whole
+						 * frame even including MAC header
+						 */
+#define WLC_E_LAST			187	/* highest val + 1 for range checking */
+#if (WLC_E_LAST > 187)
+#error "WLC_E_LAST: Invalid value for last event; must be <= 187."
 #endif /* WLC_E_LAST */
 
 /* define an API for getting the string name of an event */
@@ -881,8 +885,9 @@ typedef enum ie_error_code {
 
 typedef enum wl_mbo_event_type {
 	WL_MBO_E_CELLULAR_NW_SWITCH = 1,
+	WL_MBO_E_BTM_RCVD = 2,
 	/* ADD before this */
-	WL_MBO_E_LAST = 2,  /* highest val + 1 for range checking */
+	WL_MBO_E_LAST = 3  /* highest val + 1 for range checking */
 } wl_mbo_event_type_t;
 
 /* WLC_E_MBO event structure version */
@@ -912,6 +917,16 @@ struct wl_event_mbo_cell_nw_switch {
 	* This is zero if not known or value is overflowing.
 	*/
 	uint32 assoc_time_remain;
+};
+
+/* WLC_E_MBO_BTM_RCVD event structure version */
+#define WL_BTM_EVENT_DATA_VER_1       1
+/* Specific btm event type data */
+struct wl_btm_event_type_data {
+	uint16	version;
+	uint16	len;
+	uint8	transition_reason;	/* transition reason code */
+	uint8	pad[3];			/* pad */
 };
 
 #endif /* _BCMEVENT_H_ */

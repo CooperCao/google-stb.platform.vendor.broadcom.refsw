@@ -815,8 +815,9 @@ void BXDM_PPDBG_P_PrintMFD_isr(
          eAspectRatio = pMFD->eAspectRatio;
       }
 
-      BDBG_MODULE_MSG( BXDM_MFD1, ("%c%x:[%02x.%03x] id:%03x pts:%08x %s->%s %dx%d->%dx%d %s:%dx%d AQP:%02d fr:%s mr:%s %s%s%s%s%s%s%s%s%s%s%s",
+      BDBG_MODULE_MSG( BXDM_MFD1, ("%c%c%x:[%02x.%03x] id:%03x pts:%08x %s->%s %dx%d->%dx%d %s:%dx%d AQP:%02d fr:%s mr:%s %s%s%s%s%s%s%s%s%s%s%s",
                                  ( pMFD->bMute ) ? 'M' : ' ',
+                                 ( pMFD->bInvisible) ? 'i' : 'v',
                                  pDebug->uiVsyncCount,
                                  BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                  pstSelectedPicture->stPicParms.uiPPBIndex & 0xFFF,

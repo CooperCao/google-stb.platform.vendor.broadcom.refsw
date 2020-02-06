@@ -1285,7 +1285,6 @@ static BERR_Code BAPE_DspMixer_P_ValidateInput(
     }
     else
     {
-        bool ac4Found = false;
         bool standaloneFound = false;
         BAPE_DecoderHandle decoder = (BAPE_DecoderHandle)pConnection->pSource->pParent->pHandle;
         if ( decoder != NULL )
@@ -1294,7 +1293,6 @@ static BERR_Code BAPE_DspMixer_P_ValidateInput(
             BDBG_OBJECT_ASSERT(decoder, BAPE_Decoder);
 
             mixingMode = decoder->startSettings.mixingMode;
-            ac4Found = (decoder->startSettings.codec == BAVC_AudioCompressionStd_eAc4) ? true : false;
             standaloneFound = (decoder->startSettings.mixingMode == BAPE_DecoderMixingMode_eStandalone) ? true : false;
 
             for ( i = 0; i < BAPE_CHIP_MAX_MIXER_INPUTS; i++ )
@@ -1318,7 +1316,6 @@ static BERR_Code BAPE_DspMixer_P_ValidateInput(
                                     BDBG_ERR(("Unable to start path: %d input to Mixer is already in use", mixingMode));
                                     return BERR_NOT_SUPPORTED;
                                 }
-                                ac4Found |= (decoder->startSettings.codec == BAVC_AudioCompressionStd_eAc4) ? true : false;
                                 standaloneFound |= (decoder->startSettings.mixingMode == BAPE_DecoderMixingMode_eStandalone) ? true : false;
                             }
                         }
@@ -1345,7 +1342,7 @@ static BERR_Code BAPE_DspMixer_P_ValidateInput(
             BAPE_ProcessorSettings processorSettings;
             BERR_Code errCode;
 
-            bool disableAdvTsm = ac4Found | standaloneFound;
+            bool disableAdvTsm = standaloneFound;
 
             BAPE_PathNode_P_FindConsumersBySubtype_isrsafe(&handle->pathNode, BAPE_PathNodeType_ePostProcessor, BAPE_PostProcessorType_eAdvancedTsm, 1, &numFound, &pNode);
             switch ( numFound )
@@ -1885,6 +1882,33 @@ static void BAPE_DspMixer_P_StopPathFromInput(struct BAPE_PathNode *pNode, struc
 
         if (handle->loopbackRunning == 0 && handle->loopbackAttached) {
             if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 ) {
+                BAPE_LoopbackGroupSettings loopbackSettings;
+                BERR_Code errCode;
+                BKNI_EnterCriticalSection();
+                BAPE_LoopbackGroup_P_GetSettings_isr(handle->loopbackGroup, &loopbackSettings);
+                BKNI_LeaveCriticalSection();
+                loopbackSettings.insertOnUnderflow = true;
+                BKNI_EnterCriticalSection();
+                errCode = BAPE_LoopbackGroup_P_SetSettings_isr(handle->loopbackGroup, &loopbackSettings);
+                if (errCode)
+                {
+                    BERR_TRACE(errCode);
+                }
+                BKNI_LeaveCriticalSection();
+                BKNI_Delay(700);
+
+                BKNI_EnterCriticalSection();
+                BAPE_LoopbackGroup_P_GetSettings_isr(handle->loopbackGroup, &loopbackSettings);
+                BKNI_LeaveCriticalSection();
+                loopbackSettings.insertOnUnderflow = false;
+                BKNI_EnterCriticalSection();
+                errCode = BAPE_LoopbackGroup_P_SetSettings_isr(handle->loopbackGroup, &loopbackSettings);
+                if (errCode)
+                {
+                    BERR_TRACE(errCode);
+                }
+                BKNI_LeaveCriticalSection();
+
                 BAPE_DSPMixer_P_GetDiscontinuityPoint(handle);
             }
         }

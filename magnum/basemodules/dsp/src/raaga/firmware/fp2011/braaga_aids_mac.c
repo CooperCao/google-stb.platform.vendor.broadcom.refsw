@@ -211,7 +211,7 @@ const uint32_t BDSP_IMG_mac_ids_array1[] = {
 	0x941447cf,
 	0x013fffff,
 	0xa7610dd7,
-	0x0003f757,
+	0x0003f756,
 	0x76200bcf,
 	0x7408050f,
 	0x761c09cf,
@@ -271,7 +271,7 @@ const uint32_t BDSP_IMG_mac_ids_array1[] = {
 	0x940817cf,
 	0x940c47cf,
 	0xa71009d7,
-	0x0003f757,
+	0x0003f756,
 	0x7400010f,
 	0x741c03cf,
 	0x8d12112f,
@@ -281,7 +281,7 @@ const uint32_t BDSP_IMG_mac_ids_array1[] = {
 	0x3d840007,
 	0x013fffff,
 	0xa72f8dd7,
-	0x0001f760,
+	0x0001f75f,
 	0x7404050f,
 	0x7400030f,
 	0x3d9a4057,
@@ -299,7 +299,7 @@ const uint32_t BDSP_IMG_mac_ids_array1[] = {
 	0x941447cf,
 	0x013fffff,
 	0xa74b0dd7,
-	0x0003f757,
+	0x0003f756,
 	0x7408050f,
 	0x741c01cf,
 	0xb6f189ff,
@@ -989,7 +989,7 @@ const uint32_t BDSP_IMG_mac_ids_array1[] = {
 	0x07bffe07,
 	0x013fffff,
 	0xa77389d7,
-	0x0001f75d,
+	0x0001f75c,
 	0x73570b17,
 	0x73558917,
 	0x72390317,
@@ -1261,7 +1261,7 @@ const uint32_t BDSP_IMG_mac_ids_header [2] = {sizeof(BDSP_IMG_mac_ids_array1), 1
 const void * const BDSP_IMG_mac_ids [2] = {BDSP_IMG_mac_ids_header, BDSP_IMG_mac_ids_array1};
 const uint32_t BDSP_IMG_mac_ids_inter_frame_array1[] = {
 	0x00000000,
-	0x0000107b
+	0x0000107c
 };
 const uint32_t BDSP_IMG_mac_ids_inter_frame_header [2] = {sizeof(BDSP_IMG_mac_ids_inter_frame_array1), 1};
 const void * const BDSP_IMG_mac_ids_inter_frame [2] = {BDSP_IMG_mac_ids_inter_frame_header, BDSP_IMG_mac_ids_inter_frame_array1};

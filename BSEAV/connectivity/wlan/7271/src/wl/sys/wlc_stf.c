@@ -2400,7 +2400,7 @@ wlc_dump_ppr(wlc_info_t *wlc, struct bcmstrbuf *b) /* C_CHECK */
 	return ret;
 }
 
-#endif 
+#endif
 
 static uint
 wlc_stf_get_ppr_offset(wlc_info_t *wlc, wl_txppr_t *pbuf)
@@ -3340,18 +3340,18 @@ mcs_cal:
 	}
 
 	/* check if 4 cores is better than above */
-	min4 = - wlc_stf_uint8_vec_max((uint8*)mcsx3_pwrs.pwr, NUM_MCS_RATES);
+	min4 = - wlc_stf_uint8_vec_max((uint8*)mcsx4_pwrs.pwr, NUM_MCS_RATES);
 	if ((min4 + 12) >= min1 && /* 6dB = (6 * 2) = 12 hdB */
 		(min4 + 12) >= (min2 + 6) &&
 		(min4 + 12) >= (min3 + 10))
 			core_count[NSTS1_IDX] = 4;
 
 	WL_NONE(("++++++++SET Nsts1 to %d cores, pwr 1x1 %d 1x2 %d 1x3 %d 1x4 %d\n",
-	          core_count[NSTS1_IDX], min1, min2, min3, min4));
+			core_count[NSTS1_IDX], min1, min2, min3, min4));
 
 mcs_cal2:
 	/*
-	 * Nsts 2: 2Tx >= 3Tx + 1.8dB, then use 2Tx
+	 * Nsts 2: 2Tx >= 3Tx + 1.8dB >= 4Tx + 3dB, then use 2Tx
 	 * We should never get here if nstreams < 3.
 	 */
 	if (nstreams == 4) {
@@ -3374,7 +3374,6 @@ mcs_cal2:
 
 	min2 = - wlc_stf_uint8_vec_max((uint8*)mcsx2_pwrs.pwr, NUM_MCS_RATES);
 	min3 = - wlc_stf_uint8_vec_max((uint8*)mcsx3_pwrs.pwr, NUM_MCS_RATES);
-
 	if ((min3 + 4) >= min2)
 		core_count[NSTS2_IDX] = 3;
 
@@ -3386,14 +3385,51 @@ mcs_cal2:
 
 	/* check if 4 cores is better than above */
 	min4 = - wlc_stf_uint8_vec_max((uint8*)mcsx4_pwrs.pwr, NUM_MCS_RATES);
+	if ((min4 + 12) >= (min2 + 6) &&
+		(min4 + 12) >= (min3 + 10))
+			core_count[NSTS2_IDX] = 4;
 
 
 	WL_NONE(("++++++++SET Nsts2 to %d cores, pwr 2x2 %d 2x3 %d 2x4 %d\n",
 	          core_count[NSTS2_IDX], min2, min3, min4));
 
 	/*
-	 * Nsts 3: default is already set to 3 cores, nothing more to do
+	 * Nsts 3: 3Tx >= 4Tx + 1.8dB, then use 3Tx
+	 * We should never get here if nstreams < 4.
 	 */
+			if (nstreams == 4) {
+				ppr_get_vht_mcs(txpwr, bw, WL_TX_NSS_3, WL_TX_MODE_NONE, WL_TX_CHAINS_4,
+					&mcsx4_pwrs);
+			}
+			ppr_get_vht_mcs(txpwr, bw, WL_TX_NSS_3, WL_TX_MODE_NONE, WL_TX_CHAINS_3, &mcsx3_pwrs);
+
+			for (idx = 0; idx < NUM_MCS_RATES; idx++) {
+				if (mcsx3_pwrs.pwr[idx] == WL_RATE_DISABLED)
+					mcsx3_pwrs.pwr[idx] = (int8)max_offset;
+				if (nstreams == 4) {
+					if (mcsx4_pwrs.pwr[idx] == WL_RATE_DISABLED)
+						mcsx4_pwrs.pwr[idx] = (int8)max_offset;
+				}
+			}
+
+			min3 = - wlc_stf_uint8_vec_max((uint8*)mcsx3_pwrs.pwr, NUM_MCS_RATES);
+			min4 = - wlc_stf_uint8_vec_max((uint8*)mcsx4_pwrs.pwr, NUM_MCS_RATES);
+
+			if ((min4 + 2) >= min3)
+				core_count[NSTS3_IDX] = 4;
+
+			if (nstreams == 4) {
+				WL_NONE(("++++++++SET Nsts3 to %d cores, pwr 2x3 %d 2x4 %d\n",
+					core_count[NSTS3_IDX], min3, min4));
+				goto assign_masks;
+			}
+			WL_NONE(("++++++++SET Nsts3 to %d cores, 2x3 %d 2x4 %d\n",
+					  core_count[NSTS3_IDX], min3, min4));
+
+/*
+ * Nsts 4: default is already set to 4 cores, nothing more to do
+ */
+
 
 assign_masks:
 	/* assign the core masks based on the core count and available cores */
@@ -4310,7 +4346,8 @@ BCMATTACHFN(wlc_stf_attach)(wlc_info_t* wlc)
 
 	/* default Spatial mode to AUTO */
 	if ((ACREV_IS(wlc->band->phyrev, 32) && (wlc->band->phy_minor_rev == 0)) ||
-		(ACREV_IS(wlc->band->phyrev, 33) && (wlc->band->phy_minor_rev == 0))) {
+		(ACREV_IS(wlc->band->phyrev, 33) && (wlc->band->phy_minor_rev == 0)) ||
+		(ACREV_IS(wlc->band->phyrev, 37) && (wlc->band->phy_minor_rev == 1))) {
 		memset(wlc->stf->spatial_mode_config, ON, SPATIAL_MODE_MAX_IDX);
 	} else {
 		memset(wlc->stf->spatial_mode_config, AUTO, SPATIAL_MODE_MAX_IDX);

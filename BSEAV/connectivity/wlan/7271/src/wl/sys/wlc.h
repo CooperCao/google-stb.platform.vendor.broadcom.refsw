@@ -339,7 +339,8 @@
 #define AS_DFS_CAC_START	30	/* DFS Slave CAC begins */
 #define AS_DFS_CAC_FAIL		31	/* DFS Slave detected radar during CAC state */
 #define AS_DFS_ISM_INIT		32	/* DFS state machine notified to begin ISM */
-#define AS_LAST_STATE		33
+#define AS_WAIT_TX_DRAIN_TIMEOUT 33	/* TimeOut waiting for tx drain out */
+#define AS_LAST_STATE		34
 
 /* assoc->type values */
 #define AS_NONE			0 /* No association */

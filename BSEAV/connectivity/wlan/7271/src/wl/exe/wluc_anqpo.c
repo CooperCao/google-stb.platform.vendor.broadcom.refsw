@@ -246,7 +246,7 @@ wl_anqpo_start_query(void *wl, cmd_t *cmd, char **argv)
 	ver = ptr;
 
 	UNUSED_PARAMETER(cmd);
-	if (ver->wlc_ver_major >= 10u) {
+	if (ver->wlc_ver_major >= 8u) {
 		malloc_size = OFFSETOF(wl_anqpo_peer_list_v2_t, peer) +
 			(ANQPO_MAX_PEER_LIST * sizeof(wl_anqpo_peer_v2_t));
 	} else {
@@ -259,7 +259,7 @@ wl_anqpo_start_query(void *wl, cmd_t *cmd, char **argv)
 		return BCME_NOMEM;
 	}
 	memset(buffer, 0, malloc_size);
-	if (ver->wlc_ver_major >= 10u) {
+	if (ver->wlc_ver_major >= 8u) {
 		wl_anqpo_peer_v2_t *peer;
 		wl_anqpo_peer_list_v2_t *list;
 		list = (wl_anqpo_peer_list_v2_t *)buffer;

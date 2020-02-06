@@ -68,7 +68,7 @@ void BBOX_P_Vdc_SetBox5DisplayCapabilities
 {
     BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display0, 3840x2160p_60Hz, 3840x2160p_60Hz, Invalid, Invalid, Invalid, Class4);
         BBOX_P_VDC_SET_WINDOW_CLASS_LIMIT(pDisplayCap, Display0, Video0, DISREGARD, false, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, SclBeforeCap, 3_1);
-        BBOX_P_VDC_SET_WINDOW_CLASS_LIMIT(pDisplayCap, Display0, Video1, HD_MR0,    false, Disregard, Disregard, Disregard, 1,                  1,                  Auto, 0_1);
+        BBOX_P_VDC_SET_WINDOW_CLASS_LIMIT(pDisplayCap, Display0, Video1, HD_MR0,    false, Disregard, Disregard, Disregard, 2,                  2,                  Auto, 0_1);
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Gfx0,   INVALID,   false, Disregard, Disregard, Disregard, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
 }
 

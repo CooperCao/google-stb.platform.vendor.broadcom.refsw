@@ -1923,7 +1923,7 @@ typedef enum {
 #define CAL_COEFF_READ    0
 #define CAL_COEFF_WRITE   1
 #define CAL_COEFF_WRITE_BIQ2BYP   2
-#define MPHASE_TXCAL_CMDS_PER_PHASE  2 /* number of tx iqlo cal commands per phase in mphase cal */
+#define MPHASE_TXCAL_CMDS_PER_PHASE  5 /* number of tx iqlo cal commands per phase in mphase cal */
 #define ACPHY_RXCAL_TONEAMP 181
 
 /* This number is picked based on 4355 TPC performance at nominal uisng longSeqTxCal. */

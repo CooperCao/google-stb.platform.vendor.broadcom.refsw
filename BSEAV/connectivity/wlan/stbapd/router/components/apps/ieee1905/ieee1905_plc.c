@@ -291,7 +291,7 @@ void i5PlcConnectUnixSocket(void *arg)
     i5InterfaceSearchAdd(I5_MATCH_MEDIA_TYPE_PLC);
     /* update bridging tuple */
     if ( pbrsock ) {
-      i5_dm_device_type *pdev = i5DmDeviceFind(&i5_config.i5_mac_address[0]);
+      i5_dm_device_type *pdev = i5DmGetSelfDevice();
       if ( (pdev != NULL) && (pdev->BridgingTuplesNumberOfEntries > 0)) {
         i5InterfaceBridgeNotifyReceiveOperStatus(pbrsock, IF_OPER_UP);
       }

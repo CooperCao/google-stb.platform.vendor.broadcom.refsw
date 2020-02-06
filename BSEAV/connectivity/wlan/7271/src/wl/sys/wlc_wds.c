@@ -70,6 +70,11 @@
 #include <wlc_ampdu_cmn.h>
 #endif
 
+#define EA_CMP(e1, e2) \
+	(!((((uint16 *)(e1))[0] ^ ((uint16 *)(e2))[0]) | \
+	   (((uint16 *)(e1))[1] ^ ((uint16 *)(e2))[1]) | \
+	   (((uint16 *)(e1))[2] ^ ((uint16 *)(e2))[2])))
+
 #ifndef IFNAMSIZ
 #define IFNAMSIZ		16
 #endif /* IFNAMSIZ */
@@ -83,6 +88,7 @@ enum {
 	IOV_DWDS_CONFIG = 5,
 	IOV_WDS_TYPE = 6,
 	IOV_WDS_AP_IFNAME = 7,
+	IOV_DWDS_LB_FILTER = 8,
 	IOV_LAST
 };
 
@@ -104,6 +110,9 @@ static const bcm_iovar_t wlc_wds_iovars[] = {
 	(0), 0, IOVT_UINT32, 0
 	},
 	{"wds_ap_ifname", IOV_WDS_AP_IFNAME, (0), 0, IOVT_BUFFER, 0},
+#ifdef DWDS
+	{"dwds_lb_filter", IOV_DWDS_LB_FILTER, (0), 0, IOVT_BOOL, 0},
+#endif /* DWDS */
 	{NULL, 0, 0, 0, 0, 0}
 };
 
@@ -446,6 +455,27 @@ wlc_wds_doiovar(void *ctx, uint32 actionid,
 		 err = BCME_UNSUPPORTED;
 		 break;
 	}
+
+#ifdef DWDS
+	case IOV_GVAL(IOV_DWDS_LB_FILTER):
+		*ret_int_ptr = (int32)bsscfg->dwds_loopback_filter;
+		break;
+
+	case IOV_SVAL(IOV_DWDS_LB_FILTER): {
+		if (MAP_ENAB(bsscfg) && BSSCFG_STA(bsscfg)) {
+			if (bool_val) {
+				/* enable dwds loopback filter */
+				bsscfg->dwds_loopback_filter = TRUE;
+			} else {
+				bsscfg->dwds_loopback_filter = FALSE;
+				wlc_dwds_flush_salist(wlc, bsscfg);
+			}
+			break;
+		}
+		err = BCME_UNSUPPORTED;
+		break;
+	}
+#endif /* DWDS */
 
 	default:
 		err = BCME_UNSUPPORTED;
@@ -990,8 +1020,19 @@ wlc_ap_wds_probe_complete(wlc_info_t *wlc, uint txstatus, struct scb *scb)
 
 	/* ack indicates the sta is there */
 	if (txstatus & TX_STATUS_MASK) {
-		scb->flags |= SCB_WDS_LINKUP;
-		WL_ERROR(("%s: WDS link up\n", wl_ifname(wlc->wl, scb->wds->wlif)));
+		if (!(scb->flags & SCB_WDS_LINKUP)) {
+			scb->flags |= SCB_WDS_LINKUP;
+#ifdef WLAMPDU
+			/* Send delba and cleanup ampdu session when peer is back */
+			if (SCB_AMPDU(scb)) {
+				WL_INFORM(("wl%d: %s: scb ampdu cleanup for %s\n", wlc->pub->unit,
+					__FUNCTION__, bcm_ether_ntoa(&scb->ea, eabuf)));
+				scb_ampdu_cleanup(wlc, scb);
+			}
+#endif /* WLAMPDU */
+			WL_ERROR(("wl%d: %s: WDS link up\n", wlc->pub->unit,
+				wl_ifname(wlc->wl, scb->wds->wlif)));
+		}
 		return;
 	}
 
@@ -1136,6 +1177,20 @@ wlc_wds_bcn_parse_wme_ie(void *ctx, wlc_iem_parse_data_t *data)
 	}
 
 	return BCME_OK;
+}
+
+bool
+wlc_wds_is_active(wlc_info_t *wlc)
+{
+	struct scb_iter scbiter;
+	struct scb *scb;
+
+	FOREACHSCB(wlc->scbstate, &scbiter, scb) {
+		if (SCB_WDS(scb) && (scb->flags & SCB_WDS_LINKUP)) {
+			return TRUE;
+		}
+	}
+	return FALSE;
 }
 
 #ifdef DWDS
@@ -1512,4 +1567,115 @@ wlc_wds_parse_multiap_ie(void *ctx, wlc_iem_parse_data_t *data)
 	return BCME_OK;
 }
 #endif	/* MULTIAP */
+
+#ifdef DWDS
+dwds_sa_t *
+wlc_dwds_findsa(wlc_info_t *wlc, wlc_bsscfg_t *cfg, uint8 *ea)
+{
+	uint32 hash;
+	dwds_sa_t *sta;
+
+	hash = DWDS_SA_HASH(ea);
+
+	sta = cfg->sa_list[hash];
+	while (sta != NULL) {
+		if (EA_CMP(&sta->sa, ea)) {
+			sta->last_used = wlc->pub->now;
+			return sta;
+		}
+		sta = sta->next;
+	}
+	return NULL;
+}
+
+dwds_sa_t *
+wlc_dwds_addsa(wlc_info_t *wlc, wlc_bsscfg_t *cfg, uint8 *ea)
+{
+	uint32 hash;
+	dwds_sa_t *sta;
+
+	if ((sta = MALLOC(wlc->osh, sizeof(dwds_sa_t))) == NULL) {
+		WL_ERROR(("%s: MALLOC failure\n", __FUNCTION__));
+		return NULL;
+	}
+
+	eacopy(ea, &sta->sa);
+	sta->last_used = wlc->pub->now;
+
+	hash = DWDS_SA_HASH(ea);
+	sta->next = cfg->sa_list[hash];
+	cfg->sa_list[hash] = sta;
+
+	return sta;
+}
+
+void
+wlc_dwds_expire_sa(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
+{
+	int hash = 0;
+	dwds_sa_t *sta;
+	dwds_sa_t *prev_sta;
+
+	for (hash = 0; hash < DWDS_SA_HASH_SZ; hash++) {
+		prev_sta = NULL;
+		sta = cfg->sa_list[hash];
+
+		while (sta != NULL) {
+			/* If last used time is more than expire, knock it off the list */
+			if ((wlc->pub->now - sta->last_used) > DWDS_SA_EXPIRE_TIME) {
+				if (prev_sta == NULL) {
+					cfg->sa_list[hash] = sta->next;
+				} else {
+					prev_sta->next = sta->next;
+				}
+
+				MFREE(wlc->osh, sta, sizeof(dwds_sa_t));
+				sta = prev_sta ? prev_sta->next : cfg->sa_list[hash];
+				continue;
+			}
+
+			prev_sta = sta;
+			sta = sta->next;
+		}
+	}
+}
+
+void
+wlc_dwds_flush_salist(wlc_info_t *wlc, wlc_bsscfg_t *cfg)
+{
+	int hash = 0;
+	dwds_sa_t *sta;
+	dwds_sa_t *p;
+
+	for (hash = 0; hash < DWDS_SA_HASH_SZ; hash++) {
+		sta = cfg->sa_list[hash];
+		while (sta != NULL) {
+			p = sta->next;
+			MFREE(wlc->osh, sta, sizeof(dwds_sa_t));
+			sta = p;
+		}
+		cfg->sa_list[hash] = NULL;
+	}
+}
+
+void
+wlc_dwds_dump_sa_list(void *ctx, wlc_bsscfg_t *cfg, struct bcmstrbuf *b)
+{
+	wlc_info_t *wlc = (wlc_info_t *)ctx;
+	int hash = 0;
+	dwds_sa_t *sta;
+	char eabuf[ETHER_ADDR_STR_LEN];
+
+	bcm_bprintf(b, "----- DWDS STA loop back list ---------\n", WLC_BSSCFG_IDX(cfg));
+	for (hash = 0; hash < DWDS_SA_HASH_SZ; hash++) {
+		sta = cfg->sa_list[hash];
+		while (sta != NULL) {
+			bcm_bprintf(b, "Hash: %02d, EA: %s, LastUsed: %d sec(s) back\n",
+				hash, bcm_ether_ntoa(&sta->sa, eabuf),
+				wlc->pub->now - sta->last_used);
+			sta = sta->next;
+		}
+	}
+}
+#endif /* DWDS */
 #endif /* WDS */

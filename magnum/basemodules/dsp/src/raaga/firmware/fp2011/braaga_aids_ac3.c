@@ -193,7 +193,7 @@ const uint32_t BDSP_IMG_ac3_ids_array1[] = {
 	0x2b01fe30,
 	0x940811cf,
 	0x940c45cf,
-	0xc6e7c473,
+	0xc6e7b473,
 	0x07a47f1f,
 	0x7404030f,
 	0xd8e20021,
@@ -209,7 +209,7 @@ const uint32_t BDSP_IMG_ac3_ids_array1[] = {
 	0x74020603,
 	0x3d840003,
 	0xa7418dd7,
-	0x001dfe85,
+	0x001dfe84,
 	0x740e0b07,
 	0x741c07cf,
 	0x7404050f,
@@ -229,7 +229,7 @@ const uint32_t BDSP_IMG_ac3_ids_array1[] = {
 	0x940c13cf,
 	0x941011cf,
 	0x941445cb,
-	0xc6e7cb9b,
+	0xc6e7bb9b,
 	0x762003cf,
 	0x761c01cf,
 	0x94004707,
@@ -254,7 +254,7 @@ const uint32_t BDSP_IMG_ac3_ids_array1[] = {
 	0x942c7f07,
 	0x46104207,
 	0xf125c6d1,
-	0xc6e7f963,
+	0xc6e7e963,
 	0xb6f90dff,
 	0x07a47f1f,
 	0x942c7f07,
@@ -262,7 +262,7 @@ const uint32_t BDSP_IMG_ac3_ids_array1[] = {
 	0x3d9c7217,
 	0x3da8721f,
 	0x07b17e23,
-	0xc6e7fd6b,
+	0xc6e7ed6b,
 	0x15009183,
 	0xb6f701fc,
 	0x07a47f1f,
@@ -526,7 +526,7 @@ const uint32_t BDSP_IMG_ac3_ids_array1[] = {
 	0xc6e91453,
 	0x07bffe03,
 	0xa7670dd7,
-	0x001dfe83,
+	0x001dfe82,
 	0xeca11243,
 	0xc600386b,
 	0x725401cf,
@@ -1218,7 +1218,7 @@ const uint32_t BDSP_IMG_ac3_ids_array1[] = {
 	0xc6e8feb3,
 	0x07bffe03,
 	0xa73a0dd7,
-	0x001dfe82,
+	0x001dfe81,
 	0x013fffff,
 	0x7355d91f,
 	0x013fffff,
@@ -2414,7 +2414,7 @@ const uint32_t BDSP_IMG_ac3_ids_header [2] = {sizeof(BDSP_IMG_ac3_ids_array1), 1
 const void * const BDSP_IMG_ac3_ids [2] = {BDSP_IMG_ac3_ids_header, BDSP_IMG_ac3_ids_array1};
 const uint32_t BDSP_IMG_ac3_ids_inter_frame_array1[] = {
 	0x00000000,
-	0x0000107b
+	0x0000107c
 };
 const uint32_t BDSP_IMG_ac3_ids_inter_frame_header [2] = {sizeof(BDSP_IMG_ac3_ids_inter_frame_array1), 1};
 const void * const BDSP_IMG_ac3_ids_inter_frame [2] = {BDSP_IMG_ac3_ids_inter_frame_header, BDSP_IMG_ac3_ids_inter_frame_array1};

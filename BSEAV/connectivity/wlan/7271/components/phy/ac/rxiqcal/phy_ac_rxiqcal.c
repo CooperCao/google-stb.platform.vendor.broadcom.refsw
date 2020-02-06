@@ -4341,6 +4341,16 @@ phy_ac_rxiqcal(phy_info_t *pi)
 	if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
 		int iter;
 
+		if (ACMINORREV_1(pi)) {
+			phy_ac_dccal_init(pi);
+			phy_ac_load_gmap_tbl(pi);
+			phy_ac_dccal(pi);
+		}
+
+		if (pi->u.pi_acphy->sromi->srom_low_adc_rate_en) {
+			wlc_phy_low_rate_adc_enable_acphy(pi, FALSE);
+		}
+
 		/* Limit the number of retries to 2 */
 		for (iter = 0; iter <= RXIQCAL_MAX_RETRIES; iter++) {
 			if (wlc_phy_cal_rx_fdiqi_acphy(pi) == BCME_OK) {
@@ -4352,6 +4362,10 @@ phy_ac_rxiqcal(phy_info_t *pi)
 		}
 		else {
 		    phy_ac_rxiqcal_diag_update(pi, FALSE);
+		}
+
+		if (pi->u.pi_acphy->sromi->srom_low_adc_rate_en) {
+			wlc_phy_low_rate_adc_enable_acphy(pi, TRUE);
 		}
 	}
 	else {

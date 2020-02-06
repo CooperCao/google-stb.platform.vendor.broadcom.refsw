@@ -54,6 +54,10 @@
 #include <wlc_bcmc_txq.h>
 #endif
 
+#ifdef WDS
+#include <wlc_wds.h>
+#endif /* WDS */
+
 /*
  * Structure to store the interface_create specific handler registration
  */
@@ -1548,7 +1552,9 @@ wlc_bsscfg_sta_init(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg)
 
 	WL_APSTA_UPDN(("wl%d.%d: wlc_bsscfg_sta_init:\n",
 	               wlc->pub->unit, WLC_BSSCFG_IDX(bsscfg)));
-
+#ifdef DWDS
+	bsscfg->dwds_loopback_filter = FALSE;
+#endif /* DWDS */
 	/* invoke bsscfg cubby init function */
 	if ((ret = wlc_bsscfg_cubby_init(wlc, bsscfg)) != BCME_OK) {
 		WL_ERROR(("wl%d.%d: %s: wlc_bsscfg_cubby_init failed with err %d\n",
@@ -1563,6 +1569,9 @@ wlc_bsscfg_sta_deinit(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg)
 {
 	WL_APSTA_UPDN(("wl%d.%d: wlc_bsscfg_sta_deinit:\n",
 	               wlc->pub->unit, WLC_BSSCFG_IDX(bsscfg)));
+#ifdef DWDS
+	bsscfg->dwds_loopback_filter = FALSE;
+#endif /* DWDS */
 
 	/* invoke bsscfg cubby deinit function */
 	wlc_bsscfg_cubby_deinit(wlc, bsscfg);
@@ -3249,6 +3258,13 @@ _wlc_bsscfg_dump(wlc_info_t *wlc, wlc_bsscfg_t *cfg, struct bcmstrbuf *b)
 	if (cfg->bcmc_scb != NULL) {
 		wlc_scb_dump_scb(wlc, cfg, cfg->bcmc_scb, b, -1);
 	}
+
+#ifdef DWDS
+	/* Display DWDS SA list */
+	if (BSSCFG_STA(cfg) && MAP_ENAB(cfg) && cfg->dwds_loopback_filter) {
+		wlc_dwds_dump_sa_list(wlc, cfg, b);
+	}
+#endif /* DWDS */
 
 	/* invoke bsscfg cubby dump function */
 	bcm_bprintf(b, "cfg base size: %u\n", sizeof(wlc_bsscfg_t));

@@ -214,6 +214,7 @@ typedef struct {
   timer_elem_type *ptmrApSearch;  /* Timer created for Auto Configuration Search */
   timer_elem_type *ptmrWSC; /* Timer created for AP Auto configuration M1/M2 */
   timer_elem_type *ptmrGetBSSID;  /* Timer for getting the bSTA's BSSID */
+  timer_elem_type *ptmrRemoveStaleNeighbors;  /* Timer created for removing stale neighbors */
   unsigned char curWSCMac[MAC_ADDR_LEN]; /* Current wireless interface for which the M1 has sent */
   unsigned int discovery_timeout; /* Timeout for sending the topology/bridge discovery messages */
   unsigned char device_mode;  /* Tells whether device supports agent, controller or both. This

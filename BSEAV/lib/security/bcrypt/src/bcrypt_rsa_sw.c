@@ -1,40 +1,44 @@
-/***************************************************************************
- *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ *  Copyright (C) 2019 Broadcom.
+ *  The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to
+ *  the terms and conditions of a separate, written license agreement executed
+ *  between you and Broadcom (an "Authorized License").  Except as set forth in
+ *  an Authorized License, Broadcom grants no license (express or implied),
+ *  right to use, or waiver of any kind with respect to the Software, and
+ *  Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein. IF YOU HAVE NO AUTHORIZED LICENSE,
+ *  THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD
+ *  IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization,
+ *  constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *  reasonable efforts to protect the confidentiality thereof, and to use this
+ *  information only in connection with your use of Broadcom integrated circuit
+ *  products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED
+ *  "AS IS" AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS
+ *  OR WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
+ *  RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
+ *  IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR
+ *  A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *  ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *  THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- **************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM
+ *  OR ITS LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL,
+ *  INDIRECT, OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY
+ *  RELATING TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM
+ *  HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN
+ *  EXCESS OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1,
+ *  WHICHEVER IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY
+ *  FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include <stdio.h>
 #include <string.h>
@@ -61,6 +65,28 @@ BDBG_MODULE( BCRYPT );
  */
 void BCrypt_RSASetKey_4CRT (RSA *rsaKey, BCRYPT_RSAKey_t *key)
 {
+#if (OPENSSL_VERSION_NUMBER > 0x10100000L)
+    BIGNUM *n=NULL,*e=NULL,*d=NULL;
+    BIGNUM *p=NULL,*q=NULL;
+    BIGNUM *dmp1=NULL,*dmq1=NULL,*iqmp=NULL;
+
+    RSA_get0_key(rsaKey, (const BIGNUM **)&n, (const BIGNUM **)&e, (const BIGNUM **)&d);
+    RSA_get0_factors(rsaKey, (const BIGNUM **)&p, (const BIGNUM **)&q);
+    RSA_get0_crt_params(rsaKey, (const BIGNUM **)&dmp1, (const BIGNUM **)&dmq1, (const BIGNUM **)&iqmp);
+
+    n = BN_bin2bn(key->n.pData, key->n.len, n);
+    e = BN_bin2bn(key->e.pData, key->e.len, e);
+    d = BN_bin2bn(key->d.pData, key->d.len, d);
+    p = BN_bin2bn(key->p.pData, key->p.len, p);
+    q = BN_bin2bn(key->q.pData, key->q.len, q);
+    dmp1 = BN_bin2bn(key->dmp1.pData, key->dmp1.len, dmp1);
+    dmq1 = BN_bin2bn(key->dmq1.pData, key->dmq1.len, dmq1);
+    iqmp = BN_bin2bn(key->iqmp.pData, key->iqmp.len, iqmp);
+
+    RSA_set0_key(rsaKey, n, e, d);
+    RSA_set0_factors(rsaKey, p, q);
+    RSA_set0_crt_params(rsaKey, dmp1, dmq1, iqmp);
+#else
     rsaKey->n = BN_bin2bn(key->n.pData, key->n.len, rsaKey->n);
     rsaKey->e = BN_bin2bn(key->e.pData, key->e.len, rsaKey->e);
     rsaKey->d = BN_bin2bn(key->d.pData, key->d.len, rsaKey->d);
@@ -69,14 +95,24 @@ void BCrypt_RSASetKey_4CRT (RSA *rsaKey, BCRYPT_RSAKey_t *key)
     rsaKey->dmp1 = BN_bin2bn(key->dmp1.pData, key->dmp1.len, rsaKey->dmp1);
     rsaKey->dmq1 = BN_bin2bn(key->dmq1.pData, key->dmq1.len, rsaKey->dmq1);
     rsaKey->iqmp = BN_bin2bn(key->iqmp.pData, key->iqmp.len, rsaKey->iqmp);
+#endif
 }
 
 
 void BCrypt_RSASetPrivKey(RSA *rsaKey, BCRYPT_RSAKey_t *key)
 {
+#if (OPENSSL_VERSION_NUMBER > 0x10100000L)
+    BIGNUM *n=NULL,*e=NULL,*d=NULL;
+    RSA_get0_key(rsaKey, (const BIGNUM **)&n, (const BIGNUM **)&e, (const BIGNUM **)&d);
+    n = BN_bin2bn(key->n.pData, key->n.len, n);
+    e = BN_bin2bn(key->e.pData, key->e.len, e);
+    d = BN_bin2bn(key->d.pData, key->d.len, d);
+    RSA_set0_key(rsaKey, n, e, d);
+#else
     rsaKey->n = BN_bin2bn(key->n.pData, key->n.len, rsaKey->n);
     rsaKey->e = BN_bin2bn(key->e.pData, key->e.len, rsaKey->e);
     rsaKey->d = BN_bin2bn(key->d.pData, key->d.len, rsaKey->d);
+#endif
 }
 
 
@@ -85,8 +121,16 @@ void BCrypt_RSASetPrivKey(RSA *rsaKey, BCRYPT_RSAKey_t *key)
  */
 void BCrypt_RSASetEncodeKey (RSA *rsaKey, BCRYPT_RSAKey_t *key)
 {
+#if (OPENSSL_VERSION_NUMBER > 0x10100000L)
+    BIGNUM *n=NULL,*e=NULL,*d=NULL;
+    RSA_get0_key(rsaKey, (const BIGNUM **)&n, (const BIGNUM **)&e, (const BIGNUM **)&d);
+    n = BN_bin2bn(key->n.pData, key->n.len, n);
+    e = BN_bin2bn(key->e.pData, key->e.len, e);
+    RSA_set0_key(rsaKey, n, e, d);
+#else
     rsaKey->n = BN_bin2bn(key->n.pData, key->n.len, rsaKey->n);
     rsaKey->e = BN_bin2bn(key->e.pData, key->e.len, rsaKey->e);
+#endif
 }
 BCRYPT_STATUS_eCode BCrypt_GetRSA_From_SubjectPublicKeyInfo(BCRYPT_Handle  hBcrypt,
                                     uint8_t *pBuf, uint32_t len,
@@ -96,6 +140,9 @@ BCRYPT_STATUS_eCode BCrypt_GetRSA_From_SubjectPublicKeyInfo(BCRYPT_Handle  hBcry
     uint32_t lengthDecoded;
     const unsigned char  *pDecoded;
     BCRYPT_STATUS_eCode res = BCRYPT_STATUS_eOK;
+#if (OPENSSL_VERSION_NUMBER > 0x10100000L)
+    BIGNUM *n=NULL,*e=NULL,*d=NULL;
+#endif
 
     BDBG_ASSERT(hBcrypt);
     BDBG_ASSERT(pBuf != NULL);
@@ -111,9 +158,15 @@ BCRYPT_STATUS_eCode BCrypt_GetRSA_From_SubjectPublicKeyInfo(BCRYPT_Handle  hBcry
     }
 
     RSA_PubKey =  d2i_RSA_PUBKEY(NULL, &pDecoded, lengthDecoded);
+#if (OPENSSL_VERSION_NUMBER > 0x10100000L)
+    RSA_get0_key(RSA_PubKey, (const BIGNUM **)&n, (const BIGNUM **)&e, (const BIGNUM **)&d);
 
+    pBcrypt_rsaSw->n.len= BN_bn2bin(n, pBcrypt_rsaSw->n.pData );
+    pBcrypt_rsaSw->e.len = BN_bn2bin(e, pBcrypt_rsaSw->e.pData);
+#else
     pBcrypt_rsaSw->n.len= BN_bn2bin(RSA_PubKey->n, pBcrypt_rsaSw->n.pData );
     pBcrypt_rsaSw->e.len = BN_bn2bin(RSA_PubKey->e, pBcrypt_rsaSw->e.pData);
+#endif
 
 ErrorExit:
     return res;
@@ -137,7 +190,10 @@ BCRYPT_STATUS_eCode BCrypt_GetRSA_From_PrivateKeyInfo(BCRYPT_Handle  hBcrypt,
     X509_ALGOR *a;
     const unsigned char *p;
     int pkeylen;
-
+#if (OPENSSL_VERSION_NUMBER > 0x10100000L)
+    BIGNUM *n=NULL,*e=NULL,*d=NULL;
+    ASN1_OBJECT *algoid;
+#endif
 
     BDBG_ASSERT( hBcrypt );
     BDBG_ASSERT(pBuf != NULL);
@@ -146,6 +202,15 @@ BCRYPT_STATUS_eCode BCrypt_GetRSA_From_PrivateKeyInfo(BCRYPT_Handle  hBcrypt,
     (void)hBcrypt;
 
     p8 = d2i_PKCS8_PRIV_KEY_INFO(NULL, (const unsigned char **)&pBuf, (long) len);
+#if (OPENSSL_VERSION_NUMBER > 0x10100000L)
+    if (!PKCS8_pkey_get0((const ASN1_OBJECT **)&algoid, &p, &pkeylen,
+                          (const X509_ALGOR**)&a, (const PKCS8_PRIV_KEY_INFO*)p8))
+    {
+        BDBG_ERR(("%s %d d2i_RSAPrivateKey() failed ",BSTD_FUNCTION, __LINE__));
+        errCode = BCRYPT_STATUS_eFAILED;
+        goto ErrorExit;
+    }
+#else
 
     if(p8->pkey->type == V_ASN1_OCTET_STRING)
     {
@@ -161,6 +226,7 @@ BCRYPT_STATUS_eCode BCrypt_GetRSA_From_PrivateKeyInfo(BCRYPT_Handle  hBcrypt,
     }
 
     a = p8->pkeyalg;
+#endif
     switch (OBJ_obj2nid(a->algorithm))
     {
         case NID_rsaEncryption:
@@ -177,7 +243,17 @@ BCRYPT_STATUS_eCode BCrypt_GetRSA_From_PrivateKeyInfo(BCRYPT_Handle  hBcrypt,
             goto ErrorExit;
         break;
     }
+#if (OPENSSL_VERSION_NUMBER > 0x10100000L)
+    RSA_get0_key(priv_rsa, (const BIGNUM **)&n, (const BIGNUM **)&e, (const BIGNUM **)&d);
+    BDBG_MSG(("%s %d n %p e %p d %p data: n %p e %p d %p\n",
+        BSTD_FUNCTION, __LINE__,
+        (void *)n,(void *)e,(void *)d,
+        (void *)pBcrypt_rsaSw->n.pData, (void *)pBcrypt_rsaSw->e.pData, (void *)pBcrypt_rsaSw->d.pData));
 
+    pBcrypt_rsaSw->n.len = BN_bn2bin(n, pBcrypt_rsaSw->n.pData );
+    pBcrypt_rsaSw->e.len  = BN_bn2bin(e,pBcrypt_rsaSw->e.pData );
+    pBcrypt_rsaSw->d.len  = BN_bn2bin(d,pBcrypt_rsaSw->d.pData );
+#else
     BDBG_MSG(("%s %d n %p e %p d %p data: n %p e %p d %p\n",
         BSTD_FUNCTION, __LINE__,
         (void *)priv_rsa->n,(void *)priv_rsa->e,(void *)priv_rsa->d,
@@ -186,6 +262,7 @@ BCRYPT_STATUS_eCode BCrypt_GetRSA_From_PrivateKeyInfo(BCRYPT_Handle  hBcrypt,
     pBcrypt_rsaSw->n.len = BN_bn2bin(priv_rsa->n, pBcrypt_rsaSw->n.pData );
     pBcrypt_rsaSw->e.len  = BN_bn2bin(priv_rsa->e,pBcrypt_rsaSw->e.pData );
     pBcrypt_rsaSw->d.len  = BN_bn2bin(priv_rsa->d,pBcrypt_rsaSw->d.pData );
+#endif
 
 ErrorExit:
     return errCode;

@@ -593,8 +593,11 @@ wlc_bssload_get_load(wlc_bsscfg_t *cfg, void *dst, int dstlen)
 	if (dstlen < srclen) {
 		err = BCME_BUFTOOSHORT;
 	} else {
-		bcopy(&cfg->bssload->load, dst, srclen);
+		if (cfg != NULL && cfg->bssload != NULL) {
+			bcopy(&cfg->bssload->load, dst, srclen);
+		}
 	}
+
 	return err;
 }
 

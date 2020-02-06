@@ -156,7 +156,7 @@ extern int wlc_assoc_chanspec_sanitize(wlc_info_t *wlc, chanspec_list_t *list, i
 #ifdef WLSCANCACHE
 bool wlc_assoc_cache_validate_timestamps(wlc_info_t *wlc, wlc_bss_list_t *bss_list);
 #endif
-extern bool wlc_assoc_check_roam_candidate(wlc_bsscfg_t *cfg, wlc_bss_info_t *candidate_bi);
+extern bool wlc_assoc_check_roam_candidate(wlc_bsscfg_t *cfg, wlc_bss_info_t *candidate_bi, bool rsn);
 
 /** report assoc/roam state */
 typedef struct {
@@ -378,6 +378,7 @@ struct wlc_roam {
 };
 
 extern void wlc_assoc_homech_req_update(wlc_bsscfg_t *bsscfg);
+extern int8 wlc_assoc_get_as_state(wlc_bsscfg_t *cfg);
 
 /* attach/detach interface */
 wlc_assoc_info_t *wlc_assoc_attach(wlc_info_t *wlc);
@@ -387,5 +388,6 @@ extern int _wlc_join_start_ibss(wlc_info_t *wlc, wlc_bsscfg_t *cfg, int bss_type
 extern uint8 wlc_assoc_get_prune_type(wlc_info_t *wlc);
 extern wlc_bss_info_t * wlc_assoc_get_next_join_bi(wlc_info_t *wlc);
 /* ******** WORK-IN-PROGRESS ******** */
-
+void wlc_try_join_start(wlc_bsscfg_t *cfg, wl_join_scan_params_t *scan_params,
+	wl_join_assoc_params_t *assoc_params);
 #endif /* __wlc_assoc_h__ */

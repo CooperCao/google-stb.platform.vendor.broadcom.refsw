@@ -62,7 +62,10 @@
 #include "ieee1905_linkedlist.h"
 #include <bcmwifi_channels.h>
 
-#define I5_DM_VERSION 0
+/* ** IMPORTANT ** : if any data structure in this file changes, update this version
+* for example, version: x.y.z, increase z by 1.
+*/
+#define I5_DM_VERSION "2.0.0"
 
 typedef int (*i5MacAddressDeliveryFunc)(unsigned char const * macAddressList, unsigned char numMacs);
 
@@ -79,10 +82,17 @@ typedef int (*i5MacAddressDeliveryFunc)(unsigned char const * macAddressList, un
 /* Default TX_RATE for ethernet agents, is currently 1 Gbps(1000 Mbps) */
 #define I5_DM_DEFAULT_ETH_TX_RATE		1000
 
+/* Bit flags for status book-keeping used in i5_dm_interface_type structure */
+#define I5_FLAG_IFR_M1_SENT		0x1
+#define I5_FLAG_IFR_M2_RECEIVED		0x2
+
+#define I5_IS_M1_SENT(flags)		((flags) & I5_FLAG_IFR_M1_SENT)
+#define I5_IS_M2_RECEIVED(flags)	((flags) & I5_FLAG_IFR_M2_RECEIVED)
+
 /* SSID Type */
 typedef struct {
   unsigned char	SSID_len;
-  unsigned char	SSID[IEEE1905_MAX_SSID_LEN];
+  unsigned char	SSID[IEEE1905_MAX_SSID_LEN + 1];
 } ieee1905_ssid_type;
 
 typedef struct {
@@ -265,6 +275,7 @@ typedef struct {
   ieee1905_interface_metric ifrMetric;  /* Interface Metric */
   unsigned char bssid[MAC_ADDR_LEN];  /* BSSID in case of IEEE1905_MAP_FLAG_STA */
   unsigned char mapFlags; /* Of Type IEEE1905_MAP_FLAG_XXX */
+  unsigned char flags;	/* Of Type I5_FLAG_IFR_XXX */
 #endif /* MULTIAP */
   void *vndr_data;    /* vendor specific data pointer which can be filled by the user */
 } i5_dm_interface_type;
@@ -343,6 +354,7 @@ typedef struct i5_dm_device_type_t_{
   i5_dm_1905_neighbor_type       neighbor1905_list;
   i5_dm_bridging_tuple_info_type bridging_tuple_list;
   struct i5_dm_device_type_t_ *parentDevice;  /* Pointer to the parent device */
+  time_t active_time;
 } i5_dm_device_type;
 
 typedef struct {

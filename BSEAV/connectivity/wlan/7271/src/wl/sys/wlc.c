@@ -1093,7 +1093,7 @@ static const bcm_iovar_t wlc_iovars[] = {
 #endif /* EVENT_LOG_COMPILE */
 	/* it is required for regulatory testing */
 	{"per_chan_info", IOV_PER_CHAN_INFO,
-	(0), 0, IOVT_UINT16, 0
+	(0), 0, IOVT_BUFFER, sizeof(wl_set_chan_info_t)
 	},
 #ifdef STA
 	{"early_bcn_thresh", IOV_EARLY_BCN_THRESH,
@@ -3129,6 +3129,9 @@ wlc_set_phy_chanspec(wlc_info_t *wlc, chanspec_t chanspec)
 
 	/* Save our copy of the chanspec */
 	wlc->chanspec = chanspec;
+	if (wlc->default_bss) {
+		wlc->default_bss->chanspec = chanspec;
+	}
 
 	WL_TSLOG(wlc, __FUNCTION__, TS_ENTER, 0);
 	/* Set the chanspec and power limits for this locale.
@@ -3574,13 +3577,15 @@ wlc_scb_disassoc_cleanup(wlc_info_t *wlc, struct scb *scb)
 
 	scb->flags &= ~SCB_PENDING_PSPOLL;
 
+	if (!SCB_LEGACY_WDS(scb)) {
 #ifdef WLAMPDU
-	/* cleanup ampdu at end of association */
-	if (SCB_AMPDU(scb)) {
-		WL_AMPDU(("wl%d: scb ampdu cleanup for %s\n", wlc->pub->unit, eabuf));
-		scb_ampdu_cleanup(wlc, scb);
-	}
+		/* cleanup ampdu at end of association */
+		if (SCB_AMPDU(scb)) {
+			WL_AMPDU(("wl%d: scb ampdu cleanup for %s\n", wlc->pub->unit, eabuf));
+			scb_ampdu_cleanup(wlc, scb);
+		}
 #endif
+	}
 
 	if (BSSCFG_AP(SCB_BSSCFG(scb))) {
 		/* If the STA has been configured to be monitored before,
@@ -8809,6 +8814,52 @@ wlc_watchdog(void *arg)
 	wlc_btcx_read_btc_params(wlc);
 #endif /* defined(BCMECICOEX) */
 	wlc_bmac_watchdog(wlc);
+#if defined(STA) && defined(AP)
+	/* start AP if operation were pending on SCAN_IN_PROGRESS() or WLC_RM_IN_PROGRESS() */
+	/* Find AP's that are enabled but not up to restart */
+	if (AP_ENAB(wlc->pub) && APSTA_ENAB(wlc->pub) && wlc_apup_allowed(wlc)) {
+		if ((wlc->cfg->up) && (wlc->cfg->associated)) {
+			bool startap = FALSE;
+
+			FOREACH_AP(wlc, i, cfg) {
+				/* find the first ap that is enabled but not up */
+				if (cfg->enable && !cfg->up) {
+					startap = TRUE;
+					break;
+				}
+			}
+
+			if (startap) {
+				WL_APSTA_UPDN(("wl%d: wlc_watchdog -> restart downed ap\n",
+				       wlc->pub->unit));
+				wlc_restart_ap(wlc->ap);
+			}
+		}
+		/* If no SCAN, ASSOC or RM in progress and primary sta interface is
+		 * down or not associated, initiate join process
+		 *
+		 * wlc_apup_allowed routine checks about scan, assoc or RM process in
+		 * progress or not
+		 */
+		else {
+			if (wlc_assoc_get_as_state(wlc->cfg) == AS_DFS_CAC_START) {
+				/* Wait. Sta is performing DFS re-entry CAC and if
+				 * successful, will join upstream AP with assoc sta
+				 * state machine switch to DFS_ISM_INIT. In case radar
+				 * detected during DFS re-entry CAC, assoc sta state
+				 * machine switch to AS_DFS_CAC_FAIL, followed with
+				 * resume join logic again starting with SCAN state
+				 * with wlc_try_join_start.
+				 */
+				;
+			} else {
+				wlc_try_join_start(wlc->cfg,
+					wlc_bsscfg_scan_params(wlc->cfg),
+					wlc_bsscfg_assoc_params(wlc->cfg));
+			}
+		}
+	}
+#endif /* STA && AP */
 #if defined(DELTASTATS)
 	/* check if delta stats enabled */
 	if (DELTASTATS_ENAB(wlc->pub) && (wlc->delta_stats->interval != 0)) {
@@ -8913,6 +8964,14 @@ wlc_watchdog(void *arg)
 	}
 #endif /* STA */
 
+#ifdef DWDS
+	/* Clean up DWDS STA client list */
+	FOREACH_AS_STA(wlc, i, cfg) {
+		if (MAP_ENAB(cfg) && cfg->dwds_loopback_filter) {
+			wlc_dwds_expire_sa(wlc, cfg);
+		}
+	}
+#endif /* DWDS */
 	/* push assoc state to phy. If no associations then set the flag so
 	 * that phy can clear any desense it has done before.
 	 */
@@ -9467,6 +9526,12 @@ BCMUNINITFN(wlc_down)(wlc_info_t *wlc)
 			if (!bsscfg->enable)
 				continue;
 
+#ifdef DWDS
+			/* Flush DWDS loopback sa list */
+			if (MAP_ENAB(bsscfg) && bsscfg->dwds_loopback_filter) {
+				wlc_dwds_flush_salist(wlc, bsscfg);
+			}
+#endif /* DWDS */
 			/* For WOWL or Assoc Recreate, don't disassociate,
 			 * just down the bsscfg.
 			 * Otherwise, disable the config (STA requires active restart)
@@ -11979,6 +12044,7 @@ BCMATTACHFN(wlc_module_register)(wlc_pub_t *pub, const bcm_iovar_t *iovars,
 	}
 
 	/* it is time to increase the capacity */
+	WL_ERROR(("wl%d: %s : WLC_MAXMODULES exceeded!", wlc->pub->unit, __FUNCTION__));
 	ASSERT(i < wlc->pub->max_modules);
 	return BCME_NORESOURCE;
 } /* WLC_MODULE_REGISTER */
@@ -12345,6 +12411,18 @@ wlc_doiovar(void *hdl, uint32 actionid,
 
 	case IOV_GVAL(IOV_PER_CHAN_INFO): {
 		*ret_int_ptr = wlc_get_chan_info(wlc, (uint16)int_val);
+		break;
+	}
+	case IOV_SVAL(IOV_PER_CHAN_INFO): {
+		int ret;
+		wl_set_chan_info_t *chan_info = (wl_set_chan_info_t *)params;
+		if (p_len < sizeof(*chan_info)) {
+			err = BCME_BUFTOOSHORT;
+			break;
+		}
+		if ((ret = wlc_set_dfs_chan_info(wlc, chan_info)) != BCME_OK) {
+			err = ret;
+		}
 		break;
 	}
 
@@ -23183,6 +23261,9 @@ wlc_sta_info(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, const struct ether_addr *ea,
 		sta.rateset_adv.vht_mcs[nss - 1] = VHT_MCS_CODE_TO_MCS_MAP(mcs_code) |
 			VHT_PROP_MCS_CODE_TO_PROP_MCS_MAP(prop_mcs_code);
 	}
+#ifdef WLWNM_AP
+	sta.wnm_cap = wlc_wnm_get_scbcap(wlc, scb);
+#endif /* WLWNM_AP */
 
 	sta.len = (uint16)copy_len;
 	/* bcopy to avoid alignment issues */
@@ -24581,6 +24662,11 @@ wlc_scb_set_auth(wlc_info_t *wlc, wlc_bsscfg_t *bsscfg, struct scb *scb, bool en
 	void *pkt = NULL;
 	int ret = BCME_OK;
 
+	if (SCB_LEGACY_WDS(scb)) {
+		WL_ERROR(("wl%d.%d %s: WDS=" MACF " enable=%d flag=%x\n",
+			wlc->pub->unit, WLC_BSSCFG_IDX(bsscfg),
+			__FUNCTION__, ETHERP_TO_MACF(&scb->ea), enable, flag));
+	}
 	if (enable) {
 		if (flag == AUTHORIZED) {
 			wlc_scb_setstatebit(wlc, scb, AUTHORIZED);

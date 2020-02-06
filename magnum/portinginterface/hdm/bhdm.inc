@@ -50,6 +50,7 @@ BHDM_SOURCES += \
 ifndef BHDM_FOR_BOOTUPDATER
 BHDM_SOURCES += \
 	$(MAGNUM)/portinginterface/hdm/src/common/bhdm_edid.c \
+	$(MAGNUM)/portinginterface/hdm/src/common/bhdm_edid_edit.c \
 	\
 	$(MAGNUM)/portinginterface/hdm/src/common/bhdm_packet.c \
 	$(MAGNUM)/portinginterface/hdm/src/common/bhdm_packet_audio.c \

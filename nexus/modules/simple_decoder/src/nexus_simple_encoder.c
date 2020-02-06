@@ -1963,6 +1963,18 @@ void NEXUS_SimpleEncoder_GetCompletedSystemDataBuffers( NEXUS_SimpleEncoderHandl
     *pCompletedCount = 0;
 }
 
+void nexus_simpleencoder_p_decoder_watchdog(void *context)
+{
+    NEXUS_SimpleEncoderHandle handle;
+    BSTD_UNUSED(context);
+    for (handle=nexus_simple_encoder_p_first(); handle; handle = nexus_simple_encoder_p_next(handle)) {
+        BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleEncoder);
+        if (handle->serverSettings.nonRealTime) {
+            NEXUS_SimpleEncoder_Watchdog(handle->server, handle);
+        }
+    }
+}
+
 void NEXUS_SimpleEncoder_Watchdog( NEXUS_SimpleEncoderServerHandle server, NEXUS_SimpleEncoderHandle handle )
 {
 #if NEXUS_HAS_STREAM_MUX

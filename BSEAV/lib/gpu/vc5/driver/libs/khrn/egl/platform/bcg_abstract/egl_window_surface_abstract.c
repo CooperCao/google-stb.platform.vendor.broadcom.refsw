@@ -87,6 +87,7 @@ static EGLint dequeue_buffer(EGL_WINDOW_SURFACE_T *surf)
    {
       platform->CancelSurface(platform->context, surf->native_window_state,
             surf->native_back_buffer, fence);
+      surf->native_back_buffer = NULL;
       KHRN_MEM_ASSIGN(surf->active_image, NULL);
       return EGL_BAD_NATIVE_WINDOW;
    }
@@ -162,25 +163,32 @@ static EGLint swap_buffers(EGL_SURFACE_T *surface)
 }
 
 /* Get the buffer to draw to */
-static khrn_image *get_back_buffer(EGL_SURFACE_T *surface)
+static EGLint get_back_buffer(EGL_SURFACE_T *surface, khrn_image **image)
 {
    EGL_WINDOW_SURFACE_T *surf = (EGL_WINDOW_SURFACE_T *) surface;
+   EGLint result = EGL_SUCCESS;
 
    if (surf->active_image == NULL)
-      dequeue_buffer(surf);
-
-   return surf->active_image;
+      result = dequeue_buffer(surf);
+   *image = surf->active_image;
+   return result;
 }
 
 EGLint get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint *value)
 {
    EGL_WINDOW_SURFACE_T *surf = (EGL_WINDOW_SURFACE_T *) surface;
 
+   khrn_image *unused;
+   EGLint result;
+
    switch (attrib)
    {
    case EGL_WIDTH:
    case EGL_HEIGHT:
-      get_back_buffer(surface); /* force dequeue, this will handle resize */
+      /* force dequeue, this will handle resize */
+      result = get_back_buffer(surface, &unused);
+      if (result != EGL_SUCCESS)
+         return result;
       break;
 
    case EGL_BUFFER_AGE_EXT:
@@ -190,8 +198,9 @@ EGLint get_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLint *value)
          if (!context || context->draw != surface)
             return EGL_BAD_SURFACE;
 
-         if (!get_back_buffer(surface))
-            return EGL_BAD_ALLOC;
+         result = get_back_buffer(surface, &unused);
+         if (result != EGL_SUCCESS)
+            return result;
 
          *value = egl_surface_base_query_buffer_age(surface);
       }

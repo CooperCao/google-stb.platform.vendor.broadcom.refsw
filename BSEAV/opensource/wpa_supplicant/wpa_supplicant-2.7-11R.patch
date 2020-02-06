@@ -1,0 +1,19 @@
+diff -Naur a/wpa_supplicant/sme.c b/wpa_supplicant/sme.c
+--- a/wpa_supplicant/sme.c	2019-11-12 16:54:48.538005710 -0800
++++ b/wpa_supplicant/sme.c	2019-11-12 16:57:20.889221230 -0800
+@@ -1386,7 +1386,6 @@
+ }
+
+
+-#ifdef CONFIG_FILS
+ #ifdef CONFIG_IEEE80211R
+ static void remove_ie(u8 *buf, size_t *len, u8 eid)
+ {
+@@ -1401,7 +1400,6 @@
+	}
+ }
+ #endif /* CONFIG_IEEE80211R */
+-#endif /* CONFIG_FILS */
+
+
+ void sme_associate(struct wpa_supplicant *wpa_s, enum wpas_mode mode,

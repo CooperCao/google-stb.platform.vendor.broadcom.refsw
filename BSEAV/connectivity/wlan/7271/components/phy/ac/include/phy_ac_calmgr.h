@@ -59,6 +59,7 @@ enum {
 	ACPHY_CAL_PHASE_TXPRERXCAL0,	/* bypass Biq2 pre rx cal */
 	ACPHY_CAL_PHASE_TXPRERXCAL1,	/* bypass Biq2 pre rx cal */
 	ACPHY_CAL_PHASE_TXPRERXCAL2,	/* bypass Biq2 pre rx cal */
+	ACPHY_CAL_PHASE_TXPRERXCAL3,	/* bypass Biq3 pre rx cal */
 	ACPHY_CAL_PHASE_RXCAL,
 	ACPHY_CAL_PHASE_RSSICAL,
 	ACPHY_CAL_PHASE_IDLETSSI

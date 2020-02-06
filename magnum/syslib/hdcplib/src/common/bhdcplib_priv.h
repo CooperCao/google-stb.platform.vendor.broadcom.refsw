@@ -81,7 +81,7 @@ BDBG_OBJECT_ID_DECLARE(HDCPLIB);
 
 /* Maximum consecutive AKE_SendCert timeouts from attached Rx/Repeater before the HPD signal
 to the Tx is pulsed. NOTE: Attached Rx does not see this HPD signal */
-#define BHDCPLIB_HDCP2X_MAX_AKE_SEND_CERT_TIMEOUT_THRESHOLD 10
+#define BHDCPLIB_HDCP2X_MAX_AKE_SEND_CERT_TIMEOUT_THRESHOLD 24
 
 
 

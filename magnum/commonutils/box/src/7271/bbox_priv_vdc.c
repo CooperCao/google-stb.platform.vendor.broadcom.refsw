@@ -152,9 +152,12 @@ void BBOX_P_Vdc_SetDisplayCapabilities
             BBOX_P_Vdc_SetBox5DisplayCapabilities(pDisplayCap);
             break;
         case 6:
+            BBOX_P_Vdc_SetBox6DisplayCapabilities(pDisplayCap);
+            break;
         case 7:
         case 12:
             BBOX_P_Vdc_SetBox6DisplayCapabilities(pDisplayCap);
+            BBOX_P_Vdc_SetBox7DisplayCapabilities(pDisplayCap);
             break;
         case 8:
             BBOX_P_Vdc_SetBox8DisplayCapabilities(pDisplayCap);

@@ -3007,6 +3007,11 @@ void BHDM_HDCP_P_ResetSettings_isr(const BHDM_Handle hHDMI)
 	Register |= BCHP_FIELD_DATA(HDMI_HDCP_CTL,  I_CLEAR_RDB_AUTHENTICATED, 1) ;
 	BREG_Write32(hRegister, BCHP_HDMI_HDCP_CTL + ulOffset, Register) ;
 
+	Register = BREG_Read32(hRegister, BCHP_HDMI_CP_CONFIG + ulOffset) ;
+	Register &= ~BCHP_MASK(HDMI_CP_CONFIG, I_MUX_VSYNC) ;
+	Register |= BCHP_FIELD_DATA(HDMI_CP_CONFIG, I_MUX_VSYNC, 0) ;
+	BREG_Write32(hRegister, BCHP_HDMI_CP_CONFIG + ulOffset, Register) ;
+
 /************/
 /* HDCP 2.2 */
 /************/

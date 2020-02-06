@@ -13461,7 +13461,7 @@ wlc_ampdu_tx_send_delba(ampdu_tx_info_t *ampdu_tx, struct scb *scb, uint8 tid,
 
 	ampdu_cleanup_tid_ini(ampdu_tx, scb, tid, FALSE);
 
-	WL_ERROR(("wl%d: %s: tid %d initiator %d reason %d\n",
+	WL_AMPDU_ERR(("wl%d: %s: tid %d initiator %d reason %d\n",
 		wlc->pub->unit, __FUNCTION__, tid, initiator, reason));
 
 	wlc_send_delba(wlc, scb, tid, initiator, reason);

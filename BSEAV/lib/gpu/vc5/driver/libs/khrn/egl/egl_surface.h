@@ -42,7 +42,8 @@ extern EGL_THREAD_T *egl_surface_get_thread(const EGL_SURFACE_T *surface);
  *( e.g : see how egl_surface_get_back_buffer is used in egl_context_gl.c) */
 extern GFX_LFMT_T egl_surface_get_back_buffer_api_fmt(
       const EGL_SURFACE_T *surface);
-extern khrn_image *egl_surface_get_back_buffer(EGL_SURFACE_T *surface);
+extern EGLint egl_surface_get_back_buffer(EGL_SURFACE_T *surface,
+      khrn_image **image);
 
 extern GFX_LFMT_T egl_surface_get_aux_buffer_api_fmt(
       const EGL_SURFACE_T *surface, egl_aux_buf_t which);

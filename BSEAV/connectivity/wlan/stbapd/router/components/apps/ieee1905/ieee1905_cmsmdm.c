@@ -1243,7 +1243,7 @@ static void _i5CmsMdmAlAddObjects(void)
 
    i5Trace("\n");
 
-   pDev = i5DmDeviceFind(i5_config.i5_mac_address);
+   pDev = i5DmGetSelfDevice();
    if (pDev != NULL)
    {
       i5_dm_interface_type *pInterface = pDev->interface_list.ll.next;
@@ -1284,7 +1284,7 @@ static void _i5CmsMdmAlRemoveDeletedObjects(void)
    unsigned char id2[MAC_ADDR_LEN];
    Dev2Ieee1905AlIfcObject *ieee1905AlIfcObj = NULL;
    Dev2Ieee1905AlIfcLinkObject *ieee1905AlIfcLinkObj = NULL;
-   i5_dm_device_type *pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+   i5_dm_device_type *pdevice = i5DmGetSelfDevice();
 
    if ( pdevice == NULL )
    {

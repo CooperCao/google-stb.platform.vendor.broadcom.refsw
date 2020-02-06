@@ -416,10 +416,17 @@ void glxx_server_attach_surfaces(GLXX_SERVER_STATE_T *state,
       unsigned width, height;
       if (draw)
       {
-         khrn_image *img = egl_surface_get_back_buffer(draw);
-
-         width = khrn_image_get_width(img);
-         height = khrn_image_get_height(img);
+         khrn_image *img;
+         EGLint error = egl_surface_get_back_buffer(draw, &img);
+         if (error == EGL_SUCCESS)
+         {
+            width = khrn_image_get_width(img);
+            height = khrn_image_get_height(img);
+         }
+         else
+         {
+            width = 0; height = 0;
+         }
 
          assert(width <= GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE &&
             height <= GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE);

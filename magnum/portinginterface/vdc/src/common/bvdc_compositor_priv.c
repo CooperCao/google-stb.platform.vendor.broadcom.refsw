@@ -1590,7 +1590,11 @@ static void BVDC_P_Compositor_BuildRul_Video_isr
                 #if BVDC_P_CRBVN_782_WORKAROUND && BCHP_CMP_0_V0_RECT_CSC_INDEX_0
                 *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
                 *pList->pulCurrent++ = BRDC_REGISTER(BCHP_CMP_0_V0_RECT_CSC_INDEX_0 + hCompositor->ulRegOffset + ulV0V1Offset);
-                *pList->pulCurrent++ = BCHP_FIELD_ENUM(CMP_0_V0_RECT_CSC_INDEX_0, CSC_COEFF_INDEX_RECT0, DISABLE);
+                if(hWindow->bBarsToBeFilled) {/* clearRect enabled */
+                    *pList->pulCurrent++ = 0;
+                } else {
+                    *pList->pulCurrent++ = BCHP_FIELD_ENUM(CMP_0_V0_RECT_CSC_INDEX_0, CSC_COEFF_INDEX_RECT0, DISABLE);
+                }
                 #endif
             }
 

@@ -21,3 +21,6 @@
 BCM_ANDROID=1
 BRCM_WLAN_IFNAME=wlan%d
 BCM_ANDROID_TV=1
+#Android stbapd builds currently not generating dpsta and emf/igs (wmf) .ko. Revisit.
+DPSTA=0
+WMF=0

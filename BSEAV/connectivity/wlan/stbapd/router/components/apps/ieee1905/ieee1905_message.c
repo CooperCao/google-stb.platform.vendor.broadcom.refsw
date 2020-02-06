@@ -71,6 +71,7 @@
 #include "ieee1905_flowmanager.h"
 #include "ieee1905_glue.h"
 
+#define MULTIAP_PLUGFEST
 #define I5_TRACE_MODULE i5TraceMessage
 #define I5_MESSAGE_MAX_TLV_SIZE (I5_PACKET_BUF_LEN - ETH_HLEN - sizeof(i5_message_header_type) )
 
@@ -919,11 +920,12 @@ void i5MessageTopologyDiscoveryReceive(i5_message_type *pmsg)
 
     if (pDevice) {
       pDevice->psock = pmsg->psock;
+      time(&pDevice->active_time);
     }
     i5MessageTopologyQuerySend(pmsg->psock, neighbor_al_mac_address);
 
     /* if a neighbor entry does not exist for this device send a topology discovery */
-    pDevice = i5DmDeviceFind(i5_config.i5_mac_address);
+    pDevice = i5DmGetSelfDevice();
     if ( pDevice ) {
       if ( NULL == i5Dm1905NeighborFind(pDevice, pmsg->psock->u.sll.mac_address, neighbor_al_mac_address) ) {
         i5MessageTopologyDiscoveryTimeout(pmsg->psock);
@@ -979,7 +981,7 @@ void i5MessageTopologyDiscoverySend(i5_socket_type *psock)
   i5_message_type *vendMsg;
   i5_dm_device_type *pdevice;
 
-  pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdevice = i5DmGetSelfDevice();
   if ( pdevice == NULL ) {
     i5TraceError("Local device does not exist\n");
   }
@@ -1300,6 +1302,7 @@ void i5MessageTopologyResponseReceive(i5_message_type *pmsg)
       return;
     }
     pdevice->psock = pmsg->psock;
+    time(&pdevice->active_time);
 #ifdef MULTIAP
     i5DmBSSClientPending(pdevice);
     /* Send AP capability query only from controller */
@@ -1402,9 +1405,10 @@ void i5MessageTopologyResponseSend(i5_message_type *pmsg_req)
 
   if (destDev) {
     destDev->psock = pmsg_req->psock;
+    time(&destDev->active_time);
   }
 
-  pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdevice = i5DmGetSelfDevice();
   if ( pdevice == NULL ) {
     i5TraceError("Local device does not exist\n");
   }
@@ -1530,7 +1534,7 @@ void i5MessageApAutoconfigurationResponseSend(i5_message_type *pmsg_req, unsigne
   }
 }
 
-#ifdef MULTIAP_LOCALM1M2
+#ifdef MULTIAP
 /* Send WSC M1 Message */
 void i5MessageApAutoconfigurationWscM1Send(i5_socket_type *psock, unsigned char *macAddr,
   unsigned char const *wscPacket, unsigned wscLen, unsigned char *radioMac)
@@ -1541,7 +1545,7 @@ void i5MessageApAutoconfigurationWscM1Send(i5_socket_type *psock, unsigned char 
 
   i5Trace("Sending AP Autoconfiguration Wsc M1 Message on %s\n", psock->u.sll.ifname);
 
-  pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdevice = i5DmGetSelfDevice();
   if (pdevice == NULL) {
     i5TraceError("Local device not found for mac["I5_MAC_DELIM_FMT"]\n", I5_MAC_PRM(macAddr));
     return;
@@ -1561,17 +1565,17 @@ void i5MessageApAutoconfigurationWscM1Send(i5_socket_type *psock, unsigned char 
   i5_config.last_message_identifier ++;
   i5PacketHeaderInit(pmsg->ppkt, i5MessageApAutoconfigurationWscValue,
     i5_config.last_message_identifier);
-#ifdef MULTIAP
+
   if (pdmif != NULL) {
     i5TlvAPRadioBasicCapabilitiesTypeInsert(pmsg, pdmif->InterfaceId,
       pdmif->ApCaps.RadioCaps.maxBSSSupported, pdmif->ApCaps.RadioCaps.List,
       pdmif->ApCaps.RadioCaps.Len);
   }
-#endif	/* MULTIAP */
+
   i5TlvWscTypeInsert(pmsg, wscPacket, wscLen);
   i5TlvEndOfMessageTypeInsert (pmsg);
   i5MessageSend(pmsg, 0);
-  pdmif->isM1Sent = 1;
+  pdmif->flags |= I5_FLAG_IFR_M1_SENT;
   i5MessageFree(pmsg);
 }
 
@@ -1592,9 +1596,9 @@ void i5MessageApAutoconfigurationWscM2Send(i5_socket_type *psock, unsigned char 
   i5_config.last_message_identifier ++;
   i5PacketHeaderInit(pmsg->ppkt, i5MessageApAutoconfigurationWscValue,
     i5_config.last_message_identifier);
-#ifdef MULTIAP
+
   i5TlvAPRadioIndentifierTypeInsert(pmsg, radioMac);
-#endif	/* MULTIAP */
+
   m2s = (i5_wsc_m2_type*)i5_config.m2_list.ll.next;
   while (m2s != NULL) {
     i5TlvWscTypeInsert(pmsg, m2s->m2, m2s->m2_len);
@@ -1610,57 +1614,19 @@ void i5MessageApAutoconfigurationWscSend(i5_socket_type *psock, unsigned char *m
 	unsigned wscLen, unsigned char *radioMac)
 {
     i5_message_type *pmsg;
-#ifdef MULTIAP
-    i5_dm_device_type *pdevice = NULL;
-    i5_dm_interface_type *pdmif = NULL;
-
-    if (!I5_IS_REGISTRAR(i5_config.flags)) {
-        pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
-        if ( pdevice == NULL ) {
-            i5TraceDirPrint("Local device does not exist for mac["I5_MAC_DELIM_FMT"]\n", I5_MAC_PRM(macAddr));
-            return;
-        }
-        pdmif = (i5_dm_interface_type *)pdevice->interface_list.ll.next;
-       /* Create and send the ap radio basic caps only for each radio. */
-        while (pdmif != NULL) {
-            if (memcmp(radioMac, pdmif->InterfaceId, MAC_ADDR_LEN) == 0) {
-              char *tmp = i5WlCfgGetNvVal(pdmif->wlParentName, "mode");
-              if (tmp[0] != '\0' && (0 == strcmp(tmp, "ap"))) {
-                break;
-              } else {
-                i5TraceError("Radio["I5_MAC_DELIM_FMT"] With AP Capability not found\n",
-                  I5_MAC_PRM(radioMac));
-                return;
-              }
-            }
-            pdmif = pdmif->ll.next;
-        }
-    }
-#endif	/* MULTIAP */
 
     i5Trace("Sending AP Autoconfiguration Wsc Message on %s\n", psock->u.sll.ifname);
     pmsg = i5MessageCreate(psock, macAddr, I5_PROTO);
     if (pmsg != NULL) {
         i5_config.last_message_identifier ++;
         i5PacketHeaderInit(pmsg->ppkt, i5MessageApAutoconfigurationWscValue, i5_config.last_message_identifier);
-#ifdef MULTIAP
-        if (I5_IS_REGISTRAR(i5_config.flags)) {
-          i5TlvAPRadioIndentifierTypeInsert(pmsg, radioMac);
-        } else {
-          if (pdmif != NULL) {
-            i5TlvAPRadioBasicCapabilitiesTypeInsert(pmsg, pdmif->InterfaceId,
-              pdmif->ApCaps.RadioCaps.maxBSSSupported, pdmif->ApCaps.RadioCaps.List,
-              pdmif->ApCaps.RadioCaps.Len);
-          }
-        }
-#endif	/* MULTIAP */
         i5TlvWscTypeInsert(pmsg, wscPacket, wscLen);
         i5TlvEndOfMessageTypeInsert (pmsg);
         i5MessageSend(pmsg, 0);
         i5MessageFree(pmsg);
     }
 }
-#endif /* MULTIAP_LOCALM1M2 */
+#endif /* MULTIAP */
 
 void inline i5MessageGetLinkMetricsWanted(enum i5TlvLinkMetricType_Values metricTypes, char *rxWanted, char *txWanted)
 {
@@ -1672,16 +1638,46 @@ void i5MessageSetTxStats (i5_tlv_linkMetricTx_t* txStats, unsigned char const * 
                           unsigned char const * neighbor_interface_mac_addrs, int numLinks)
 {
   int linkIndex = 0;
+  i5_dm_device_type *selfDevice = i5DmGetSelfDevice();
 
   i5Trace("\n");
+
+  if (!selfDevice) {
+    return;
+  }
 
   for ( ; linkIndex < numLinks ; linkIndex ++) {
     unsigned char const * currNeighborMac = &neighbor_interface_mac_addrs[linkIndex * ETH_ALEN];
     i5_dm_1905_neighbor_type *thisNeighbor = i5Dm1905GetLocalNeighbor(currNeighborMac);
+    i5_dm_interface_type *pinterface;
+    i5_dm_bss_type *pbss;
+
     memset(&txStats[linkIndex], 0, sizeof(i5_tlv_linkMetricTx_t));
 
     if (!thisNeighbor) {
       return;
+    }
+
+    pinterface = i5DmInterfaceFind(selfDevice, &local_interface_mac_addrs[linkIndex * ETH_ALEN]);
+    /* The interface can be virtual. In that case it will be in the BSS list */
+    if (pinterface == NULL) {
+      pbss = i5DmFindBSSFromDevice(selfDevice,
+        (unsigned char*)&local_interface_mac_addrs[linkIndex * ETH_ALEN]);
+      if (pbss) {
+        pinterface = (i5_dm_interface_type*)I5LL_PARENT(pbss);
+      } else {
+        i5TraceInfo("SelfDev["I5_MAC_DELIM_FMT"] Local BSS["I5_MAC_DELIM_FMT"] not found\n",
+          I5_MAC_PRM(selfDevice->DeviceId),
+          I5_MAC_PRM(&local_interface_mac_addrs[linkIndex * ETH_ALEN]));
+      }
+    }
+
+    if (pinterface) {
+      txStats[linkIndex].intfType = pinterface->MediaType;
+    } else {
+      i5TraceInfo("SelfDev["I5_MAC_DELIM_FMT"] Local Ifr["I5_MAC_DELIM_FMT"] not found\n",
+        I5_MAC_PRM(selfDevice->DeviceId),
+        I5_MAC_PRM(&local_interface_mac_addrs[linkIndex * ETH_ALEN]));
     }
 
     memcpy(&txStats[linkIndex].localInterface, &local_interface_mac_addrs[linkIndex * ETH_ALEN], ETH_ALEN);
@@ -1693,14 +1689,23 @@ void i5MessageSetTxStats (i5_tlv_linkMetricTx_t* txStats, unsigned char const * 
     txStats[linkIndex].packetErrors = thisNeighbor->metric.txPacketErrors;
     txStats[linkIndex].transmittedPackets = thisNeighbor->metric.transmittedPackets;
     txStats[linkIndex].phyRate= thisNeighbor->metric.phyRate;
+    i5TraceInfo("Local Ifr["I5_MAC_DELIM_FMT"] MediaType[%x] Adding Available[%d] "
+      "MacThroughput[%d] Errors[%d] TxPackets[%d] Phyrate[%d]\n",
+      I5_MAC_PRM(&local_interface_mac_addrs[linkIndex * ETH_ALEN]),
+      pinterface ? pinterface->MediaType : 0,
+      thisNeighbor->metric.linkAvailability, thisNeighbor->metric.macThroughPutCapacity,
+      thisNeighbor->metric.txPacketErrors, thisNeighbor->metric.transmittedPackets,
+      thisNeighbor->metric.phyRate);
 #else
     txStats[linkIndex].macThroughPutCapacity = thisNeighbor->MacThroughputCapacity;
     txStats[linkIndex].linkAvailability = thisNeighbor->availableThroughputCapacity;
-
-    txStats[linkIndex].ieee8021BridgeFlag = thisNeighbor->IntermediateLegacyBridge;
+    i5TraceInfo("Local Ifr["I5_MAC_DELIM_FMT"] MediaType[%x] Adding %d/%d\n",
+      I5_MAC_PRM(&local_interface_mac_addrs[linkIndex * ETH_ALEN]),
+      pinterface ? pinterface->MediaType : 0,
+      thisNeighbor->availableThroughputCapacity, thisNeighbor->MacThroughputCapacity);
 #endif /* MULTIAP */
 
-    i5TraceInfo("Adding %d/%d \n", thisNeighbor->availableThroughputCapacity,thisNeighbor->MacThroughputCapacity);
+    txStats[linkIndex].ieee8021BridgeFlag = thisNeighbor->IntermediateLegacyBridge;
   }
 }
 
@@ -1708,16 +1713,46 @@ void i5MessageSetRxStats (i5_tlv_linkMetricRx_t* rxStats, unsigned char const * 
                           unsigned char const * neighbor_interface_mac_addrs, int numLinks)
 {
   int linkIndex = 0;
-
+  i5_dm_device_type *selfDevice = i5DmGetSelfDevice();
+  
   i5Trace("\n");
+
+  if (!selfDevice) {
+    return;
+  }
 
   for ( ; linkIndex < numLinks ; linkIndex ++) {
     unsigned char const *currNeighborMac = &neighbor_interface_mac_addrs[linkIndex * ETH_ALEN];
     i5_dm_1905_neighbor_type *thisNeighbor = i5Dm1905GetLocalNeighbor(currNeighborMac);
+    i5_dm_interface_type *pinterface;
+    i5_dm_bss_type *pbss;
+
     memset(&rxStats[linkIndex], 0, sizeof(i5_tlv_linkMetricTx_t));
 
     if (!thisNeighbor) {
       return;
+    }
+
+    pinterface = i5DmInterfaceFind(selfDevice, &local_interface_mac_addrs[linkIndex * ETH_ALEN]);
+    /* The interface can be virtual. In that case it will be in the BSS list */
+    if (pinterface == NULL) {
+      pbss = i5DmFindBSSFromDevice(selfDevice,
+        (unsigned char*)&local_interface_mac_addrs[linkIndex * ETH_ALEN]);
+      if (pbss) {
+        pinterface = (i5_dm_interface_type*)I5LL_PARENT(pbss);
+      } else {
+        i5TraceInfo("SelfDev["I5_MAC_DELIM_FMT"] Local BSS["I5_MAC_DELIM_FMT"] not found\n",
+          I5_MAC_PRM(selfDevice->DeviceId),
+          I5_MAC_PRM(&local_interface_mac_addrs[linkIndex * ETH_ALEN]));
+      }
+    }
+
+    if (pinterface) {
+      rxStats[linkIndex].intfType = pinterface->MediaType;
+    } else {
+      i5TraceInfo("SelfDev["I5_MAC_DELIM_FMT"] Local Ifr["I5_MAC_DELIM_FMT"] not found\n",
+        I5_MAC_PRM(selfDevice->DeviceId),
+        I5_MAC_PRM(&local_interface_mac_addrs[linkIndex * ETH_ALEN]));
     }
 
     memcpy(&rxStats[linkIndex].localInterface, &local_interface_mac_addrs[linkIndex * ETH_ALEN], ETH_ALEN);
@@ -1726,6 +1761,11 @@ void i5MessageSetRxStats (i5_tlv_linkMetricRx_t* rxStats, unsigned char const * 
     rxStats[linkIndex].packetErrors = thisNeighbor->metric.rxPacketErrors;
     rxStats[linkIndex].receivedPackets = thisNeighbor->metric.receivedPackets;
     rxStats[linkIndex].rcpi = thisNeighbor->metric.rcpi;
+    i5TraceInfo("SelfDev["I5_MAC_DELIM_FMT"] Local Ifr["I5_MAC_DELIM_FMT"] MediaType[%x] "
+      "Errors[%d] RxPackets[%d] RCPI[%d]\n",
+      I5_MAC_PRM(selfDevice->DeviceId), I5_MAC_PRM(&local_interface_mac_addrs[linkIndex * ETH_ALEN]),
+      pinterface ? pinterface->MediaType : 0, thisNeighbor->metric.rxPacketErrors,
+      thisNeighbor->metric.receivedPackets, thisNeighbor->metric.rcpi);
 #endif /* MULTIAP */
   }
 }
@@ -1940,11 +1980,11 @@ void i5MessageApAutoconfigurationSearchReceive(i5_message_type *pmsg)
 #endif /* MULTIAP */
     )
     {
-#ifdef MULTIAP_LOCALM1M2
+#ifdef MULTIAP
       i5WlCfgProcessAPAutoConfigSearch(pmsg, (unsigned int)searchedBand[0], searcher_al_mac_address);
 #else
       i5WlcfgApAutoConfigProcessMessage(pmsg, (unsigned int)searchedBand[0], NULL, 0, NULL);//->psock, i5MessageApAutoconfigurationSearchValue
-#endif /* MULTIAP_LOCALM1M2 */
+#endif /* MULTIAP */
     }
 #endif
     if (!(I5_IS_REGISTRAR(i5_config.flags) && (I5_IS_MULTIAP_CONTROLLER(i5_config.flags)))) {
@@ -1996,6 +2036,7 @@ void i5MessageApAutoconfigurationResponseReceive(i5_message_type *pmsg)
 
     /* Update registrar and supported service in the device */
     if (pdevice) {
+      time(&pdevice->active_time);
       pdevice->flags |= I5_CONFIG_FLAG_REGISTRAR;
 #ifdef MULTIAP
       /* Supported Service Flag */
@@ -2011,12 +2052,12 @@ void i5MessageApAutoconfigurationResponseReceive(i5_message_type *pmsg)
       i5MessageTopologyQuerySend(pmsg->psock, i5MessageSrcMacAddressGet(pmsg));
       break;
     }
-#ifdef MULTIAP_LOCALM1M2
+#ifdef MULTIAP
       rc = i5WlCfgProcessAPAutoConfigSearch(pmsg, (unsigned int)supportedBand[0],
         pdevice->DeviceId);
 #else
       rc = i5WlcfgApAutoConfigProcessMessage(pmsg, (unsigned int)supportedBand[0], NULL, 0, NULL);//->psock, i5MessageApAutoconfigurationResponseValue
-#endif /* MULTIAP_LOCALM1M2 */
+#endif /* MULTIAP */
     if ( rc < 0 ) {
       break;
     }
@@ -2219,11 +2260,13 @@ void i5MessageApAutoconfigurationWscReceive(i5_message_type *pmsg)
 #ifdef MULTIAP
     pDevice = i5DmDeviceFind(i5MessageSrcMacAddressGet(pmsg));
     if (pDevice == NULL) {
+      i5MessageTopologyQuerySend(pmsg->psock, i5MessageSrcMacAddressGet(pmsg));
       i5Trace("Reacieved WSC Message from Unknown Device["I5_MAC_DELIM_FMT"]\n",
         I5_MAC_PRM(i5MessageSrcMacAddressGet(pmsg)));
       goto end;
     }
 
+    time(&pDevice->active_time);
     if (I5_IS_REGISTRAR(i5_config.flags)) {
       rc |= i5TlvAPRadioBasicCapabilitiesTypeExtract(pmsg, 1, mac, &RadioCaps);
       i5TraceDirPrint("Received AP Autoconfiguration WSC M1 from "I5_MAC_DELIM_FMT" for radio"
@@ -2263,7 +2306,7 @@ void i5MessageApAutoconfigurationWscReceive(i5_message_type *pmsg)
       break;
     }
 
-#ifdef MULTIAP_LOCALM1M2
+#ifdef MULTIAP
       if (I5_IS_REGISTRAR(i5_config.flags)) {
         i5WlCfgProcessAPAutoConfigWSCM1(pmsg, pDevice, &mxMsg[0], mxLength, mac, RadioCaps);
       } else {
@@ -2271,7 +2314,7 @@ void i5MessageApAutoconfigurationWscReceive(i5_message_type *pmsg)
       }
 #else
       i5WlcfgApAutoConfigProcessMessage(pmsg, -1, m2, mxLength, mac);
-#endif /* MULTIAP_LOCALM1M2 */
+#endif /* MULTIAP */
   } while (0);
 #endif
 
@@ -2663,7 +2706,7 @@ void i5MessageAPCapabilityReportSend(i5_message_type *pmsg_req)
   i5_dm_interface_type *pdmif;
   i5_dm_bss_type *pdmbss;
 
-  pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdevice = i5DmGetSelfDevice();
   if ( pdevice == NULL ) {
     i5TraceError("Local device does not exist\n");
   }
@@ -2877,7 +2920,7 @@ void i5MessageClientCapabilityReportSend(i5_message_type *pmsg_req, unsigned cha
   unsigned char *frame = NULL;
   unsigned short frame_len = 0;
 
-  pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdevice = i5DmGetSelfDevice();
   if ( pdevice == NULL ) {
     i5TraceError("Local device does not exist\n");
     return;
@@ -3027,7 +3070,7 @@ static void i5MessageGetAllSTAsToSteer(ieee1905_steer_req *steer_req)
   i5_dm_clients_type *pdmclient;
   ieee1905_sta_list *sta_info;
 
-  pdmdev = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdmdev = i5DmGetSelfDevice();
   if (NULL == pdmdev) {
     return;
   }
@@ -3091,6 +3134,7 @@ static void i5MessageFindBSSForAllSTAs(ieee1905_steer_req *steer_req)
   i5_dm_interface_type *pdmif;
   chanspec_t chanspec = 0;
   unsigned short rclass = 0;
+  char *ifname;
 
   /* For each STA in the STA list */
   for (item_p = dll_head_p(&steer_req->sta_list.head);
@@ -3113,7 +3157,12 @@ static void i5MessageFindBSSForAllSTAs(ieee1905_steer_req *steer_req)
     }
     pdmif = (i5_dm_interface_type*)I5LL_PARENT(pdmbss);
     memcpy(bssInfo->bssid, pdmbss->BSSID, MAC_ADDR_LEN);
-    i5WlCfgGetRclass(pdmif->ifname, pdmif->chanspec, &rclass);
+	/* pick valid ifname for iovar */
+	ifname = pdmif->ifname;
+	if (*ifname == '\0') {
+		ifname = i5DmGetInterfaceForIovar();
+	}
+    i5WlCfgGetRclass(ifname, pdmif->chanspec, &rclass);
     bssInfo->target_op_class = (unsigned char)rclass;
     chanspec = pdmif->chanspec;
     bssInfo->target_channel = wf_chspec_ctlchan(chanspec);
@@ -3154,7 +3203,7 @@ static void i5MessagRSSIBasedSteering()
   ieee1905_bss_steer_config *bssCfg;
   ieee1905_steer_req steer_req;
 
-  pdmdev = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdmdev = i5DmGetSelfDevice();
   if (NULL == pdmdev) {
     return;
   }
@@ -3187,7 +3236,7 @@ static void i5MessagRSSIBasedSteering()
         memcpy(steer_req.source_bssid, pdmbss->BSSID, sizeof(steer_req.source_bssid));
         steer_req.request_flags |= IEEE1905_STEER_FLAGS_RSSI;
         i5MessageUpdateSteerReqStructForMAPPlugfest(&steer_req);
-        i5_config.cbs.steer_req(&steer_req);
+        i5_config.cbs.steer_req(&steer_req, NULL);
         i5DmSteerRequestInfoFree(&steer_req);
       }
       pdmbss = pdmbss->ll.next;
@@ -3503,6 +3552,7 @@ void i5Message1905AckSend(i5_message_type *pmsg_req)
   pdevice = i5DmDeviceFind(i5MessageSrcMacAddressGet(pmsg_req));
   if (pdevice) {
     pdevice->psock = pmsg_req->psock;
+    time(&pdevice->active_time);
   }
   /* get socket for local_interface_mac */
   i5PacketHeaderInit(pmsg->ppkt, i5Message1905AckValue, i5MessageIdentifierGet(pmsg_req));
@@ -3610,7 +3660,7 @@ void i5MessageChannelPreferenceReportSend(i5_socket_type *psock, unsigned char *
     return;
   }
 
-  pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdevice = i5DmGetSelfDevice();
   if ( pdevice == NULL ) {
     i5TraceError("Local device does not exist\n");
   }
@@ -3852,7 +3902,7 @@ void i5MessageChannelSelectionResponseSend(i5_message_type *pmsg_req, uint8 resp
   i5_dm_device_type *pdevice;
   i5_dm_interface_type *pdmif;
 
-  pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdevice = i5DmGetSelfDevice();
   if ( pdevice == NULL ) {
     i5TraceError("Local device does not exist\n");
   }
@@ -4122,7 +4172,7 @@ void i5MessageAPMetricsResponseSend(i5_socket_type *psock, unsigned char *neighb
     return;
   }
 
-  pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdevice = i5DmGetSelfDevice();
   if ( pdevice == NULL ) {
     i5TraceError("Local device does not exist\n");
     return;
@@ -4279,7 +4329,7 @@ void i5MessageAssociatedSTALinkMetricsResponseSend(i5_socket_type *psock,
     return;
   }
 
-  pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdevice = i5DmGetSelfDevice();
   if ( pdevice == NULL ) {
     i5TraceError("Local device does not exist\n");
     return;
@@ -4435,7 +4485,7 @@ int i5MessagSendUnAssociatedSTALinkMetricsQueryAck(i5_message_type *pmsg_req,
   unsigned char *mac = NULL;
   int i = 0, count = 0;
 
-  pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdevice = i5DmGetSelfDevice();
   if (!pdevice) {
     i5TraceError("Local device does not exist\n");
     return -1;
@@ -4484,7 +4534,7 @@ void i5MessageUnAssociatedSTALinkMetricsQueryReceive(i5_message_type *pmsg)
   i5Trace("Received UnAssociated STA Link Metrics Query Message %04x on %s\n",
     i5MessageIdentifierGet(pmsg), pmsg->psock->u.sll.ifname);
 
-  pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdevice = i5DmGetSelfDevice();
   /* Check if it supports unassociated STA link metrics or not */
   if (!(pdevice->BasicCaps & IEEE1905_AP_CAPS_FLAGS_UNASSOC_RPT)) {
     i5TraceError("Device["I5_MAC_DELIM_FMT"] Does not supports Unassociated STA "
@@ -4629,7 +4679,7 @@ void i5MessageBeaconMetricsQueryReceive(i5_message_type *pmsg)
   /* Send the acknowledgment */
   i5Message1905AckSend(pmsg);
 
-  pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdevice = i5DmGetSelfDevice();
   if (pdevice == NULL) {
     i5TraceError("Local device does not exist\n");
     rc = -1;

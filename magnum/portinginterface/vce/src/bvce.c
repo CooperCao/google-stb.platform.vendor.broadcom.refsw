@@ -8642,19 +8642,19 @@ BVCE_Channel_Picture_Enqueue_isr(
                   unsigned uiHorizontalPadding = 0;
                   unsigned uiVerticalPadding = 0;
 
-                  if ( 0 != ( pstPicture->ulWidth % 8 ) )
+                  if ( 0 != ( pstPicture->ulWidth % 16 ) )
                   {
-                     uiHorizontalPadding = 8 - ( pstPicture->ulWidth % 8 );
+                     uiHorizontalPadding = 16 - ( pstPicture->ulWidth % 16 );
                   }
 
-                  if ( 0 != ( pstPicture->ulHeight % 8 ) )
+                  if ( 0 != ( pstPicture->ulHeight % 16 ) )
                   {
-                     uiVerticalPadding = 8 - ( pstPicture->ulHeight % 8 );
+                     uiVerticalPadding = 16 - ( pstPicture->ulHeight % 16 );
                   }
 
                   /* Resolution */
-                  hVceCh->picture.stState.stPictureBufferMailbox.uiResolution |= ( ( ( ( pstPicture->ulWidth + uiHorizontalPadding ) / 8 ) << BVCE_P_FW_PictureBufferMailbox_Resolution_HORIZONTAL_SIZE_IN_8x8_BLOCKS_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_Resolution_HORIZONTAL_SIZE_IN_8x8_BLOCKS_MASK );
-                  hVceCh->picture.stState.stPictureBufferMailbox.uiResolution |= ( ( ( ( pstPicture->ulHeight + uiVerticalPadding ) / 8 ) << BVCE_P_FW_PictureBufferMailbox_Resolution_VERTICAL_SIZE_IN_8x8_BLOCKS_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_Resolution_VERTICAL_SIZE_IN_8x8_BLOCKS_MASK );
+                  hVceCh->picture.stState.stPictureBufferMailbox.uiResolution |= ( ( ( ( pstPicture->ulWidth + uiHorizontalPadding ) / 16 * 2 ) << BVCE_P_FW_PictureBufferMailbox_Resolution_HORIZONTAL_SIZE_IN_8x8_BLOCKS_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_Resolution_HORIZONTAL_SIZE_IN_8x8_BLOCKS_MASK );
+                  hVceCh->picture.stState.stPictureBufferMailbox.uiResolution |= ( ( ( ( pstPicture->ulHeight + uiVerticalPadding ) / 16 * 2 ) << BVCE_P_FW_PictureBufferMailbox_Resolution_VERTICAL_SIZE_IN_8x8_BLOCKS_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_Resolution_VERTICAL_SIZE_IN_8x8_BLOCKS_MASK );
 
                   /* Cropping */
                   hVceCh->picture.stState.stPictureBufferMailbox.uiCropping |= ( ( uiHorizontalPadding << BVCE_P_FW_PictureBufferMailbox_Cropping_HORIZONTAL_SIZE_SHIFT ) & BVCE_P_FW_PictureBufferMailbox_Cropping_HORIZONTAL_SIZE_MASK );

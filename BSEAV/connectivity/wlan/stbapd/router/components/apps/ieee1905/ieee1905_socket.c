@@ -474,6 +474,10 @@ void i5SocketDeinit( void )
   if (i5_config.ptmrGetBSSID) {
     i5TimerFree(i5_config.ptmrGetBSSID);
   }
+
+  if (i5_config.ptmrRemoveStaleNeighbors) {
+    i5TimerFree(i5_config.ptmrRemoveStaleNeighbors);
+  }
 #else
   if (i5_config.apSearch.timer) {
     i5TimerFree(i5_config.apSearch.timer);

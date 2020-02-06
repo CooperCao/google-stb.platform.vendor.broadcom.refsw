@@ -99,7 +99,7 @@ void* wlc_mfp_frame_get_mgmt(wlc_mfp_info_t *mfp, uint16 fc,
 /* rx */
 
 /* receive protected frame; return false to discard */
-bool wlc_mfp_rx(wlc_mfp_info_t *mfp, const wlc_bsscfg_t *bsscfg,
+bool wlc_mfp_rx(wlc_mfp_info_t *mfp, wlc_bsscfg_t *bsscfg,
 	scb_t *scb, d11rxhdr_t *rxh,
 	struct dot11_management_header *hdr, void *p);
 
@@ -109,7 +109,7 @@ bool wlc_mfp_rx(wlc_mfp_info_t *mfp, const wlc_bsscfg_t *bsscfg,
  * is no mismatch w/ mfp setting in enable_mfp
  */
 bool wlc_mfp_check_rsn_caps(const wlc_mfp_info_t *mfp, wlc_bsscfg_t *cfg,
-	uint8 rsn, bool *enable_mfp);
+	uint16 rsn, bool *enable_mfp);
 
 /* translate between wsec (config) bits and rsn caps */
 uint8 wlc_mfp_get_rsn_caps(const wlc_mfp_info_t *mfp,  wlc_bsscfg_t *cfg);

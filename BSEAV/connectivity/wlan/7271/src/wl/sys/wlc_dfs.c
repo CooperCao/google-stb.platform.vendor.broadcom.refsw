@@ -61,6 +61,8 @@
 #include <phy_misc_api.h>
 #include <phy_calmgr_api.h>
 #include <wlc_assoc.h>
+#include <wlc_wds.h>
+
 #ifdef WLRSDB
 #include <wlc_rsdb.h>
 #endif /* WLRSDB */
@@ -102,6 +104,8 @@ static const bcm_iovar_t wlc_dfs_iovars[] = {
 	{NULL, 0, 0, 0, 0, 0}
 };
 
+#define TDWR_CH20_MIN	120u	/* lowest 20MHz TDWR channel number */
+#define TDWR_CH20_MAX	128u	/* highest 20MHz TDWR channel number */
 #ifdef BGDFS
 #define PHYMODE_BGDFS_ACTIVE(phymode) (((phymode) & PHYMODE_BGDFS) != 0)
 
@@ -296,7 +300,7 @@ static bool wlc_dfs_timer_delete(wlc_dfs_info_t *dfs);
 static void wlc_dfs_chanspec_oos(wlc_dfs_info_t *dfs, chanspec_t chanspec);
 static chanspec_t wlc_dfs_chanspec_rand(wlc_dfs_info_t *dfs, uint16 *bw_list, uint16 bw_list_len,
 		bool radar_detected);
-static chanspec_t wlc_dfs_valid_forced_chanspec(wlc_dfs_info_t *dfs);
+static chanspec_t wlc_dfs_valid_forced_chanspec(wlc_dfs_info_t *dfs, bool radar_detected);
 static void wlc_dfs_rearrange_channel_list(wlc_dfs_info_t *dfs, chanspec_list_t *ch_list);
 static chanspec_t wlc_dfs_chanspec(wlc_dfs_info_t *dfs, bool radar_detected);
 static bool wlc_radar_detected(wlc_dfs_info_t *dfs, bool scan_core);
@@ -427,7 +431,13 @@ wlc_dfs_updown_cb(void *ctx, bsscfg_up_down_event_data_t *updown_data)
 	if (WL11H_ENAB(wlc) && dfs->radar &&
 			wlc_radar_chanspec(wlc->cmi, WLC_BAND_PI_RADIO_CHANSPEC) &&
 			!wlc_is_edcrs_eu(wlc)) {
-		wlc_set_quiet_chanspec(wlc->cmi, WLC_BAND_PI_RADIO_CHANSPEC);
+		/* current channel is not quiet, retain the same across down/up and mark all other channels quiet */
+		if (!wlc_quiet_chanspec(wlc->cmi, WLC_BAND_PI_RADIO_CHANSPEC)) {
+			wlc_quiet_channels_reset(wlc->cmi);
+			wlc_clr_quiet_chanspec(wlc->cmi, WLC_BAND_PI_RADIO_CHANSPEC);
+		} else {
+			wlc_set_quiet_chanspec(wlc->cmi, WLC_BAND_PI_RADIO_CHANSPEC);
+		}
 	}
 
 #if defined(BGDFS) || defined(RSDB_DFS_SCAN)
@@ -2195,6 +2205,53 @@ wlc_dfs_timer_delete(wlc_dfs_info_t *dfs)
 }
 
 static void
+wlc_dfs_channel_oos(wlc_dfs_info_t *dfs, uint8 channel, uint32 tdwr_block_time)
+{
+	wlc_info_t* wlc = dfs->wlc;
+	if (!wlc_radar_chanspec(wlc->cmi, CH20MHZ_CHSPEC(channel))) {
+		return;
+	}
+	dfs->chan_blocked[channel] = tdwr_block_time;
+	dfs->chan_cac_pending[channel] = TRUE;
+	wlc_set_quiet_chanspec(wlc->cmi, CH20MHZ_CHSPEC(channel));
+	WL_DFS(("wl%d: channel %d put out of service chspec%x\n",
+			wlc->pub->unit, channel, CH20MHZ_CHSPEC(channel)));
+}
+static void
+wlc_dfs_tdwr_check(wlc_dfs_info_t *dfs, bool tdwr, bool radar_on_tdwr_left,
+		bool radar_on_tdwr_right, bool is_ca, uint8 channel)
+{
+	uint32 tdwr_block_time = 0;
+	if (!tdwr) {
+		return;
+	}
+	/* Special cases for Terminal Doppler Weather Radar (TDWR):
+	 *  US: Block entire 120-128 for NOP/30+m on radar detection in any TDWR subband. SVN-r38281
+	 *  CA: Block entire 120-128 INDEFINITELY on radar detection in any TDWR subband. SVN-r89728
+	 *  US/CA: Block 116 if radar is detected on 120. Block 132 if radar is detected on 128.
+	 *  (TDWR channels aren't available in CA yet; these special cases for CA are anticipatory)
+	 */
+	tdwr_block_time = is_ca ? WLC_CHANBLOCK_FOREVER : dfs->dfs_cac.nop_sec;
+
+	/* blocking all TDWR chanspecs */
+	for (channel = TDWR_CH20_MIN; channel <= TDWR_CH20_MAX; channel += CH_20MHZ_APART) {
+		wlc_dfs_channel_oos(dfs, channel, tdwr_block_time);
+	}
+
+	/* blocking non-TDWR adjacent channel since radar detected on left edge of TDWR */
+	if (radar_on_tdwr_left) {
+		channel = TDWR_CH20_MIN - CH_20MHZ_APART;
+		wlc_dfs_channel_oos(dfs, channel, tdwr_block_time);
+	}
+
+	/* blocking non-TDWR adjacent channel since radar detected on right edge of TDWR */
+	if (radar_on_tdwr_right) {
+		channel = TDWR_CH20_MAX + CH_20MHZ_APART;
+		wlc_dfs_channel_oos(dfs, channel, tdwr_block_time);
+	}
+}
+
+static void
 wlc_dfs_chanspec_oos(wlc_dfs_info_t *dfs, chanspec_t chanspec)
 {
 	wlc_info_t* wlc = dfs->wlc;
@@ -2253,10 +2310,13 @@ wlc_dfs_chanspec_oos(wlc_dfs_info_t *dfs, chanspec_t chanspec)
 
 		wlc_set_quiet_chanspec(wlc->cmi, CH20MHZ_CHSPEC(120));
 		dfs->chan_blocked[120] = block_time;
+		dfs->chan_cac_pending[120] = TRUE;
 		wlc_set_quiet_chanspec(wlc->cmi, CH20MHZ_CHSPEC(124));
 		dfs->chan_blocked[124] = block_time;
+		dfs->chan_cac_pending[124] = TRUE;
 		wlc_set_quiet_chanspec(wlc->cmi, CH20MHZ_CHSPEC(128));
 		dfs->chan_blocked[128] = block_time;
+		dfs->chan_cac_pending[128] = TRUE;
 	}
 }
 
@@ -2342,6 +2402,10 @@ wlc_dfs_chanspec_rand(wlc_dfs_info_t *dfs, uint16 *bw_list, uint16 bw_list_len, 
 			if (radar_detected && wlc_quiet_chanspec(wlc->cmi, chspec)) {
 				continue; /* CAC is required; skip unavailable DFS radar channels */
 			}
+
+			if (radar_detected && wlc_wds_is_active(wlc) && wlc_radar_chanspec(wlc->cmi, chspec)) {
+				continue; /* Skip dfs-to-dfs jump if radar detected and there are active WDS interfaces */
+			}
 			setbit(ch_vec.vec, ch1);
 			ch1_count++;
 		}
@@ -2407,7 +2471,7 @@ wlc_dfs_chanspec_rand(wlc_dfs_info_t *dfs, uint16 *bw_list, uint16 bw_list_len, 
  * 0 if none found
  */
 static chanspec_t
-wlc_dfs_valid_forced_chanspec(wlc_dfs_info_t *dfs)
+wlc_dfs_valid_forced_chanspec(wlc_dfs_info_t *dfs, bool radar_detected)
 {
 	wlc_info_t *wlc = dfs->wlc;
 	chanspec_t chspec, first_valid = 0;
@@ -2426,6 +2490,9 @@ wlc_dfs_valid_forced_chanspec(wlc_dfs_info_t *dfs)
 				wf_chspec_overlap(chspec, cur_ch)) {
 			continue; /* skip since center matches current or the two overlap */
 		}
+		if (radar_detected && wlc_wds_is_active(wlc) && wlc_radar_chanspec(wlc->cmi, chspec)) {
+			continue; /* Skip dfs-to-dfs jump if radar detected and there are active WDS interfaces */
+		}
 		if (wlc_dfs_valid_ap_chanspec(wlc, chspec)) {
 			if (first_valid == 0) {
 				first_valid = chspec;
@@ -2440,6 +2507,45 @@ wlc_dfs_valid_forced_chanspec(wlc_dfs_info_t *dfs)
 	return first_valid;
 }
 
+/**
+ * This function clears the given chanspec if channel is marked passive.
+ * Mark the chanspec as OOS for 31 mins if it is inactive channel.
+ */
+uint32
+wlc_set_dfs_chan_info(wlc_info_t *wlc, wl_set_chan_info_t *chan_info)
+{
+	int ret = BCME_OK;
+	uint8 channel;
+	bool is_us = FALSE, is_ca = FALSE, tdwr = FALSE;
+	bool radar_on_tdwr_left = FALSE, radar_on_tdwr_right = FALSE;
+
+	channel = CHSPEC_CHANNEL(chan_info->chanspec);
+	if (!CHSPEC_IS20(chan_info->chanspec)) {
+		ret = BCME_RANGE;
+		WL_ERROR(("wl%d: %s: Bandwidth is not in range %d\n", wlc->pub->unit,
+				__FUNCTION__, ret));
+		return ret;
+	}
+	if (chan_info->per_chan_info & WL_CHAN_INACTIVE) {
+		is_us = (!bcmp("US", wlc_channel_country_abbrev(wlc->cmi), 2));
+		is_ca = (!bcmp("CA", wlc_channel_country_abbrev(wlc->cmi), 2));
+		wlc_dfs_channel_oos(wlc->dfs, channel, wlc->dfs->dfs_cac.nop_sec);
+		if (!tdwr && (is_us || is_ca) &&
+				(channel >= TDWR_CH20_MIN && channel <= TDWR_CH20_MAX)) {
+			tdwr = TRUE;
+		}
+		if (channel == TDWR_CH20_MIN) {
+			radar_on_tdwr_left = TRUE;
+		} else if (channel == TDWR_CH20_MAX) {
+			radar_on_tdwr_right = TRUE;
+		}
+		wlc_dfs_tdwr_check(wlc->dfs, tdwr, radar_on_tdwr_left, radar_on_tdwr_right, is_ca,
+				channel);
+	} else if (!(chan_info->per_chan_info & WL_CHAN_PASSIVE)) {
+		wlc_clr_quiet_chanspec(wlc->cmi, chan_info->chanspec); /* accepts chanspec */
+	}
+	return BCME_OK;
+}
 /* Rearranges channel list, bringing valid usable (non current) channels to head of the list */
 static void
 wlc_dfs_rearrange_channel_list(wlc_dfs_info_t *dfs, chanspec_list_t *ch_list)
@@ -2497,7 +2603,7 @@ wlc_dfs_chanspec(wlc_dfs_info_t *dfs, bool radar_detected)
 {
 	chanspec_t chspec;
 
-	chspec = wlc_dfs_valid_forced_chanspec(dfs);
+	chspec = wlc_dfs_valid_forced_chanspec(dfs, radar_detected);
 
 	/* return if suitable channel is in forced list */
 	if (chspec != 0) {
@@ -3058,6 +3164,18 @@ wlc_dfs_cacstate_cac(wlc_dfs_info_t *dfs)
 #endif /* SLAVE_RADAR */
 		if (WL11H_AP_ENAB(wlc)) {
 			wlc_dfs_to_backup_channel(dfs, TRUE);
+#ifdef CLIENT_CSA
+			if (APSTA_ENAB(wlc->pub) && BSSCFG_STA(wlc->cfg)) {
+				/* radar detected. mark the channel back to QUIET channel */
+				wlc_set_quiet_chanspec(wlc->cmi,
+					dfs->dfs_cac.status.chanspec_cleared);
+				dfs->dfs_cac.status.chanspec_cleared = 0; /* clear it */
+				wlc_dfs_chanspec_oos(dfs, WLC_BAND_PI_RADIO_CHANSPEC);
+				/* Radar detected during CAC */
+				wlc_assoc_change_state(wlc->cfg, AS_DFS_CAC_FAIL);
+				WL_DFS(("wl%d: dfs radar detected \n", wlc->pub->unit));
+			}
+#endif /* CLIENT_CSA */
 			if (wlc_radar_chanspec(wlc->cmi, WLC_BAND_PI_RADIO_CHANSPEC) == TRUE) {
 				/* do cac with new channel */
 				WL_DFS(("wl%d: dfs : state to %s chanspec %s at %dms\n",
@@ -3082,7 +3200,7 @@ wlc_dfs_cacstate_cac(wlc_dfs_info_t *dfs)
 	if (!dfs->dfs_cac.duration) {
 		WL_DFS((" CAC duration 0\n"));
 #ifdef SLAVE_RADAR
-		if (WL11H_STA_ENAB(wlc) &&
+		if (WL11H_STA_ENAB(wlc) && APSTA_ENAB(wlc->pub) &&
 			!wlc_cac_is_clr_chanspec(dfs, WLC_BAND_PI_RADIO_CHANSPEC) &&
 			SLVRADAR_ENAB(wlc->pub)) {
 			wlc_cac_do_clr_chanspec(dfs, WLC_BAND_PI_RADIO_CHANSPEC);
@@ -3093,6 +3211,13 @@ wlc_dfs_cacstate_cac(wlc_dfs_info_t *dfs)
 #endif /* SLAVE_RADAR */
 		/* cac completed. un-mute all. resume normal bss operation */
 		wlc_dfs_cacstate_ism_set(dfs);
+#ifdef CLIENT_CSA
+		if (BSSCFG_STA(wlc->cfg) && APSTA_ENAB(wlc->pub)) {
+			/* ISM started, lets prepare for join */
+			wlc_assoc_change_state(wlc->cfg, AS_DFS_ISM_INIT);
+			wlc_join_bss_prep(wlc->cfg);
+		}
+#endif /* CLIENT_CSA */
 	}
 }
 
@@ -3136,7 +3261,7 @@ wlc_dfs_cacstate_ism(wlc_dfs_info_t *dfs)
 	 */
 	if (WLC_APSTA_ON_RADAR_CHANNEL(wlc)) {
 #ifdef CLIENT_CSA
-		if (BSSCFG_STA(wlc->cfg) && (MAP_ENAB(wlc->cfg) || DWDS_ENAB(wlc->cfg))) {
+		if (BSSCFG_STA(wlc->cfg) && APSTA_ENAB(wlc->pub)) {
 			WL_DFS(("wl%d: dfs radar detected \n", wlc->pub->unit));
 		} else
 #endif /* CLIENT_CSA */
@@ -3202,6 +3327,10 @@ wlc_dfs_cacstate_ism(wlc_dfs_info_t *dfs)
 		csa.reg = wlc_get_regclass(wlc->cmi, csa.chspec);
 		csa.frame_type = CSA_BROADCAST_ACTION_FRAME;
 		wlc_dfs_csa_each_up_ap(wlc, &csa, FALSE);
+		/* Allow apsta to transmit CSA to upstream AP before all AP
+		* send Broadcast CSA to it's clients, As firmware mutes
+		* the DATA fifo in wlc_dfs_csa_each_up_ap
+		*/
 #ifdef CLIENT_CSA
 		/* Intentional Radar detection with the configuration:
 		 * Radio's primary bsscfg configured as STA with DWDS
@@ -3213,14 +3342,16 @@ wlc_dfs_cacstate_ism(wlc_dfs_info_t *dfs)
 		 * and another as AP) should not execute this. Radar
 		 * detection at STA is not being honoured.
 		 */
-		if ((!BSSCFG_AP(cfg) && (MAP_ENAB(cfg) || DWDS_ENAB(cfg)) && cfg->current_bss)) {
+	if (BSSCFG_STA(wlc->cfg) && APSTA_ENAB(wlc->pub) && cfg->current_bss) {
 			wlc_send_unicast_action_switch_channel(wlc->csa, cfg, &cfg->BSSID,
 					&csa, DOT11_SM_ACTION_CHANNEL_SWITCH);
 		}
 #endif	/* CLIENT_CSA */
+		wlc_dfs_csa_each_up_ap(wlc, &csa, FALSE);
 	} /* AP_ENAB() */
-	if (WL11H_AP_ENAB(wlc))
+	if (WL11H_AP_ENAB(wlc)) {
 		wlc_dfs_cac_state_change(dfs, WL_DFS_CACSTATE_CSA);        /* next state */
+	}
 
 	WL_DFS(("wl%d: dfs : state to %s chanspec current %s next %s at %dms, starting CSA"
 		" process\n",
@@ -3497,9 +3628,18 @@ wlc_dfs_cacstate_init(wlc_dfs_info_t *dfs)
 #endif /* BGDFS */
 
 	if (wlc_radar_chanspec(wlc->cmi, dfs->dfs_cac.status.chanspec_cleared) == TRUE) {
-		/* restore QUIET setting unless in EU */
-		if (!wlc_is_edcrs_eu(wlc)) {
-			wlc_set_quiet_chanspec(wlc->cmi, dfs->dfs_cac.status.chanspec_cleared);
+		/* if the channel is not quiet and then if we are here, then it must be
+		  * due to duplicate back-to-back cac on the same channel. Don't reset quiet bit.
+		*/
+		if (!wlc_quiet_chanspec(wlc->cmi, dfs->dfs_cac.status.chanspec_cleared)) {
+			WL_REGULATORY(("wl%d: %s: quiet_bit=0 for chanspec 0%x\n",
+					wlc->pub->unit, __FUNCTION__,
+					dfs->dfs_cac.status.chanspec_cleared));
+		} else {
+			/* restore QUIET setting unless in EU */
+			if (!wlc_is_edcrs_eu(wlc)) {
+				wlc_set_quiet_chanspec(wlc->cmi, dfs->dfs_cac.status.chanspec_cleared);
+			}
 		}
 	}
 	dfs->dfs_cac.status.chanspec_cleared = 0; /* clear it */
@@ -3521,7 +3661,23 @@ wlc_dfs_cacstate_init(wlc_dfs_info_t *dfs)
 #endif /* RSDB_DFS_SCAN || BGDFS */
 		/* unit of cactime is WLC_DFS_RADAR_CHECK_INTERVAL */
 		dfs->dfs_cac.cactime = wlc_dfs_ism_cactime(wlc, dfs->dfs_cac.cactime_pre_ism);
-		if (!WLC_APSTA_ON_RADAR_CHANNEL(wlc) && dfs->dfs_cac.cactime && !skip_pre_ism) {
+		if ((!WLC_APSTA_ON_RADAR_CHANNEL(wlc) && dfs->dfs_cac.cactime && !skip_pre_ism) &&
+			(!(APSTA_ENAB(wlc->pub) && AP_ENAB(wlc->pub)) ||
+#ifdef CLIENT_CSA
+			!wlc_cac_is_clr_chanspec(dfs, WLC_BAND_PI_RADIO_CHANSPEC) ||
+#endif /* CLIENT_CSA */
+			FALSE)) {
+			/* With below steps, dfs_slave_present flag does not get set and
+			 * hence while going into CAC state machine on switching to DFS
+			 * radar channel, APSTA configuration goes to CAC instead to ISM:
+			 * Steps:
+			 * 1: Boot Upstream AP boots into Non DFS channel say 149/80
+			 * 2: Reboot Repeater, and associate to Upstream AP
+			 * 3: Issue dfs_ap_move to DFS radar channel
+			 * 4: At end of 60 sec, Repeater starts CAC on receiving CSA from
+			 *    Upstream AP, though it is beaconing.
+			 * To prevent this: APSTA_ENAB and AP_ENAB check
+			 */
 			/* preism cac is enabled */
 			wlc_dfs_cac_state_change(dfs, WL_DFS_CACSTATE_PREISM_CAC);
 			dfs->dfs_cac.duration = dfs->dfs_cac.cactime;
@@ -3609,6 +3765,7 @@ wlc_dfs_sel_chspec(wlc_dfs_info_t *dfs, bool force, wlc_bsscfg_t *cfg)
 void
 wlc_dfs_reset_all(wlc_dfs_info_t *dfs)
 {
+	/* XXX APSTA: Need to decide who controls radar... */
 	bzero(dfs->chan_blocked, sizeof(dfs->chan_blocked));
 	bzero(dfs->chan_cac_pending, sizeof(dfs->chan_cac_pending));
 }

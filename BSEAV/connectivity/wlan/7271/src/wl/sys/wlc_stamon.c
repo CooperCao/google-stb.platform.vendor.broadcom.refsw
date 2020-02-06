@@ -838,9 +838,16 @@ wlc_stamon_stats_update(wlc_info_t *wlc, const struct ether_addr* ea, int value)
 	int idx;
 	wlc_stamon_info_t *ctxt = wlc->stamon_info;
 	if ((idx = wlc_stamon_sta_find(ctxt, ea)) != -1) {
-		/* update the stats at this index */
-		ctxt->stacfg[idx].rssi = value;
-		return BCME_OK;
+		if (TRUE
+#ifdef WL_STA_MONITOR_COMP
+		/* Avoid Ghost Frames RSSI, corrupting valid monitored RSSI */
+		&& (ctxt->stacfg[idx].chanspec == WLC_BAND_PI_RADIO_CHANSPEC)
+#endif /* WL_STA_MONITOR_COMP */
+			) {
+			/* update the stats at this index */
+			ctxt->stacfg[idx].rssi = value;
+			return BCME_OK;
+		}
 	}
 	return BCME_ERROR;
 }

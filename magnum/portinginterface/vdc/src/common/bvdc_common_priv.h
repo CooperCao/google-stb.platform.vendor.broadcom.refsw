@@ -3273,6 +3273,9 @@ DCX macro
 #define BVDC_P_MAX_CAP_GUARD_MEMORY_2D  (BVDC_P_GUARD_MEMORY_2D(BVDC_P_MOSAIC_MAX_FOR_GUARD_MEMORY))
 #define BVDC_P_MAX_CAP_GUARD_MEMORY_3D  (BVDC_P_GUARD_MEMORY_3D(BVDC_P_MOSAIC_MAX_FOR_GUARD_MEMORY))
 
+#define BVDC_P_MAX_CAP_GUARD_FILLBAR_2D  (BVDC_P_GUARD_MEMORY_2D(1))
+#define BVDC_P_MAX_CAP_GUARD_FILLBAR_3D  (BVDC_P_GUARD_MEMORY_3D(1))
+
 /***************************************************************************
  * Macros
 ***************************************************************************/

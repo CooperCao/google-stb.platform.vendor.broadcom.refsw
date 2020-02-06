@@ -108,6 +108,7 @@ static void i5ControlSendUnAssociatedSTALinkMetricQuery(i5_socket_type *psock,
 static void i5ControlSendBeaconMetricQuery(i5_socket_type *psock, t_I5_API_BEACON_METRIC_QUERY *pMsg,
   int cmd);
 #endif /* MULTIAP */
+static void i5ControlGetDmVersion(i5_socket_type *psock, int cmd);
 
 static void _i5ControlUnknownMessage(i5_socket_type *psock, t_I5_API_CMD_NAME cmd)
 {
@@ -185,7 +186,7 @@ static void i5ControlFetchLinkMetrics (int sd, unsigned char *deviceId, unsigned
                I5_MAC_PRM(deviceId), I5_MAC_PRM(remoteInterfaceId) );
 
    if (memcmp(blank, deviceId, 6) == 0) {
-      device = i5DmDeviceFind(i5_config.i5_mac_address);
+      device = i5DmGetSelfDevice();
    }
    else {
       device = i5DmDeviceFind(deviceId);
@@ -451,7 +452,7 @@ static void i5ControlSetConfigHandler(void *pMsg, int length)
   switch ( pCfg->subcmd ) {
     case I5_API_CONFIG_BASE:
     {
-      i5_dm_device_type *pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+      i5_dm_device_type *pdevice = i5DmGetSelfDevice();
       unsigned int isRegistrar = I5_IS_REGISTRAR(i5_config.flags);
 
       if ( length < (sizeof(t_I5_API_MSG) + sizeof(t_I5_API_CONFIG_BASE)) ) {
@@ -960,6 +961,13 @@ static void i5ControlSocketReceive(i5_socket_type *psock)
           }
           break;
 #endif /* MULTIAP */
+      case I5_API_CMD_GET_DM_VERSION:
+		if (length < sizeof(I5_DM_VERSION)) {
+            printf("Invalid length for I5_API_CMD_GET_DM_VERSION\n");
+		} else {
+			i5ControlGetDmVersion(psock, pMsg->cmd);
+		}
+        break;
       default:
         printf("Unknown command received %d\n", pMsg->cmd);
         _i5ControlUnknownMessage(psock, pMsg->cmd);
@@ -1847,3 +1855,19 @@ static void i5ControlSendBeaconMetricQuery(i5_socket_type *psock, t_I5_API_BEACO
   i5apiSendMessage(psock->sd, cmd, &response, sizeof(response));
 }
 #endif /* MULTIAP */
+
+/* Propogate DM version */
+static void i5ControlGetDmVersion(i5_socket_type *psock, int cmd)
+{
+  int rc, length = sizeof(I5_DM_VERSION);
+  char *pMsgBuf = malloc(length);
+
+  if (pMsgBuf != NULL) {
+	memcpy(pMsgBuf, I5_DM_VERSION, length);
+    rc = i5apiSendMessage(psock->sd, cmd, pMsgBuf, length);
+	if (rc == -1) {
+		i5TraceDirPrint("Get DM version failed\n");
+	}
+    free(pMsgBuf);
+  }
+}

@@ -40,7 +40,7 @@ static const bcm_iovar_t phy_ac_rxgcrs_iovars[] = {
 	IOVF_SET_UP, 0, IOVT_BUFFER, 4*sizeof(int8)},
 #endif /* ACCONF  */
 	{"phy_lesi", IOV_PHY_LESI,
-	IOVF_SET_UP, 0, IOVT_UINT32, 0},
+	(IOVF_SET_UP | IOVF_GET_UP), 0, IOVT_UINT32, 0},
 	{NULL, 0, 0, 0, 0, 0}
 };
 

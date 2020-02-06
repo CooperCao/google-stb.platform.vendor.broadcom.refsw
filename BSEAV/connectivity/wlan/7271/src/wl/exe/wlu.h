@@ -104,6 +104,8 @@ extern int wlu_var_setbuf_sm(void *wl, const char *iovar,
 		void *param, int param_len);
 extern int wl_parse_ssid_list(char* list_str, wlc_ssid_t* ssid, int idx, int max);
 extern void dump_bss_info(wl_bss_info_t *bi);
+extern void wl_nrate_print(uint32 rspec);
+extern void wl_wnm_print(uint32 wnm_cap);
 extern cmd_func_t wl_void;
 extern cmd_func_t wl_var_void;
 extern cmd_func_t wl_var_setint;

@@ -33,8 +33,6 @@ typedef struct wl_mbo_sub_cmd wl_mbo_sub_cmd_t;
 typedef int (subcmd_handler_t)(void *wl, const wl_mbo_sub_cmd_t *cmd,
 	char **argv);
 typedef void (help_handler_t) (void);
-typedef struct wl_event_mbo wl_event_mbo_t;
-typedef struct wl_event_mbo_cell_nw_switch wl_event_mbo_cell_nw_switch_t;
 
 struct wl_mbo_sub_cmd {
 	char *name;

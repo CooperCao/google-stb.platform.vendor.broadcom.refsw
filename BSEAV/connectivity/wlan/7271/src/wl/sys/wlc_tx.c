@@ -227,6 +227,10 @@
 #include <wlc_bcmc_txq.h>
 #endif
 
+#ifdef WDS
+#include <wlc_wds.h>
+#endif
+
 struct txq_fifo_state {
 	int flags;	/* queue state */
 	int highwater;	/* target fill capacity, in usec */
@@ -3764,11 +3768,39 @@ wlc_sendpkt(wlc_info_t *wlc, void *sdu, struct wlc_if *wlcif)
 	/* per-port code must keep track of WDS cookies */
 	ASSERT(!wds || SCB_WDS(scb));
 
-	/* Discard frame if wds link is down */
-	if (SCB_LEGACY_WDS(scb) && !(scb->flags & SCB_WDS_LINKUP)) {
-		WLCNTINCR(wlc->pub->_cnt->txnoassoc);
-		goto toss;
+	if (SCB_LEGACY_WDS(scb)) {
+		/* Discard frame if wds link is down */
+		if (!(scb->flags & SCB_WDS_LINKUP)) {
+			WLCNTINCR(wlc->pub->_cnt->txnoassoc);
+			goto toss;
+		}
+
+		/* Discard 802_1X frame if it belongs to another WDS interface
+		 * Frame might be received here due to bridge flooding.
+		 */
+		if (eh->ether_type == hton16(ETHER_TYPE_802_1X)) {
+			struct scb *scb_da = NULL;
+			wlc_bsscfg_t *cfg;
+			scb_da = wlc_scbapfind(wlc, (struct ether_addr *)(&eh->ether_dhost), &cfg);
+
+			if (scb_da && (scb != scb_da)) {
+				goto toss;
+			}
+		}
 	}
+#ifdef DWDS
+	/* For MultiAP, Maintaining a list of clients attached to the DWDS STA.
+	 * Using this mac address table to avoid handling BCMC packets
+	 * that get looped back from rootAP.
+	 */
+	if (MAP_ENAB(bsscfg) && BSSCFG_STA(bsscfg) && bsscfg->dwds_loopback_filter &&
+		SCB_DWDS(scb) && ETHER_ISMULTI(eh->ether_dhost)) {
+		uint8 *sa = eh->ether_shost;
+		if (wlc_dwds_findsa(wlc, bsscfg, sa) == NULL) {
+			wlc_dwds_addsa(wlc, bsscfg, sa);
+		}
+	}
+#endif /* DWDS */
 
 #if defined(WLTDLS)
 	if (TDLS_ENAB(wlc->pub))
@@ -4329,9 +4361,10 @@ wlc_prep_sdu(wlc_info_t *wlc, struct scb *scb, void **pkts, int *npkts, uint *fi
 	/* toss if station not yet authorized to receive non-802.1X frames */
 	if (bsscfg->eap_restrict && !SCB_ISMULTI(scb) && !SCB_AUTHORIZED(scb)) {
 		if (!is_8021x) {
-			WL_ERROR(("wl%d.%d: non-802.1X frame to unauthorized station %s\n",
+			WL_ERROR(("wl%d.%d: non-802.1X frame to unauthorized station %s (%s)\n",
 				wlc->pub->unit, WLC_BSSCFG_IDX(bsscfg),
-			          bcm_ether_ntoa(&scb->ea, eabuf)));
+				bcm_ether_ntoa(&scb->ea, eabuf),
+				SCB_LEGACY_WDS(scb) ? "WDS" : "STA"));
 			WL_TX_STS_UPDATE(toss_reason, WLC_TX_STS_TOSS_STA_NOTAUTH);
 			goto toss;
 		}
@@ -5332,7 +5365,7 @@ wlc_prep_pdu(wlc_info_t *wlc, struct scb *scb, void *pdu, uint *fifop)
 	}
 
 	/* Something is blocking data packets */
-	if (wlc->block_datafifo & ~DATA_BLOCK_JOIN) {
+	 if (wlc->block_datafifo & ~(DATA_BLOCK_JOIN)) {
 		if (wlc->block_datafifo & (DATA_BLOCK_TX_SUPR |
 			DATA_BLOCK_TXCHAIN | DATA_BLOCK_SPATIAL | DATA_BLOCK_MUTX)) {
 			WL_ERROR(("wl%d: %s: block_datafifo 0x%x\n",

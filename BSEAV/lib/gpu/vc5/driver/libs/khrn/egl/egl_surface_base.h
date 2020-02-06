@@ -14,7 +14,7 @@
 typedef struct
 {
    /* Get the buffer to draw to */
-   khrn_image *(*get_back_buffer)(EGL_SURFACE_T *surface);
+   EGLint (*get_back_buffer)(EGL_SURFACE_T *surface, khrn_image **image);
 
    /*
     * See eglSwapbuffers. May be NULL in which case back buffer is the same.

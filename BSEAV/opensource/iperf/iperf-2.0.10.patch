@@ -1,0 +1,206 @@
+diff -ru iperf-2.0.10/include/headers.h iperf-2.0.10.mod/include/headers.h
+--- iperf-2.0.10/include/headers.h	2017-08-08 20:54:14.000000000 -0700
++++ iperf-2.0.10.mod/include/headers.h	2019-02-19 09:07:51.023254651 -0800
+@@ -169,7 +169,7 @@
+ #endif
+ #ifdef HAVE_NETINET_IN_H
+ #include <netinet/in.h>
+-#include <netinet/tcp.h>
++#include <linux/tcp.h>
+ SPECIAL_OSF1_EXTERN_C_START
+     #include <arpa/inet.h>   /* netinet/in.h must be before this on SunOS */
+ SPECIAL_OSF1_EXTERN_C_STOP
+diff -ru iperf-2.0.10/include/Settings.hpp iperf-2.0.10.mod/include/Settings.hpp
+--- iperf-2.0.10/include/Settings.hpp	2017-08-08 20:54:14.000000000 -0700
++++ iperf-2.0.10.mod/include/Settings.hpp	2019-02-19 09:07:51.023254651 -0800
+@@ -234,6 +234,7 @@
+ #define FLAG_BWSET          0x01000000
+ #define FLAG_ENHANCEDREPORT 0x02000000
+ #define FLAG_SERVERMODETIME 0x04000000
++#define FLAG_SOCKET_OFFLOAD_TO_ASP 0x08000000
+ /*
+  * Extended flags
+  */
+@@ -273,6 +274,7 @@
+ #define isPeerVerDetect(settings)       ((settings->flags_extend & FLAG_PEERVER) != 0)
+ #define isSeqNo64b(settings)       ((settings->flags_extend & FLAG_SEQNO64) != 0)
+ #define isReverse(settings)       ((settings->flags_extend & FLAG_REVERSE) != 0)
++#define isSocketOffloadToAsp(settings)       ((settings->flags & FLAG_SOCKET_OFFLOAD_TO_ASP) != 0)
+ 
+ #define setBuflenSet(settings)     settings->flags |= FLAG_BUFLENSET
+ #define setCompat(settings)        settings->flags |= FLAG_COMPAT
+@@ -304,6 +306,7 @@
+ #define setPeerVerDetect(settings)      settings->flags_extend |= FLAG_PEERVER
+ #define setSeqNo64b(settings)      settings->flags_extend |= FLAG_SEQNO64
+ #define setReverse(settings)      settings->flags_extend |= FLAG_REVERSE
++#define setSocketOffloadToAsp(settings)      settings->flags |= FLAG_SOCKET_OFFLOAD_TO_ASP
+ 
+ #define unsetBuflenSet(settings)   settings->flags &= ~FLAG_BUFLENSET
+ #define unsetCompat(settings)      settings->flags &= ~FLAG_COMPAT
+@@ -335,6 +338,7 @@
+ #define unsetPeerVerDetect(settings)    settings->flags_extend &= ~FLAG_PEERVER
+ #define unsetSeqNo64b(settings)    settings->flags_extend &= ~FLAG_SEQNO64
+ #define unsetReverse(settings)    settings->flags_extend &= ~FLAG_REVERSE
++#define unsetSocketOffloadToAsp(settings)    settings->flags_extend &= ~FLAG_SOCKET_OFFLOAD_TO_ASP
+ 
+ /*
+  * Messasge header flags
+diff -ru iperf-2.0.10/src/Client.cpp iperf-2.0.10.mod/src/Client.cpp
+--- iperf-2.0.10/src/Client.cpp	2017-08-08 20:54:14.000000000 -0700
++++ iperf-2.0.10.mod/src/Client.cpp	2019-02-19 09:07:51.023254651 -0800
+@@ -68,6 +68,9 @@
+ #include <sys/mman.h>
+ #endif
+ 
++extern "C" { int offloadConnxToAspHw(int socketFd, unsigned maxBitRate);}
++extern "C" { int offloadConnxFromAspHw(int socketFd);}
++
+ /* -------------------------------------------------------------------
+  * Store server hostname, optionally local hostname, and socket info.
+  * ------------------------------------------------------------------- */
+@@ -190,6 +193,12 @@
+ 	mEndTime.add( mSettings->mAmount / 100.0 );
+ #endif
+     }
++
++    /* Offload from Linux to ASP. */
++    if (isSocketOffloadToAsp(mSettings)) {
++        offloadConnxToAspHw(mSettings->mSock, 1000000000);
++    }
++
+     while (1) {
+         // Read the next data block from
+         // the file if it's file input
+@@ -284,6 +293,11 @@
+ #endif
+     }
+ 
++    /* Offload from ASP to Linux. */
++    if (isSocketOffloadToAsp(mSettings)) {
++        offloadConnxFromAspHw(mSettings->mSock);
++    }
++
+     // stop timing
+     gettimeofday( &(reportstruct->packetTime), NULL );
+ 
+@@ -350,6 +364,12 @@
+         mEndTime.add( mSettings->mAmount / 100.0 );
+ #endif
+     }
++
++    /* Offload from Linux to ASP. */
++    if (isSocketOffloadToAsp(mSettings)) {
++        offloadConnxToAspHw(mSettings->mSock, 1000000000);
++    }
++
+     while (1) {
+         // Read the next data block from
+         // the file if it's file input
+@@ -409,6 +429,10 @@
+ #endif
+     }
+ 
++    /* Offload from ASP to Linux. */
++    if (isSocketOffloadToAsp(mSettings)) {
++        offloadConnxFromAspHw(mSettings->mSock);
++    }
+ 
+     // stop timing
+     gettimeofday( &(reportstruct->packetTime), NULL );
+diff -ru iperf-2.0.10/src/Locale.c iperf-2.0.10.mod/src/Locale.c
+--- iperf-2.0.10/src/Locale.c	2017-08-11 11:41:20.000000000 -0700
++++ iperf-2.0.10.mod/src/Locale.c	2019-02-19 09:07:51.023254651 -0800
+@@ -97,6 +97,7 @@
+   -M, --mss       #        set TCP maximum segment size (MTU - 40 bytes)\n\
+   -N, --nodelay            set TCP no delay, disabling Nagle's Algorithm\n\
+   -S, --tos       #        set the socket's IP_TOS (byte) field\n\
++  -O, --socketOffloadToAsp #  set to offload a socket connection to ASP HW.\n\
+ \n\
+ Server specific:\n\
+   -s, --server             run in server mode\n\
+diff -ru iperf-2.0.10/src/Settings.cpp iperf-2.0.10.mod/src/Settings.cpp
+--- iperf-2.0.10/src/Settings.cpp	2017-08-11 10:55:44.000000000 -0700
++++ iperf-2.0.10.mod/src/Settings.cpp	2019-02-19 09:07:51.023254651 -0800
+@@ -139,6 +139,7 @@
+ #ifdef WIN32
+ {"reverse", no_argument, &reversetest, 1},
+ #endif
++{"socketOffloadToAsp", no_argument, NULL, 'O'},
+ {0, 0, 0, 0}
+ };
+ 
+@@ -184,12 +185,13 @@
+ {"IPERF_SUGGEST_WIN_SIZE", required_argument, NULL, 'W'},
+ {"IPERF_PEER_DETECT", required_argument, NULL, 'X'},
+ {"IPERF_CONGESTION_CONTROL",  required_argument, NULL, 'Z'},
++{"IPERF_SOCKET_OFFLOAD_TO_ASP", no_argument, NULL, 'O'},
+ {0, 0, 0, 0}
+ };
+ 
+ #define SHORT_OPTIONS()
+ 
+-const char short_options[] = "1b:c:def:hi:l:mn:o:p:rst:uvw:x:y:zB:CDF:IL:M:NP:RS:T:UVWXZ:";
++const char short_options[] = "1b:c:def:hi:l:mn:o:p:rst:uvw:x:y:zB:CDF:IL:M:NOP:RS:T:UVWXZ:";
+ 
+ /* -------------------------------------------------------------------
+  * defaults
+@@ -665,6 +667,11 @@
+ #endif
+ 	    break;
+ 
++        case 'O': // SOCKET_OFFLOAD_TO_ASP
++            setSocketOffloadToAsp( mExtSettings );
++            fprintf( stderr, "Offload to ASP is set >>>>>>>>>>>>>: flags=0x%x\n", mExtSettings->flags);
++            break;
++
+         case 0:
+ 	    if (seqno64b) {
+ #ifdef HAVE_SEQNO64b
+diff -ru iperf-2.0.10/src/sockets.c iperf-2.0.10.mod/src/sockets.c
+--- iperf-2.0.10/src/sockets.c	2017-08-08 20:54:14.000000000 -0700
++++ iperf-2.0.10.mod/src/sockets.c	2019-02-19 09:11:27.085642908 -0800
+@@ -251,7 +251,44 @@
+ #endif
+ }
+ 
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <fcntl.h>
++#include <sys/ioctl.h>
++#include <arpa/inet.h>      /* For inet_ntoa */
++#include "../../../../../../../BSEAV/linux/driver/asp_offload/asp_offload_api.h"
++int offloadConnxToAspHw(int socketFd, unsigned maxBitRate) {
++    int                     err;
++    int                     fd;
++    ASP_OffloadSocketFromLinuxInfo socketInfo;
+ 
++    fd = open("/dev/b_asp", O_RDWR);
++    if (fd < 0) { perror("opening of /dev/b_asp failed: "); return -1;}
++
++    socketInfo.socketFdToOffload    = socketFd;
++    socketInfo.maxBitRate           = maxBitRate;
++    err = ioctl(fd, ASP_IOC_OFFLOAD_SOCKET_FROM_LINUX, (unsigned long)(&socketInfo));
++    if (err != 0) { perror("ioctl ASP_IOC_OFFLOAD_SOCKET_FROM_LINUX: "); assert(0);}
++    close(fd);
++    return 0;
++}
++
++int offloadConnxFromAspHw(int socketFd) {
++    int err;
++    int fd;
++    ASP_OffloadSocketToLinuxInfo socketInfo;
++
++    printf("Offload connection back from ASP to Linux...\n");
++    fd = open("/dev/b_asp", O_RDWR);
++    if (fd < 0) { perror("opening of /dev/b_asp failed: "); return -1;}
++
++    socketInfo.socketFdToOffload    = socketFd;
++    socketInfo.timeoutInMsec    = 0;
++    err = ioctl(fd, ASP_IOC_OFFLOAD_SOCKET_TO_LINUX, (unsigned long)(&socketInfo));
++    if (err != 0) { perror("ioctl ASP_IOC_OFFLOAD_SOCKET_TO_LINUX: "); assert(0);}
++    close(fd);
++    return 0;
++}
+ #ifdef __cplusplus
+ } /* end extern "C" */
+ #endif

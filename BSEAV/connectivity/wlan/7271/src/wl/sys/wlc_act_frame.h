@@ -27,7 +27,7 @@ extern int wlc_send_action_frame(wlc_info_t *wlc, wlc_bsscfg_t *cfg,
 	const struct ether_addr *bssid, void *action_frame);
 extern int wlc_tx_action_frame_now(wlc_info_t *wlc, wlc_bsscfg_t *cfg, void *pkt, struct scb *scb);
 extern int wlc_is_publicaction(wlc_info_t * wlc, struct dot11_header *hdr,
-                               int len, struct scb *scb, wlc_bsscfg_t *bsscfg);
+	int len, struct scb *scb, wlc_bsscfg_t *bsscfg, uint8 cat, uint8 act);
 
 typedef int (*wlc_act_frame_tx_cb_fn_t)(wlc_info_t *wlc, void *arg, void *pkt);
 

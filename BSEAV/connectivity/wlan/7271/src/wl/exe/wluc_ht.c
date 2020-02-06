@@ -109,7 +109,7 @@ wluc_ht_module_init(void)
 /* Format a ratespec for "nrate" output
  * Will handle both current wl_ratespec and legacy (ioctl_version 1) nrate ratespec
  */
-static void
+void
 wl_nrate_print(uint32 rspec)
 {
 	const char * rspec_auto = "auto";

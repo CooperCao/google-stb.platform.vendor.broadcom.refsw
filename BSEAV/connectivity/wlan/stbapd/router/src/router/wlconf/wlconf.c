@@ -2329,7 +2329,9 @@ wlconf(char *name)
 						" add %s type __%s", name, bsscfg->ifname,
 						nvram_safe_get(strcat_r(bsscfg->prefix,
 								"mode", var)));
-				system(tmp);
+				if (!system(tmp)){
+               WLCONF_DBG("Call system %s returned 0\n", tmp);
+            }
 			}
 #endif /* CONFIG_HOSTAPD */
 			strcat_r(bsscfg->prefix, "ssid", tmp);

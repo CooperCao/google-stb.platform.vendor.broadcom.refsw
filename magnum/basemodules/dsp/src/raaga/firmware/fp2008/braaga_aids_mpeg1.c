@@ -161,7 +161,7 @@ const uint32_t BDSP_IMG_mpeg1_ids_array1[] = {
 	0x940c45cb,
 	0x94081bcb,
 	0xa7608dd7,
-	0x001fffc3,
+	0x001fffc2,
 	0x7400010f,
 	0x741c03cf,
 	0x07bffe17,
@@ -169,7 +169,7 @@ const uint32_t BDSP_IMG_mpeg1_ids_array1[] = {
 	0x74020603,
 	0x3d840003,
 	0xa72e8dd7,
-	0x001fdfce,
+	0x001fdfcd,
 	0x740e1907,
 	0x741c0fcf,
 	0x7404050f,
@@ -190,7 +190,7 @@ const uint32_t BDSP_IMG_mpeg1_ids_array1[] = {
 	0x941011cf,
 	0x941445cf,
 	0xa71e8dd7,
-	0x001fffc4,
+	0x001fffc3,
 	0x761c01cf,
 	0x2b00fe0f,
 	0x94004907,
@@ -214,7 +214,7 @@ const uint32_t BDSP_IMG_mpeg1_ids_array1[] = {
 	0x46104207,
 	0x46110817,
 	0xa71d8dd7,
-	0x001fffc7,
+	0x001fffc6,
 	0xb6f989ff,
 	0x07a47f27,
 	0x74121c0f,
@@ -2269,7 +2269,7 @@ const uint32_t BDSP_IMG_mpeg1_ids_array1[] = {
 	0x001fffd5,
 	0x07bffe03,
 	0xa70b09d7,
-	0x001fdfc9,
+	0x001fdfc8,
 	0x013fffff,
 	0x63d60547,
 	0x013fffff,
@@ -2446,7 +2446,7 @@ const uint32_t BDSP_IMG_mpeg1_ids_header [2] = {sizeof(BDSP_IMG_mpeg1_ids_array1
 const void * const BDSP_IMG_mpeg1_ids [2] = {BDSP_IMG_mpeg1_ids_header, BDSP_IMG_mpeg1_ids_array1};
 const uint32_t BDSP_IMG_mpeg1_ids_inter_frame_array1[] = {
 	0x00000000,
-	0x0000107b
+	0x0000107c
 };
 const uint32_t BDSP_IMG_mpeg1_ids_inter_frame_header [2] = {sizeof(BDSP_IMG_mpeg1_ids_inter_frame_array1), 1};
 const void * const BDSP_IMG_mpeg1_ids_inter_frame [2] = {BDSP_IMG_mpeg1_ids_inter_frame_header, BDSP_IMG_mpeg1_ids_inter_frame_array1};

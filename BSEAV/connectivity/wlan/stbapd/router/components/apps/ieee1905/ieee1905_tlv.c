@@ -983,7 +983,7 @@ int i5Tlv1905NeighborDeviceTypeInsert(i5_message_type *pmsg)
     return -1;
   }
 
-  if ((pdmdev = i5DmDeviceFind(i5_config.i5_mac_address)) == NULL) {
+  if ((pdmdev = i5DmGetSelfDevice()) == NULL) {
     goto end;
   }
 
@@ -1074,7 +1074,7 @@ int i5Tlv1905NeighborDeviceTypeExtract(i5_message_type *pmsg, unsigned char *pde
     }
   }
   i5Dm1905NeighborDone(pdevid);
-  i5DmTopologyFreeUnreachableDevices();
+  i5DmTopologyFreeUnreachableDevices(TRUE);
 
   return rc;
 }
@@ -1285,7 +1285,7 @@ int i5TlvPushButtonEventNotificationTypeInsert(i5_message_type *pmsg, unsigned c
   unsigned int bufLength = sizeof(i5_tlv_t) + i5TlvPushButtonNotificationMediaCount_Length;
   int rc;
 
-  pdmdev = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdmdev = i5DmGetSelfDevice();
   if ( NULL == pdmdev ) {
     return -1;
   }
@@ -1435,7 +1435,7 @@ int i5TlvPushButtonGenericPhyEventNotificationTypeInsert(i5_message_type *pmsg)
   unsigned int bufLength = sizeof(i5_tlv_t) + i5TlvPushButtonNotificationMediaCount_Length;
   int rc;
 
-  pdmdev = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdmdev = i5DmGetSelfDevice();
   if ( NULL == pdmdev ) {
     return -1;
   }
@@ -2345,7 +2345,7 @@ int i5TlvSupportedServiceTypeInsert(i5_message_type *pmsg)
   i5_tlv_t *ptlv;
   int rc = 0;
 
-  if ((pdmdev = i5DmDeviceFind(i5_config.i5_mac_address)) == NULL) {
+  if ((pdmdev = i5DmGetSelfDevice()) == NULL) {
     return -1;
   }
 
@@ -2432,7 +2432,7 @@ int i5TlvSearchedServiceTypeInsert(i5_message_type *pmsg, unsigned int searchSer
   i5_tlv_t *ptlv;
   int rc = 0;
 
-  if ((pdmdev = i5DmDeviceFind(i5_config.i5_mac_address)) == NULL) {
+  if ((pdmdev = i5DmGetSelfDevice()) == NULL) {
     return -1;
   }
 
@@ -2570,7 +2570,7 @@ int i5TlvAPOperationalBSSTypeInsert(i5_message_type *pmsg)
   i5_dm_bss_type *pdmbss;
   int rc = 0;
 
-  if ((pdmdev = i5DmDeviceFind(i5_config.i5_mac_address)) == NULL) {
+  if ((pdmdev = i5DmGetSelfDevice()) == NULL) {
     return -1;
   }
 
@@ -2698,7 +2698,7 @@ int i5TlvAssocaitedClientsTypeInsert(i5_message_type *pmsg)
   unsigned char bss_count = 0;
   struct timeval now;
 
-  if ((pdmdev = i5DmDeviceFind(i5_config.i5_mac_address)) == NULL) {
+  if ((pdmdev = i5DmGetSelfDevice()) == NULL) {
     return -1;
   }
 
@@ -4314,7 +4314,7 @@ int i5TlvChannelPreferenceTypeExtract(i5_message_type *pmsg, int isAgent)
   uint8 *chan_list = NULL;
 
   if (isAgent) {
-    pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+    pdevice = i5DmGetSelfDevice();
   } else {
     pdevice = i5DmDeviceFind(i5MessageSrcMacAddressGet(pmsg));
   }
@@ -4472,7 +4472,7 @@ int i5TlvTransmitPowerLimitTypeExtract(i5_message_type *pmsg)
   unsigned int length;
   int ret = 0;
 
-  pdevice = i5DmDeviceFind(i5_config.i5_mac_address);
+  pdevice = i5DmGetSelfDevice();
   if (pdevice == NULL) {
     i5TraceError("Neighbour device does not exist\n");
     ret = -1;
@@ -4482,7 +4482,7 @@ int i5TlvTransmitPowerLimitTypeExtract(i5_message_type *pmsg)
   i5MessageReset(pmsg);
   while ((i5MessageTlvExtract(pmsg, i5TlvTransmitPowerLimitType,
     &length, &pvalue, i5MessageTlvExtractWithoutReset)) == 0) {
-    if (length != MAC_ADDR_LEN + 1) {
+    if (length < MAC_ADDR_LEN + 1) {
       i5TraceError("Invalid  length: %d\n", length);
       ret = -1;
       goto end;

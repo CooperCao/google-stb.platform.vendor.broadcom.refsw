@@ -367,9 +367,18 @@ static void fb_attach_fb_default(GLXX_FRAMEBUFFER_T *fb,
 static void check_consistent_for_default_fb(EGL_SURFACE_T *surface)
 {
 #ifndef NDEBUG
-   khrn_image *color = egl_surface_get_back_buffer(surface);
-   unsigned width = khrn_image_get_width(color);
-   unsigned height = khrn_image_get_height(color);
+   khrn_image *color;
+   EGLint error = egl_surface_get_back_buffer(surface, &color);
+   unsigned width, height;
+   if (error == EGL_SUCCESS)
+   {
+      width = khrn_image_get_width(color);
+      height = khrn_image_get_height(color);
+   }
+   else
+   {
+      width = 0; height = 0;
+   }
 
    assert(width <= GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE);
    assert(height <= GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE);
@@ -421,7 +430,8 @@ void glxx_fb_attach_egl_surface(GLXX_FRAMEBUFFER_T *fb,
    khrn_image *depth = egl_surface_get_aux_buffer(surface, AUX_DEPTH);
    khrn_image *stencil = egl_surface_get_aux_buffer(surface, AUX_STENCIL);
 
-   fb_attach_fb_default(fb, GL_COLOR_ATTACHMENT0, surface, color, ms_color, ms_mode);
+   if (color)
+      fb_attach_fb_default(fb, GL_COLOR_ATTACHMENT0, surface, color, ms_color, ms_mode);
 
    /* if we multisample, depth and stencil are multisampled images */
    if (depth)

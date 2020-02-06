@@ -80,6 +80,7 @@ static const BTRC_Module *video_btrc_modules[] = {
 #endif
 
 static NEXUS_VideoDecoderModuleStatistics g_NEXUS_VideoDecoderModuleStatistics;
+static BKNI_EventHandle g_externalWatchdogEvent;
 
 void NEXUS_VideoDecoder_P_WatchdogHandler(void *data)
 {
@@ -158,6 +159,14 @@ void NEXUS_VideoDecoder_P_WatchdogHandler(void *data)
         }
 #endif
     }
+    if (g_externalWatchdogEvent) {
+        BKNI_SetEvent(g_externalWatchdogEvent);
+    }
+}
+
+void NEXUS_VideoDecoder_SetExternalWatchdogEvent_priv(BKNI_EventHandle event)
+{
+    g_externalWatchdogEvent = event;
 }
 
 void NEXUS_VideoDecoder_P_Watchdog_isr(void *data, int not_used, void *not_used2)

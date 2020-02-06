@@ -1525,10 +1525,18 @@ wlc_lq_rssi_ma_upd(wlc_info_t *wlc, wlc_bsscfg_t *cfg, struct scb *scb,
 	scb_lq_info_t *slqi = SCB_LQ_INFO(lqi, scb);
 	wlc_link_qual_t *link = cfg->link;
 	int rssi_qdb;
+	bool curr_bss = FALSE;
+
+	char eabuf[ETHER_ADDR_STR_LEN], bss_eabuf[ETHER_ADDR_STR_LEN];
+
+	bcm_ether_ntoa(&scb->ea, eabuf);
+	bcm_ether_ntoa(&cfg->BSSID, bss_eabuf);
+	curr_bss = (bcmp(&scb->ea, &cfg->BSSID, ETHER_ADDR_LEN) == 0);
 
 	ASSERT(BSSCFG_STA(cfg) && cfg->BSS);
 
-	if (rssi != WLC_RSSI_INVALID) {
+	/* SWSTB-14734: Update rssi_ma for associated BSS only to avoid erroneous RSSI averaging */
+	if (rssi != WLC_RSSI_INVALID && curr_bss) {
 		bool admit_mcast_only = MA_ADMIT_MCAST_ONLY(blqi->rssi_window_sz);
 		uint16 rssi_window_sz = MA_WIN_SZ(blqi->rssi_window_sz);
 
@@ -1560,6 +1568,7 @@ wlc_lq_rssi_ma_upd(wlc_info_t *wlc, wlc_bsscfg_t *cfg, struct scb *scb,
 			if (blqi->rssi_count < rssi_window_sz) {
 				blqi->rssi_count++;
 			}
+
 			rssi_qdb = blqi->rssi_tot / blqi->rssi_count;
 			link->rssi_qdb = (uint8)(rssi_qdb & 3);
 			link->rssi = (int8)(rssi_qdb >> 2);
@@ -1680,10 +1689,19 @@ wlc_lq_snr_ma_upd(wlc_info_t *wlc, wlc_bsscfg_t *cfg, struct scb *scb, uint8 snr
 	bss_lq_info_t *blqi = BSS_LQ_INFO(lqi, cfg);
 	scb_lq_info_t *slqi = SCB_LQ_INFO(lqi, scb);
 	wlc_link_qual_t *link = cfg->link;
+	bool curr_bss;
+
+	char eabuf[ETHER_ADDR_STR_LEN], bss_eabuf[ETHER_ADDR_STR_LEN];
+
+	bcm_ether_ntoa(&scb->ea, eabuf);
+	bcm_ether_ntoa(&cfg->BSSID, bss_eabuf);
+
+	curr_bss = (bcmp(&scb->ea, &cfg->BSSID, ETHER_ADDR_LEN) == 0);
 
 	ASSERT(BSSCFG_STA(cfg) && cfg->BSS);
 
-	if (snr != WLC_SNR_INVALID) {
+	/* SWSTB-14734: Update snnr_ma for associated BSS only to avoid erroneous SNR averaging */
+	if (snr != WLC_SNR_INVALID && curr_bss) {
 		bool admit_mcast_only = MA_ADMIT_MCAST_ONLY(blqi->snr_window_sz);
 		uint16 snr_window_sz = MA_WIN_SZ(blqi->snr_window_sz);
 
@@ -1817,6 +1835,7 @@ int8
 wlc_lq_noise_ma_upd(wlc_info_t *wlc, int8 noise)
 {
 	wlc_lq_info_t *lqi = wlc->lqi;
+
 
 	/* Asymmetric noise floor filter:
 	 *	Going up slowly by only +1
@@ -3667,7 +3686,7 @@ BCMATTACHFN(wlc_lq_chanim_attach)(wlc_info_t *wlc)
 
 #if defined(BCMDBG_DUMP)
 	wlc_dump_register(wlc->pub, "chanim", (dump_fn_t)wlc_dump_chanim, (void *)wlc);
-#endif 
+#endif
 
 	c_info->config.crsglitch_thres = CRSGLITCH_THRESHOLD_DEFAULT;
 	c_info->config.ccastats_thres = CCASTATS_THRESHOLD_DEFAULT;

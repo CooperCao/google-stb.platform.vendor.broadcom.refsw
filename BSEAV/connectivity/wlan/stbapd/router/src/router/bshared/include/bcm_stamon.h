@@ -27,11 +27,15 @@
 #include "typedefs.h"
 #include "bcmutils.h"
 
-#define BCM_STAMON_VERSION		1
-#define STAMON_DEFAULT_MONITOR_TIMEOUT  200     /* In milliseconds */
-#define STAMON_DEFAULT_STA_LOAD_FREQ    5       /* Default sta load frequency */
-#define STAMON_MAX_OFFCHAN_COUNT        1000    /* Max count for off-channel monitoring */
-#define STAMON_DEFAULT_OFFCHAN_TIME     10      /* off-channel time in ms */
+#define BCM_STAMON_VERSION			1
+#define STAMON_DEFAULT_MONITOR_TIMEOUT_2G	200  /* In milliseconds for 2G */
+#define STAMON_DEFAULT_STA_LOAD_FREQ_2G		1    /* Default sta load frequency for 2G */
+#define STAMON_MAX_OFFCHAN_COUNT_2G		1000 /* Max count off-channel monitoring for 2G */
+#define STAMON_DEFAULT_OFFCHAN_TIME_2G		20   /* off-channel time in ms for 2G */
+#define STAMON_DEFAULT_MONITOR_TIMEOUT_5G	200  /* In milliseconds for 5G */
+#define STAMON_DEFAULT_STA_LOAD_FREQ_5G		5    /* Default sta load frequency for 5G */
+#define STAMON_MAX_OFFCHAN_COUNT_5G		1000 /* Max count off-channel monitoring for 5G */
+#define STAMON_DEFAULT_OFFCHAN_TIME_5G		10   /* off-channel time in ms for 5G */
 #define BCM_NVRAM_STAMON_CONFIG         "bcm_stamon_config"
 
 /* Define error codes */

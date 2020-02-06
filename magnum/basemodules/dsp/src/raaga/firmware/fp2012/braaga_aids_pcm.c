@@ -474,7 +474,7 @@ const uint32_t BDSP_IMG_pcm_ids_array1[] = {
 	0xc1808410,
 	0xf5418487,
 	0x9802d100,
-	0x877b73a7,
+	0x877b33a7,
 	0x9000810f,
 	0x98240907,
 	0x9000000f,
@@ -603,7 +603,7 @@ const uint32_t BDSP_IMG_pcm_ids_header [2] = {sizeof(BDSP_IMG_pcm_ids_array1), 1
 const void * const BDSP_IMG_pcm_ids [2] = {BDSP_IMG_pcm_ids_header, BDSP_IMG_pcm_ids_array1};
 const uint32_t BDSP_IMG_pcm_ids_inter_frame_array1[] = {
 	0x00000000,
-	0x0000107b
+	0x0000107c
 };
 const uint32_t BDSP_IMG_pcm_ids_inter_frame_header [2] = {sizeof(BDSP_IMG_pcm_ids_inter_frame_array1), 1};
 const void * const BDSP_IMG_pcm_ids_inter_frame [2] = {BDSP_IMG_pcm_ids_inter_frame_header, BDSP_IMG_pcm_ids_inter_frame_array1};

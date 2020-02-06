@@ -313,9 +313,10 @@ static EGLint make_current(EGL_THREAD_T *thread, egl_api_t api,
          if (surface_thread && surface_thread != thread)
             return EGL_BAD_ACCESS;
 
-         if (egl_surface_get_back_buffer(surfaces[i]) == NULL)
-            return EGL_BAD_NATIVE_WINDOW;
-            /* TODO: return EGL_BAD_ALLOC if aux buffers could not be resized */
+         khrn_image *unused;
+         EGLint result = egl_surface_get_back_buffer(surfaces[i], &unused);
+         if (result != EGL_SUCCESS)
+            return result;
 
          if (!egl_config_context_surface_compatible(context, surfaces[i]))
             return EGL_BAD_MATCH;
